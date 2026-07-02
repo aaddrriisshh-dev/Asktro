@@ -148,6 +148,16 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 
 ---
 
+## Android build notes (Phase A)
+- `agora_rtc_engine` pinned to `6.3.2` (6.5.x pulls native AARs with a duplicate
+  `io.agora.rtc` namespace that breaks the Android manifest merge).
+- Voice-notes (`record`/`audioplayers`) removed for now — the `record` federated
+  package shipped an incompatible `record_linux`. Chat keeps text, images,
+  typing, read receipts. Voice notes can return later on a verified version.
+- Each Flutter app's `android/build.gradle.kts` needs a subprojects block forcing
+  `compileSdkVersion(36)` so plugin modules (agora, firebase) resolve their
+  AndroidX deps; `android/app/build.gradle.kts` uses compileSdk 36 / minSdk 24.
+
 ## Status log
 - **2026-07-02** — Phase 0 started: scaffold + ROADMAP created.
 - **2026-07-02** — Phase 0 done (all docs + root config committed).

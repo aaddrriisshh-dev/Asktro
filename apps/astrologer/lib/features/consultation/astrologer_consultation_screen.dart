@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -202,9 +201,6 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                     itemBuilder: (_, i) {
                       final m = messages[i];
                       final mine = m['senderId'] == widget.self.id;
-                      if (m['type'] == 'voice') {
-                        return _AstroVoiceBubble(url: (m['voice'] ?? '') as String, mine: mine);
-                      }
                       final image = m['image'] as String?;
                       final hasImage = image != null && image.isNotEmpty;
                       return Align(
@@ -370,75 +366,6 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
           children: [Text(k, style: AppTypography.caption), Text(v, style: AppTypography.body)],
         ),
       );
-}
-
-/// Inline voice-note player for the astrologer side.
-class _AstroVoiceBubble extends StatefulWidget {
-  const _AstroVoiceBubble({required this.url, required this.mine});
-  final String url;
-  final bool mine;
-
-  @override
-  State<_AstroVoiceBubble> createState() => _AstroVoiceBubbleState();
-}
-
-class _AstroVoiceBubbleState extends State<_AstroVoiceBubble> {
-  final _player = AudioPlayer();
-  bool _playing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _player.onPlayerComplete.listen((_) {
-      if (mounted) setState(() => _playing = false);
-    });
-  }
-
-  @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
-  }
-
-  Future<void> _toggle() async {
-    if (_playing) {
-      await _player.pause();
-      setState(() => _playing = false);
-    } else {
-      await _player.play(UrlSource(widget.url));
-      setState(() => _playing = true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final mine = widget.mine;
-    final fg = mine ? Colors.white : AppColors.primary;
-    return Align(
-      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
-        decoration: BoxDecoration(
-          gradient: mine ? AppColors.primaryGradient : null,
-          color: mine ? null : AppColors.card,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: mine ? null : AppShadows.soft,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              onPressed: _toggle,
-              icon: Icon(_playing ? Icons.pause_circle_filled : Icons.play_circle_fill, color: fg),
-            ),
-            Icon(Icons.graphic_eq_rounded, color: fg),
-            const SizedBox(width: 10),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // ---- providers scoped to this screen ----

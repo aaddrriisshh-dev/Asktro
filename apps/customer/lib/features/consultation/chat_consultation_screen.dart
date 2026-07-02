@@ -1,13 +1,9 @@
-import 'dart:io';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:record/record.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
@@ -59,10 +55,7 @@ class ChatConsultationScreen extends ConsumerStatefulWidget {
 
 class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen> {
   final _input = TextEditingController();
-  final _recorder = AudioRecorder();
   bool _lowBalanceShown = false;
-  bool _recording = false;
-  DateTime? _recordStart;
 
   String get _id => widget.consultationId;
 
@@ -78,7 +71,6 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   @override
   void dispose() {
     _input.dispose();
-    _recorder.dispose();
     super.dispose();
   }
 
@@ -122,41 +114,6 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       'delivered': true,
       'seen': false,
     });
-  }
-
-  Future<void> _toggleRecord() async {
-    final uid = ref.read(currentUidProvider);
-    if (uid == null) return;
-    if (_recording) {
-      final path = await _recorder.stop();
-      setState(() => _recording = false);
-      if (path == null) return;
-      final durationMs = _recordStart == null
-          ? 0
-          : DateTime.now().difference(_recordStart!).inMilliseconds;
-      final store = FirebaseStorage.instance
-          .ref('voice_notes/$_id/${DateTime.now().millisecondsSinceEpoch}.m4a');
-      await store.putFile(File(path), SettableMetadata(contentType: 'audio/mp4'));
-      final url = await store.getDownloadURL();
-      await _messagesCol.add({
-        'senderId': uid,
-        'type': 'voice',
-        'voice': url,
-        'durationMs': durationMs,
-        'timestamp': FieldValue.serverTimestamp(),
-        'delivered': true,
-        'seen': false,
-      });
-    } else {
-      if (!await _recorder.hasPermission()) return;
-      final dir = await getTemporaryDirectory();
-      final file = '${dir.path}/vn_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: file);
-      setState(() {
-        _recording = true;
-        _recordStart = DateTime.now();
-      });
-    }
   }
 
   DateTime _lastTypingWrite = DateTime.fromMillisecondsSinceEpoch(0);
@@ -325,13 +282,6 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                       itemBuilder: (_, i) {
                         final m = messages[i];
                         final mine = m['senderId'] == uid;
-                        if (m['type'] == 'voice') {
-                          return _VoiceBubble(
-                            url: (m['voice'] ?? '') as String,
-                            durationMs: (m['durationMs'] ?? 0) as int,
-                            mine: mine,
-                          );
-                        }
                         return _Bubble(
                           text: (m['text'] ?? '') as String,
                           imageUrl: m['image'] as String?,
@@ -354,8 +304,6 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
               controller: _input,
               onSend: _send,
               onAttach: _sendImage,
-              onMic: _toggleRecord,
-              recording: _recording,
               onChanged: (v) => _setTyping(v.trim().isNotEmpty),
             ),
           ],
@@ -430,15 +378,11 @@ class _Composer extends StatelessWidget {
     required this.controller,
     required this.onSend,
     required this.onAttach,
-    required this.onMic,
-    required this.recording,
     required this.onChanged,
   });
   final TextEditingController controller;
   final VoidCallback onSend;
   final VoidCallback onAttach;
-  final VoidCallback onMic;
-  final bool recording;
   final ValueChanged<String> onChanged;
 
   @override
@@ -451,123 +395,29 @@ class _Composer extends StatelessWidget {
         top: AppSpacing.sm,
         bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.sm,
       ),
-      child: recording
-          ? Row(
-              children: [
-                const SizedBox(width: 8),
-                const Icon(Icons.fiber_manual_record, color: AppColors.error, size: 14),
-                const SizedBox(width: 8),
-                Text('Recording… tap to send', style: AppTypography.body),
-                const Spacer(),
-                IconButton.filled(
-                  style: IconButton.styleFrom(backgroundColor: AppColors.primary),
-                  onPressed: onMic,
-                  icon: const Icon(Icons.stop_rounded, color: Colors.white),
-                ),
-              ],
-            )
-          : Row(
-              children: [
-                IconButton(
-                  onPressed: onAttach,
-                  icon: const Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary),
-                  tooltip: 'Send image',
-                ),
-                IconButton(
-                  onPressed: onMic,
-                  icon: const Icon(Icons.mic_none_rounded, color: AppColors.primary),
-                  tooltip: 'Record voice note',
-                ),
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    minLines: 1,
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    onChanged: onChanged,
-                    decoration: const InputDecoration(hintText: 'Type a message...', filled: false, border: InputBorder.none),
-                  ),
-                ),
-                IconButton.filled(
-                  style: IconButton.styleFrom(backgroundColor: AppColors.primary),
-                  onPressed: onSend,
-                  icon: const Icon(Icons.send_rounded, color: Colors.white),
-                ),
-              ],
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onAttach,
+            icon: const Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary),
+            tooltip: 'Send image',
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              minLines: 1,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              onChanged: onChanged,
+              decoration: const InputDecoration(hintText: 'Type a message...', filled: false, border: InputBorder.none),
             ),
-    );
-  }
-}
-
-/// Inline voice-note player (play/pause + duration) using audioplayers.
-class _VoiceBubble extends StatefulWidget {
-  const _VoiceBubble({required this.url, required this.durationMs, required this.mine});
-  final String url;
-  final int durationMs;
-  final bool mine;
-
-  @override
-  State<_VoiceBubble> createState() => _VoiceBubbleState();
-}
-
-class _VoiceBubbleState extends State<_VoiceBubble> {
-  final _player = AudioPlayer();
-  bool _playing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _player.onPlayerComplete.listen((_) {
-      if (mounted) setState(() => _playing = false);
-    });
-  }
-
-  @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
-  }
-
-  Future<void> _toggle() async {
-    if (_playing) {
-      await _player.pause();
-      setState(() => _playing = false);
-    } else {
-      await _player.play(UrlSource(widget.url));
-      setState(() => _playing = true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final mine = widget.mine;
-    final fg = mine ? Colors.white : AppColors.primary;
-    final secs = (widget.durationMs / 1000).round();
-    return Align(
-      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 6),
-        decoration: BoxDecoration(
-          gradient: mine ? AppColors.primaryGradient : null,
-          color: mine ? null : AppColors.card,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: mine ? null : AppShadows.soft,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              onPressed: _toggle,
-              icon: Icon(_playing ? Icons.pause_circle_filled : Icons.play_circle_fill, color: fg),
-            ),
-            Icon(Icons.graphic_eq_rounded, color: fg.withValues(alpha: 0.7)),
-            const SizedBox(width: 8),
-            Text(Money.formatDuration(secs),
-                style: AppTypography.caption.copyWith(color: fg)),
-            const SizedBox(width: 6),
-          ],
-        ),
+          ),
+          IconButton.filled(
+            style: IconButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: onSend,
+            icon: const Icon(Icons.send_rounded, color: Colors.white),
+          ),
+        ],
       ),
     );
   }
