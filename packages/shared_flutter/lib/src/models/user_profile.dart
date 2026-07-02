@@ -17,6 +17,13 @@ class UserProfile extends Equatable {
     this.favouriteAstrologers = const [],
     this.followingAstrologers = const [],
     this.accountStatus = 'active',
+    this.gender,
+    this.birthDateMs,
+    this.birthTime,
+    this.birthTimeKnown = true,
+    this.birthPlace,
+    this.languages = const [],
+    this.onboardingComplete = false,
   });
 
   final String id;
@@ -34,7 +41,19 @@ class UserProfile extends Equatable {
   final List<String> followingAstrologers;
   final String accountStatus;
 
+  // ---- Astrology profile (collected during onboarding) ----
+  final String? gender; // 'male' | 'female'
+  final int? birthDateMs; // epoch millis (date component)
+  final String? birthTime; // 'HH:mm' 24h, or null if unknown
+  final bool birthTimeKnown;
+  final String? birthPlace; // free-text city, country
+  final List<String> languages;
+  final bool onboardingComplete;
+
   int get spendablePaise => walletBalance + bonusBalance;
+
+  DateTime? get birthDate =>
+      birthDateMs == null ? null : DateTime.fromMillisecondsSinceEpoch(birthDateMs!);
 
   factory UserProfile.fromMap(String id, Map<String, dynamic> m) => UserProfile(
         id: id,
@@ -51,6 +70,13 @@ class UserProfile extends Equatable {
         favouriteAstrologers: List<String>.from(m['favouriteAstrologers'] ?? const []),
         followingAstrologers: List<String>.from(m['followingAstrologers'] ?? const []),
         accountStatus: (m['accountStatus'] ?? 'active') as String,
+        gender: m['gender'] as String?,
+        birthDateMs: (m['birthDateMs'] as num?)?.toInt(),
+        birthTime: m['birthTime'] as String?,
+        birthTimeKnown: (m['birthTimeKnown'] ?? true) as bool,
+        birthPlace: m['birthPlace'] as String?,
+        languages: List<String>.from(m['languages'] ?? const []),
+        onboardingComplete: (m['onboardingComplete'] ?? false) as bool,
       );
 
   @override
@@ -58,5 +84,7 @@ class UserProfile extends Equatable {
         id, name, phone, email, profilePhoto, walletBalance, bonusBalance,
         referralCode, referredBy, totalConsultations, notificationEnabled,
         favouriteAstrologers, followingAstrologers, accountStatus,
+        gender, birthDateMs, birthTime, birthTimeKnown, birthPlace,
+        languages, onboardingComplete,
       ];
 }

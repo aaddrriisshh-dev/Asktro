@@ -8,7 +8,7 @@ import '../features/splash/splash_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/otp_screen.dart';
-import '../features/home/home_shell.dart';
+import '../features/home/home_gate.dart';
 import '../features/astrologer/astrologer_profile_screen.dart';
 import '../features/wallet/recharge_screen.dart';
 
@@ -62,7 +62,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           return OtpScreen(args: args);
         },
       ),
-      GoRoute(path: '/home', builder: (_, __) => const HomeShell()),
+      GoRoute(path: '/home', builder: (_, __) => const HomeGate()),
       GoRoute(
         path: '/astrologer/:id',
         builder: (_, s) => AstrologerProfileScreen(astrologerId: s.pathParameters['id']!),
