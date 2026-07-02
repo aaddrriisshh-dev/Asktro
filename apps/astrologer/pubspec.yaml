@@ -24,7 +24,8 @@ dependencies:
   firebase_analytics: ^11.3.3
   firebase_crashlytics: ^4.1.3
 
-  agora_rtc_engine: 6.3.2  # pinned: 6.5.x has an Android namespace clash
+  # NOTE: agora_rtc_engine (voice/video) temporarily removed — see customer
+  # pubspec. Voice/video calls are staged for a dedicated phase.
   google_fonts: ^6.2.1
   cached_network_image: ^3.4.1
   intl: ^0.19.0

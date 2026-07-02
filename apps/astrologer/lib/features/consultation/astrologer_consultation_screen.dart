@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
@@ -25,9 +23,6 @@ class AstrologerConsultationScreen extends ConsumerStatefulWidget {
 class _State extends ConsumerState<AstrologerConsultationScreen> {
   final _input = TextEditingController();
   Timer? _heartbeat;
-  RtcEngine? _engine;
-  int? _remoteUid;
-  String? _channel;
   bool _accepting = false;
 
   String get _id => widget.consultationId;
@@ -36,8 +31,6 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   void dispose() {
     _heartbeat?.cancel();
     _input.dispose();
-    _engine?.leaveChannel();
-    _engine?.release();
     super.dispose();
   }
 
@@ -57,9 +50,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
     if (!mounted) return;
     setState(() => _accepting = false);
     r.when(
-      success: (_) {
-        if (c.type != ConsultationType.chat) _joinCall(c);
-      },
+      success: (_) {},
       failure: (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))),
     );
   }
@@ -72,40 +63,6 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   Future<void> _end() async {
     await ref.read(consultationServiceProvider).end(_id);
     if (mounted) Navigator.of(context).pop();
-  }
-
-  Future<void> _joinCall(Consultation c) async {
-    await (c.type == ConsultationType.video
-        ? [Permission.microphone, Permission.camera]
-        : [Permission.microphone])
-        .request();
-    final creds = (await ref.read(_tokenProvider(_id).future));
-    if (creds == null) return;
-    final engine = createAgoraRtcEngine();
-    await engine.initialize(RtcEngineContext(appId: creds.appId));
-    _engine = engine;
-    _channel = creds.channel;
-    engine.registerEventHandler(RtcEngineEventHandler(
-      onUserJoined: (_, uid, __) => setState(() => _remoteUid = uid),
-      onUserOffline: (_, uid, __) => setState(() => _remoteUid = null),
-    ));
-    if (c.type == ConsultationType.video) {
-      await engine.enableVideo();
-      await engine.startPreview();
-    } else {
-      await engine.enableAudio();
-    }
-    await engine.joinChannel(
-      token: creds.token,
-      channelId: creds.channel,
-      uid: creds.uid,
-      options: ChannelMediaOptions(
-        channelProfile: ChannelProfileType.channelProfileCommunication,
-        clientRoleType: ClientRoleType.clientRoleBroadcaster,
-        publishCameraTrack: c.type == ConsultationType.video,
-        publishMicrophoneTrack: true,
-      ),
-    );
   }
 
   Future<void> _send(Consultation c) async {
@@ -282,31 +239,23 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   }
 
   Widget _callView(Consultation c) {
+    // Voice/video calls are staged for a later build; show a simple session
+    // screen with the live timer and an End control.
     return Scaffold(
       backgroundColor: const Color(0xFF1E1330),
       body: SafeArea(
         child: Stack(
           children: [
-            Positioned.fill(
-              child: c.type == ConsultationType.video && _remoteUid != null && _engine != null
-                  ? AgoraVideoView(
-                      controller: VideoViewController.remote(
-                        rtcEngine: _engine!,
-                        canvas: VideoCanvas(uid: _remoteUid),
-                        connection: RtcConnection(channelId: _channel ?? ''),
-                      ),
-                    )
-                  : Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.person, color: Colors.white54, size: 80),
-                          const SizedBox(height: AppSpacing.md),
-                          Text('Customer • ${Money.formatDuration(c.billedSeconds)}',
-                              style: AppTypography.body.copyWith(color: Colors.white70)),
-                        ],
-                      ),
-                    ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.person, color: Colors.white54, size: 80),
+                  const SizedBox(height: AppSpacing.md),
+                  Text('Customer • ${Money.formatDuration(c.billedSeconds)}',
+                      style: AppTypography.body.copyWith(color: Colors.white70)),
+                ],
+              ),
             ),
             Align(
               alignment: Alignment.bottomCenter,
@@ -383,23 +332,4 @@ final _messagesProvider =
       .limit(200)
       .snapshots()
       .map((s) => s.docs.map((d) => {'id': d.id, ...d.data()}).toList());
-});
-
-final _tokenProvider = FutureProvider.autoDispose.family<AgoraCredentials?, String>((ref, id) async {
-  // Reuse the same server-minted Agora token endpoint as the customer app.
-  try {
-    final res = await ref
-        .read(functionsProvider)
-        .httpsCallable('generateAgoraToken')
-        .call<Map<String, dynamic>>({'consultationId': id, 'agoraUid': 0});
-    final m = Map<String, dynamic>.from(res.data);
-    return AgoraCredentials(
-      token: m['token'] as String,
-      appId: m['appId'] as String,
-      channel: m['channel'] as String,
-      uid: (m['uid'] ?? 0) as int,
-    );
-  } catch (_) {
-    return null;
-  }
 });

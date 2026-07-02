@@ -6,7 +6,6 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../../data/messaging_service.dart';
 import '../consultation/chat_consultation_screen.dart';
-import '../consultation/call_consultation_screen.dart';
 
 final _astrologerProvider =
     StreamProvider.autoDispose.family<Astrologer, String>((ref, id) {
@@ -26,6 +25,13 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
 
   Future<void> _startConsultation(Astrologer a, ConsultationType type) async {
     if (_starting) return;
+    // Voice/video calls are staged for a later build; chat is available now.
+    if (type != ConsultationType.chat) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Voice & video calls are coming soon. Please use Chat for now.'),
+      ));
+      return;
+    }
     setState(() => _starting = true);
     final res = await ref.read(consultationServiceProvider).create(astrologerId: a.id, type: type);
     if (!mounted) return;
@@ -37,16 +43,9 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
           'type': type.name,
           'astrologerId': a.id,
         });
-        final route = type == ConsultationType.chat
-            ? MaterialPageRoute(
-                builder: (_) => ChatConsultationScreen(consultationId: start.consultationId, astrologer: a))
-            : MaterialPageRoute(
-                builder: (_) => CallConsultationScreen(
-                  consultationId: start.consultationId,
-                  astrologer: a,
-                  video: type == ConsultationType.video,
-                ));
-        Navigator.of(context).push(route);
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => ChatConsultationScreen(consultationId: start.consultationId, astrologer: a),
+        ));
       },
       failure: (f) {
         if (f.code == 'INSUFFICIENT_BALANCE') {
