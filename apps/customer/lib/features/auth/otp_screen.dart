@@ -25,7 +25,7 @@ class OtpScreen extends ConsumerStatefulWidget {
 class _OtpScreenState extends ConsumerState<OtpScreen> {
   final _code = TextEditingController();
   late String _verificationId = widget.args.verificationId;
-  int? _resendToken = widget.args.resendToken;
+  late int? _resendToken = widget.args.resendToken;
   bool _loading = false;
   String? _error;
   int _seconds = 60;

@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cloud_functions/cloud_functions.dart' hide Result;
 import 'package:shared_flutter/shared_flutter.dart';
 
 /// Talks to the billing Cloud Functions. The client never computes money/time —

@@ -1,4 +1,4 @@
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cloud_functions/cloud_functions.dart' hide Result;
 import 'package:shared_flutter/shared_flutter.dart';
 
 class RtcTokenServiceImpl implements RtcTokenService {
