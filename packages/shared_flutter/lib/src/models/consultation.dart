@@ -1,0 +1,107 @@
+import 'package:equatable/equatable.dart';
+import 'enums.dart';
+
+/// Live/finished consultation session. The client only reads these fields; all
+/// billing/timer values are written by Cloud Functions.
+class Consultation extends Equatable {
+  const Consultation({
+    required this.id,
+    required this.customerId,
+    required this.astrologerId,
+    required this.type,
+    required this.status,
+    this.pricePerMinute = 900,
+    this.billedSeconds = 0,
+    this.duration = 0,
+    this.totalCharged = 0,
+    this.walletAfter = 0,
+    this.remainingSec = 0,
+    this.warnLevel = 0,
+    this.agoraChannel,
+    this.receiptNo,
+    this.rating,
+    this.review,
+    this.startTimeMs,
+    this.endTimeMs,
+  });
+
+  final String id;
+  final String customerId;
+  final String astrologerId;
+  final ConsultationType type;
+  final ConsultationStatus status;
+  final int pricePerMinute; // paise
+  final int billedSeconds;
+  final int duration;
+  final int totalCharged; // paise
+  final int walletAfter; // paise
+  final int remainingSec;
+  final int warnLevel; // 0..3
+  final String? agoraChannel;
+  final String? receiptNo;
+  final double? rating;
+  final String? review;
+  final int? startTimeMs;
+  final int? endTimeMs;
+
+  Consultation copyWith({ConsultationStatus? status, int? remainingSec, int? warnLevel}) {
+    return Consultation(
+      id: id,
+      customerId: customerId,
+      astrologerId: astrologerId,
+      type: type,
+      status: status ?? this.status,
+      pricePerMinute: pricePerMinute,
+      billedSeconds: billedSeconds,
+      duration: duration,
+      totalCharged: totalCharged,
+      walletAfter: walletAfter,
+      remainingSec: remainingSec ?? this.remainingSec,
+      warnLevel: warnLevel ?? this.warnLevel,
+      agoraChannel: agoraChannel,
+      receiptNo: receiptNo,
+      rating: rating,
+      review: review,
+      startTimeMs: startTimeMs,
+      endTimeMs: endTimeMs,
+    );
+  }
+
+  factory Consultation.fromMap(String id, Map<String, dynamic> m) {
+    int? ms(dynamic v) {
+      if (v == null) return null;
+      // Firestore Timestamp exposes millisecondsSinceEpoch via toDate() upstream;
+      // callers normalize to int ms before constructing when needed.
+      if (v is int) return v;
+      return null;
+    }
+
+    return Consultation(
+      id: id,
+      customerId: (m['customerId'] ?? '') as String,
+      astrologerId: (m['astrologerId'] ?? '') as String,
+      type: ConsultationType.fromString(m['type'] as String?),
+      status: ConsultationStatus.fromString(m['status'] as String?),
+      pricePerMinute: (m['pricePerMinute'] ?? 900) as int,
+      billedSeconds: (m['billedSeconds'] ?? 0) as int,
+      duration: (m['duration'] ?? 0) as int,
+      totalCharged: (m['totalCharged'] ?? 0) as int,
+      walletAfter: (m['walletAfter'] ?? 0) as int,
+      remainingSec: (m['remainingSec'] ?? 0) as int,
+      warnLevel: (m['warnLevel'] ?? 0) as int,
+      agoraChannel: m['agoraChannel'] as String?,
+      receiptNo: m['receiptNo'] as String?,
+      rating: (m['rating'] as num?)?.toDouble(),
+      review: m['review'] as String?,
+      startTimeMs: ms(m['startTimeMs']),
+      endTimeMs: ms(m['endTimeMs']),
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+        id, customerId, astrologerId, type, status, pricePerMinute, billedSeconds,
+        duration, totalCharged, walletAfter, remainingSec, warnLevel, agoraChannel,
+        receiptNo, rating, review, startTimeMs, endTimeMs,
+      ];
+}

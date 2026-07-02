@@ -34,18 +34,18 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] Root tooling: `.gitignore`
 
 ## Phase 1 — Design system (`packages/shared_flutter`)
-- [ ] Package scaffold (`pubspec.yaml`, analysis_options)
-- [ ] Color palette, spacing, radii, shadows, typography (Poppins)
-- [ ] `AsktroTheme` (light, swappable for future dark)
-- [ ] Buttons: primary (gradient, loading, disabled, scale-tap), secondary
-- [ ] Cards, chips, badges (verified/online), avatars
-- [ ] Inputs: search bar, text field, OTP field
-- [ ] Bottom sheets, dialogs (glass low-balance dialog)
-- [ ] Skeleton/shimmer loaders, empty & error state widgets
-- [ ] Animated wallet counter, confetti success, pulse
-- [ ] Shared Dart models (User, Astrologer, Consultation, Wallet, Txn, etc.)
-- [ ] Shared service interfaces (Auth, Wallet, Consultation, Repo contracts)
-- [ ] DI container + Result/failure types + logging + analytics interface
+- [x] Package scaffold (`pubspec.yaml`, analysis_options)
+- [x] Color palette, spacing, radii, shadows, typography (Poppins)
+- [x] `AsktroTheme` (light, swappable for future dark)
+- [x] Buttons: primary (gradient, loading, disabled, scale-tap), secondary, destructive
+- [x] Cards (white + gradient), chips, badges (verified/online/label), avatars (initials fallback)
+- [x] Skeleton/shimmer loaders (self-contained), empty & error state widgets, loading overlay
+- [x] Glass low-balance dialog (blur, spring), animated wallet counter
+- [x] Shared Dart models (UserProfile, Astrologer, Consultation, RechargePlan, Banner, Txn, Notification, enums)
+- [x] Shared service interfaces (Consultation, Wallet, RtcToken, Analytics, Crash, Logger)
+- [x] Result/Failure types + money helpers (paise↔₹, timer formatting)
+- [ ] Inputs (search bar, OTP field) — built in app feature layers
+- [ ] DI container — Riverpod, wired per-app in Phase 4/5
 
 ## Phase 2 — Firebase backend: data model, rules, indexes
 - [x] `firestore.rules` (per-role: user/astrologer/admin)
