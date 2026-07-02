@@ -3,15 +3,16 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import 'onboarding_style.dart';
 
-/// Shared chrome for every onboarding step: the lavender gradient, the faint
-/// zodiac wheel top-right, the temple scenery along the bottom, the centered
-/// logo, the step indicator, scrollable content, and a footer (gold CTA +
-/// "data is secure"). Individual steps only provide their content + footer.
+/// Shared chrome for every onboarding step. Background is composed from a small
+/// reusable celestial library (faint star field + corner glow + subtle temple
+/// scenery) plus ONE contextual illustration per screen in the upper-right
+/// whitespace — decorations never sit behind body text or buttons.
 class OnboardingScaffold extends StatelessWidget {
   const OnboardingScaffold({
     super.key,
     required this.content,
     required this.footer,
+    this.illustration,
     this.stepIndex,
     this.totalSteps = 7,
     this.stepIcon,
@@ -21,6 +22,7 @@ class OnboardingScaffold extends StatelessWidget {
 
   final Widget content;
   final Widget footer;
+  final String? illustration; // per-screen contextual art (upper-right)
   final int? stepIndex; // null hides the stepper
   final int totalSteps;
   final IconData? stepIcon;
@@ -30,74 +32,81 @@ class OnboardingScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: Ob.bg),
-        child: Stack(
-          children: [
-            // faint zodiac wheel, upper-right, bleeding off the edge
+      backgroundColor: Ob.bgColor,
+      body: Stack(
+        children: [
+          // reusable decorative layers (kept very subtle)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Opacity(opacity: 0.6, child: Image.asset(Ob.stars, fit: BoxFit.cover)),
+            ),
+          ),
+          Positioned(
+            top: -150,
+            left: -160,
+            child: IgnorePointer(
+              child: Opacity(opacity: 0.5, child: Image.asset(Ob.glow, width: 380)),
+            ),
+          ),
+          if (illustration != null)
             Positioned(
-              top: -30,
-              right: -96,
+              top: 118,
+              right: -26,
               child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.55,
-                  child: Image.asset(Ob.zodiac, width: 300, fit: BoxFit.contain),
-                ),
+                child: Opacity(opacity: 0.92, child: Image.asset(illustration!, width: 214)),
               ),
             ),
-            // temple scenery along the very bottom
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: IgnorePointer(
-                child: Image.asset(Ob.scenery, fit: BoxFit.fitWidth),
-              ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: Opacity(opacity: 0.55, child: Image.asset(Ob.scenery, fit: BoxFit.fitWidth)),
             ),
-            SafeArea(
-              child: Column(
-                children: [
-                  _header(context),
-                  if (stepIndex != null) ...[
-                    const SizedBox(height: 18),
-                    StepBar(currentIndex: stepIndex!, total: totalSteps, currentIcon: stepIcon),
-                  ],
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(24, 26, 24, 12),
-                      child: content,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
-                    child: footer,
-                  ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                _header(),
+                if (stepIndex != null) ...[
+                  const SizedBox(height: 18),
+                  StepBar(currentIndex: stepIndex!, total: totalSteps, currentIcon: stepIcon),
                 ],
-              ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(
+                        Ob.screenPad, Ob.section, Ob.screenPad, 12),
+                    child: content,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(Ob.screenPad, 4, Ob.screenPad, 16),
+                  child: footer,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _header(BuildContext context) {
+  Widget _header() {
     return Column(
       children: [
         if (showExploreMore)
           Align(
             alignment: Alignment.centerRight,
             child: Padding(
-              padding: const EdgeInsets.only(right: 18, top: 4),
+              padding: const EdgeInsets.only(right: 20, top: 6),
               child: GestureDetector(
                 onTap: onExploreMore,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('Explore More',
-                        style: Ob.subtitle.copyWith(
-                            color: Ob.navy, fontWeight: FontWeight.w600)),
+                        style: Ob.subtitle.copyWith(color: Ob.navy, fontWeight: FontWeight.w600)),
                     const Icon(Icons.chevron_right_rounded, color: Ob.navy, size: 20),
                   ],
                 ),
@@ -105,17 +114,15 @@ class OnboardingScaffold extends StatelessWidget {
             ),
           ),
         Padding(
-          padding: EdgeInsets.only(top: showExploreMore ? 2 : 10),
-          child: const AppLogo(height: 46),
+          padding: EdgeInsets.only(top: showExploreMore ? 4 : 14),
+          child: const AppLogo(height: 54),
         ),
       ],
     );
   }
 }
 
-/// The gold-check step indicator. Completed steps show a filled gold circle with
-/// a check; the current step is a gold-ringed white circle holding its icon;
-/// upcoming steps are muted lavender dots.
+/// Gold-check step indicator.
 class StepBar extends StatelessWidget {
   const StepBar({super.key, required this.currentIndex, required this.total, this.currentIcon});
   final int currentIndex;
@@ -151,8 +158,8 @@ class StepBar extends StatelessWidget {
           );
         } else {
           dot = Container(
-            width: 26,
-            height: 26,
+            width: 24,
+            height: 24,
             decoration: const BoxDecoration(color: Color(0xFFE4DEF3), shape: BoxShape.circle),
           );
         }
@@ -162,8 +169,7 @@ class StepBar extends StatelessWidget {
   }
 }
 
-/// Title with an optional word painted in the purple accent (e.g. the
-/// "relationship" in "Tell us your relationship status").
+/// Title with an optional accent word in purple.
 Widget obTitle(String text, {String? accent}) {
   if (accent == null || !text.contains(accent)) {
     return Text(text, style: Ob.title);
@@ -181,7 +187,7 @@ Widget obTitle(String text, {String? accent}) {
   );
 }
 
-/// Thin gold rule with a centered sparkle, used under titles.
+/// Thin gold rule with a centered sparkle.
 class SparkleDivider extends StatelessWidget {
   const SparkleDivider({super.key});
   @override
@@ -189,16 +195,17 @@ class SparkleDivider extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 46, height: 1.5, color: Ob.goldSoft),
+        Container(width: 46, height: 1.4, color: Ob.gold.withValues(alpha: 0.6)),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 8),
           child: Icon(Icons.auto_awesome, color: Ob.gold, size: 15),
         ),
         Container(
           width: 90,
-          height: 1.5,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Ob.goldSoft, Color(0x00EBC974)]),
+          height: 1.4,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+                colors: [Ob.gold.withValues(alpha: 0.6), Ob.gold.withValues(alpha: 0)]),
           ),
         ),
       ],
@@ -206,7 +213,7 @@ class SparkleDivider extends StatelessWidget {
   }
 }
 
-/// The primary gold CTA.
+/// Primary gold CTA — full width, 56dp tall, radius 18.
 class GoldButton extends StatefulWidget {
   const GoldButton({
     super.key,
@@ -234,17 +241,18 @@ class _GoldButtonState extends State<GoldButton> {
       scale: _down ? 0.98 : 1,
       duration: const Duration(milliseconds: 110),
       child: Opacity(
-        opacity: _enabled ? 1 : 0.55,
+        opacity: _enabled ? 1 : 0.5,
         child: GestureDetector(
           onTapDown: _enabled ? (_) => setState(() => _down = true) : null,
           onTapUp: _enabled ? (_) => setState(() => _down = false) : null,
           onTapCancel: _enabled ? () => setState(() => _down = false) : null,
           onTap: _enabled ? widget.onPressed : null,
           child: Container(
-            height: 62,
+            width: double.infinity,
+            height: Ob.btnHeight,
             decoration: BoxDecoration(
               gradient: Ob.goldGradient,
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(Ob.btnRadius),
               boxShadow: _enabled ? Ob.goldShadow : null,
             ),
             child: widget.loading
@@ -252,7 +260,7 @@ class _GoldButtonState extends State<GoldButton> {
                     child: SizedBox(
                       height: 24,
                       width: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2.6, color: Ob.navy),
+                      child: CircularProgressIndicator(strokeWidth: 2.6, color: Colors.white),
                     ),
                   )
                 : Stack(
@@ -261,7 +269,7 @@ class _GoldButtonState extends State<GoldButton> {
                       Text(widget.label, style: Ob.button),
                       if (widget.icon != null)
                         Positioned(
-                          right: 24,
+                          right: Ob.screenPad,
                           child: Icon(widget.icon, color: Ob.navy, size: 22),
                         ),
                     ],
@@ -273,7 +281,7 @@ class _GoldButtonState extends State<GoldButton> {
   }
 }
 
-/// A soft lavender note/tip card with an icon.
+/// Soft lavender note/tip card with an icon.
 class InfoNote extends StatelessWidget {
   const InfoNote({super.key, required this.icon, this.title, required this.body});
   final IconData icon;
@@ -286,12 +294,11 @@ class InfoNote extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(color: Ob.lavender, borderRadius: BorderRadius.circular(18)),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(color: Ob.purple.withValues(alpha: 0.14), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: Ob.purple.withValues(alpha: 0.13), shape: BoxShape.circle),
             child: Icon(icon, color: Ob.purple, size: 20),
           ),
           const SizedBox(width: 12),
@@ -326,7 +333,7 @@ class SecureFooter extends StatelessWidget {
   }
 }
 
-/// Small gold check badge used on selected options.
+/// Small gold check badge for selected options.
 class GoldCheck extends StatelessWidget {
   const GoldCheck({super.key, this.size = 26});
   final double size;
@@ -341,7 +348,7 @@ class GoldCheck extends StatelessWidget {
   }
 }
 
-/// A full-width selectable row (relationship status) with a coloured icon badge.
+/// Full-width selectable row (relationship status) with a coloured icon badge.
 class OptionRow extends StatelessWidget {
   const OptionRow({
     super.key,
@@ -367,10 +374,10 @@ class OptionRow extends StatelessWidget {
         duration: const Duration(milliseconds: 140),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? Ob.selectedFill : Ob.card,
+          color: selected ? Ob.selectedFill : Ob.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: selected ? Ob.selectedBorder : Ob.line,
+            color: selected ? Ob.selectedBorder : Ob.border,
             width: selected ? 1.6 : 1,
           ),
           boxShadow: selected ? null : Ob.softShadow,

@@ -6,7 +6,7 @@ import '../../app/providers.dart';
 import 'onboarding_style.dart';
 import 'onboarding_widgets.dart';
 
-/// First-run onboarding for a new customer, replicating the ASKTRO navy/gold
+/// First-run onboarding for a new customer, in the celestial navy/gold ASKTRO
 /// design: a "Congratulations — free chat unlocked" hook, then a seven-step
 /// wizard (name → gender → birth date → birth time → place → relationship →
 /// languages) that writes the astrology profile to Firestore and flips
@@ -22,16 +22,15 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   static const _totalSteps = 7;
 
-  // -1 = welcome/congrats hook, 0..6 = the seven detail steps.
-  int _step = -1;
+  int _step = -1; // -1 = congrats hook, 0..6 = steps
   bool _saving = false;
 
   late final TextEditingController _name =
       TextEditingController(text: widget.initialName ?? '');
   String? _gender;
   DateTime _birthDate = DateTime(1995, 6, 15);
-  int _hour = 10; // 1..12
-  int _minute = 30; // 0..59
+  int _hour = 10;
+  int _minute = 30;
   bool _pm = true;
   bool _timeUnknown = false;
   String? _birthPlace;
@@ -106,8 +105,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         ));
       }
     }
-    // Success: the profile stream flips onboardingComplete and the home gate
-    // rebuilds into the real home; no manual navigation needed.
   }
 
   Future<void> _skip() async {
@@ -123,12 +120,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 280),
+      duration: const Duration(milliseconds: 250),
       transitionBuilder: (child, anim) => FadeTransition(
         opacity: anim,
         child: SlideTransition(
-          position:
-              Tween(begin: const Offset(0.05, 0), end: Offset.zero).animate(anim),
+          position: Tween(begin: const Offset(0.05, 0), end: Offset.zero).animate(anim),
           child: child,
         ),
       ),
@@ -159,7 +155,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     }
   }
 
-  // Standard footer: gold CTA + secure line.
   Widget _footer(String label, {IconData? icon = Icons.arrow_forward_rounded}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -170,7 +165,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           loading: _saving,
           onPressed: (_canProceed && !_saving) ? _advance : null,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         const SecureFooter(),
       ],
     );
@@ -180,11 +175,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        obTitle(title, accent: accent),
+        // Constrain the heading so long titles wrap on the left and never run
+        // under the upper-right illustration.
+        SizedBox(width: 250, child: obTitle(title, accent: accent)),
         const SizedBox(height: 14),
         const SparkleDivider(),
         const SizedBox(height: 16),
-        Text(subtitle, style: Ob.subtitle),
+        SizedBox(width: 240, child: Text(subtitle, style: Ob.subtitle)),
       ],
     );
   }
@@ -197,9 +194,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       onExploreMore: _saving ? null : _skip,
       content: Column(
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           _giftHero(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           Text('Congratulations!', style: Ob.display, textAlign: TextAlign.center),
           const SizedBox(height: 12),
           RichText(
@@ -235,7 +232,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             loading: _saving,
             onPressed: _saving ? null : () => setState(() => _step = 0),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           const SecureFooter(),
         ],
       ),
@@ -244,15 +241,15 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   Widget _giftHero() {
     return SizedBox(
-      height: 230,
+      height: 220,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Image.asset(Ob.gift, height: 230),
-          _bubble(const Offset(-120, -70), Icons.chat_bubble_rounded),
-          _bubble(const Offset(120, -74), Icons.star_rounded),
-          _bubble(const Offset(-128, 60), Icons.favorite_rounded),
-          _bubble(const Offset(126, 58), Icons.calendar_today_rounded),
+          Image.asset(Ob.gift, height: 220),
+          _bubble(const Offset(-122, -66), Icons.chat_bubble_rounded),
+          _bubble(const Offset(122, -70), Icons.star_rounded),
+          _bubble(const Offset(-128, 58), Icons.favorite_rounded),
+          _bubble(const Offset(126, 56), Icons.calendar_today_rounded),
         ],
       ),
     );
@@ -262,14 +259,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return Transform.translate(
       offset: offset,
       child: Container(
-        width: 52,
-        height: 52,
+        width: 50,
+        height: 50,
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
           boxShadow: Ob.softShadow,
         ),
-        child: Icon(icon, color: Ob.purple, size: 24),
+        child: Icon(icon, color: Ob.purple, size: 23),
       ),
     );
   }
@@ -278,14 +275,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.75),
-        borderRadius: BorderRadius.circular(22),
+        color: Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(Ob.cardRadius),
         boxShadow: Ob.softShadow,
       ),
       child: Row(
         children: [
-          _feature(Icons.chat_bubble_outline_rounded, 'Free 1st Chat', 'Get answers in real-time.'),
-          _feature(Icons.shield_outlined, '100% Private', 'Safe and confidential.'),
+          _feature(Icons.chat_bubble_outline_rounded, 'Free 1st Chat', 'Answers in real-time.'),
+          _feature(Icons.shield_outlined, '100% Private', 'Safe & confidential.'),
           _feature(Icons.workspace_premium_outlined, 'Verified Experts', 'Trusted astrologers.'),
           _feature(Icons.access_time_rounded, 'Quick & Easy', 'Guidance anytime.'),
         ],
@@ -305,9 +302,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center),
             const SizedBox(height: 4),
-            Text(desc,
-                style: Ob.note.copyWith(fontSize: 11),
-                textAlign: TextAlign.center),
+            Text(desc, style: Ob.note.copyWith(fontSize: 11), textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -319,17 +314,17 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 0,
       stepIcon: Icons.person_outline_rounded,
+      illustration: Ob.ilName,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 30),
-          Text('Hey there!', style: Ob.display.copyWith(fontSize: 40)),
+          const SizedBox(height: 34),
+          Text('Hey there!', style: Ob.hero),
           const SizedBox(height: 6),
-          Text('What is your name?',
-              style: Ob.subtitle.copyWith(fontSize: 20, color: Ob.navySoft)),
+          Text('What is your name?', style: Ob.subtitleLg),
           const SizedBox(height: 16),
           const SparkleDivider(),
-          const SizedBox(height: 40),
+          const SizedBox(height: 44),
           _textField(
             controller: _name,
             hint: 'Enter your name',
@@ -349,20 +344,18 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 1,
       stepIcon: Icons.person_rounded,
+      illustration: Ob.ilGender,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 10),
-          _stepHead('What is your gender?',
-              'This helps us personalize your experience.'),
+          const SizedBox(height: 8),
+          _stepHead('What is your gender?', 'This helps us personalize your experience.'),
           const SizedBox(height: 34),
           Row(
             children: [
-              Expanded(
-                  child: _genderCard('male', Icons.man_rounded, 'Male', Ob.gold)),
+              Expanded(child: _genderCard('male', Icons.man_rounded, 'Male', Ob.gold)),
               const SizedBox(width: 16),
-              Expanded(
-                  child: _genderCard('female', Icons.woman_rounded, 'Female', Ob.purple)),
+              Expanded(child: _genderCard('female', Icons.woman_rounded, 'Female', Ob.purple)),
             ],
           ),
         ],
@@ -379,18 +372,17 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         duration: const Duration(milliseconds: 150),
         height: 230,
         decoration: BoxDecoration(
-          color: selected ? Ob.selectedFill : Ob.card,
+          color: selected ? Ob.selectedFill : Ob.surface,
           borderRadius: BorderRadius.circular(26),
           border: Border.all(
-            color: selected ? Ob.selectedBorder : Ob.line,
+            color: selected ? Ob.selectedBorder : Ob.border,
             width: selected ? 1.8 : 1,
           ),
           boxShadow: selected ? null : Ob.softShadow,
         ),
         child: Stack(
           children: [
-            if (selected)
-              const Positioned(top: 12, right: 12, child: GoldCheck(size: 26)),
+            if (selected) const Positioned(top: 12, right: 12, child: GoldCheck(size: 26)),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -405,8 +397,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   child: Icon(icon, color: accent, size: 60),
                 ),
                 const SizedBox(height: 18),
-                Text(label,
-                    style: Ob.title.copyWith(fontSize: 22, color: Ob.navy)),
+                Text(label, style: Ob.optionLabel),
                 const SizedBox(height: 6),
                 Container(width: 26, height: 3, color: accent),
               ],
@@ -422,43 +413,27 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 2,
       stepIcon: Icons.calendar_today_rounded,
+      illustration: Ob.ilDate,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 10),
-          _stepHead('Enter your birth date',
-              'This helps us create your personalized horoscope.'),
+          const SizedBox(height: 8),
+          _stepHead('Enter your birth date', 'This helps us create your personalized horoscope.'),
           const SizedBox(height: 26),
           _wheelCard(
             topLabels: const ['Month', 'Day', 'Year'],
             topIcon: Icons.calendar_today_rounded,
             columns: [
-              _WheelSpec(
-                count: 12,
-                initial: _birthDate.month - 1,
-                label: (i) => _months[i],
-                onChanged: (i) => _syncDate(month: i + 1),
-              ),
-              _WheelSpec(
-                count: 31,
-                initial: _birthDate.day - 1,
-                label: (i) => '${i + 1}',
-                onChanged: (i) => _syncDate(day: i + 1),
-              ),
-              _WheelSpec(
-                count: 2010 - 1920 + 1,
-                initial: _birthDate.year - 1920,
-                label: (i) => '${1920 + i}',
-                onChanged: (i) => _syncDate(year: 1920 + i),
-              ),
+              _WheelSpec(count: 12, initial: _birthDate.month - 1, label: (i) => _months[i], onChanged: (i) => _syncDate(month: i + 1)),
+              _WheelSpec(count: 31, initial: _birthDate.day - 1, label: (i) => '${i + 1}', onChanged: (i) => _syncDate(day: i + 1)),
+              _WheelSpec(count: 2010 - 1920 + 1, initial: _birthDate.year - 1920, label: (i) => '${1920 + i}', onChanged: (i) => _syncDate(year: 1920 + i)),
             ],
           ),
           const SizedBox(height: 20),
           const InfoNote(
             icon: Icons.auto_awesome_rounded,
             title: 'Why we ask this?',
-            body: 'Your birth date is essential to generate accurate '
-                'astrological insights just for you.',
+            body: 'Your birth date is essential to generate accurate astrological insights just for you.',
           ),
         ],
       ),
@@ -470,7 +445,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final y = year ?? _birthDate.year;
     final m = month ?? _birthDate.month;
     final d = day ?? _birthDate.day;
-    // clamp day to valid range for the month
     final lastDay = DateTime(y, m + 1, 0).day;
     _birthDate = DateTime(y, m, d > lastDay ? lastDay : d);
   }
@@ -480,12 +454,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 3,
       stepIcon: Icons.access_time_rounded,
+      illustration: Ob.ilTime,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 10),
-          _stepHead('Enter your birth time',
-              'Accurate birth time allows us to give more precise predictions.'),
+          const SizedBox(height: 8),
+          _stepHead('Enter your birth time', 'Accurate birth time allows us to give more precise predictions.'),
           const SizedBox(height: 26),
           Opacity(
             opacity: _timeUnknown ? 0.45 : 1,
@@ -497,24 +471,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 headerLabel: 'Enter your birth time',
                 bottomLabels: const ['Hour', 'Minute', 'AM / PM'],
                 columns: [
-                  _WheelSpec(
-                    count: 12,
-                    initial: _hour - 1,
-                    label: (i) => (i + 1).toString().padLeft(2, '0'),
-                    onChanged: (i) => _hour = i + 1,
-                  ),
-                  _WheelSpec(
-                    count: 60,
-                    initial: _minute,
-                    label: (i) => i.toString().padLeft(2, '0'),
-                    onChanged: (i) => _minute = i,
-                  ),
-                  _WheelSpec(
-                    count: 2,
-                    initial: _pm ? 1 : 0,
-                    label: (i) => i == 0 ? 'AM' : 'PM',
-                    onChanged: (i) => _pm = i == 1,
-                  ),
+                  _WheelSpec(count: 12, initial: _hour - 1, label: (i) => (i + 1).toString().padLeft(2, '0'), onChanged: (i) => _hour = i + 1),
+                  _WheelSpec(count: 60, initial: _minute, label: (i) => i.toString().padLeft(2, '0'), onChanged: (i) => _minute = i),
+                  _WheelSpec(count: 2, initial: _pm ? 1 : 0, label: (i) => i == 0 ? 'AM' : 'PM', onChanged: (i) => _pm = i == 1),
                 ],
               ),
             ),
@@ -532,10 +491,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       onTap: () => setState(() => _timeUnknown = !_timeUnknown),
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Ob.lavender,
-          borderRadius: BorderRadius.circular(18),
-        ),
+        decoration: BoxDecoration(color: Ob.lavender, borderRadius: BorderRadius.circular(18)),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -546,14 +502,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               decoration: BoxDecoration(
                 color: _timeUnknown ? Ob.gold : Colors.white,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: _timeUnknown ? Ob.gold : const Color(0xFFCFC8E0),
-                  width: 1.5,
-                ),
+                border: Border.all(color: _timeUnknown ? Ob.gold : const Color(0xFFCFC8E0), width: 1.5),
               ),
-              child: _timeUnknown
-                  ? const Icon(Icons.check_rounded, size: 17, color: Colors.white)
-                  : null,
+              child: _timeUnknown ? const Icon(Icons.check_rounded, size: 17, color: Colors.white) : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -562,11 +513,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 children: [
                   Text("I don't know my exact time of birth", style: Ob.noteTitle),
                   const SizedBox(height: 2),
-                  Text(
-                    'No worries! We can still generate up to 80% accurate '
-                    'predictions without birth time.',
-                    style: Ob.note,
-                  ),
+                  Text('No worries! We can still generate up to 80% accurate predictions without birth time.', style: Ob.note),
                 ],
               ),
             ),
@@ -581,17 +528,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 4,
       stepIcon: Icons.location_on_outlined,
+      illustration: Ob.ilPlace,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 10),
-          _stepHead('Where were you born?',
-              'Your birth place helps us calculate accurate planetary positions.'),
+          const SizedBox(height: 8),
+          _stepHead('Where were you born?', 'Your birth place helps us calculate accurate planetary positions.'),
           const SizedBox(height: 22),
-          _CitySearchField(
-            initial: _birthPlace,
-            onSelected: (c) => setState(() => _birthPlace = c),
-          ),
+          _CitySearchField(initial: _birthPlace, onSelected: (c) => setState(() => _birthPlace = c)),
         ],
       ),
       footer: _footer('Next'),
@@ -603,10 +547,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 5,
       stepIcon: Icons.favorite_border_rounded,
+      illustration: Ob.ilRel,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _stepHead('Tell us your relationship status',
               'This helps our astrologers give you more relevant and personalized guidance.',
               accent: 'relationship'),
@@ -619,47 +564,15 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          OptionRow(
-            icon: Icons.favorite_rounded,
-            iconBg: const Color(0xFFFDEBC7),
-            iconColor: const Color(0xFFEBA019),
-            label: 'Married',
-            selected: _relationship == 'married',
-            onTap: () => setState(() => _relationship = 'married'),
-          ),
+          OptionRow(icon: Icons.favorite_rounded, iconBg: const Color(0xFFFBEECB), iconColor: const Color(0xFFCFA232), label: 'Married', selected: _relationship == 'married', onTap: () => setState(() => _relationship = 'married')),
           const SizedBox(height: 12),
-          OptionRow(
-            icon: Icons.favorite_border_rounded,
-            iconBg: Ob.lavenderChip,
-            iconColor: Ob.purple,
-            label: 'Single',
-            selected: _relationship == 'single',
-            onTap: () => setState(() => _relationship = 'single'),
-          ),
+          OptionRow(icon: Icons.favorite_border_rounded, iconBg: Ob.lavenderChip, iconColor: Ob.purple, label: 'Single', selected: _relationship == 'single', onTap: () => setState(() => _relationship = 'single')),
           const SizedBox(height: 12),
-          OptionRow(
-            icon: Icons.heart_broken_rounded,
-            iconBg: const Color(0xFFFBE0E0),
-            iconColor: const Color(0xFFD86C6C),
-            label: 'Divorced',
-            selected: _relationship == 'divorced',
-            onTap: () => setState(() => _relationship = 'divorced'),
-          ),
+          OptionRow(icon: Icons.heart_broken_rounded, iconBg: const Color(0xFFFBE0E0), iconColor: const Color(0xFFD86C6C), label: 'Divorced', selected: _relationship == 'divorced', onTap: () => setState(() => _relationship = 'divorced')),
           const SizedBox(height: 12),
-          OptionRow(
-            icon: Icons.people_alt_rounded,
-            iconBg: Ob.lavenderChip,
-            iconColor: Ob.purple,
-            label: 'In a Relationship',
-            selected: _relationship == 'in_relationship',
-            onTap: () => setState(() => _relationship = 'in_relationship'),
-          ),
+          OptionRow(icon: Icons.people_alt_rounded, iconBg: Ob.lavenderChip, iconColor: Ob.purple, label: 'In a Relationship', selected: _relationship == 'in_relationship', onTap: () => setState(() => _relationship = 'in_relationship')),
           const SizedBox(height: 16),
-          const InfoNote(
-            icon: Icons.lock_outline_rounded,
-            title: 'You can change this anytime',
-            body: 'Your answers are private and secure.',
-          ),
+          const InfoNote(icon: Icons.lock_outline_rounded, title: 'You can change this anytime', body: 'Your answers are private and secure.'),
         ],
       ),
       footer: _footer('Next'),
@@ -676,10 +589,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 6,
       stepIcon: Icons.translate_rounded,
+      illustration: Ob.ilLang,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _stepHead('Select all your languages',
               "Choose the languages you're comfortable in. You can always change this later."),
           const SizedBox(height: 22),
@@ -689,23 +603,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             return Wrap(
               spacing: spacing,
               runSpacing: spacing,
-              children: [
-                for (final l in langs)
-                  SizedBox(
-                    width: w,
-                    child: _languageTile(l[0], l[1]),
-                  ),
-              ],
+              children: [for (final l in langs) SizedBox(width: w, child: _languageTile(l[0], l[1]))],
             );
           }),
           const SizedBox(height: 18),
-          const InfoNote(
-            icon: Icons.language_rounded,
-            body: 'You can add or remove languages anytime from your profile settings.',
-          ),
+          const InfoNote(icon: Icons.language_rounded, body: 'You can add or remove languages anytime from your profile settings.'),
         ],
       ),
-      footer: _footer('Start chat with Astrologer', icon: Icons.arrow_forward_rounded),
+      footer: _footer('Start chat with Astrologer'),
     );
   }
 
@@ -723,12 +628,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         duration: const Duration(milliseconds: 140),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? Ob.selectedFill : Ob.card,
+          color: selected ? Ob.selectedFill : Ob.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? Ob.selectedBorder : Ob.line,
-            width: selected ? 1.6 : 1,
-          ),
+          border: Border.all(color: selected ? Ob.selectedBorder : Ob.border, width: selected ? 1.6 : 1),
           boxShadow: selected ? null : Ob.softShadow,
         ),
         child: Row(
@@ -736,20 +638,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             Container(
               width: 34,
               height: 34,
-              decoration: BoxDecoration(color: Ob.lavenderChip, shape: BoxShape.circle),
+              decoration: const BoxDecoration(color: Ob.lavenderChip, shape: BoxShape.circle),
               alignment: Alignment.center,
-              child: Text(glyph,
-                  style: Ob.option.copyWith(color: Ob.purple, fontSize: 16)),
+              child: Text(glyph, style: Ob.option.copyWith(color: Ob.purple, fontSize: 16)),
             ),
             const SizedBox(width: 10),
-            Expanded(
-              child: Text(label,
-                  style: Ob.option.copyWith(fontSize: 15),
-                  overflow: TextOverflow.ellipsis),
-            ),
-            selected
-                ? const GoldCheck(size: 22)
-                : const Icon(Icons.add_rounded, color: Ob.purple, size: 20),
+            Expanded(child: Text(label, style: Ob.option.copyWith(fontSize: 15), overflow: TextOverflow.ellipsis)),
+            selected ? const GoldCheck(size: 22) : const Icon(Icons.add_rounded, color: Ob.purple, size: 20),
           ],
         ),
       ),
@@ -766,7 +661,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Ob.inputRadius),
         boxShadow: Ob.softShadow,
       ),
       child: TextField(
@@ -775,6 +670,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         textCapitalization: TextCapitalization.words,
         textInputAction: TextInputAction.done,
         style: Ob.option,
+        cursorColor: Ob.purple,
         onChanged: (_) => setState(() {}),
         onSubmitted: (_) => onSubmit?.call(),
         decoration: InputDecoration(
@@ -783,13 +679,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           prefixIcon: Icon(icon, color: Ob.purple),
           filled: false,
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 6),
         ),
       ),
     );
   }
 
-  // Wheel picker card with an optional header, top labels, or bottom labels.
   Widget _wheelCard({
     required List<_WheelSpec> columns,
     List<String>? topLabels,
@@ -803,7 +700,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(Ob.cardRadius),
         boxShadow: Ob.softShadow,
       ),
       child: Column(
@@ -815,8 +712,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   Container(
                     width: 34,
                     height: 34,
-                    decoration:
-                        BoxDecoration(color: Ob.lavenderChip, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(color: Ob.lavenderChip, shape: BoxShape.circle),
                     child: Icon(headerIcon, color: Ob.purple, size: 18),
                   ),
                   const SizedBox(width: 10),
@@ -851,11 +747,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               child: Row(
                 children: [
                   for (final t in bottomLabels)
-                    Expanded(
-                      child: Text(t,
-                          textAlign: TextAlign.center,
-                          style: Ob.note.copyWith(fontWeight: FontWeight.w600)),
-                    ),
+                    Expanded(child: Text(t, textAlign: TextAlign.center, style: Ob.note.copyWith(fontWeight: FontWeight.w600))),
                 ],
               ),
             ),
@@ -870,7 +762,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // single continuous selection pill across all columns
           Center(
             child: Container(
               height: 46,
@@ -900,24 +791,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       itemExtent: 46,
       scrollController: FixedExtentScrollController(initialItem: spec.initial),
       selectionOverlay: const SizedBox.shrink(),
-      // Don't setState here — recreating the controller mid-scroll would fight
-      // the wheel's momentum. Values are captured straight into state fields.
       onSelectedItemChanged: spec.onChanged,
-      children: List.generate(
-        spec.count,
-        (i) => Center(child: Text(spec.label(i), style: Ob.wheel)),
-      ),
+      children: List.generate(spec.count, (i) => Center(child: Text(spec.label(i), style: Ob.wheel))),
     );
   }
 }
 
 class _WheelSpec {
-  const _WheelSpec({
-    required this.count,
-    required this.initial,
-    required this.label,
-    required this.onChanged,
-  });
+  const _WheelSpec({required this.count, required this.initial, required this.label, required this.onChanged});
   final int count;
   final int initial;
   final String Function(int) label;
@@ -936,8 +817,7 @@ class _CitySearchField extends StatefulWidget {
 }
 
 class _CitySearchFieldState extends State<_CitySearchField> {
-  late final TextEditingController _c =
-      TextEditingController(text: widget.initial ?? '');
+  late final TextEditingController _c = TextEditingController(text: widget.initial ?? '');
   String _query = '';
 
   static const _recent = ['Noida, UP, India', 'Moradabad, UP, India'];
@@ -987,13 +867,14 @@ class _CitySearchFieldState extends State<_CitySearchField> {
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(Ob.inputRadius),
             boxShadow: Ob.softShadow,
           ),
           child: TextField(
             controller: _c,
             autofocus: true,
             style: Ob.option.copyWith(fontSize: 16),
+            cursorColor: Ob.purple,
             onChanged: (v) {
               setState(() => _query = v);
               widget.onSelected(v);
@@ -1005,6 +886,8 @@ class _CitySearchFieldState extends State<_CitySearchField> {
               suffixIcon: const Icon(Icons.search_rounded, color: Ob.purple),
               filled: false,
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 18),
             ),
           ),
@@ -1013,8 +896,7 @@ class _CitySearchFieldState extends State<_CitySearchField> {
         if (searching)
           ...matches.map((c) => _placeTile(Icons.place_outlined, c, null))
         else ...[
-          Text('Recently searched',
-              style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600)),
+          Text('Recently searched', style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 10,
@@ -1024,10 +906,7 @@ class _CitySearchFieldState extends State<_CitySearchField> {
                       onTap: () => _pick(r),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Ob.lavenderChip,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
+                        decoration: BoxDecoration(color: Ob.lavenderChip, borderRadius: BorderRadius.circular(30)),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -1041,8 +920,7 @@ class _CitySearchFieldState extends State<_CitySearchField> {
                 .toList(),
           ),
           const SizedBox(height: 18),
-          Text('Popular places',
-              style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600)),
+          Text('Popular places', style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
@@ -1053,8 +931,7 @@ class _CitySearchFieldState extends State<_CitySearchField> {
             child: Column(
               children: [
                 for (var i = 0; i < _popular.length; i++)
-                  _placeTile(Icons.account_balance_outlined, _popular[i][0], _popular[i][1],
-                      divider: i != _popular.length - 1),
+                  _placeTile(Icons.account_balance_outlined, _popular[i][0], _popular[i][1], divider: i != _popular.length - 1),
               ],
             ),
           ),
@@ -1071,7 +948,7 @@ class _CitySearchFieldState extends State<_CitySearchField> {
           leading: Container(
             width: 42,
             height: 42,
-            decoration: BoxDecoration(color: Ob.lavenderChip, shape: BoxShape.circle),
+            decoration: const BoxDecoration(color: Ob.lavenderChip, shape: BoxShape.circle),
             child: Icon(icon, color: Ob.purple, size: 20),
           ),
           title: Text(title, style: Ob.option.copyWith(fontSize: 16)),
@@ -1079,8 +956,7 @@ class _CitySearchFieldState extends State<_CitySearchField> {
           trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFB9B3C9)),
           onTap: () => _pick(title),
         ),
-        if (divider)
-          const Divider(height: 1, indent: 66, endIndent: 16, color: Ob.line),
+        if (divider) const Divider(height: 1, indent: 66, endIndent: 16, color: Ob.border),
       ],
     );
   }
