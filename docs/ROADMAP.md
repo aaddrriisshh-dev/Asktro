@@ -94,7 +94,7 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] FCM token registration + analytics events (started/success/rating)
 - [x] Chat image sharing (Storage upload), read receipts (✓✓), typing indicator
 - [x] Coupon code entry in recharge (validate → apply → credit)
-- [ ] Voice notes in chat — follow-up slice
+- [x] Voice notes in chat (record → upload → inline player; both apps play them)
 - [ ] `flutter analyze`/`flutter build` verification (owner-run; no Flutter SDK here)
 
 ## Phase 5 — Astrologer app (Flutter)
@@ -107,8 +107,8 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] Consultation history tab
 - [x] Profile tab (edit about, languages/expertise, logout)
 - [x] Quick replies (edit in profile, chip bar in chat), availability/holiday editor
-- [x] Earnings graph (recent sessions bar chart), chat image rendering
-- [ ] Phone-OTP login option — optional (email/password is the primary path)
+- [x] Earnings graph (recent sessions bar chart), chat image + voice rendering
+- [x] Phone-OTP login option (Email/Phone segmented toggle on login)
 - [ ] `flutter analyze`/build verification (owner-run; no Flutter SDK here)
 
 ## Phase 6 — Admin portal (Next.js + React, TS)
@@ -126,7 +126,7 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] Support panel (ticket list, assign/close)
 - [x] CMS editor (privacy/terms/refund/about/contact/faq → `cms/{page}`)
 - [x] Audit-log viewer (immutable privileged-action feed)
-- [x] Reports page: revenue bar chart (recharts) + CSV export
+- [x] Reports page: revenue bar chart (recharts) + CSV / Excel / Print-to-PDF export
 - [x] Verified: `tsc --noEmit` clean, `next build` succeeds (15 routes)
 
 ## Phase 7 — Cross-cutting: notifications, analytics, offers/coupons/referrals
@@ -173,7 +173,8 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - **2026-07-02** — Customer polish: CMS viewer + Help/Support (ticket+FAQ),
   favourites toggle, notification-pref toggle, app-wide offline banner, rating
   analytics. Astrologer FCM registration wired.
-- **Remaining**: reports/charts (admin); chat media + typing/read receipts
-  (customer); astrologer follow-ups (phone-OTP, quick replies, availability
-  editor, earnings graphs); remaining analytics points; Phase 8 QA polish +
-  emulator/Flutter verification (owner-run).
+- **2026-07-02** — Final niceties done: chat voice notes (record + inline
+  player, both apps), astrologer phone-OTP login, admin Excel + Print-to-PDF
+  report exports. SessionStart hook added for web sessions (installs Node deps).
+- **Remaining (owner-run only)**: `flutter analyze`/build + Firebase emulator
+  verification once the SDK/keys are in place. All spec features implemented.

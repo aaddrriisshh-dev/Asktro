@@ -53,22 +53,48 @@ export default function ReportsPage() {
 
   const totalRevenue = recharges.rows.reduce((s, r) => s + (r.amount ?? 0), 0);
 
-  function download() {
-    const csv = toCsv(txns.rows);
-    const blob = new Blob([csv], { type: 'text/csv' });
+  function downloadBlob(content: string, filename: string, mime: string) {
+    const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'asktro-transactions.csv';
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function downloadCsv() {
+    downloadBlob(toCsv(txns.rows), 'asktro-transactions.csv', 'text/csv');
+  }
+
+  // Excel via SpreadsheetML-compatible HTML table (opens natively in Excel).
+  function downloadExcel() {
+    const head = ['ID', 'User', 'Kind', 'Amount (₹)', 'Balance After (₹)', 'Date'];
+    const body = txns.rows
+      .map((r) => {
+        const cells = [
+          r.id, r.userId ?? '', r.kind ?? '',
+          ((r.amount ?? 0) / 100).toFixed(2), ((r.balanceAfter ?? 0) / 100).toFixed(2),
+          r.createdAt?.toMillis ? new Date(r.createdAt.toMillis()).toISOString() : '',
+        ];
+        return `<tr>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`;
+      })
+      .join('');
+    const html =
+      `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"/></head>` +
+      `<body><table border="1"><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr>${body}</table></body></html>`;
+    downloadBlob(html, 'asktro-transactions.xls', 'application/vnd.ms-excel');
   }
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Reports</h1>
-        <button className="btn" onClick={download}>Export transactions (CSV)</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn sm secondary" onClick={downloadCsv}>CSV</button>
+          <button className="btn sm secondary" onClick={downloadExcel}>Excel</button>
+          <button className="btn sm" onClick={() => window.print()}>Print / PDF</button>
+        </div>
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', marginBottom: 20 }}>
