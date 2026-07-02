@@ -48,11 +48,11 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [ ] DI container + Result/failure types + logging + analytics interface
 
 ## Phase 2 — Firebase backend: data model, rules, indexes
-- [ ] `firestore.rules` (per-role: user/astrologer/admin)
-- [ ] `storage.rules` (per-folder scoping)
-- [ ] `firestore.indexes.json` (all composite indexes from Part 7)
-- [ ] `remoteconfig.template.json` (price, min wallet, warning times, flags)
-- [ ] Functions project scaffold (TS, eslint, tsconfig, jest)
+- [x] `firestore.rules` (per-role: user/astrologer/admin)
+- [x] `storage.rules` (per-folder scoping)
+- [x] `firestore.indexes.json` (all composite indexes from Part 7)
+- [x] `remoteconfig.template.json` (price, min wallet, warning times, flags)
+- [~] Functions project scaffold (TS, eslint, tsconfig, jest)
 
 ## Phase 3 — Consultation / wallet / billing Cloud Functions (CORE)
 - [ ] Wallet model + atomic transaction helpers

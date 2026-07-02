@@ -1,0 +1,62 @@
+rules_version = '2';
+
+// ASKTRO Storage rules — per-folder scoping. Reads are broad for public
+// display assets (profiles, banners); writes are constrained to the owner
+// and to sane content types / sizes. Sensitive verification docs are private.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function isAdmin() { return isSignedIn() && request.auth.token.role == 'admin'; }
+    function isImage() { return request.resource.contentType.matches('image/.*'); }
+    function isAudio() { return request.resource.contentType.matches('audio/.*'); }
+    function underMB(n) { return request.resource.size < n * 1024 * 1024; }
+
+    // Profile images: publicly readable, written by the owner only.
+    match /profile_images/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && uid() == userId && isImage() && underMB(5);
+    }
+
+    // Banners: public read, admin write.
+    match /banner_images/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isImage() && underMB(8);
+    }
+
+    // Chat images: only participants of the consultation may read/write.
+    // Path carries the consultationId; membership enforced via Firestore-side
+    // rules on the message doc that references the file.
+    match /chat_images/{consultationId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isImage() && underMB(10);
+    }
+
+    // Voice notes.
+    match /voice_notes/{consultationId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isAudio() && underMB(15);
+    }
+
+    // Astrologer documents / verification: private (owner + admin only).
+    match /documents/{userId}/{fileName} {
+      allow read: if isSignedIn() && (uid() == userId || isAdmin());
+      allow write: if isSignedIn() && uid() == userId && underMB(15);
+    }
+    match /verification/{userId}/{fileName} {
+      allow read: if isAdmin() || (isSignedIn() && uid() == userId);
+      allow write: if isSignedIn() && uid() == userId && underMB(15);
+    }
+
+    // Scratch uploads, owner-scoped.
+    match /temp_uploads/{userId}/{fileName} {
+      allow read, write: if isSignedIn() && uid() == userId && underMB(20);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

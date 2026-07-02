@@ -1,0 +1,60 @@
+{
+  "parameters": {
+    "consultation_price_per_minute_paise": {
+      "defaultValue": { "value": "900" },
+      "description": "Global consultation price in paise per minute. 900 = Rs.9/min.",
+      "valueType": "NUMBER"
+    },
+    "min_wallet_to_start_paise": {
+      "defaultValue": { "value": "1800" },
+      "description": "Minimum spendable balance (paise) required to start a consultation. Default = 2 minutes.",
+      "valueType": "NUMBER"
+    },
+    "warn_level1_sec": {
+      "defaultValue": { "value": "120" },
+      "description": "Remaining seconds at which the Level 1 low-balance popup appears.",
+      "valueType": "NUMBER"
+    },
+    "warn_level2_sec": {
+      "defaultValue": { "value": "30" },
+      "description": "Remaining seconds at which the Level 2 critical bottom-sheet appears.",
+      "valueType": "NUMBER"
+    },
+    "reconnect_timeout_sec": {
+      "defaultValue": { "value": "45" },
+      "description": "Seconds a client may be disconnected before the session auto-pauses.",
+      "valueType": "NUMBER"
+    },
+    "session_timeout_sec": {
+      "defaultValue": { "value": "300" },
+      "description": "Seconds a paused/disconnected session survives before auto-end.",
+      "valueType": "NUMBER"
+    },
+    "request_timeout_sec": {
+      "defaultValue": { "value": "30" },
+      "description": "Seconds an astrologer has to accept an incoming request before it is missed.",
+      "valueType": "NUMBER"
+    },
+    "commission_percent": {
+      "defaultValue": { "value": "20" },
+      "description": "Platform commission percentage deducted from astrologer gross earnings.",
+      "valueType": "NUMBER"
+    },
+    "feature_voice_enabled": {
+      "defaultValue": { "value": "true" },
+      "valueType": "BOOLEAN"
+    },
+    "feature_video_enabled": {
+      "defaultValue": { "value": "true" },
+      "valueType": "BOOLEAN"
+    },
+    "feature_referrals_enabled": {
+      "defaultValue": { "value": "true" },
+      "valueType": "BOOLEAN"
+    }
+  },
+  "parameterGroups": {},
+  "version": {
+    "description": "ASKTRO base Remote Config template — mirrors config/global. Admin edits propagate without an app update."
+  }
+}

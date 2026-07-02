@@ -1,0 +1,170 @@
+rules_version = '2';
+
+// ASKTRO Firestore security rules — per-role, function-write-only money.
+// Money/timer/billing fields are NEVER writable by clients. Cloud Functions
+// use the Admin SDK which bypasses these rules, so all balance/session writes
+// go through them. See docs/DATA_MODEL.md.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers ----
+    function isSignedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function claims() { return request.auth.token; }
+    function isAdmin() { return isSignedIn() && claims().role == 'admin'; }
+    function isAstrologer() { return isSignedIn() && claims().role == 'astrologer'; }
+    function isSelf(id) { return isSignedIn() && uid() == id; }
+
+    // Only allow a client update if it does NOT touch protected fields.
+    function notChanging(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ================= users =================
+    match /users/{userId} {
+      allow read: if isSelf(userId) || isAdmin();
+      allow create: if isSelf(userId)
+        // a new profile must start with zeroed, function-owned money fields
+        && request.resource.data.walletBalance == 0
+        && request.resource.data.bonusBalance == 0
+        && request.resource.data.lockedBalance == 0;
+      // clients may edit profile fields but never money/status/ledger fields
+      allow update: if isSelf(userId) && notChanging([
+        'walletBalance','bonusBalance','lockedBalance','totalRecharge',
+        'totalSpent','pendingRefund','totalConsultations','referralCode',
+        'referredBy','accountStatus'
+      ]);
+      allow delete: if false; // deletion only via Cloud Function
+    }
+
+    // ================= astrologers =================
+    match /astrologers/{astrologerId} {
+      // public directory is readable by any signed-in user
+      allow read: if isSignedIn();
+      allow create: if isAdmin();
+      // astrologer may toggle their own presence/profile, never money/verify/status
+      allow update: if isAdmin() || (isSelf(astrologerId) && notChanging([
+        'rating','totalReviews','totalConsultations','followers','earnings',
+        'pendingPayout','verified','featured','accountStatus'
+      ]));
+      allow delete: if isAdmin();
+    }
+
+    // ================= consultations =================
+    match /consultations/{consultationId} {
+      // only the two participants (or admin) may read the session
+      allow read: if isAdmin()
+        || isSelf(resource.data.customerId)
+        || isSelf(resource.data.astrologerId);
+      // sessions are created & mutated ONLY by Cloud Functions
+      allow create, update, delete: if false;
+
+      // ---- messages subcollection ----
+      match /messages/{messageId} {
+        function parent() {
+          return get(/databases/$(database)/documents/consultations/$(consultationId)).data;
+        }
+        allow read: if isAdmin()
+          || isSelf(parent().customerId)
+          || isSelf(parent().astrologerId);
+        // a participant may append their own messages; delivery/seen flags may
+        // be flipped by the counterpart. No edits/deletes.
+        allow create: if (isSelf(parent().customerId) || isSelf(parent().astrologerId))
+          && request.resource.data.senderId == uid();
+        allow update: if (isSelf(parent().customerId) || isSelf(parent().astrologerId))
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['delivered','seen']);
+        allow delete: if false;
+      }
+    }
+
+    // ================= walletTransactions (immutable ledger) =================
+    match /walletTransactions/{txnId} {
+      allow read: if isAdmin() || isSelf(resource.data.userId);
+      allow write: if false; // functions only
+    }
+
+    // ================= admin-managed catalogs (public read) =================
+    match /rechargePlans/{planId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /banners/{bannerId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /coupons/{couponId} {
+      // validity is checked in a function; the raw catalog is admin-only to
+      // avoid leaking unpublished/limited codes.
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    match /couponRedemptions/{id} {
+      allow read: if isAdmin() || isSelf(resource.data.userId);
+      allow write: if false;
+    }
+
+    // ================= notifications =================
+    match /notifications/{id} {
+      allow read: if isAdmin() || isSelf(resource.data.userId);
+      // user may only mark their own notification read
+      allow update: if isSelf(resource.data.userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow create, delete: if isAdmin();
+    }
+
+    // ================= referrals =================
+    match /referrals/{id} {
+      allow read: if isAdmin()
+        || isSelf(resource.data.referrerId)
+        || isSelf(resource.data.referredId);
+      allow write: if false; // functions only
+    }
+
+    // ================= payouts =================
+    match /payouts/{id} {
+      allow read: if isAdmin() || isSelf(resource.data.astrologerId);
+      // astrologer may request; approval/processing is function/admin only
+      allow create: if isSelf(request.resource.data.astrologerId)
+        && request.resource.data.status == 'pending';
+      allow update, delete: if false;
+    }
+
+    // ================= support tickets =================
+    match /supportTickets/{id} {
+      allow read: if isAdmin()
+        || isSelf(resource.data.customerId)
+        || isSelf(resource.data.astrologerId);
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if false;
+      match /thread/{msgId} {
+        allow read: if isAdmin() || isSelf(get(/databases/$(database)/documents/supportTickets/$(id)).data.customerId);
+        allow create: if isSignedIn();
+        allow update, delete: if false;
+      }
+    }
+
+    // ================= global config =================
+    match /config/{doc} {
+      allow read: if isSignedIn();  // clients read price/warn-times
+      allow write: if isAdmin();
+    }
+
+    // ================= admin-only areas =================
+    match /adminUsers/{uid} {
+      allow read: if isAdmin();
+      allow write: if false; // set via privileged function only
+    }
+    match /auditLogs/{id} {
+      allow read: if isAdmin();
+      allow write: if false; // functions only, immutable
+    }
+
+    // default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
