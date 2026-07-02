@@ -24,6 +24,11 @@ class AstrologerRepository {
         SetOptions(merge: true),
       );
 
+  Future<void> registerFcmToken(String uid, String token) => _self(uid).set(
+        {'fcmTokens': FieldValue.arrayUnion([token])},
+        SetOptions(merge: true),
+      );
+
   /// Incoming/active sessions for this astrologer (waiting = new requests).
   Stream<List<Consultation>> watchSessions(String uid, {List<String>? statuses}) {
     Query<Map<String, dynamic>> q =

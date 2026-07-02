@@ -4,6 +4,8 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 import '../auth/auth_controller.dart';
+import 'cms_viewer_screen.dart';
+import 'support_screen.dart';
 
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
@@ -77,11 +79,23 @@ class ProfileTab extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: AppSpacing.lg),
-          _tile(Icons.notifications_outlined, 'Notification preferences'),
-          _tile(Icons.help_outline_rounded, 'Help & Support'),
-          _tile(Icons.privacy_tip_outlined, 'Privacy Policy'),
-          _tile(Icons.description_outlined, 'Terms of Service'),
-          _tile(Icons.info_outline_rounded, 'About ASKTRO'),
+          if (profile != null)
+            _tile(Icons.notifications_outlined, 'Notification preferences',
+                trailing: Switch(
+                  value: profile.notificationEnabled,
+                  activeTrackColor: AppColors.primary,
+                  onChanged: (v) => ref
+                      .read(userRepositoryProvider)
+                      .updateProfile(profile.id, {'notificationEnabled': v}),
+                )),
+          _tile(Icons.help_outline_rounded, 'Help & Support',
+              onTap: () => _push(context, const SupportScreen())),
+          _tile(Icons.privacy_tip_outlined, 'Privacy Policy',
+              onTap: () => _push(context, const CmsViewerScreen(page: 'privacy', title: 'Privacy Policy'))),
+          _tile(Icons.description_outlined, 'Terms of Service',
+              onTap: () => _push(context, const CmsViewerScreen(page: 'terms', title: 'Terms of Service'))),
+          _tile(Icons.info_outline_rounded, 'About ASKTRO',
+              onTap: () => _push(context, const CmsViewerScreen(page: 'about', title: 'About ASKTRO'))),
           const SizedBox(height: AppSpacing.lg),
           SecondaryButton(
             label: 'Log out',
@@ -100,16 +114,20 @@ class ProfileTab extends ConsumerWidget {
     );
   }
 
-  Widget _tile(IconData icon, String label) => Padding(
+  void _push(BuildContext context, Widget screen) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+
+  Widget _tile(IconData icon, String label, {VoidCallback? onTap, Widget? trailing}) => Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: AppCard(
+          onTap: onTap,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
           child: Row(
             children: [
               Icon(icon, color: AppColors.primary),
               const SizedBox(width: AppSpacing.md),
               Expanded(child: Text(label, style: AppTypography.body)),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+              trailing ?? const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
             ],
           ),
         ),

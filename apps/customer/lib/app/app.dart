@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import 'router.dart';
+import 'connectivity.dart';
 
 class AsktroCustomerApp extends ConsumerWidget {
   const AsktroCustomerApp({super.key});
@@ -15,6 +16,7 @@ class AsktroCustomerApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AsktroTheme.light(),
       routerConfig: router,
+      builder: (context, child) => ConnectivityBanner(child: child ?? const SizedBox.shrink()),
     );
   }
 }

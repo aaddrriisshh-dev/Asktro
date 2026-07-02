@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import 'consultation_controller.dart';
+import '../../app/providers.dart';
+import '../../data/messaging_service.dart';
 
 /// Full-screen session summary + rating (Part 3/4). Pushed after a consultation
 /// ends; returns the user to home.
@@ -42,6 +44,10 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
     await ref
         .read(consultationControllerProvider(widget.consultation.id).notifier)
         .rate(_rating.toDouble(), review: _review.text.trim().isEmpty ? null : _review.text.trim());
+    ref.read(analyticsProvider).logEvent(AnalyticsEvents.ratingSubmitted, params: {
+      'rating': _rating,
+      'astrologerId': widget.astrologer.id,
+    });
     _close();
   }
 

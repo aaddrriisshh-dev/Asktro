@@ -82,8 +82,22 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(_astrologerProvider(widget.astrologerId));
+    final profile = ref.watch(myProfileProvider).valueOrNull;
+    final isFav = profile?.favouriteAstrologers.contains(widget.astrologerId) ?? false;
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          if (profile != null)
+            IconButton(
+              tooltip: isFav ? 'Remove favourite' : 'Add favourite',
+              icon: Icon(isFav ? Icons.favorite : Icons.favorite_border,
+                  color: isFav ? AppColors.error : AppColors.textSecondary),
+              onPressed: () => ref
+                  .read(userRepositoryProvider)
+                  .toggleFavourite(profile.id, widget.astrologerId, !isFav),
+            ),
+        ],
+      ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
         error: (_, __) => const ErrorStateView(),

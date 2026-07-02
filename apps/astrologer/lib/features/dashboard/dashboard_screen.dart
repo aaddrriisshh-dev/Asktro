@@ -22,6 +22,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(pushRegistrationProvider); // register FCM once signed in
     final self = ref.watch(selfProvider);
 
     return self.when(

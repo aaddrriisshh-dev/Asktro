@@ -88,7 +88,10 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] Consultation history tab
 - [x] Notifications tab (unread badge), profile tab (referral, logout, delete account)
 - [x] Data layer: repositories + service impls (RPC over Cloud Functions)
-- [ ] Favourites/follow UI, help & support screens, offline banner — follow-up slice
+- [x] Favourites toggle (astrologer profile), notification-preference toggle
+- [x] Help & Support screen (raise ticket + FAQ), CMS viewer (privacy/terms/about)
+- [x] Offline connectivity banner (app-wide)
+- [x] FCM token registration + analytics events (started/success/rating)
 - [ ] Media in chat (image/voice notes), typing/read receipts — follow-up slice
 - [ ] `flutter analyze`/`flutter build` verification (owner-run; no Flutter SDK here)
 
@@ -126,8 +129,9 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] FCM client token registration (customer app: MessagingService + push permission, refresh)
 - [x] Analytics service + canonical events wired (consultation_started, recharge_success; more points pending)
 - [x] CMS collection rules (`cms/{page}` public read, admin write)
-- [ ] FCM token registration in astrologer app — follow-up slice
-- [ ] Remaining analytics event points (login, coupon_used, referral_used, rating_submitted, consultation_completed)
+- [x] FCM token registration in astrologer app (dashboard)
+- [x] rating_submitted analytics wired
+- [ ] Remaining analytics points (login, coupon_used, referral_used, consultation_completed)
 - [ ] Offers/coupons/referrals end-to-end emulator verification (owner-run)
 
 ## Phase 8 — Polish & QA
@@ -161,7 +165,10 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - **2026-07-02** — Admin follow-ups: support panel, CMS editor, audit-log viewer
   (`next build` = 14 routes). Phase 7 started: customer FCM token registration +
   analytics service with initial event points; `cms/{page}` rules added.
-- **Remaining**: reports/charts (admin); astrologer FCM + remaining analytics
-  points; customer follow-ups (favourites, chat media, offline banner, help/CMS
-  viewer screens); astrologer follow-ups (phone-OTP, quick replies, availability
-  editor, graphs); Phase 8 QA polish + emulator/Flutter verification (owner-run).
+- **2026-07-02** — Customer polish: CMS viewer + Help/Support (ticket+FAQ),
+  favourites toggle, notification-pref toggle, app-wide offline banner, rating
+  analytics. Astrologer FCM registration wired.
+- **Remaining**: reports/charts (admin); chat media + typing/read receipts
+  (customer); astrologer follow-ups (phone-OTP, quick replies, availability
+  editor, earnings graphs); remaining analytics points; Phase 8 QA polish +
+  emulator/Flutter verification (owner-run).
