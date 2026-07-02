@@ -5,6 +5,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../data/messaging_service.dart';
 
 /// Auth actions: phone OTP, Google, Apple. On success we ensure a `users/{uid}`
 /// profile exists (money fields zeroed; the onCustomerSignup function backfills
@@ -106,6 +107,7 @@ class AuthController {
           name: name ?? cred.user?.displayName,
           email: email ?? cred.user?.email,
         );
+    _ref.read(analyticsProvider).logEvent(AnalyticsEvents.login);
   }
 
   static void _noop(UserCredential _) {}

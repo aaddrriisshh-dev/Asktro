@@ -1,13 +1,35 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../data/messaging_service.dart';
 import 'consultation_controller.dart';
 import 'consultation_header.dart';
 import 'consultation_end.dart';
+
+/// Whether the astrologer is currently typing (their typing doc exists & fresh).
+final _peerTypingProvider = StreamProvider.autoDispose.family<bool, ({String id, String peerId})>((ref, arg) {
+  return ref
+      .watch(firestoreProvider)
+      .collection('consultations')
+      .doc(arg.id)
+      .collection('typing')
+      .doc(arg.peerId)
+      .snapshots()
+      .map((d) {
+    if (!d.exists) return false;
+    final ts = d.data()?['at'];
+    if (ts is Timestamp) {
+      return DateTime.now().difference(ts.toDate()).inSeconds < 6;
+    }
+    return d.data()?['typing'] == true;
+  });
+});
 
 final _messagesProvider =
     StreamProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, id) {
@@ -52,17 +74,19 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     super.dispose();
   }
 
+  CollectionReference<Map<String, dynamic>> get _messagesCol => ref
+      .read(firestoreProvider)
+      .collection('consultations')
+      .doc(_id)
+      .collection('messages');
+
   Future<void> _send() async {
     final text = _input.text.trim();
     final uid = ref.read(currentUidProvider);
     if (text.isEmpty || uid == null) return;
     _input.clear();
-    await ref
-        .read(firestoreProvider)
-        .collection('consultations')
-        .doc(_id)
-        .collection('messages')
-        .add({
+    _setTyping(false);
+    await _messagesCol.add({
       'senderId': uid,
       'type': 'text',
       'text': text,
@@ -70,6 +94,54 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       'delivered': true,
       'seen': false,
     });
+  }
+
+  Future<void> _sendImage() async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (picked == null) return;
+    final data = await picked.readAsBytes();
+    final refStore = FirebaseStorage.instance
+        .ref('chat_images/$_id/${DateTime.now().millisecondsSinceEpoch}.jpg');
+    await refStore.putData(data, SettableMetadata(contentType: 'image/jpeg'));
+    final url = await refStore.getDownloadURL();
+    await _messagesCol.add({
+      'senderId': uid,
+      'type': 'image',
+      'image': url,
+      'timestamp': FieldValue.serverTimestamp(),
+      'delivered': true,
+      'seen': false,
+    });
+  }
+
+  DateTime _lastTypingWrite = DateTime.fromMillisecondsSinceEpoch(0);
+  void _setTyping(bool typing) {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    // Throttle writes to at most one per ~3s while typing.
+    final now = DateTime.now();
+    if (typing && now.difference(_lastTypingWrite).inSeconds < 3) return;
+    _lastTypingWrite = now;
+    ref
+        .read(firestoreProvider)
+        .collection('consultations')
+        .doc(_id)
+        .collection('typing')
+        .doc(uid)
+        .set({'typing': typing, 'at': FieldValue.serverTimestamp()});
+  }
+
+  /// Mark the astrologer's delivered-but-unseen messages as seen.
+  void _markSeen(List<Map<String, dynamic>> messages) {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    for (final m in messages) {
+      if (m['senderId'] != uid && m['seen'] != true) {
+        _messagesCol.doc(m['id'] as String).update({'seen': true});
+      }
+    }
   }
 
   Future<void> _handleWarn(ConsultationState s) async {
@@ -147,7 +219,13 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     final r = await ref.read(consultationControllerProvider(_id).notifier).end();
     if (!mounted) return;
     r.when(
-      success: (c) => showConsultationEnd(context, ref, consultation: c, astrologer: widget.astrologer),
+      success: (c) {
+        ref.read(analyticsProvider).logEvent(AnalyticsEvents.consultationCompleted, params: {
+          'type': c.type.name,
+          'durationSec': c.duration,
+        });
+        showConsultationEnd(context, ref, consultation: c, astrologer: widget.astrologer);
+      },
       failure: (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))),
     );
   }
@@ -162,6 +240,13 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
 
     final uid = ref.watch(currentUidProvider);
     final messages = ref.watch(_messagesProvider(_id)).valueOrNull ?? const [];
+    final peerTyping = ref
+            .watch(_peerTypingProvider((id: _id, peerId: widget.astrologer.id)))
+            .valueOrNull ??
+        false;
+    if (messages.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _markSeen(messages));
+    }
 
     return PopScope(
       canPop: false,
@@ -197,11 +282,30 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                       itemBuilder: (_, i) {
                         final m = messages[i];
                         final mine = m['senderId'] == uid;
-                        return _Bubble(text: (m['text'] ?? '') as String, mine: mine, seen: m['seen'] == true);
+                        return _Bubble(
+                          text: (m['text'] ?? '') as String,
+                          imageUrl: m['image'] as String?,
+                          mine: mine,
+                          seen: m['seen'] == true,
+                        );
                       },
                     ),
             ),
-            _Composer(controller: _input, onSend: _send),
+            if (peerTyping)
+              Padding(
+                padding: const EdgeInsets.only(left: AppSpacing.xl, bottom: AppSpacing.xs),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('${widget.astrologer.name} is typing…',
+                      style: AppTypography.caption.copyWith(fontStyle: FontStyle.italic)),
+                ),
+              ),
+            _Composer(
+              controller: _input,
+              onSend: _send,
+              onAttach: _sendImage,
+              onChanged: (v) => _setTyping(v.trim().isNotEmpty),
+            ),
           ],
         ),
       ),
@@ -210,22 +314,28 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.text, required this.mine, required this.seen});
+  const _Bubble({required this.text, required this.mine, required this.seen, this.imageUrl});
   final String text;
+  final String? imageUrl;
   final bool mine;
   final bool seen;
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        padding: hasImage
+            ? const EdgeInsets.all(4)
+            : const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
         decoration: BoxDecoration(
-          gradient: mine ? AppColors.primaryGradient : null,
-          color: mine ? null : AppColors.card,
+          gradient: mine && !hasImage ? AppColors.primaryGradient : null,
+          color: mine
+              ? (hasImage ? AppColors.primary : null)
+              : AppColors.card,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -234,36 +344,71 @@ class _Bubble extends StatelessWidget {
           ),
           boxShadow: mine ? null : AppShadows.soft,
         ),
-        child: Text(text,
-            style: AppTypography.body.copyWith(color: mine ? Colors.white : AppColors.textDark)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasImage)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(imageUrl!, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined)),
+              ),
+            if (text.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(top: hasImage ? 6 : 0, left: hasImage ? 6 : 0, right: hasImage ? 6 : 0),
+                child: Text(text,
+                    style: AppTypography.body.copyWith(color: mine ? Colors.white : AppColors.textDark)),
+              ),
+            if (mine)
+              Padding(
+                padding: const EdgeInsets.only(top: 2, right: 2),
+                child: Icon(seen ? Icons.done_all_rounded : Icons.done_rounded,
+                    size: 14, color: mine ? Colors.white70 : AppColors.textSecondary),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _Composer extends StatelessWidget {
-  const _Composer({required this.controller, required this.onSend});
+  const _Composer({
+    required this.controller,
+    required this.onSend,
+    required this.onAttach,
+    required this.onChanged,
+  });
   final TextEditingController controller;
   final VoidCallback onSend;
+  final VoidCallback onAttach;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.card,
       padding: EdgeInsets.only(
-        left: AppSpacing.lg,
+        left: AppSpacing.sm,
         right: AppSpacing.sm,
         top: AppSpacing.sm,
         bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.sm,
       ),
       child: Row(
         children: [
+          IconButton(
+            onPressed: onAttach,
+            icon: const Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary),
+            tooltip: 'Send image',
+          ),
           Expanded(
             child: TextField(
               controller: controller,
               minLines: 1,
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
+              onChanged: onChanged,
               decoration: const InputDecoration(hintText: 'Type a message...', filled: false, border: InputBorder.none),
             ),
           ),

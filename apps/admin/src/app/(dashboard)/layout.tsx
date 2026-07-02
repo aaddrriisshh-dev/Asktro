@@ -15,6 +15,7 @@ const NAV = [
   { href: '/payouts', label: 'Payouts' },
   { href: '/pricing', label: 'Pricing & Settings' },
   { href: '/broadcast', label: 'Notifications' },
+  { href: '/reports', label: 'Reports' },
   { href: '/support', label: 'Support' },
   { href: '/cms', label: 'CMS' },
   { href: '/audit', label: 'Audit Log' },

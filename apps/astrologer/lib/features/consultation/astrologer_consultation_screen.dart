@@ -201,24 +201,58 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                     itemBuilder: (_, i) {
                       final m = messages[i];
                       final mine = m['senderId'] == widget.self.id;
+                      final image = m['image'] as String?;
+                      final hasImage = image != null && image.isNotEmpty;
                       return Align(
                         alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
                         child: Container(
                           margin: const EdgeInsets.symmetric(vertical: 4),
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                          padding: hasImage
+                              ? const EdgeInsets.all(4)
+                              : const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
                           decoration: BoxDecoration(
-                            gradient: mine ? AppColors.primaryGradient : null,
-                            color: mine ? null : AppColors.card,
+                            gradient: mine && !hasImage ? AppColors.primaryGradient : null,
+                            color: mine ? (hasImage ? AppColors.primary : null) : AppColors.card,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: mine ? null : AppShadows.soft,
                           ),
-                          child: Text((m['text'] ?? '') as String,
-                              style: AppTypography.body.copyWith(color: mine ? Colors.white : AppColors.textDark)),
+                          child: hasImage
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(image, fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined)),
+                                )
+                              : Text((m['text'] ?? '') as String,
+                                  style: AppTypography.body.copyWith(color: mine ? Colors.white : AppColors.textDark)),
                         ),
                       );
                     },
                   ),
           ),
+          if (widget.self.quickReplies.isNotEmpty)
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                children: [
+                  for (final q in widget.self.quickReplies)
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.sm),
+                      child: ActionChip(
+                        label: Text(q, style: AppTypography.caption.copyWith(color: AppColors.primary)),
+                        backgroundColor: AppColors.accentLavender,
+                        side: BorderSide.none,
+                        onPressed: () {
+                          _input.text = q;
+                          _input.selection = TextSelection.collapsed(offset: q.length);
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
           Container(
             color: AppColors.card,
             padding: EdgeInsets.only(

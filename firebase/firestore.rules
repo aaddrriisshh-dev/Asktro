@@ -77,6 +77,16 @@ service cloud.firestore {
               .hasOnly(['delivered','seen']);
         allow delete: if false;
       }
+
+      // ---- typing presence (one doc per participant, id == uid) ----
+      match /typing/{typerId} {
+        function parent2() {
+          return get(/databases/$(database)/documents/consultations/$(consultationId)).data;
+        }
+        allow read: if isSelf(parent2().customerId) || isSelf(parent2().astrologerId) || isAdmin();
+        allow write: if isSelf(typerId)
+          && (isSelf(parent2().customerId) || isSelf(parent2().astrologerId));
+      }
     }
 
     // ================= walletTransactions (immutable ledger) =================

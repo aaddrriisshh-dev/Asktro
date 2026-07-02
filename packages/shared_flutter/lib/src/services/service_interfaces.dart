@@ -83,6 +83,12 @@ class RechargeOrder {
   final String planId;
 }
 
+class CouponValidation {
+  const CouponValidation({required this.couponId, required this.discountPaise});
+  final String couponId;
+  final int discountPaise;
+}
+
 abstract interface class WalletService {
   Future<Result<RechargeOrder>> createOrder(String planId, {String? couponId});
 
@@ -95,7 +101,7 @@ abstract interface class WalletService {
     String? couponId,
   });
 
-  Future<Result<int>> validateCoupon(String code, {required String planId});
+  Future<Result<CouponValidation>> validateCoupon(String code, {required String planId});
 }
 
 /// Cross-cutting analytics contract (Part 7 events).

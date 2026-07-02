@@ -22,6 +22,9 @@ class Astrologer extends Equatable {
     this.verified = false,
     this.featured = false,
     this.status = AstrologerStatus.pending,
+    this.earnings = 0,
+    this.quickReplies = const [],
+    this.availability = const {},
   });
 
   final String id;
@@ -41,6 +44,9 @@ class Astrologer extends Equatable {
   final bool verified;
   final bool featured;
   final AstrologerStatus status;
+  final int earnings; // paise, lifetime gross (astrologer-side display)
+  final List<String> quickReplies;
+  final Map<String, dynamic> availability;
 
   bool get isConsultable => onlineStatus && available && status == AstrologerStatus.approved;
 
@@ -63,6 +69,9 @@ class Astrologer extends Equatable {
       verified: (m['verified'] ?? false) as bool,
       featured: (m['featured'] ?? false) as bool,
       status: AstrologerStatus.fromString(m['accountStatus'] as String?),
+      earnings: (m['earnings'] ?? 0) as int,
+      quickReplies: List<String>.from(m['quickReplies'] ?? const []),
+      availability: Map<String, dynamic>.from(m['availability'] ?? const {}),
     );
   }
 
@@ -70,6 +79,7 @@ class Astrologer extends Equatable {
   List<Object?> get props => [
         id, name, profilePhoto, about, experience, languages, expertise, rating,
         totalReviews, totalConsultations, followers, responseTimeSec,
-        onlineStatus, available, verified, featured, status,
+        onlineStatus, available, verified, featured, status, earnings,
+        quickReplies, availability,
       ];
 }

@@ -5,6 +5,12 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 
+final _recentProvider = StreamProvider.autoDispose<List<Consultation>>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return const Stream.empty();
+  return ref.watch(astrologerRepositoryProvider).watchSessions(uid, statuses: ['completed', 'expired']);
+});
+
 class EarningsTab extends ConsumerStatefulWidget {
   const EarningsTab({super.key});
 
@@ -90,8 +96,68 @@ class _EarningsTabState extends ConsumerState<EarningsTab> {
                   loading: _requesting,
                   onPressed: _requesting || self.earnings <= 0 ? null : () => _requestPayout(self),
                 ),
+                const SizedBox(height: AppSpacing.xl),
+                Text('Recent sessions', style: AppTypography.subtitle),
+                const SizedBox(height: AppSpacing.md),
+                const _RecentEarningsChart(),
               ],
             ),
+    );
+  }
+}
+
+/// Lightweight, dependency-free bar chart of the most recent completed sessions'
+/// charged amounts (astrologer earns net of commission).
+class _RecentEarningsChart extends ConsumerWidget {
+  const _RecentEarningsChart();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessions = (ref.watch(_recentProvider).valueOrNull ?? const <Consultation>[])
+        .take(7)
+        .toList()
+        .reversed
+        .toList();
+    if (sessions.isEmpty) {
+      return const EmptyState(
+        icon: Icons.bar_chart_rounded,
+        title: 'No earnings yet',
+        message: 'Completed consultations will appear here.',
+      );
+    }
+    final maxCharge = sessions.map((s) => s.totalCharged).fold<int>(1, (a, b) => b > a ? b : a);
+    return AppCard(
+      child: SizedBox(
+        height: 160,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            for (final s in sessions)
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(Money.formatPaise(s.totalCharged),
+                        style: AppTypography.caption.copyWith(fontSize: 10)),
+                    const SizedBox(height: 4),
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                      height: 110 * (s.totalCharged / maxCharge).clamp(0.05, 1.0),
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(s.type.name.substring(0, 1).toUpperCase(),
+                        style: AppTypography.caption.copyWith(fontSize: 10)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

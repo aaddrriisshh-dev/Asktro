@@ -92,7 +92,9 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] Help & Support screen (raise ticket + FAQ), CMS viewer (privacy/terms/about)
 - [x] Offline connectivity banner (app-wide)
 - [x] FCM token registration + analytics events (started/success/rating)
-- [ ] Media in chat (image/voice notes), typing/read receipts — follow-up slice
+- [x] Chat image sharing (Storage upload), read receipts (✓✓), typing indicator
+- [x] Coupon code entry in recharge (validate → apply → credit)
+- [ ] Voice notes in chat — follow-up slice
 - [ ] `flutter analyze`/`flutter build` verification (owner-run; no Flutter SDK here)
 
 ## Phase 5 — Astrologer app (Flutter)
@@ -104,7 +106,9 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] Earnings tab + payout request
 - [x] Consultation history tab
 - [x] Profile tab (edit about, languages/expertise, logout)
-- [ ] Phone-OTP login option, quick replies, availability editor, graphs — follow-up slice
+- [x] Quick replies (edit in profile, chip bar in chat), availability/holiday editor
+- [x] Earnings graph (recent sessions bar chart), chat image rendering
+- [ ] Phone-OTP login option — optional (email/password is the primary path)
 - [ ] `flutter analyze`/build verification (owner-run; no Flutter SDK here)
 
 ## Phase 6 — Admin portal (Next.js + React, TS)
@@ -122,8 +126,8 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] Support panel (ticket list, assign/close)
 - [x] CMS editor (privacy/terms/refund/about/contact/faq → `cms/{page}`)
 - [x] Audit-log viewer (immutable privileged-action feed)
-- [x] Verified: `tsc --noEmit` clean, `next build` succeeds (14 routes)
-- [ ] Reports export (PDF/Excel/CSV), revenue charts — follow-up slice
+- [x] Reports page: revenue bar chart (recharts) + CSV export
+- [x] Verified: `tsc --noEmit` clean, `next build` succeeds (15 routes)
 
 ## Phase 7 — Cross-cutting: notifications, analytics, offers/coupons/referrals
 - [x] FCM client token registration (customer app: MessagingService + push permission, refresh)
@@ -131,7 +135,8 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] CMS collection rules (`cms/{page}` public read, admin write)
 - [x] FCM token registration in astrologer app (dashboard)
 - [x] rating_submitted analytics wired
-- [ ] Remaining analytics points (login, coupon_used, referral_used, consultation_completed)
+- [x] login, coupon_used, consultation_completed analytics wired
+- [ ] referral_used analytics (referral credit is server-side; client event optional)
 - [ ] Offers/coupons/referrals end-to-end emulator verification (owner-run)
 
 ## Phase 8 — Polish & QA

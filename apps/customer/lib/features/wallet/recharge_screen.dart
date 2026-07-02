@@ -21,6 +21,10 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
   RechargePlan? _pending;
   RechargeOrder? _order;
   bool _processing = false;
+  final _coupon = TextEditingController();
+  String? _couponId;
+  int _couponDiscount = 0;
+  String? _couponMsg;
 
   @override
   void initState() {
@@ -34,7 +38,30 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
   @override
   void dispose() {
     _razorpay.clear();
+    _coupon.dispose();
     super.dispose();
+  }
+
+  Future<void> _applyCoupon(RechargePlan plan) async {
+    final code = _coupon.text.trim();
+    if (code.isEmpty) return;
+    final res = await ref.read(walletServiceProvider).validateCoupon(code, planId: plan.id);
+    if (!mounted) return;
+    res.when(
+      success: (v) {
+        setState(() {
+          _couponId = v.couponId;
+          _couponDiscount = v.discountPaise;
+          _couponMsg = 'Coupon applied: ${Money.formatPaise(v.discountPaise)} extra credit';
+        });
+        ref.read(analyticsProvider).logEvent(AnalyticsEvents.couponUsed, params: {'code': code});
+      },
+      failure: (f) => setState(() {
+        _couponId = null;
+        _couponDiscount = 0;
+        _couponMsg = f.message;
+      }),
+    );
   }
 
   Future<void> _startRecharge(RechargePlan plan) async {
@@ -42,7 +69,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
       _processing = true;
       _pending = plan;
     });
-    final res = await ref.read(walletServiceProvider).createOrder(plan.id);
+    final res = await ref.read(walletServiceProvider).createOrder(plan.id, couponId: _couponId);
     if (!mounted) return;
     res.when(
       success: (order) {
@@ -74,6 +101,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
           paymentId: r.paymentId ?? '',
           signature: r.signature ?? '',
           planId: plan.id,
+          couponId: _couponId,
         );
     if (!mounted) return;
     setState(() => _processing = false);
@@ -151,14 +179,45 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                   message: 'Please check back shortly.',
                 );
               }
-              return ListView.separated(
+              return ListView(
                 padding: const EdgeInsets.all(AppSpacing.lg),
-                itemCount: list.length,
-                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-                itemBuilder: (_, i) => _PlanCard(
-                  plan: list[i],
-                  onTap: _processing ? null : () => _startRecharge(list[i]),
-                ),
+                children: [
+                  AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _coupon,
+                                textCapitalization: TextCapitalization.characters,
+                                decoration: const InputDecoration(
+                                  hintText: 'Have a coupon code?',
+                                  filled: false,
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => _applyCoupon(list.first),
+                              child: const Text('Apply'),
+                            ),
+                          ],
+                        ),
+                        if (_couponMsg != null)
+                          Text(_couponMsg!,
+                              style: AppTypography.caption.copyWith(
+                                  color: _couponId != null ? AppColors.success : AppColors.error)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  for (final plan in list) ...[
+                    _PlanCard(plan: plan, onTap: _processing ? null : () => _startRecharge(plan)),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                ],
               );
             },
           ),

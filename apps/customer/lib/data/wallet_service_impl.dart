@@ -52,13 +52,16 @@ class WalletServiceImpl implements WalletService {
   }
 
   @override
-  Future<Result<int>> validateCoupon(String code, {required String planId}) async {
+  Future<Result<CouponValidation>> validateCoupon(String code, {required String planId}) async {
     try {
       final res = await _fn.httpsCallable('validateCoupon').call<Map<String, dynamic>>(
         {'code': code, 'planId': planId},
       );
       final m = Map<String, dynamic>.from(res.data);
-      return Success((m['discountPaise'] ?? 0) as int);
+      return Success(CouponValidation(
+        couponId: (m['couponId'] ?? '') as String,
+        discountPaise: (m['discountPaise'] ?? 0) as int,
+      ));
     } on FirebaseFunctionsException catch (e) {
       return ResultFailure(Failure(message: e.message ?? 'Invalid coupon', code: e.code));
     } catch (e) {
