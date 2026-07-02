@@ -1,0 +1,45 @@
+# ---- Secrets / env ----
+.env
+.env.local
+.env.*.local
+apps/admin/.env.local
+
+# Firebase native config (owner-supplied, never committed)
+**/google-services.json
+**/GoogleService-Info.plist
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# ---- Node / Functions / Admin ----
+node_modules/
+dist/
+.next/
+out/
+*.tsbuildinfo
+npm-debug.log*
+coverage/
+
+# ---- Flutter / Dart ----
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+ios/Pods/
+ios/.symlinks/
+android/.gradle/
+android/local.properties
+*.g.dart.lock
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/*
+!.vscode/extensions.json
