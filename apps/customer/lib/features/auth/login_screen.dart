@@ -90,13 +90,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.xxl),
-              Container(
-                width: 72,
-                height: 72,
-                decoration: const BoxDecoration(gradient: AppColors.primaryGradient, shape: BoxShape.circle),
-                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 36),
-              ),
-              const SizedBox(height: AppSpacing.xl),
+              const AppLogo(height: 64),
+              const SizedBox(height: AppSpacing.xxl),
               Text('Welcome to ASKTRO', style: AppTypography.title),
               const SizedBox(height: AppSpacing.xs),
               Text('Log in to consult trusted astrologers.',

@@ -13,6 +13,7 @@ export 'src/widgets/app_buttons.dart';
 export 'src/widgets/app_card.dart';
 export 'src/widgets/badges.dart';
 export 'src/widgets/app_avatar.dart';
+export 'src/widgets/app_logo.dart';
 export 'src/widgets/shimmer.dart';
 export 'src/widgets/state_views.dart';
 export 'src/widgets/low_balance_dialog.dart';

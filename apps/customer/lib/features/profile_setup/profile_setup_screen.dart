@@ -150,6 +150,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Column(
         children: [
+          const SizedBox(height: AppSpacing.lg),
+          const AppLogo(height: 52),
           const Spacer(),
           Container(
             width: 168,
