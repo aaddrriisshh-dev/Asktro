@@ -93,14 +93,16 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [ ] `flutter analyze`/`flutter build` verification (owner-run; no Flutter SDK here)
 
 ## Phase 5 — Astrologer app (Flutter)
-- [ ] Scaffold, login (approval gating), account-status screens
-- [ ] Dashboard (online toggle, quick stats)
-- [ ] Incoming request popup (accept/decline, timeout→missed)
-- [ ] Active consultation screen (chat/voice/video, session earnings)
-- [ ] Quick replies
-- [ ] Earnings (graphs), payout request
-- [ ] Consultation history, ratings, performance insights
-- [ ] Profile edit (admin-approval where applicable), availability, notifications
+- [x] Scaffold, DI, router, Firebase init + Crashlytics
+- [x] Email/password login; account-status/approval gating (pending review screen)
+- [x] Dashboard (online toggle, quick stats, incoming requests, active session)
+- [x] Incoming request accept/decline → activate server session
+- [x] Active consultation screen (chat + voice/video via Agora, heartbeat, end)
+- [x] Earnings tab + payout request
+- [x] Consultation history tab
+- [x] Profile tab (edit about, languages/expertise, logout)
+- [ ] Phone-OTP login option, quick replies, availability editor, graphs — follow-up slice
+- [ ] `flutter analyze`/build verification (owner-run; no Flutter SDK here)
 
 ## Phase 6 — Admin portal (Next.js + React, TS)
 - [x] Scaffold (App Router, TS, Firebase JS SDK, role-based auth guard via claims)
