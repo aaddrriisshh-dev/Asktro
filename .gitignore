@@ -15,6 +15,7 @@ ui-debug.log
 # ---- Node / Functions / Admin ----
 node_modules/
 dist/
+firebase/functions/lib/
 .next/
 out/
 *.tsbuildinfo

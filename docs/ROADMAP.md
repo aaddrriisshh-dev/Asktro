@@ -52,22 +52,26 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] `storage.rules` (per-folder scoping)
 - [x] `firestore.indexes.json` (all composite indexes from Part 7)
 - [x] `remoteconfig.template.json` (price, min wallet, warning times, flags)
-- [~] Functions project scaffold (TS, eslint, tsconfig, jest)
+- [x] Functions project scaffold (TS, eslint, tsconfig, jest)
 
 ## Phase 3 — Consultation / wallet / billing Cloud Functions (CORE)
-- [ ] Wallet model + atomic transaction helpers
-- [ ] `createConsultation` (checks online/available/wallet, atomic session create)
-- [ ] Server timer + `tickBilling` (₹0.15/sec deduction, scheduled/heartbeat)
-- [ ] `pauseConsultation` / `resumeConsultation`
-- [ ] Low-balance level detection (L1 ~2min, L2 ~30s, L3 exhausted)
-- [ ] `endConsultation` (final charge, receipt, history, refund unused)
-- [ ] `rechargeWallet` (Razorpay signature verify, idempotent, bonus)
-- [ ] `validateCoupon`, `applyReferralReward`
-- [ ] `rateConsultation` (avg rating recompute)
-- [ ] Agora token generation (RTC token builder)
-- [ ] Notification sender (FCM)
-- [ ] Fraud guards (single active session, no negative wallet, dup-callback)
-- [ ] Jest unit tests for billing math + emulator integration tests
+- [x] Wallet model + atomic transaction/ledger helpers
+- [x] `createConsultation` (checks online/available/wallet, atomic session create)
+- [x] Server timer + `tickConsultation` heartbeat (₹0.15/sec elapsed-time deduction)
+- [x] `sweepStaleSessions` scheduled safety net (late heartbeat + paused timeout)
+- [x] `activateConsultation`, `pauseConsultation` / `resumeConsultation`
+- [x] Low-balance level detection (L1 ~2min, L2 ~30s, L3 exhausted)
+- [x] `endConsultation` (final charge, receipt, astrologer net earning, counts)
+- [x] `createRechargeOrder`/`verifyRecharge`/`razorpayWebhook` (signature verify, idempotent, bonus)
+- [x] `validateCoupon`, referral reward (first-recharge, both wallets)
+- [x] `rateConsultation` (avg rating recompute)
+- [x] `generateAgoraToken` (RTC token builder)
+- [x] Notification sender (FCM trigger + admin broadcast fan-out)
+- [x] `onCustomerSignup`, `setUserRole`, `deleteAccount`
+- [x] Admin actions: `adjustWallet`, `processPayout`, `setAstrologerStatus` (audit-logged)
+- [x] Fraud guards (single active session, no negative wallet, dup-callback idempotency)
+- [x] Jest unit tests: billing math + Razorpay signature (22 passing)
+- [ ] Emulator integration tests (owner-run; needs Firebase CLI + JDK)
 
 ## Phase 4 — Customer app (Flutter)
 - [ ] App scaffold, DI wiring, routing, Firebase init
@@ -122,3 +126,8 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 
 ## Status log
 - **2026-07-02** — Phase 0 started: scaffold + ROADMAP created.
+- **2026-07-02** — Phase 0 done (all docs + root config committed).
+- **2026-07-02** — Phase 2 done (Firestore/Storage rules, indexes, Remote Config).
+- **2026-07-02** — Phase 3 done: full Cloud Functions billing engine, wallet,
+  recharge, coupons, referrals, ratings, Agora, auth, notifications, admin.
+  Typechecks clean (`tsc`), 22 unit tests passing. Next: Phase 1 design system.
