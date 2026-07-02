@@ -14,35 +14,57 @@ class AstrologerRepository {
   Astrologer _map(DocumentSnapshot<Map<String, dynamic>> d) =>
       Astrologer.fromMap(d.id, d.data() ?? const {});
 
+  // NOTE: these rails filter/sort client-side over a single-field query so
+  // they work WITHOUT deployed composite indexes. The directory is small; once
+  // firestore.indexes.json is deployed these can move back to server-side
+  // where + orderBy for scale.
+  bool _isActive(DocumentSnapshot<Map<String, dynamic>> d) =>
+      (d.data()?['active'] ?? true) == true;
+
+  int _createdMs(DocumentSnapshot<Map<String, dynamic>> d) {
+    final ts = d.data()?['createdAt'];
+    return ts is Timestamp ? ts.millisecondsSinceEpoch : 0;
+  }
+
   Stream<List<Astrologer>> watchOnline({int limit = 20}) => _col
-      .where('active', isEqualTo: true)
       .where('onlineStatus', isEqualTo: true)
-      .orderBy('rating', descending: true)
-      .limit(limit)
+      .limit(100)
       .snapshots()
-      .map((s) => s.docs.map(_map).toList());
+      .map((s) {
+        final list = s.docs.where(_isActive).map(_map).toList()
+          ..sort((a, b) => b.rating.compareTo(a.rating));
+        return list.take(limit).toList();
+      });
 
   Stream<List<Astrologer>> watchFeatured({int limit = 10}) => _col
-      .where('active', isEqualTo: true)
       .where('featured', isEqualTo: true)
-      .orderBy('rating', descending: true)
-      .limit(limit)
+      .limit(100)
       .snapshots()
-      .map((s) => s.docs.map(_map).toList());
+      .map((s) {
+        final list = s.docs.where(_isActive).map(_map).toList()
+          ..sort((a, b) => b.rating.compareTo(a.rating));
+        return list.take(limit).toList();
+      });
 
   Stream<List<Astrologer>> watchTopRated({int limit = 10}) => _col
       .where('active', isEqualTo: true)
-      .orderBy('rating', descending: true)
-      .limit(limit)
+      .limit(100)
       .snapshots()
-      .map((s) => s.docs.map(_map).toList());
+      .map((s) {
+        final list = s.docs.map(_map).toList()
+          ..sort((a, b) => b.rating.compareTo(a.rating));
+        return list.take(limit).toList();
+      });
 
   Stream<List<Astrologer>> watchNewest({int limit = 10}) => _col
       .where('active', isEqualTo: true)
-      .orderBy('createdAt', descending: true)
-      .limit(limit)
+      .limit(100)
       .snapshots()
-      .map((s) => s.docs.map(_map).toList());
+      .map((s) {
+        final docs = s.docs.toList()
+          ..sort((a, b) => _createdMs(b).compareTo(_createdMs(a)));
+        return docs.take(limit).map(_map).toList();
+      });
 
   Stream<Astrologer> watchOne(String id) =>
       _col.doc(id).snapshots().map(_map);
