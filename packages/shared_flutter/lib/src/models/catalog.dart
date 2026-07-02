@@ -41,9 +41,10 @@ class RechargePlan extends Equatable {
       [id, amount, walletCredit, bonus, popular, recommended, displayOrder, active];
 }
 
-/// Admin-managed promotional banner.
-class Banner extends Equatable {
-  const Banner({
+/// Admin-managed promotional banner. Named `PromoBanner` to avoid colliding
+/// with Flutter's built-in `Banner` widget.
+class PromoBanner extends Equatable {
+  const PromoBanner({
     required this.id,
     required this.image,
     this.title = '',
@@ -63,7 +64,7 @@ class Banner extends Equatable {
   final String placement;
   final int priority;
 
-  factory Banner.fromMap(String id, Map<String, dynamic> m) => Banner(
+  factory PromoBanner.fromMap(String id, Map<String, dynamic> m) => PromoBanner(
         id: id,
         image: (m['image'] ?? '') as String,
         title: (m['title'] ?? '') as String,

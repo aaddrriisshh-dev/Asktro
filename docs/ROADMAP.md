@@ -74,21 +74,23 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [ ] Emulator integration tests (owner-run; needs Firebase CLI + JDK)
 
 ## Phase 4 — Customer app (Flutter)
-- [ ] App scaffold, DI wiring, routing, Firebase init
-- [ ] Splash → onboarding (3 pages) → login (phone OTP/Google/Apple) → OTP
-- [ ] Home (greeting, search, banner carousel, astrologer rails)
-- [ ] Search + filters
-- [ ] Astrologer profile + sticky consultation bar
-- [ ] Consultation entry checks → session
-- [ ] Chat screen (realtime, typing, receipts, media, voice notes)
-- [ ] Voice call (Agora) + wallet/session header
-- [ ] Video call (Agora) + PiP/switch camera
-- [ ] Timer header (backend-driven), low-balance popup, final warning, paused
-- [ ] Recharge sheet (Razorpay) → resume same session
-- [ ] Wallet page (animated balance, txns, coupons, referral)
-- [ ] Consultation history, favourites/follow
-- [ ] Notifications, profile/settings, help & support, delete account
-- [ ] Offline handling, skeleton loaders, friendly errors
+- [x] App scaffold, DI wiring (Riverpod), routing (go_router), Firebase init + Crashlytics
+- [x] Splash → onboarding (3 pages) → login (phone OTP/Google/Apple) → OTP
+- [x] Home (greeting by time, search entry, banner carousel, 4 astrologer rails)
+- [x] Search screen (name/language/expertise)
+- [x] Astrologer profile + sticky consultation bar (chat/voice/video)
+- [x] Consultation entry checks → createConsultation → navigate
+- [x] Chat screen (realtime messages, bubbles, timer header, low-balance/paused/recharge/end)
+- [x] Voice/Video call (Agora token + engine, mute/speaker/switch/end, timer)
+- [x] Backend-driven timer header + heartbeat controller, low-balance dialog, paused sheet
+- [x] Recharge screen (Razorpay checkout → verify → success), auto-resume on recharge
+- [x] Wallet tab (animated balance, transaction history)
+- [x] Consultation history tab
+- [x] Notifications tab (unread badge), profile tab (referral, logout, delete account)
+- [x] Data layer: repositories + service impls (RPC over Cloud Functions)
+- [ ] Favourites/follow UI, help & support screens, offline banner — follow-up slice
+- [ ] Media in chat (image/voice notes), typing/read receipts — follow-up slice
+- [ ] `flutter analyze`/`flutter build` verification (owner-run; no Flutter SDK here)
 
 ## Phase 5 — Astrologer app (Flutter)
 - [ ] Scaffold, login (approval gating), account-status screens
@@ -131,3 +133,10 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - **2026-07-02** — Phase 3 done: full Cloud Functions billing engine, wallet,
   recharge, coupons, referrals, ratings, Agora, auth, notifications, admin.
   Typechecks clean (`tsc`), 22 unit tests passing. Next: Phase 1 design system.
+- **2026-07-02** — Phase 1 done: shared_flutter design system + models + interfaces.
+- **2026-07-02** — Phase 4 core done: customer app end-to-end vertical — auth →
+  home/browse/search → profile → chat/voice/video consultation with live
+  server-driven billing, low-balance/recharge/resume, end + rating, wallet,
+  history, notifications, profile/delete. Written to spec; Flutter compile is
+  owner-run (no SDK in this environment). Follow-up: favourites, chat media,
+  offline banner, help/support screens.
