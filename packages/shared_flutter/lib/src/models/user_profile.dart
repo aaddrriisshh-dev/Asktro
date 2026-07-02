@@ -23,6 +23,7 @@ class UserProfile extends Equatable {
     this.birthTimeKnown = true,
     this.birthPlace,
     this.languages = const [],
+    this.relationshipStatus,
     this.onboardingComplete = false,
   });
 
@@ -48,6 +49,7 @@ class UserProfile extends Equatable {
   final bool birthTimeKnown;
   final String? birthPlace; // free-text city, country
   final List<String> languages;
+  final String? relationshipStatus; // 'married' | 'single' | 'divorced' | 'in_relationship'
   final bool onboardingComplete;
 
   int get spendablePaise => walletBalance + bonusBalance;
@@ -76,6 +78,7 @@ class UserProfile extends Equatable {
         birthTimeKnown: (m['birthTimeKnown'] ?? true) as bool,
         birthPlace: m['birthPlace'] as String?,
         languages: List<String>.from(m['languages'] ?? const []),
+        relationshipStatus: m['relationshipStatus'] as String?,
         onboardingComplete: (m['onboardingComplete'] ?? false) as bool,
       );
 
@@ -85,6 +88,6 @@ class UserProfile extends Equatable {
         referralCode, referredBy, totalConsultations, notificationEnabled,
         favouriteAstrologers, followingAstrologers, accountStatus,
         gender, birthDateMs, birthTime, birthTimeKnown, birthPlace,
-        languages, onboardingComplete,
+        languages, relationshipStatus, onboardingComplete,
       ];
 }
