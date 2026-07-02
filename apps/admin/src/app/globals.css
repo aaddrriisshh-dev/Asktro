@@ -1,0 +1,82 @@
+:root {
+  --bg: #f8f5ff;
+  --card: #ffffff;
+  --primary: #7e57c2;
+  --primary-dark: #6a44b0;
+  --accent: #eee6ff;
+  --text: #2e2e2e;
+  --muted: #7d7d7d;
+  --border: #ececec;
+  --success: #3cb371;
+  --warning: #f5a623;
+  --error: #d64545;
+  --radius: 18px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Poppins', sans-serif;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.card {
+  background: var(--card);
+  border-radius: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  padding: 20px;
+}
+
+.btn {
+  background: linear-gradient(135deg, #8e6bd1, var(--primary-dark));
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.secondary {
+  background: var(--card);
+  color: var(--primary);
+  border: 1.4px solid var(--primary);
+}
+.btn.danger { background: var(--error); }
+.btn.sm { padding: 6px 12px; font-size: 13px; }
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 15px;
+  background: var(--card);
+}
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+th { color: var(--muted); font-weight: 600; }
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--primary);
+}
+.badge.green { background: rgba(60,179,113,0.12); color: var(--success); }
+.badge.red { background: rgba(214,69,69,0.12); color: var(--error); }
+.badge.amber { background: rgba(245,166,35,0.14); color: var(--warning); }
+
+.muted { color: var(--muted); }
+.kpi-value { font-size: 28px; font-weight: 700; }
+.grid { display: grid; gap: 16px; }

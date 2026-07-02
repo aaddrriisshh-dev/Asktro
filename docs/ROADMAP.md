@@ -103,14 +103,19 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [ ] Profile edit (admin-approval where applicable), availability, notifications
 
 ## Phase 6 — Admin portal (Next.js + React, TS)
-- [ ] Scaffold (App Router, TS, Firebase JS SDK, role-based auth)
-- [ ] Dashboard KPIs + charts + live activity
-- [ ] User management, Astrologer management + add astrologer
-- [ ] Banner, recharge plan, bonus, coupon, referral management
-- [ ] Global pricing + consultation settings
-- [ ] Wallet management, payout management
-- [ ] Support panel, push notifications, CMS, offers
-- [ ] Reports (PDF/Excel/CSV), analytics, immutable audit log
+- [x] Scaffold (App Router, TS, Firebase JS SDK, role-based auth guard via claims)
+- [x] Secure email/password login (rejects non-admin accounts)
+- [x] Dashboard KPIs + live activity feed
+- [x] Astrologer management (approve/suspend, add astrologer)
+- [x] User management (search, credit/debit wallet via audited function)
+- [x] Recharge plan management (CRUD, popular/recommended toggles)
+- [x] Banner management (CRUD, placement/priority/active)
+- [x] Coupon management (flat/percentage, limits, expiry, per-user)
+- [x] Payout management (approve/reject/process via function)
+- [x] Global pricing + consultation settings (writes config/global)
+- [x] Push notification broadcast (segment fan-out via function)
+- [x] Verified: `tsc --noEmit` clean, `next build` succeeds (11 routes)
+- [ ] Support panel, CMS pages, reports export (PDF/Excel/CSV), audit-log viewer — follow-up slice
 
 ## Phase 7 — Cross-cutting: notifications, analytics, offers/coupons/referrals
 - [ ] FCM topics + client token registration
@@ -140,3 +145,6 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
   history, notifications, profile/delete. Written to spec; Flutter compile is
   owner-run (no SDK in this environment). Follow-up: favourites, chat media,
   offline banner, help/support screens.
+- **2026-07-02** — Phase 6 core done: Next.js admin portal (login, dashboard,
+  astrologers, users, plans, banners, coupons, payouts, pricing/settings,
+  broadcast). Verified locally: `tsc` clean + `next build` succeeds.
