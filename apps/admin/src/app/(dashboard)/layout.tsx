@@ -15,6 +15,9 @@ const NAV = [
   { href: '/payouts', label: 'Payouts' },
   { href: '/pricing', label: 'Pricing & Settings' },
   { href: '/broadcast', label: 'Notifications' },
+  { href: '/support', label: 'Support' },
+  { href: '/cms', label: 'CMS' },
+  { href: '/audit', label: 'Audit Log' },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

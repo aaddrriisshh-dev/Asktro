@@ -116,13 +116,19 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - [x] Payout management (approve/reject/process via function)
 - [x] Global pricing + consultation settings (writes config/global)
 - [x] Push notification broadcast (segment fan-out via function)
-- [x] Verified: `tsc --noEmit` clean, `next build` succeeds (11 routes)
-- [ ] Support panel, CMS pages, reports export (PDF/Excel/CSV), audit-log viewer — follow-up slice
+- [x] Support panel (ticket list, assign/close)
+- [x] CMS editor (privacy/terms/refund/about/contact/faq → `cms/{page}`)
+- [x] Audit-log viewer (immutable privileged-action feed)
+- [x] Verified: `tsc --noEmit` clean, `next build` succeeds (14 routes)
+- [ ] Reports export (PDF/Excel/CSV), revenue charts — follow-up slice
 
 ## Phase 7 — Cross-cutting: notifications, analytics, offers/coupons/referrals
-- [ ] FCM topics + client token registration
-- [ ] Analytics events wired across all apps
-- [ ] Offers/coupons/referrals end-to-end verified
+- [x] FCM client token registration (customer app: MessagingService + push permission, refresh)
+- [x] Analytics service + canonical events wired (consultation_started, recharge_success; more points pending)
+- [x] CMS collection rules (`cms/{page}` public read, admin write)
+- [ ] FCM token registration in astrologer app — follow-up slice
+- [ ] Remaining analytics event points (login, coupon_used, referral_used, rating_submitted, consultation_completed)
+- [ ] Offers/coupons/referrals end-to-end emulator verification (owner-run)
 
 ## Phase 8 — Polish & QA
 - [ ] Empty/loading/error states everywhere
@@ -150,3 +156,12 @@ without code changes once keys from `docs/SETUP_CHECKLIST.md` are supplied.
 - **2026-07-02** — Phase 6 core done: Next.js admin portal (login, dashboard,
   astrologers, users, plans, banners, coupons, payouts, pricing/settings,
   broadcast). Verified locally: `tsc` clean + `next build` succeeds.
+- **2026-07-02** — Phase 5 done: astrologer app (approval-gated login, dashboard
+  + online toggle, accept/conduct/end consultation, earnings/payout, history, profile).
+- **2026-07-02** — Admin follow-ups: support panel, CMS editor, audit-log viewer
+  (`next build` = 14 routes). Phase 7 started: customer FCM token registration +
+  analytics service with initial event points; `cms/{page}` rules added.
+- **Remaining**: reports/charts (admin); astrologer FCM + remaining analytics
+  points; customer follow-ups (favourites, chat media, offline banner, help/CMS
+  viewer screens); astrologer follow-ups (phone-OTP, quick replies, availability
+  editor, graphs); Phase 8 QA polish + emulator/Flutter verification (owner-run).

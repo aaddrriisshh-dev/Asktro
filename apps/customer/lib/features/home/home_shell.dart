@@ -30,6 +30,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final uid = ref.watch(currentUidProvider);
+    // Register FCM token + analytics user id once signed in.
+    ref.watch(pushRegistrationProvider);
     final unread = uid == null
         ? const AsyncValue<int>.data(0)
         : ref.watch(_unreadProvider(uid));

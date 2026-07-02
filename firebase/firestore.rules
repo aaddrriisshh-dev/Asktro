@@ -152,6 +152,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ================= CMS pages (privacy, terms, refund, about, faq) =======
+    match /cms/{page} {
+      allow read: if true;          // public legal/help content
+      allow write: if isAdmin();
+    }
+
     // ================= admin-only areas =================
     match /adminUsers/{uid} {
       allow read: if isAdmin();

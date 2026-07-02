@@ -4,6 +4,7 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../data/messaging_service.dart';
 
 final _plansProvider = StreamProvider.autoDispose<List<RechargePlan>>(
     (ref) => ref.watch(catalogRepositoryProvider).watchPlans());
@@ -78,6 +79,10 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
     setState(() => _processing = false);
     res.when(
       success: (_) {
+        ref.read(analyticsProvider).logEvent(AnalyticsEvents.rechargeSuccess, params: {
+          'planId': plan.id,
+          'amount': plan.amount,
+        });
         _showSuccess(plan);
       },
       failure: (f) => _snack(f.message),

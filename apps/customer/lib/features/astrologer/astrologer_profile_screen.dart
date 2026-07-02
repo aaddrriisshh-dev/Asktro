@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../data/messaging_service.dart';
 import '../consultation/chat_consultation_screen.dart';
 import '../consultation/call_consultation_screen.dart';
 
@@ -32,6 +33,10 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
 
     res.when(
       success: (start) {
+        ref.read(analyticsProvider).logEvent(AnalyticsEvents.consultationStarted, params: {
+          'type': type.name,
+          'astrologerId': a.id,
+        });
         final route = type == ConsultationType.chat
             ? MaterialPageRoute(
                 builder: (_) => ChatConsultationScreen(consultationId: start.consultationId, astrologer: a))
