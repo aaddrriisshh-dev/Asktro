@@ -626,7 +626,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 140),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
         decoration: BoxDecoration(
           color: selected ? Ob.selectedFill : Ob.surface,
           borderRadius: BorderRadius.circular(16),
@@ -636,15 +636,22 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         child: Row(
           children: [
             Container(
-              width: 34,
-              height: 34,
+              width: 30,
+              height: 30,
               decoration: const BoxDecoration(color: Ob.lavenderChip, shape: BoxShape.circle),
               alignment: Alignment.center,
-              child: Text(glyph, style: Ob.option.copyWith(color: Ob.purple, fontSize: 16)),
+              child: Text(glyph, style: Ob.option.copyWith(color: Ob.purple, fontSize: 15)),
             ),
-            const SizedBox(width: 10),
-            Expanded(child: Text(label, style: Ob.option.copyWith(fontSize: 15), overflow: TextOverflow.ellipsis)),
-            selected ? const GoldCheck(size: 22) : const Icon(Icons.add_rounded, color: Ob.purple, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(label,
+                  style: Ob.option.copyWith(fontSize: 13.5),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ),
+            selected
+                ? const GoldCheck(size: 20)
+                : const Icon(Icons.add_rounded, color: Ob.purple, size: 18),
           ],
         ),
       ),
