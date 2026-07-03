@@ -4,6 +4,7 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../data/messaging_service.dart';
 import '../profile_setup/onboarding_style.dart';
 import '../profile_setup/onboarding_widgets.dart';
 
