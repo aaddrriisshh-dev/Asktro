@@ -89,6 +89,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       backgroundColor: Ob.bgColor,
       body: Stack(
+        // Expand to the full screen so Positioned(bottom: 0) anchors to the
+        // screen bottom. Without this the Stack shrink-wrapped to the scrolling
+        // form, and the scenery was pinned to the form's bottom (mid-screen).
+        fit: StackFit.expand,
         children: [
           // celestial background: faint zodiac-wheel + temple scenery
           Positioned(
@@ -98,39 +102,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Opacity(opacity: 0.16, child: Image.asset(Ob.zodiacWheel, width: 430)),
             ),
           ),
-          // Temple scenery pinned to the bottom. Using bottom + an explicit
-          // height (instead of a loose-height fitWidth image, which sized
-          // unpredictably and floated mid-screen) guarantees the band sits
-          // flush on the bottom edge. cover fills it fully; a short lavender
-          // gradient at the top blends the seam into the background.
+          // Temple scenery flush on the screen bottom. The asset is now fully
+          // opaque (mountains flattened onto the #F5F2FF background), so its
+          // top blends into the page and there is no transparency/checkerboard.
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            height: MediaQuery.of(context).size.height * 0.30,
             child: IgnorePointer(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.asset(
-                    Ob.sceneryBase,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.bottomCenter,
-                  ),
-                  Align(
-                    alignment: Alignment.topCenter,
-                    child: Container(
-                      height: 72,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Ob.bgColor, Ob.bgColor.withValues(alpha: 0.0)],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              child: Image.asset(
+                Ob.sceneryBase,
+                fit: BoxFit.fitWidth,
+                alignment: Alignment.bottomCenter,
               ),
             ),
           ),
