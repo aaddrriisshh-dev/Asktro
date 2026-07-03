@@ -234,14 +234,14 @@ tbody tr:last-child td { border-bottom: none; }
 .sidebar__brand {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: #fff;
-  border-radius: 13px;
-  padding: 12px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+  gap: 11px;
+  padding: 6px 6px 2px;
 }
-.sidebar__brand img { height: 30px; width: auto; max-width: 100%; object-fit: contain; display: block; }
-.brand-emblem { display: none; }
+.brand-emblem { height: 38px; width: 38px; flex: none; display: block; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.05; min-width: 0; }
+.brand-word { font-family: var(--serif); font-size: 25px; font-weight: 600; color: #fff; letter-spacing: 0.4px; }
+.brand-tld { color: rgba(255, 255, 255, 0.62); font-size: 0.58em; font-weight: 500; margin-left: 1px; }
+.brand-tag { font-size: 8px; letter-spacing: 1.7px; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); margin-top: 4px; white-space: nowrap; }
 .sidebar__toggle {
   display: flex;
   align-items: center;
@@ -303,9 +303,8 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* collapsed state */
 .sidebar--collapsed { width: 78px; padding: 18px 12px; }
-.sidebar--collapsed .brand-wordmark { display: none; }
-.sidebar--collapsed .brand-emblem { display: block; height: 26px; }
-.sidebar--collapsed .sidebar__brand { padding: 7px; }
+.sidebar--collapsed .sidebar__brand { justify-content: center; padding: 4px; }
+.sidebar--collapsed .brand-text { display: none; }
 .sidebar--collapsed .sidebar__eyebrow { display: none; }
 .sidebar--collapsed .sidebar__link { justify-content: center; padding: 10px 0; gap: 0; }
 .sidebar--collapsed .sidebar__label { display: none; }

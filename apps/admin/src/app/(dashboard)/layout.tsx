@@ -47,9 +47,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <aside className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}>
         <div className="sidebar__brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="brand-wordmark" src="/brand/asktro_logo.png" alt="Asktro" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="brand-emblem" src="/brand/emblem.png" alt="Asktro" />
+          <div className="brand-text">
+            <span className="brand-word">Asktro<span className="brand-tld">.in</span></span>
+            <span className="brand-tag">Guidance written in the stars</span>
+          </div>
         </div>
         <p className="sidebar__eyebrow">Operations Console</p>
         <button
