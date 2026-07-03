@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Poppins:wght@400;500;600&display=swap');
+
 :root {
   --bg: #f8f5ff;
   --card: #ffffff;
@@ -11,6 +13,79 @@
   --warning: #f5a623;
   --error: #d64545;
   --radius: 18px;
+
+  /* Celestial brand (matches the customer app) */
+  --navy: #2e2b5f;
+  --gold: #d4af37;
+  --gold-deep: #b8942a;
+  --lavender: #f5f2ff;
+  --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+}
+
+/* ---- Celestial login ---- */
+.celestial {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(120% 100% at 50% -10%, #fbf9ff 0%, #f5f2ff 50%, #ede7fb 100%);
+}
+.celestial__wheel {
+  position: absolute;
+  top: 4%;
+  right: -12%;
+  width: 560px;
+  max-width: 80vw;
+  opacity: 0.14;
+  pointer-events: none;
+}
+.celestial__scenery {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.celestial__card {
+  position: relative;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  border: 1px solid #ece4fb;
+  border-radius: 26px;
+  box-shadow: 0 20px 50px rgba(46, 43, 95, 0.14);
+  padding: 34px 30px;
+  width: 380px;
+  max-width: 100%;
+}
+.celestial__logo { display: block; height: 46px; margin: 0 auto 18px; }
+.celestial__eyebrow {
+  text-align: center;
+  letter-spacing: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold-deep);
+  text-transform: uppercase;
+  margin: 0 0 2px;
+}
+.celestial__title {
+  font-family: var(--serif);
+  text-align: center;
+  color: var(--navy);
+  font-size: 34px;
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+.celestial__subtitle { text-align: center; color: var(--muted); margin: 0 0 22px; font-size: 14px; }
+.celestial__label { font-size: 13px; font-weight: 600; color: var(--navy); }
+.btn.gold {
+  background: linear-gradient(135deg, #ead079, var(--gold));
+  color: var(--navy);
+  box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
 }
 
 * { box-sizing: border-box; }

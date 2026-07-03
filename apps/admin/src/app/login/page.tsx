@@ -39,11 +39,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24 }}>
-      <form onSubmit={submit} className="card" style={{ width: 380, maxWidth: '100%' }}>
-        <h1 style={{ marginTop: 0, color: 'var(--primary)' }}>ASKTRO Admin</h1>
-        <p className="muted" style={{ marginTop: -8 }}>Sign in to the operations console.</p>
-        <label>Email</label>
+    <div className="celestial">
+      {/* faint zodiac wheel + temple scenery — the ASKTRO celestial look */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="celestial__wheel" src="/brand/zodiac_wheel.png" alt="" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="celestial__scenery" src="/brand/scenery.webp" alt="" />
+
+      <form onSubmit={submit} className="celestial__card">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="celestial__logo" src="/brand/asktro_logo.png" alt="Asktro" />
+        <p className="celestial__eyebrow">Operations Console</p>
+        <h1 className="celestial__title">Welcome back</h1>
+        <p className="celestial__subtitle">Sign in to manage the ASKTRO platform.</p>
+
+        <label className="celestial__label">Email</label>
         <input
           className="input"
           type="email"
@@ -52,17 +62,17 @@ export default function LoginPage() {
           style={{ margin: '6px 0 14px' }}
           required
         />
-        <label>Password</label>
+        <label className="celestial__label">Password</label>
         <input
           className="input"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ margin: '6px 0 14px' }}
+          style={{ margin: '6px 0 16px' }}
           required
         />
-        {error && <p style={{ color: 'var(--error)', fontSize: 14 }}>{error}</p>}
-        <button className="btn" style={{ width: '100%' }} disabled={busy}>
+        {error && <p style={{ color: 'var(--error)', fontSize: 14, marginTop: 0 }}>{error}</p>}
+        <button className="btn gold" style={{ width: '100%' }} disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
