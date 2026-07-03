@@ -7,6 +7,7 @@ apps/admin/.env.local
 # Firebase native config (owner-supplied, never committed)
 **/google-services.json
 **/GoogleService-Info.plist
+**/serviceAccountKey.json
 .firebase/
 firebase-debug.log
 firestore-debug.log
