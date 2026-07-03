@@ -160,8 +160,22 @@ class HomeFeed extends ConsumerWidget {
           const SizedBox(width: 5),
           _iconCircle(Icons.language_rounded, () => showLanguageSheet(context)),
           const SizedBox(width: 5),
-          _iconCircle(Icons.support_agent_rounded,
-              () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SupportScreen()))),
+          // Support-agent avatar → customer support page.
+          GestureDetector(
+            onTap: () =>
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SupportScreen())),
+            child: Container(
+              width: 36,
+              height: 36,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Ob.border),
+                boxShadow: Ob.softShadow,
+              ),
+              child: Image.asset('assets/onboarding/support_avatar.webp', fit: BoxFit.cover),
+            ),
+          ),
         ],
       ),
     );
