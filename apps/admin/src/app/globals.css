@@ -109,7 +109,8 @@ html, body {
   padding: 0;
   background:
     radial-gradient(1000px 480px at 100% -8%, #efe8ff 0%, rgba(239, 232, 255, 0) 60%),
-    radial-gradient(760px 520px at -6% 110%, rgba(212, 175, 55, 0.07) 0%, rgba(212, 175, 55, 0) 60%),
+    radial-gradient(760px 520px at -6% 110%, rgba(212, 175, 55, 0.09) 0%, rgba(212, 175, 55, 0) 60%),
+    radial-gradient(720px 620px at 92% 112%, rgba(126, 87, 194, 0.1) 0%, rgba(126, 87, 194, 0) 62%),
     var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Poppins', sans-serif;
@@ -231,7 +232,10 @@ tbody tr:last-child td { border-bottom: none; }
   flex: none;
   transition: width 0.22s ease, padding 0.22s ease;
   border-radius: 0 22px 22px 0;
-  box-shadow: 12px 0 44px rgba(30, 25, 60, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  box-shadow:
+    18px 0 54px rgba(16, 12, 38, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.13),
+    inset -4px 0 12px rgba(0, 0, 0, 0.22);
 }
 .sidebar__brand {
   display: flex;
@@ -345,7 +349,7 @@ tbody tr:last-child td { border-bottom: none; }
   width: 580px;
   height: 580px;
   background: url('/brand/zodiac_wheel.png') center / contain no-repeat;
-  opacity: 0.07;
+  opacity: 0.13;
 }
 /* faint zodiac wheel decorating the bottom of the dashboard */
 .celestial-bg::after {
@@ -356,7 +360,7 @@ tbody tr:last-child td { border-bottom: none; }
   width: 520px;
   height: 520px;
   background: url('/brand/zodiac_wheel.png') center / contain no-repeat;
-  opacity: 0.06;
+  opacity: 0.12;
 }
 
 /* ---- Dashboard hero (compact, real Asktro logo) ---- */
