@@ -61,6 +61,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         >
           {collapsed ? '›' : '‹'}
         </button>
+        <button
+          className="sidebar__toggle sidebar__toggle--bottom"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-label={collapsed ? 'Open menu' : 'Close menu'}
+        >
+          {collapsed ? '›' : '‹'}
+        </button>
         <nav className="sidebar__nav">
           {NAV.map((n) => {
             const active = pathname === n.href;
