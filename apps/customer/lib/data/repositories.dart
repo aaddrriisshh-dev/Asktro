@@ -131,12 +131,17 @@ class CatalogRepository {
   CatalogRepository(this._db);
   final FirebaseFirestore _db;
 
+  // Client-side sort so this works without the composite index deployed.
   Stream<List<RechargePlan>> watchPlans() => _db
       .collection('rechargePlans')
       .where('active', isEqualTo: true)
-      .orderBy('displayOrder')
+      .limit(50)
       .snapshots()
-      .map((s) => s.docs.map((d) => RechargePlan.fromMap(d.id, d.data())).toList());
+      .map((s) {
+        final list = s.docs.map((d) => RechargePlan.fromMap(d.id, d.data())).toList()
+          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+        return list;
+      });
 
   Stream<List<PromoBanner>> watchBanners(String placement) => _db
       .collection('banners')

@@ -4,11 +4,14 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
-import '../../data/messaging_service.dart';
+import '../profile_setup/onboarding_style.dart';
+import '../profile_setup/onboarding_widgets.dart';
 
 final _plansProvider = StreamProvider.autoDispose<List<RechargePlan>>(
     (ref) => ref.watch(catalogRepositoryProvider).watchPlans());
 
+/// "Add Cash" — pick an amount, then pay via Razorpay. The wallet is credited
+/// server-side (Cloud Function) on payment verification.
 class RechargeScreen extends ConsumerStatefulWidget {
   const RechargeScreen({super.key});
 
@@ -18,13 +21,9 @@ class RechargeScreen extends ConsumerStatefulWidget {
 
 class _RechargeScreenState extends ConsumerState<RechargeScreen> {
   late final Razorpay _razorpay;
-  RechargePlan? _pending;
+  RechargePlan? _selected;
   RechargeOrder? _order;
   bool _processing = false;
-  final _coupon = TextEditingController();
-  String? _couponId;
-  int _couponDiscount = 0;
-  String? _couponMsg;
 
   @override
   void initState() {
@@ -38,38 +37,14 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
   @override
   void dispose() {
     _razorpay.clear();
-    _coupon.dispose();
     super.dispose();
   }
 
-  Future<void> _applyCoupon(RechargePlan plan) async {
-    final code = _coupon.text.trim();
-    if (code.isEmpty) return;
-    final res = await ref.read(walletServiceProvider).validateCoupon(code, planId: plan.id);
-    if (!mounted) return;
-    res.when(
-      success: (v) {
-        setState(() {
-          _couponId = v.couponId;
-          _couponDiscount = v.discountPaise;
-          _couponMsg = 'Coupon applied: ${Money.formatPaise(v.discountPaise)} extra credit';
-        });
-        ref.read(analyticsProvider).logEvent(AnalyticsEvents.couponUsed, params: {'code': code});
-      },
-      failure: (f) => setState(() {
-        _couponId = null;
-        _couponDiscount = 0;
-        _couponMsg = f.message;
-      }),
-    );
-  }
-
-  Future<void> _startRecharge(RechargePlan plan) async {
-    setState(() {
-      _processing = true;
-      _pending = plan;
-    });
-    final res = await ref.read(walletServiceProvider).createOrder(plan.id, couponId: _couponId);
+  Future<void> _startRecharge() async {
+    final plan = _selected;
+    if (plan == null) return;
+    setState(() => _processing = true);
+    final res = await ref.read(walletServiceProvider).createOrder(plan.id);
     if (!mounted) return;
     res.when(
       success: (order) {
@@ -94,14 +69,13 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
 
   Future<void> _onSuccess(PaymentSuccessResponse r) async {
     final order = _order;
-    final plan = _pending;
+    final plan = _selected;
     if (order == null || plan == null) return;
     final res = await ref.read(walletServiceProvider).verify(
           orderId: order.orderId,
           paymentId: r.paymentId ?? '',
           signature: r.signature ?? '',
           planId: plan.id,
-          couponId: _couponId,
         );
     if (!mounted) return;
     setState(() => _processing = false);
@@ -127,27 +101,31 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.dialog)),
+        backgroundColor: Ob.bgColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircleAvatar(
-                radius: 34,
-                backgroundColor: AppColors.success,
-                child: Icon(Icons.check_rounded, color: Colors.white, size: 40),
+              Container(
+                width: 64,
+                height: 64,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(gradient: Ob.goldCircle, shape: BoxShape.circle),
+                child: const Icon(Icons.check_rounded, color: Colors.white, size: 34),
               ),
-              const SizedBox(height: AppSpacing.lg),
-              Text('Recharge successful', style: AppTypography.subtitle),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: 16),
+              Text('Recharge successful', style: Ob.title),
+              const SizedBox(height: 6),
               Text('${Money.formatPaise(plan.totalCredit)} added to your wallet.',
-                  style: AppTypography.caption, textAlign: TextAlign.center),
-              const SizedBox(height: AppSpacing.xl),
-              PrimaryButton(
+                  style: Ob.subtitle, textAlign: TextAlign.center),
+              const SizedBox(height: 20),
+              GoldButton(
                 label: 'Done',
+                icon: null,
                 onPressed: () {
-                  Navigator.of(context).pop();
+                  Navigator.pop(context);
                   Navigator.of(context).maybePop();
                 },
               ),
@@ -158,65 +136,89 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
     );
   }
 
-  void _snack(String msg) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  void _snack(String msg) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   @override
   Widget build(BuildContext context) {
     final plans = ref.watch(_plansProvider);
+    final balance = ref.watch(myProfileProvider).valueOrNull?.spendablePaise ?? 0;
     return Scaffold(
-      appBar: AppBar(title: const Text('Recharge')),
+      backgroundColor: Ob.bgColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Ob.navy,
+        title: Text('Add Cash', style: Ob.title.copyWith(fontSize: 22)),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(color: Ob.lavenderChip, borderRadius: BorderRadius.circular(14)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.account_balance_wallet_rounded, size: 16, color: Ob.purple),
+                    const SizedBox(width: 6),
+                    Text(Money.formatPaise(balance),
+                        style: Ob.option.copyWith(fontSize: 13, fontWeight: FontWeight.w600, color: Ob.purple)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           plans.when(
-            loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            loading: () => const Center(child: CircularProgressIndicator(color: Ob.purple)),
             error: (_, __) => const ErrorStateView(),
             data: (list) {
               if (list.isEmpty) {
                 return const EmptyState(
                   icon: Icons.account_balance_wallet_outlined,
-                  title: 'No recharge plans available',
+                  title: 'No recharge amounts available',
                   message: 'Please check back shortly.',
                 );
               }
-              return ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+              return Column(
                 children: [
-                  AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                       children: [
                         Row(
                           children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _coupon,
-                                textCapitalization: TextCapitalization.characters,
-                                decoration: const InputDecoration(
-                                  hintText: 'Have a coupon code?',
-                                  filled: false,
-                                  border: InputBorder.none,
-                                ),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () => _applyCoupon(list.first),
-                              child: const Text('Apply'),
-                            ),
+                            const Icon(Icons.auto_awesome, color: Ob.gold, size: 16),
+                            const SizedBox(width: 6),
+                            Text('Choose an amount to add', style: Ob.sectionLabel),
                           ],
                         ),
-                        if (_couponMsg != null)
-                          Text(_couponMsg!,
-                              style: AppTypography.caption.copyWith(
-                                  color: _couponId != null ? AppColors.success : AppColors.error)),
+                        const SizedBox(height: 16),
+                        LayoutBuilder(builder: (context, c) {
+                          const spacing = 12.0;
+                          final w = (c.maxWidth - spacing * 2) / 3;
+                          return Wrap(
+                            spacing: spacing,
+                            runSpacing: spacing,
+                            children: [for (final p in list) _tile(p, w)],
+                          );
+                        }),
                       ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  for (final plan in list) ...[
-                    _PlanCard(plan: plan, onTap: _processing ? null : () => _startRecharge(plan)),
-                    const SizedBox(height: AppSpacing.md),
-                  ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                    child: GoldButton(
+                      label: _selected == null
+                          ? 'Select an amount'
+                          : 'Proceed  •  ${Money.formatPaise(_selected!.amount)}',
+                      icon: null,
+                      loading: _processing,
+                      onPressed: (_selected == null || _processing) ? null : _startRecharge,
+                    ),
+                  ),
                 ],
               );
             },
@@ -226,47 +228,23 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
       ),
     );
   }
-}
 
-class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan, required this.onTap});
-  final RechargePlan plan;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(Money.formatPaise(plan.amount), style: AppTypography.title),
-              if (plan.bonus > 0)
-                Text('+ ${Money.formatPaise(plan.bonus)} bonus',
-                    style: AppTypography.caption.copyWith(color: AppColors.success)),
-            ],
-          ),
-          const Spacer(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                children: [
-                  if (plan.recommended) const LabelBadge(text: 'Recommended'),
-                  if (plan.popular) ...[
-                    const SizedBox(width: 6),
-                    const LabelBadge(text: 'Popular', filled: false),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text('Get ${Money.formatPaise(plan.totalCredit)}',
-                  style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ],
+  Widget _tile(RechargePlan plan, double w) {
+    final sel = _selected?.id == plan.id;
+    return GestureDetector(
+      onTap: () => setState(() => _selected = plan),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        width: w,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: sel ? Ob.selectedFill : Ob.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: sel ? Ob.selectedBorder : Ob.border, width: sel ? 1.6 : 1),
+          boxShadow: sel ? null : Ob.softShadow,
+        ),
+        child: Text(Money.formatPaise(plan.amount), style: Ob.title.copyWith(fontSize: 20)),
       ),
     );
   }

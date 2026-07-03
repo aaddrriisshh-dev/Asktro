@@ -7,6 +7,8 @@ import '../../app/providers.dart';
 import '../astrologer/astrologer_card.dart';
 import '../search/search_screen.dart';
 import '../tools/horoscope_screen.dart';
+import '../settings/language_sheet.dart';
+import '../profile/support_screen.dart';
 import '../profile_setup/onboarding_style.dart';
 import '../profile_setup/onboarding_widgets.dart';
 
@@ -95,47 +97,115 @@ class HomeFeed extends ConsumerWidget {
 
   Widget _topBar(BuildContext context, WidgetRef ref, UserProfile? profile) {
     final name = (profile?.name ?? '').trim();
+    final first = name.isEmpty ? 'there' : name.split(' ').first;
     final initial = name.isEmpty ? '★' : name.substring(0, 1).toUpperCase();
+    final photo = profile?.profilePhoto;
+    final hasPhoto = photo != null && photo.isNotEmpty;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          // Profile entry point → switches the bottom nav to the Profile tab.
+          // Profile photo + a little hamburger badge → opens the Profile page.
           GestureDetector(
             onTap: () => ref.read(homeTabProvider.notifier).state = 4,
-            child: Container(
-              width: 46,
-              height: 46,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                gradient: Ob.goldGradient,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: Ob.softShadow,
-              ),
-              child: Text(initial, style: Ob.title.copyWith(color: Colors.white, fontSize: 20)),
-            ),
-          ),
-          Expanded(child: Center(child: const AppLogo(height: 30))),
-          GestureDetector(
-            onTap: () => context.push('/recharge'),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(14)),
-              child: Row(
+            child: SizedBox(
+              width: 50,
+              height: 48,
+              child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  const Icon(Icons.account_balance_wallet_rounded, size: 17, color: Ob.navy),
-                  const SizedBox(width: 6),
-                  Text(Money.formatPaise(profile?.spendablePaise ?? 0),
-                      style: Ob.option.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+                  Container(
+                    width: 46,
+                    height: 46,
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      gradient: hasPhoto ? null : Ob.goldGradient,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: Ob.softShadow,
+                    ),
+                    child: hasPhoto
+                        ? Image.network(photo, width: 46, height: 46, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                Text(initial, style: Ob.title.copyWith(color: Colors.white, fontSize: 20)))
+                        : Text(initial, style: Ob.title.copyWith(color: Colors.white, fontSize: 20)),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: Ob.softShadow),
+                      child: const Icon(Icons.menu_rounded, size: 12, color: Ob.navy),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text('Hi $first',
+                style: Ob.title.copyWith(fontSize: 18), overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 8),
+          _addCash(context),
+          const SizedBox(width: 8),
+          _iconCircle(Icons.translate_rounded, () => showLanguageSheet(context)),
+          const SizedBox(width: 6),
+          _iconCircle(Icons.headset_mic_rounded,
+              () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SupportScreen()))),
         ],
       ),
     );
   }
+
+  Widget _addCash(BuildContext context) => GestureDetector(
+        onTap: () => context.push('/recharge'),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 8, 6, 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Ob.border),
+            boxShadow: Ob.softShadow,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.account_balance_wallet_outlined, size: 17, color: Ob.navy),
+              const SizedBox(width: 6),
+              Text('Add Cash', style: Ob.option.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(width: 6),
+              Container(
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(color: Ob.navy, shape: BoxShape.circle),
+                child: const Icon(Icons.add, size: 14, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _iconCircle(IconData icon, VoidCallback onTap) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: Ob.border),
+            boxShadow: Ob.softShadow,
+          ),
+          child: Icon(icon, size: 19, color: Ob.navy),
+        ),
+      );
 }
 
 // ------------------------------------------------------------- tool tabs --
