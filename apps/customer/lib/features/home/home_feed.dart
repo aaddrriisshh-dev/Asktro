@@ -277,23 +277,21 @@ class _HomeBannersState extends State<_HomeBanners> {
   Widget build(BuildContext context) {
     final banners = [
       _banner(
-        gradient: _grad(const [Color(0xFF8E6BD1), Color(0xFF5E3FBE)]),
-        onGold: false,
+        gradient: _grad(const [Color(0xFF9E7BE0), Color(0xFF7E57C2), Color(0xFF5E3FBE)]),
         kicker: '✦ WELCOME GIFT',
         title: 'Start Your Free\nSession',
         subtitle: 'Your first chat is on us',
         cta: 'Start Now',
-        illustration: Image.asset(Ob.gift, height: 122),
+        illustration: Image.asset(Ob.gift, height: 128),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
       ),
       _banner(
-        gradient: _grad(const [Color(0xFF5B3AA6), Color(0xFF3A2472)]),
-        onGold: false,
+        gradient: _grad(const [Color(0xFF6A47C7), Color(0xFF432B85), Color(0xFF2C1E5C)]),
         kicker: '✦ DIVINE BLESSINGS',
         title: 'Book Group\nPujas',
-        subtitle: 'Performed by verified pandits',
+        subtitle: 'By verified pandits',
         cta: 'Book Now',
-        illustration: Image.asset(Ob.ganesha, height: 172),
+        illustration: Image.asset(Ob.ganesha, height: 176),
         onTap: () => _comingSoon(context, 'Group Pujas'),
       ),
       _trustBanner(),
@@ -301,7 +299,7 @@ class _HomeBannersState extends State<_HomeBanners> {
     return Column(
       children: [
         SizedBox(
-          height: 190,
+          height: 196,
           child: PageView(
             controller: _controller,
             onPageChanged: (i) => setState(() => _page = i),
@@ -337,7 +335,6 @@ class _HomeBannersState extends State<_HomeBanners> {
 
   Widget _banner({
     required LinearGradient gradient,
-    required bool onGold,
     required String kicker,
     required String title,
     required String subtitle,
@@ -345,40 +342,48 @@ class _HomeBannersState extends State<_HomeBanners> {
     required Widget illustration,
     required VoidCallback onTap,
   }) {
-    final text = onGold ? Ob.navy : Colors.white;
-    final kColor = onGold ? const Color(0xFF7A5A16) : const Color(0xFFEAD79A);
-    final sColor = onGold ? Ob.navy.withValues(alpha: 0.75) : const Color(0xFFE7DCFA);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(18),
+          clipBehavior: Clip.antiAlias,
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
           decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(24), boxShadow: _bshadow),
           child: Stack(
             children: [
-              Positioned(right: -8, bottom: -8, child: illustration),
+              Positioned(right: -6, bottom: -10, child: illustration),
+              // Gradient "wipe": a left-to-right scrim so the copy stays crisp
+              // over the illustration.
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Colors.black.withValues(alpha: 0.22), Colors.transparent],
+                      stops: const [0.0, 0.62],
+                    ),
+                  ),
+                ),
+              ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(kicker,
-                      style: Ob.note.copyWith(color: kColor, letterSpacing: 1.4, fontWeight: FontWeight.w600, fontSize: 11)),
+                      style: Ob.note.copyWith(
+                          color: const Color(0xFFEAD79A), letterSpacing: 1.4, fontWeight: FontWeight.w600, fontSize: 11)),
                   const SizedBox(height: 6),
-                  SizedBox(width: 195, child: Text(title, style: Ob.title.copyWith(color: text, fontSize: 25, height: 1.05))),
+                  SizedBox(width: 195, child: Text(title, style: Ob.title.copyWith(color: Colors.white, fontSize: 25, height: 1.05))),
                   const SizedBox(height: 4),
-                  SizedBox(width: 185, child: Text(subtitle, style: Ob.note.copyWith(color: sColor))),
+                  SizedBox(width: 185, child: Text(subtitle, style: Ob.note.copyWith(color: const Color(0xFFE7DCFA)))),
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-                    decoration: BoxDecoration(
-                      gradient: onGold ? null : Ob.goldGradient,
-                      color: onGold ? Ob.purpleDeep : null,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(14)),
                     child: Text('$cta  →',
-                        style: Ob.option.copyWith(
-                            fontSize: 13, fontWeight: FontWeight.w600, color: onGold ? Colors.white : Ob.navy)),
+                        style: Ob.option.copyWith(fontSize: 13, fontWeight: FontWeight.w600, color: Ob.navy)),
                   ),
                 ],
               ),
@@ -393,22 +398,50 @@ class _HomeBannersState extends State<_HomeBanners> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-            gradient: _grad(const [Color(0xFF3D2E7A), Color(0xFF2A2452)]),
+            gradient: _grad(const [Color(0xFF5238A0), Color(0xFF2E2159)]),
             borderRadius: BorderRadius.circular(24),
             boxShadow: _bshadow),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            Text('Why Millions Trust Us', style: Ob.title.copyWith(color: Colors.white, fontSize: 23)),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                _trustItem(Icons.verified_user_rounded, 'Money-Back\nGuarantee'),
-                _trustItem(Icons.workspace_premium_rounded, 'Verified\nExperts'),
-                _trustItem(Icons.lock_rounded, '100%\nPrivate'),
-              ],
+            // faint zodiac-wheel watermark, top-right
+            Positioned(
+              right: -46,
+              top: -36,
+              child: IgnorePointer(
+                child: Opacity(opacity: 0.10, child: Image.asset(Ob.zodiacWheel, width: 190)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Why Millions Trust Us', style: Ob.title.copyWith(color: Colors.white, fontSize: 22)),
+                  const SizedBox(height: 8),
+                  // gold divider with a centred sparkle
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 34, height: 1.2, color: Ob.gold.withValues(alpha: 0.55)),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 7),
+                        child: Icon(Icons.auto_awesome, color: Ob.gold, size: 13),
+                      ),
+                      Container(width: 34, height: 1.2, color: Ob.gold.withValues(alpha: 0.55)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _trustItem(Icons.verified_user_rounded, 'Money-Back\nGuarantee'),
+                      _trustItem(Icons.workspace_premium_rounded, 'Verified\nExperts'),
+                      _trustItem(Icons.lock_rounded, '100%\nPrivate'),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -420,12 +453,20 @@ class _HomeBannersState extends State<_HomeBanners> {
         child: Column(
           children: [
             Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(13)),
-              child: Icon(icon, color: Colors.white, size: 20),
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.white.withValues(alpha: 0.14), Colors.white.withValues(alpha: 0.05)],
+                ),
+                shape: BoxShape.circle,
+                border: Border.all(color: Ob.gold.withValues(alpha: 0.55), width: 1.2),
+              ),
+              child: Icon(icon, color: const Color(0xFFF3D97C), size: 21),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 9),
             Text(label,
                 textAlign: TextAlign.center,
                 style: Ob.note.copyWith(color: Colors.white, fontSize: 10.5, height: 1.2, fontWeight: FontWeight.w600)),
