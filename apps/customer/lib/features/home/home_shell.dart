@@ -17,8 +17,6 @@ class HomeShell extends ConsumerStatefulWidget {
 }
 
 class _HomeShellState extends ConsumerState<HomeShell> {
-  int _index = 0;
-
   static const _tabs = [
     HomeFeed(),
     ConsultationsTab(),
@@ -36,8 +34,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ? const AsyncValue<int>.data(0)
         : ref.watch(_unreadProvider(uid));
 
+    final index = ref.watch(homeTabProvider);
     return Scaffold(
-      body: IndexedStack(index: _index, children: _tabs),
+      body: IndexedStack(index: index, children: _tabs),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: AppColors.card,
@@ -52,9 +51,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               labelTextStyle: WidgetStatePropertyAll(AppTypography.caption.copyWith(fontSize: 12)),
             ),
             child: NavigationBar(
-              selectedIndex: _index,
+              selectedIndex: index,
               height: 66,
-              onDestinationSelected: (i) => setState(() => _index = i),
+              onDestinationSelected: (i) => ref.read(homeTabProvider.notifier).state = i,
               destinations: [
                 const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
                 const NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: 'Consults'),

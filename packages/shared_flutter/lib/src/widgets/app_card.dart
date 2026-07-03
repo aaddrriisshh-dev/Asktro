@@ -11,6 +11,7 @@ class AppCard extends StatelessWidget {
     this.onTap,
     this.color = AppColors.card,
     this.radius = AppRadius.card,
+    this.border,
   });
 
   final Widget child;
@@ -18,12 +19,14 @@ class AppCard extends StatelessWidget {
   final VoidCallback? onTap;
   final Color color;
   final double radius;
+  final BoxBorder? border;
 
   @override
   Widget build(BuildContext context) {
+    final deco = softCardDecoration(color: color, radius: radius);
     final content = Container(
       padding: padding,
-      decoration: softCardDecoration(color: color, radius: radius),
+      decoration: border == null ? deco : deco.copyWith(border: border),
       child: child,
     );
     if (onTap == null) return content;

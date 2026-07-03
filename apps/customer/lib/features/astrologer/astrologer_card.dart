@@ -13,18 +13,30 @@ class AstrologerCard extends StatelessWidget {
     final a = astrologer;
     return AppCard(
       onTap: () => context.push('/astrologer/${a.id}'),
+      border: Border.all(color: const Color(0xFFECE5F8), width: 1),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppAvatar(
-                name: a.name,
-                photoUrl: a.profilePhoto,
-                size: 56,
-                showPresence: true,
-                online: a.onlineStatus,
+              Container(
+                padding: const EdgeInsets.all(2.5),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFEAD079), Color(0xFFD4AF37)],
+                  ),
+                ),
+                child: AppAvatar(
+                  name: a.name,
+                  photoUrl: a.profilePhoto,
+                  size: 56,
+                  showPresence: true,
+                  online: a.onlineStatus,
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(

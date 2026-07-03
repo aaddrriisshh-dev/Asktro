@@ -19,12 +19,6 @@ final _topRatedProvider = StreamProvider.autoDispose<List<Astrologer>>(
 final _newestProvider = StreamProvider.autoDispose<List<Astrologer>>(
     (ref) => ref.watch(astrologerRepositoryProvider).watchNewest());
 
-const _purpleGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [Color(0xFF8E6BD1), Color(0xFF5E3FBE)],
-);
-
 void _comingSoon(BuildContext context, String title) {
   showModalBottomSheet(
     context: context,
@@ -63,12 +57,6 @@ void _comingSoon(BuildContext context, String title) {
 class HomeFeed extends ConsumerWidget {
   const HomeFeed({super.key});
 
-  String _firstName(String? name) {
-    final n = (name ?? '').trim();
-    if (n.isEmpty || n == 'Guest') return 'there';
-    return n.split(' ').first;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(myProfileProvider).valueOrNull;
@@ -87,7 +75,7 @@ class HomeFeed extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.only(top: 10, bottom: 32),
             children: [
-              _header(context, profile),
+              _topBar(context, ref, profile),
               const SizedBox(height: 20),
               _ToolTabs(),
               const SizedBox(height: 20),
@@ -105,24 +93,30 @@ class HomeFeed extends ConsumerWidget {
     );
   }
 
-  Widget _header(BuildContext context, UserProfile? profile) {
+  Widget _topBar(BuildContext context, WidgetRef ref, UserProfile? profile) {
+    final name = (profile?.name ?? '').trim();
+    final initial = name.isEmpty ? '★' : name.substring(0, 1).toUpperCase();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Namaste, ${_firstName(profile?.name)} ✦', style: Ob.title),
-                const SizedBox(height: 2),
-                Text('The stars have guidance for you today', style: Ob.subtitle),
-              ],
+          // Profile entry point → switches the bottom nav to the Profile tab.
+          GestureDetector(
+            onTap: () => ref.read(homeTabProvider.notifier).state = 4,
+            child: Container(
+              width: 46,
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: Ob.goldGradient,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: Ob.softShadow,
+              ),
+              child: Text(initial, style: Ob.title.copyWith(color: Colors.white, fontSize: 20)),
             ),
           ),
-          _circleBtn(Icons.search_rounded,
-              () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen()))),
-          const SizedBox(width: 10),
+          Expanded(child: Center(child: const AppLogo(height: 30))),
           GestureDetector(
             onTap: () => context.push('/recharge'),
             child: Container(
@@ -142,16 +136,6 @@ class HomeFeed extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _circleBtn(IconData icon, VoidCallback onTap) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: Ob.softShadow),
-          child: Icon(icon, color: Ob.navy, size: 20),
-        ),
-      );
 }
 
 // ------------------------------------------------------------- tool tabs --
@@ -180,7 +164,12 @@ class _ToolTabs extends StatelessWidget {
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: Ob.softShadow),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Ob.border, width: 1),
+              boxShadow: Ob.softShadow,
+            ),
             child: Column(
               children: [
                 Container(
@@ -222,26 +211,32 @@ class _HomeBannersState extends State<_HomeBanners> {
   @override
   Widget build(BuildContext context) {
     final banners = [
-      _promo(context,
-          kicker: '✦ WELCOME GIFT',
-          title: 'Start Your Free Session',
-          subtitle: 'Your first chat with an astrologer is on us',
-          cta: 'Start Now',
-          icon: Icons.chat_bubble_rounded,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen()))),
-      _promo(context,
-          kicker: '✦ DIVINE BLESSINGS',
-          title: 'Book Group Pujas',
-          subtitle: 'Starting from ₹999 · by verified pandits',
-          cta: 'Book Now',
-          icon: Icons.self_improvement_rounded,
-          onTap: () => _comingSoon(context, 'Group Pujas')),
-      _trust(context),
+      _banner(
+        gradient: _grad(const [Color(0xFF8E6BD1), Color(0xFF5E3FBE)]),
+        onGold: false,
+        kicker: '✦ WELCOME GIFT',
+        title: 'Start Your Free\nSession',
+        subtitle: 'Your first chat is on us',
+        cta: 'Start Now',
+        illustration: Image.asset(Ob.gift, height: 122),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
+      ),
+      _banner(
+        gradient: _grad(const [Color(0xFFEBC15A), Color(0xFFCB962C)]),
+        onGold: true,
+        kicker: '✦ DIVINE BLESSINGS',
+        title: 'Book Group\nPujas',
+        subtitle: 'Starting from ₹999',
+        cta: 'Book Now',
+        illustration: _omEmblem(),
+        onTap: () => _comingSoon(context, 'Group Pujas'),
+      ),
+      _trustBanner(),
     ];
     return Column(
       children: [
         SizedBox(
-          height: 172,
+          height: 190,
           child: PageView(
             controller: _controller,
             onPageChanged: (i) => setState(() => _page = i),
@@ -269,75 +264,94 @@ class _HomeBannersState extends State<_HomeBanners> {
     );
   }
 
-  Widget _promo(BuildContext context,
-      {required String kicker,
-      required String title,
-      required String subtitle,
-      required String cta,
-      required IconData icon,
-      required VoidCallback onTap}) {
+  LinearGradient _grad(List<Color> c) =>
+      LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: c);
+
+  List<BoxShadow> get _bshadow =>
+      [BoxShadow(color: Colors.black.withValues(alpha: 0.14), blurRadius: 20, offset: const Offset(0, 10))];
+
+  Widget _banner({
+    required LinearGradient gradient,
+    required bool onGold,
+    required String kicker,
+    required String title,
+    required String subtitle,
+    required String cta,
+    required Widget illustration,
+    required VoidCallback onTap,
+  }) {
+    final text = onGold ? Ob.navy : Colors.white;
+    final kColor = onGold ? const Color(0xFF7A5A16) : const Color(0xFFEAD79A);
+    final sColor = onGold ? Ob.navy.withValues(alpha: 0.75) : const Color(0xFFE7DCFA);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: _purpleGradient,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: const Color(0xFF5E3FBE).withValues(alpha: 0.3), blurRadius: 22, offset: const Offset(0, 12))],
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -6,
-              bottom: -6,
-              child: Icon(icon, size: 118, color: Colors.white.withValues(alpha: 0.12)),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(kicker,
-                    style: Ob.note.copyWith(color: const Color(0xFFEAD79A), letterSpacing: 1.5, fontWeight: FontWeight.w600, fontSize: 11)),
-                const SizedBox(height: 6),
-                SizedBox(
-                  width: 210,
-                  child: Text(title, style: Ob.title.copyWith(color: Colors.white, fontSize: 27)),
-                ),
-                const SizedBox(height: 4),
-                SizedBox(width: 210, child: Text(subtitle, style: Ob.note.copyWith(color: const Color(0xFFE7DCFA)))),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: onTap,
-                  child: Container(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(24), boxShadow: _bshadow),
+          child: Stack(
+            children: [
+              Positioned(right: -8, bottom: -8, child: illustration),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(kicker,
+                      style: Ob.note.copyWith(color: kColor, letterSpacing: 1.4, fontWeight: FontWeight.w600, fontSize: 11)),
+                  const SizedBox(height: 6),
+                  SizedBox(width: 195, child: Text(title, style: Ob.title.copyWith(color: text, fontSize: 25, height: 1.05))),
+                  const SizedBox(height: 4),
+                  SizedBox(width: 185, child: Text(subtitle, style: Ob.note.copyWith(color: sColor))),
+                  const SizedBox(height: 12),
+                  Container(
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-                    decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(14)),
-                    child: Text('$cta  →', style: Ob.option.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+                    decoration: BoxDecoration(
+                      gradient: onGold ? null : Ob.goldGradient,
+                      color: onGold ? Ob.purpleDeep : null,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text('$cta  →',
+                        style: Ob.option.copyWith(
+                            fontSize: 13, fontWeight: FontWeight.w600, color: onGold ? Colors.white : Ob.navy)),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _trust(BuildContext context) {
+  Widget _omEmblem() => Container(
+        width: 116,
+        height: 116,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.92),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14)],
+        ),
+        child: Text('ॐ',
+            style: TextStyle(fontSize: 58, color: Ob.purpleDeep, fontWeight: FontWeight.w600, height: 1)),
+      );
+
+  Widget _trustBanner() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         decoration: BoxDecoration(
-          gradient: _purpleGradient,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: const Color(0xFF5E3FBE).withValues(alpha: 0.3), blurRadius: 22, offset: const Offset(0, 12))],
-        ),
+            gradient: _grad(const [Color(0xFF3D2E7A), Color(0xFF2A2452)]),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: _bshadow),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Why Millions Trust Us',
-                style: Ob.title.copyWith(color: Colors.white, fontSize: 23)),
-            const SizedBox(height: 12),
+            Text('Why Millions Trust Us', style: Ob.title.copyWith(color: Colors.white, fontSize: 23)),
+            const SizedBox(height: 16),
             Row(
               children: [
                 _trustItem(Icons.verified_user_rounded, 'Money-Back\nGuarantee'),

@@ -25,6 +25,10 @@ final authStateProvider = StreamProvider<User?>((ref) {
   return ref.watch(firebaseAuthProvider).authStateChanges();
 });
 
+/// Selected bottom-nav tab in the home shell (0=Home … 4=Profile). Exposed so
+/// widgets like the home top bar can jump to another tab (e.g. Profile).
+final homeTabProvider = StateProvider<int>((_) => 0);
+
 final currentUidProvider = Provider<String?>((ref) {
   return ref.watch(authStateProvider).valueOrNull?.uid;
 });
