@@ -118,29 +118,41 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         opacity: tag,
                         child: Transform.translate(
                           offset: Offset(0, 10 * (1 - tag)),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _rule(rule, false),
-                              const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8),
-                                child: Icon(Icons.auto_awesome, color: Color(0xFFC99A2E), size: 12),
-                              ),
-                              Text(
-                                'GUIDANCE WRITTEN IN THE STARS',
-                                style: GoogleFonts.cormorantGaramond(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 2.6,
-                                  color: const Color(0xFF4B2A80),
+                          // Constrain to screen width and scale-to-fit so the
+                          // letter-spaced tagline + side rules never overflow
+                          // horizontally on narrow devices.
+                          child: SizedBox(
+                            width: size.width,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _rule(rule, false),
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 8),
+                                      child: Icon(Icons.auto_awesome, color: Color(0xFFC99A2E), size: 12),
+                                    ),
+                                    Text(
+                                      'GUIDANCE WRITTEN IN THE STARS',
+                                      style: GoogleFonts.cormorantGaramond(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 2.6,
+                                        color: const Color(0xFF4B2A80),
+                                      ),
+                                    ),
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 8),
+                                      child: Icon(Icons.auto_awesome, color: Color(0xFFC99A2E), size: 12),
+                                    ),
+                                    _rule(rule, true),
+                                  ],
                                 ),
                               ),
-                              const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8),
-                                child: Icon(Icons.auto_awesome, color: Color(0xFFC99A2E), size: 12),
-                              ),
-                              _rule(rule, true),
-                            ],
+                            ),
                           ),
                         ),
                       ),

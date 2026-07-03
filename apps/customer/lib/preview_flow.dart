@@ -43,24 +43,63 @@ final _previewRouter = GoRouter(
   routes: [
     GoRoute(path: '/gallery', builder: (_, __) => const _Gallery()),
     // Real screens, reachable directly — no auth/onboarding redirect.
-    GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
-    GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
-    GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+    // Each is wrapped in _framed(...) so a floating "close" button always
+    // returns to the gallery (some screens fill the whole screen and don't
+    // auto-advance in preview, so there'd otherwise be no way back).
+    GoRoute(path: '/splash', builder: (_, __) => _framed(const SplashScreen())),
+    GoRoute(path: '/onboarding', builder: (_, __) => _framed(const OnboardingScreen())),
+    GoRoute(path: '/login', builder: (_, __) => _framed(const LoginScreen())),
     GoRoute(
       path: '/otp',
-      builder: (_, s) => OtpScreen(args: s.extra as OtpArgs),
+      builder: (_, s) => _framed(OtpScreen(args: s.extra as OtpArgs)),
     ),
     GoRoute(
       path: '/profile-setup',
-      builder: (_, __) => const ProfileSetupScreen(initialName: 'Adrish'),
+      builder: (_, __) => _framed(const ProfileSetupScreen(initialName: 'Adrish')),
     ),
-    GoRoute(path: '/home', builder: (_, __) => const HomeShell()),
+    GoRoute(path: '/home', builder: (_, __) => _framed(const HomeShell())),
   ],
   errorBuilder: (_, s) => Scaffold(
     appBar: AppBar(title: const Text('Preview error')),
     body: Center(child: Text('No route for ${s.uri}')),
   ),
 );
+
+/// Overlays a floating "close" chip that always returns to the gallery, so a
+/// full-screen preview screen (e.g. the looping splash) can never trap you.
+Widget _framed(Widget child) {
+  return Stack(
+    children: [
+      Positioned.fill(child: child),
+      SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Builder(
+              builder: (context) => Material(
+                color: Colors.black54,
+                shape: const StadiumBorder(),
+                child: InkWell(
+                  customBorder: const StadiumBorder(),
+                  onTap: () => context.go('/gallery'),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                      SizedBox(width: 6),
+                      Text('Menu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
 
 class _PreviewFlowApp extends StatelessWidget {
   const _PreviewFlowApp();
