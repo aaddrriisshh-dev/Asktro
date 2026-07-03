@@ -103,17 +103,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             right: 0,
             bottom: 0,
             child: IgnorePointer(
-              // Full-width temple scenery anchored to the very bottom edge.
-              // Higher opacity so the misty foreground/water stays visible down
-              // to the bottom instead of fading into the lavender background
-              // (which read as an empty gap under the mountains).
-              child: Opacity(
-                opacity: 0.9,
-                child: Image.asset(
-                  Ob.scenery,
-                  fit: BoxFit.fitWidth,
-                  alignment: Alignment.bottomCenter,
-                ),
+              // Opaque temple scenery base, full width, sitting flush on the
+              // bottom edge. Uses the cropped `sceneryBase` (its own soft top
+              // fade) so there's no floating semi-transparent sky band.
+              child: Image.asset(
+                Ob.sceneryBase,
+                fit: BoxFit.fitWidth,
+                alignment: Alignment.bottomCenter,
               ),
             ),
           ),

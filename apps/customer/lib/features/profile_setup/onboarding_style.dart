@@ -79,6 +79,10 @@ abstract final class Ob {
 
   // ---- assets ----
   static const String scenery = 'assets/onboarding/scenery.webp';
+  // Cropped, fully-opaque lower portion of `scenery` with a soft top fade —
+  // sits cleanly as a solid base at the bottom of a screen without the tall
+  // semi-transparent sky band that made the full asset look like it floated.
+  static const String sceneryBase = 'assets/onboarding/scenery_base.webp';
   static const String gift = 'assets/onboarding/giftbox.webp';
   static const String zodiacWheel = 'assets/onboarding/zodiac_wheel.png';
   static const String logoWordmark = 'assets/onboarding/logo_wordmark.webp';
