@@ -231,34 +231,37 @@ tbody tr:last-child td { border-bottom: none; }
   flex: none;
   transition: width 0.22s ease, padding 0.22s ease;
 }
-.sidebar__top { display: flex; align-items: center; gap: 8px; }
 .sidebar__brand {
   display: flex;
   align-items: center;
   justify-content: center;
   background: #fff;
-  border-radius: 12px;
-  padding: 9px 12px;
-  flex: 1;
-  min-width: 0;
+  border-radius: 13px;
+  padding: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
 }
-.sidebar__brand img { height: 26px; width: auto; object-fit: contain; display: block; }
+.sidebar__brand img { height: 30px; width: auto; max-width: 100%; object-fit: contain; display: block; }
 .brand-emblem { display: none; }
 .sidebar__toggle {
-  flex: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #e7e3f6;
-  font-size: 17px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 12px auto 14px;
+  padding: 6px 16px;
+  background: rgba(212, 175, 55, 0.13);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  color: var(--gold);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
   cursor: pointer;
-  display: grid;
-  place-items: center;
+  transition: background 0.15s ease;
 }
-.sidebar__toggle:hover { background: rgba(255, 255, 255, 0.16); }
+.sidebar__toggle:hover { background: rgba(212, 175, 55, 0.22); }
+.sidebar--collapsed .sidebar__toggle { padding: 6px 12px; margin: 12px auto; }
 .sidebar__eyebrow { font-size: 10px; letter-spacing: 2.5px; color: var(--gold); text-transform: uppercase; margin: 12px 0 12px 6px; white-space: nowrap; }
 .sidebar__nav { display: flex; flex-direction: column; gap: 3px; overflow-y: auto; overflow-x: hidden; flex: 1; }
 .sidebar__link {
@@ -341,17 +344,16 @@ tbody tr:last-child td { border-bottom: none; }
   background: url('/brand/zodiac_wheel.png') center / contain no-repeat;
   opacity: 0.07;
 }
+/* soft gold aura in the lower area (replaces the hazy scenery) */
 .celestial-bg::after {
   content: '';
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 320px;
-  background: url('/brand/scenery.webp') center bottom / cover no-repeat;
-  opacity: 0.12;
-  -webkit-mask-image: linear-gradient(to top, #000 42%, transparent 100%);
-  mask-image: linear-gradient(to top, #000 42%, transparent 100%);
+  left: -80px;
+  bottom: -160px;
+  width: 460px;
+  height: 460px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, rgba(212, 175, 55, 0) 70%);
 }
 
 /* ---- Dashboard hero (compact, real Asktro logo) ---- */
@@ -388,16 +390,17 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* ---- Premium stat cards ---- */
 .stat {
+  --c: var(--gold-deep);
   position: relative;
   overflow: hidden;
   background: #fff;
-  border: 1px solid rgba(212, 175, 55, 0.35);
+  border: 1px solid #efeafc;
   border-radius: 16px;
   padding: 18px 20px;
   box-shadow: 0 8px 22px rgba(46, 43, 95, 0.05);
   transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
-.stat:hover { transform: translateY(-3px); box-shadow: 0 16px 34px rgba(46, 43, 95, 0.12); border-color: rgba(212, 175, 55, 0.75); }
+.stat:hover { transform: translateY(-3px); box-shadow: 0 16px 34px rgba(46, 43, 95, 0.12); border-color: color-mix(in srgb, var(--c) 45%, #fff); }
 .stat::before {
   content: '';
   position: absolute;
@@ -405,8 +408,14 @@ tbody tr:last-child td { border-bottom: none; }
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--gold), rgba(212, 175, 55, 0));
+  background: linear-gradient(90deg, var(--c), transparent);
 }
+.stat.c-purple { --c: #7e57c2; }
+.stat.c-gold { --c: #c99a2e; }
+.stat.c-blue { --c: #3b6fd4; }
+.stat.c-green { --c: #2f9c63; }
+.stat.c-amber { --c: #d98a1f; }
+.stat.c-rose { --c: #d0567e; }
 .stat__label { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 12.5px; margin-bottom: 12px; }
 .stat__icon {
   display: grid;
@@ -414,9 +423,9 @@ tbody tr:last-child td { border-bottom: none; }
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #fbf3dd, #f3e6c2);
-  border: 1px solid rgba(212, 175, 55, 0.4);
-  color: var(--gold-deep);
+  background: color-mix(in srgb, var(--c) 13%, #fff);
+  border: 1px solid color-mix(in srgb, var(--c) 32%, #fff);
+  color: var(--c);
   flex: none;
 }
 .stat__value { font-family: var(--serif); font-size: 38px; font-weight: 600; color: var(--navy); line-height: 1; }

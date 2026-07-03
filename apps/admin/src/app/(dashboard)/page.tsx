@@ -29,12 +29,12 @@ function Spark() {
     <svg className="stat__spark" width="58" height="22" viewBox="0 0 58 22" fill="none">
       <polyline
         points="1,17 10,13 19,15 28,8 37,11 46,5 57,3"
-        stroke="var(--gold)"
+        stroke="var(--c)"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="57" cy="3" r="2.4" fill="var(--gold)" />
+      <circle cx="57" cy="3" r="2.4" fill="var(--c)" />
     </svg>
   );
 }
@@ -45,15 +45,17 @@ function Stat({
   value,
   pill,
   tone,
+  color,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
   pill: string;
   tone?: 'green' | 'amber';
+  color: string;
 }) {
   return (
-    <div className="stat">
+    <div className={`stat ${color}`}>
       <div className="stat__label">
         <span className="stat__icon">{icon}</span>
         {label}
@@ -91,12 +93,12 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
-        <Stat icon={ICONS.users} label="Registered users" value={String(users.rows.length)} pill="all time" />
-        <Stat icon={ICONS.star} label="Astrologers" value={String(astrologers.rows.length)} pill={`${online.rows.length} online`} tone="green" />
-        <Stat icon={ICONS.chat} label="Active consultations" value={String(active.rows.length)} pill={active.rows.length > 0 ? 'live now' : 'idle'} tone={active.rows.length > 0 ? 'green' : undefined} />
-        <Stat icon={ICONS.signal} label="Astrologers online" value={String(online.rows.length)} pill={`of ${astrologers.rows.length}`} tone="green" />
-        <Stat icon={ICONS.wallet} label="Pending payouts" value={String(pendingPayouts.rows.length)} pill={formatPaise(totalPayout)} tone="amber" />
-        <Stat icon={ICONS.ticket} label="Open support tickets" value={String(openTickets.rows.length)} pill={openTickets.rows.length > 0 ? 'needs action' : 'all clear'} tone={openTickets.rows.length > 0 ? 'amber' : 'green'} />
+        <Stat color="c-purple" icon={ICONS.users} label="Registered users" value={String(users.rows.length)} pill="all time" />
+        <Stat color="c-gold" icon={ICONS.star} label="Astrologers" value={String(astrologers.rows.length)} pill={`${online.rows.length} online`} tone="green" />
+        <Stat color="c-blue" icon={ICONS.chat} label="Active consultations" value={String(active.rows.length)} pill={active.rows.length > 0 ? 'live now' : 'idle'} tone={active.rows.length > 0 ? 'green' : undefined} />
+        <Stat color="c-green" icon={ICONS.signal} label="Astrologers online" value={String(online.rows.length)} pill={`of ${astrologers.rows.length}`} tone="green" />
+        <Stat color="c-amber" icon={ICONS.wallet} label="Pending payouts" value={String(pendingPayouts.rows.length)} pill={formatPaise(totalPayout)} tone="amber" />
+        <Stat color="c-rose" icon={ICONS.ticket} label="Open support tickets" value={String(openTickets.rows.length)} pill={openTickets.rows.length > 0 ? 'needs action' : 'all clear'} tone={openTickets.rows.length > 0 ? 'amber' : 'green'} />
       </div>
 
       <div className="card" style={{ marginTop: 22 }}>

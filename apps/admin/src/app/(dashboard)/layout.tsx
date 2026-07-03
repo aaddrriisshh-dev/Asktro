@@ -45,23 +45,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <div className="celestial-bg" aria-hidden />
       <aside className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}>
-        <div className="sidebar__top">
-          <div className="sidebar__brand">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="brand-wordmark" src="/brand/asktro_logo.png" alt="Asktro" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="brand-emblem" src="/brand/emblem.png" alt="Asktro" />
-          </div>
-          <button
-            className="sidebar__toggle"
-            onClick={() => setCollapsed((c) => !c)}
-            aria-label={collapsed ? 'Expand menu' : 'Collapse menu'}
-            title={collapsed ? 'Expand' : 'Collapse'}
-          >
-            {collapsed ? '›' : '‹'}
-          </button>
+        <div className="sidebar__brand">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="brand-wordmark" src="/brand/asktro_logo.png" alt="Asktro" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="brand-emblem" src="/brand/emblem.png" alt="Asktro" />
         </div>
         <p className="sidebar__eyebrow">Operations Console</p>
+        <button
+          className="sidebar__toggle"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-label={collapsed ? 'Open menu' : 'Close menu'}
+        >
+          {collapsed ? 'Open ›' : '‹ Close'}
+        </button>
         <nav className="sidebar__nav">
           {NAV.map((n) => {
             const active = pathname === n.href;
