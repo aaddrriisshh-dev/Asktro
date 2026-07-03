@@ -153,9 +153,13 @@ class HomeFeed extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           _addCash(context),
-          const SizedBox(width: 8),
+          const SizedBox(width: 7),
+          // Notification bell → the Alerts tab.
+          _iconCircle(Icons.notifications_none_rounded,
+              () => ref.read(homeTabProvider.notifier).state = 3),
+          const SizedBox(width: 5),
           _iconCircle(Icons.language_rounded, () => showLanguageSheet(context)),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           _iconCircle(Icons.support_agent_rounded,
               () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SupportScreen()))),
         ],
@@ -195,15 +199,15 @@ class HomeFeed extends ConsumerWidget {
   Widget _iconCircle(IconData icon, VoidCallback onTap) => GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 40,
-          height: 40,
+          width: 34,
+          height: 34,
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
             border: Border.all(color: Ob.border),
             boxShadow: Ob.softShadow,
           ),
-          child: Icon(icon, size: 19, color: Ob.navy),
+          child: Icon(icon, size: 17, color: Ob.navy),
         ),
       );
 }
