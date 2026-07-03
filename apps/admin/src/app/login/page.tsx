@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 
@@ -12,11 +12,27 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!loading && user && isAdmin) router.replace('/');
   }, [loading, user, isAdmin, router]);
+
+  async function forgotPassword() {
+    setInfo(null);
+    setError(null);
+    if (!email.trim()) {
+      setError('Enter your email above first, then tap “Forgot password?”.');
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      setInfo('Password reset link sent — check your email (and spam).');
+    } catch {
+      setError('Could not send a reset link. Check the email address.');
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,8 +90,12 @@ export default function LoginPage() {
           required
         />
         {error && <p style={{ color: 'var(--error)', fontSize: 14, marginTop: 0 }}>{error}</p>}
+        {info && <p style={{ color: 'var(--primary)', fontSize: 14, marginTop: 0 }}>{info}</p>}
         <button className="btn" style={{ width: '100%' }} disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
+        </button>
+        <button type="button" className="celestial__forgot" onClick={forgotPassword}>
+          Forgot password?
         </button>
       </form>
     </div>
