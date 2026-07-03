@@ -42,15 +42,15 @@ export function DateFilter({
             ))}
             {preset === 'custom' && (
               <div className="dfilter-custom">
-                <label>From</label>
+                <label>From (date &amp; time)</label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   value={custom.start ?? ''}
                   onChange={(e) => onCustom({ ...custom, start: e.target.value })}
                 />
-                <label>To</label>
+                <label>To (date &amp; time)</label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   value={custom.end ?? ''}
                   onChange={(e) => onCustom({ ...custom, end: e.target.value })}
                 />

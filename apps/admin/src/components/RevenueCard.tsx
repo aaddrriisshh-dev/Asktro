@@ -81,11 +81,17 @@ const rupeeIcon = (
   </svg>
 );
 
-function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+const expandIcon = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />
+  </svg>
+);
+
+function Metric({ color, label, value, big }: { color: string; label: string; value: string; big?: boolean }) {
   return (
-    <div className={`revline${strong ? ' strong' : ''}`}>
+    <div className={`metricchip ${color}${big ? ' big' : ''}`}>
       <span>{label}</span>
-      <span>{value}</span>
+      <strong>{value}</strong>
     </div>
   );
 }
@@ -97,7 +103,7 @@ export function RevenueCard() {
 
   return (
     <>
-      <div className="stat dashcard c-green" onClick={() => setOpen(true)} role="button" tabIndex={0}>
+      <div className="stat dashcard c-green">
         <div className="stat__label">
           <span className="stat__icon">{rupeeIcon}</span>
           Total Revenue
@@ -111,38 +117,30 @@ export function RevenueCard() {
           <div className="stat__value">{formatPaise(data?.gross ?? 0)}</div>
         )}
         <div className="stat__foot">
-          {!loading && !error && (
-            <span className="stat__pill green">{data?.count ?? 0} recharges</span>
-          )}
-          <span className="dashcard__hint">Details →</span>
+          {!loading && !error && <span className="stat__pill green">{data?.count ?? 0} recharges</span>}
+          <button className="dashcard__view" onClick={() => setOpen(true)}>
+            View details {expandIcon}
+          </button>
         </div>
       </div>
 
-      <Drawer open={open} onClose={() => setOpen(false)} title="Total Revenue" subtitle={range.label}>
+      <Drawer open={open} onClose={() => setOpen(false)} title="Total Revenue" subtitle={range.label} accent="#2f9c63">
         {error ? (
           <p className="dashcard__err">Couldn’t load revenue — {error}</p>
         ) : loading || !data ? (
           <div className="dashcard__skel" style={{ height: 200 }} />
         ) : (
           <>
-            <div className="revgrid">
-              <div className="revbox">
-                <span>Gross Revenue</span>
-                <strong>{formatPaise(data.gross)}</strong>
-              </div>
-              <div className="revbox">
-                <span>Net Revenue</span>
-                <strong>{formatPaise(data.net)}</strong>
-              </div>
+            <div className="metricgrid">
+              <Metric color="c-green" label="Gross Revenue" value={formatPaise(data.gross)} big />
+              <Metric color="c-blue" label="Net Revenue" value={formatPaise(data.net)} big />
+              <Metric color="c-purple" label="Recharge Revenue" value={formatPaise(data.recharge)} />
+              <Metric color="c-amber" label="Consultation billing" value={formatPaise(data.consultation)} />
+              <Metric color="c-rose" label="Refunds" value={formatPaise(data.refunds)} />
+              <Metric color="c-gold" label="Bonus (free credit)" value={formatPaise(data.bonus)} />
             </div>
-            <div className="card" style={{ marginTop: 16 }}>
-              <Line label="Recharge Revenue" value={formatPaise(data.recharge)} />
-              <Line label="Consultation billing" value={formatPaise(data.consultation)} />
-              <Line label="Bonus credit (not revenue)" value={formatPaise(data.bonus)} />
-              <Line label="Refunds" value={`− ${formatPaise(data.refunds)}`} />
-              <Line label="Net Revenue" value={formatPaise(data.net)} strong />
-            </div>
-            <h3 style={{ marginBottom: 8 }}>Daily breakdown</h3>
+
+            <h3 style={{ margin: '4px 0 8px' }}>Daily breakdown</h3>
             <div className="card" style={{ height: 240 }}>
               {data.daily.length === 0 ? (
                 <p className="muted">No revenue in this period.</p>

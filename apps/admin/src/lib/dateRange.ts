@@ -54,9 +54,10 @@ export function resolveRange(preset: Preset, custom?: { start?: string; end?: st
       return { start: s, end: e, label: 'Previous Month' };
     }
     case 'custom': {
-      const s = custom?.start ? startOfDay(new Date(custom.start)).getTime() : t0;
-      const e = custom?.end ? startOfDay(new Date(custom.end)).getTime() + DAY : t0 + DAY;
-      return { start: s, end: e, label: 'Custom' };
+      // custom supports full date + time (datetime-local values).
+      const s = custom?.start ? new Date(custom.start).getTime() : t0;
+      const e = custom?.end ? new Date(custom.end).getTime() : t0 + DAY;
+      return { start: s, end: e > s ? e : s + DAY, label: 'Custom' };
     }
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 
 /** Right-side slide-in analytics drawer, shared by all dashboard cards. */
 export function Drawer({
@@ -8,12 +8,14 @@ export function Drawer({
   onClose,
   title,
   subtitle,
+  accent,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   subtitle?: string;
+  accent?: string;
   children: ReactNode;
 }) {
   useEffect(() => {
@@ -27,7 +29,12 @@ export function Drawer({
   return (
     <div className={`drawer-root${open ? ' open' : ''}`} aria-hidden={!open}>
       <div className="drawer-scrim" onClick={onClose} />
-      <aside className="drawer-panel" role="dialog" aria-modal="true">
+      <aside
+        className="drawer-panel"
+        role="dialog"
+        aria-modal="true"
+        style={accent ? ({ ['--c']: accent } as React.CSSProperties) : undefined}
+      >
         <div className="drawer-head">
           <div>
             <h2 className="drawer-title">{title}</h2>

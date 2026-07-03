@@ -21,7 +21,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+      <div className="grid dashgrid">
         <RevenueCard />
       </div>
 
