@@ -80,9 +80,9 @@ export default function DashboardPage() {
   return (
     <div>
       <div className="hero">
-        <div className="hero__inner">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="hero__logo" src="/brand/asktro_logo.png" alt="Asktro" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="hero__logo" src="/brand/asktro_logo.png" alt="Asktro" />
+        <div className="hero__text">
           <h1 className="hero__greeting">Welcome back</h1>
           <p className="hero__sub">
             Your celestial marketplace at a glance — astrologers, consultations and wallets, in real time.
