@@ -103,7 +103,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             right: 0,
             bottom: 0,
             child: IgnorePointer(
-              child: Opacity(opacity: 0.5, child: Image.asset(Ob.scenery, fit: BoxFit.fitWidth)),
+              // Full-width temple scenery anchored to the very bottom edge.
+              // Higher opacity so the misty foreground/water stays visible down
+              // to the bottom instead of fading into the lavender background
+              // (which read as an empty gap under the mountains).
+              child: Opacity(
+                opacity: 0.9,
+                child: Image.asset(
+                  Ob.scenery,
+                  fit: BoxFit.fitWidth,
+                  alignment: Alignment.bottomCenter,
+                ),
+              ),
             ),
           ),
           SafeArea(
@@ -112,9 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 18),
-                  const Center(child: AppLogo(height: 60)),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 28),
                   Text('Welcome to',
                       style: GoogleFonts.cormorantGaramond(
                           fontSize: 26, fontWeight: FontWeight.w400, color: Ob.navy)),
