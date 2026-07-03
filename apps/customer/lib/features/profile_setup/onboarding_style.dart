@@ -78,26 +78,9 @@ abstract final class Ob {
   static TextStyle get optionLabel => _h(24, FontWeight.w600, navy); // gender card labels
 
   // ---- assets ----
-  static const String stars = 'assets/onboarding/dc_stars.png';
-  static const String glow = 'assets/onboarding/dc_glow.png';
-  static const String scenery = 'assets/onboarding/scenery.png';
+  static const String scenery = 'assets/onboarding/scenery.webp';
   static const String gift = 'assets/onboarding/giftbox.webp';
   static const String zodiacWheel = 'assets/onboarding/zodiac_wheel.png';
   static const String logoWordmark = 'assets/onboarding/logo_wordmark.webp';
   static const String pujaMandala = 'assets/onboarding/puja_mandala.webp';
-
-  // decorative library
-  static const String decoRing = 'assets/onboarding/deco_ring.png';
-  static const String decoSwirl = 'assets/onboarding/deco_swirl.png';
-  static const String decoConstellation = 'assets/onboarding/deco_constellation.png';
-  static const String decoCloud = 'assets/onboarding/deco_cloud.png';
-  static const String starFlare = 'assets/onboarding/star_flare.png';
-
-  static const String ilName = 'assets/onboarding/il_name.png';
-  static const String ilGender = 'assets/onboarding/il_gender.png';
-  static const String ilDate = 'assets/onboarding/il_date.png';
-  static const String ilTime = 'assets/onboarding/il_time.png';
-  static const String ilPlace = 'assets/onboarding/il_place.png';
-  static const String ilRel = 'assets/onboarding/il_rel.png';
-  static const String ilLang = 'assets/onboarding/il_lang.png';
 }

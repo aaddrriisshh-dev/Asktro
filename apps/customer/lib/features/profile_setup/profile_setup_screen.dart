@@ -317,7 +317,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 0,
       stepIcon: Icons.person_outline_rounded,
-      illustration: Ob.ilName,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -347,7 +346,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 1,
       stepIcon: Icons.person_rounded,
-      illustration: Ob.ilGender,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -444,7 +442,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 2,
       stepIcon: Icons.calendar_today_rounded,
-      illustration: Ob.ilDate,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -485,7 +482,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 3,
       stepIcon: Icons.access_time_rounded,
-      illustration: Ob.ilTime,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -559,7 +555,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 4,
       stepIcon: Icons.location_on_outlined,
-      illustration: Ob.ilPlace,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -578,7 +573,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 5,
       stepIcon: Icons.favorite_border_rounded,
-      illustration: Ob.ilRel,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -618,7 +612,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return OnboardingScaffold(
       stepIndex: 6,
       stepIcon: Icons.translate_rounded,
-      illustration: Ob.ilLang,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

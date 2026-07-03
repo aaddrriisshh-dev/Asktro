@@ -12,7 +12,6 @@ class OnboardingScaffold extends StatelessWidget {
     super.key,
     required this.content,
     required this.footer,
-    this.illustration,
     this.stepIndex,
     this.totalSteps = 7,
     this.stepIcon,
@@ -22,7 +21,6 @@ class OnboardingScaffold extends StatelessWidget {
 
   final Widget content;
   final Widget footer;
-  final String? illustration; // per-screen contextual art (upper-right)
   final int? stepIndex; // null hides the stepper
   final int totalSteps;
   final IconData? stepIcon;
