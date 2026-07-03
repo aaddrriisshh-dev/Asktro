@@ -216,17 +216,17 @@ class _ToolTabs extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _tool(context, Icons.brightness_5_rounded, 'Daily\nHoroscope',
+          _tool(context, 'assets/onboarding/tool_horoscope.png', 'Daily\nHoroscope',
               () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HoroscopeScreen()))),
-          _tool(context, Icons.favorite_rounded, 'Kundali\nMatch', () => _comingSoon(context, 'Kundali Match')),
-          _tool(context, Icons.grid_view_rounded, 'Janam\nKundali', () => _comingSoon(context, 'Janam Kundali')),
-          _tool(context, Icons.card_giftcard_rounded, 'Free\nServices', () => _comingSoon(context, 'Free Services')),
+          _tool(context, 'assets/onboarding/tool_match.png', 'Kundali\nMatch', () => _comingSoon(context, 'Kundali Match')),
+          _tool(context, 'assets/onboarding/tool_kundali.png', 'Janam\nKundali', () => _comingSoon(context, 'Janam Kundali')),
+          _tool(context, 'assets/onboarding/tool_free.png', 'Free\nServices', () => _comingSoon(context, 'Free Services')),
         ],
       ),
     );
   }
 
-  Widget _tool(BuildContext context, IconData icon, String label, VoidCallback onTap) {
+  Widget _tool(BuildContext context, String asset, String label, VoidCallback onTap) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -242,12 +242,7 @@ class _ToolTabs extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(color: Ob.lavenderChip, borderRadius: BorderRadius.circular(14)),
-                  child: Icon(icon, color: Ob.purple, size: 22),
-                ),
+                Image.asset(asset, width: 46, height: 46),
                 const SizedBox(height: 8),
                 Text(label,
                     textAlign: TextAlign.center,
