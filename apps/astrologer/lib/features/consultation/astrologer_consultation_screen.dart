@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
@@ -73,6 +75,24 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
       'senderId': widget.self.id,
       'type': 'text',
       'text': text,
+      'timestamp': FieldValue.serverTimestamp(),
+      'delivered': true,
+      'seen': false,
+    });
+  }
+
+  Future<void> _sendImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (picked == null) return;
+    final data = await picked.readAsBytes();
+    final store = FirebaseStorage.instance
+        .ref('chat_images/$_id/${DateTime.now().millisecondsSinceEpoch}.jpg');
+    await store.putData(data, SettableMetadata(contentType: 'image/jpeg'));
+    final url = await store.getDownloadURL();
+    await ref.read(firestoreProvider).collection('consultations').doc(_id).collection('messages').add({
+      'senderId': widget.self.id,
+      'type': 'image',
+      'image': url,
       'timestamp': FieldValue.serverTimestamp(),
       'delivered': true,
       'seen': false,
@@ -217,6 +237,11 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                 bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.sm),
             child: Row(
               children: [
+                IconButton(
+                  onPressed: _sendImage,
+                  icon: const Icon(Icons.image_outlined, color: AppColors.textSecondary),
+                  tooltip: 'Send image',
+                ),
                 Expanded(
                   child: TextField(
                     controller: _input,

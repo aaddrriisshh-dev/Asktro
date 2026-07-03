@@ -23,6 +23,7 @@ class Astrologer extends Equatable {
     this.featured = false,
     this.status = AstrologerStatus.pending,
     this.earnings = 0,
+    this.pendingPayout = 0,
     this.quickReplies = const [],
     this.availability = const {},
   });
@@ -45,6 +46,7 @@ class Astrologer extends Equatable {
   final bool featured;
   final AstrologerStatus status;
   final int earnings; // paise, lifetime gross (astrologer-side display)
+  final int pendingPayout; // paise, accrued net earnings not yet paid out
   final List<String> quickReplies;
   final Map<String, dynamic> availability;
 
@@ -70,6 +72,7 @@ class Astrologer extends Equatable {
       featured: (m['featured'] ?? false) as bool,
       status: AstrologerStatus.fromString(m['accountStatus'] as String?),
       earnings: (m['earnings'] ?? 0) as int,
+      pendingPayout: (m['pendingPayout'] ?? 0) as int,
       quickReplies: List<String>.from(m['quickReplies'] ?? const []),
       availability: Map<String, dynamic>.from(m['availability'] ?? const {}),
     );
@@ -80,6 +83,6 @@ class Astrologer extends Equatable {
         id, name, profilePhoto, about, experience, languages, expertise, rating,
         totalReviews, totalConsultations, followers, responseTimeSec,
         onlineStatus, available, verified, featured, status, earnings,
-        quickReplies, availability,
+        pendingPayout, quickReplies, availability,
       ];
 }

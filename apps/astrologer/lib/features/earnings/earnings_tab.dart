@@ -22,13 +22,35 @@ class _EarningsTabState extends ConsumerState<EarningsTab> {
   bool _requesting = false;
 
   Future<void> _requestPayout(Astrologer self) async {
+    if (self.pendingPayout <= 0) return;
     final upi = await _ask('Enter your UPI ID for payout');
     if (upi == null || upi.trim().isEmpty) return;
     setState(() => _requesting = true);
     try {
+      // Block a second request while one is still open, so the same balance
+      // cannot be requested twice before the admin processes it.
+      final open = await ref
+          .read(firestoreProvider)
+          .collection('payouts')
+          .where('astrologerId', isEqualTo: self.id)
+          .get();
+      final hasOpen = open.docs.any((d) {
+        final s = d.data()['status'] as String?;
+        return s == 'pending' || s == 'approved';
+      });
+      if (hasOpen) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('You already have a payout in progress.'),
+          ));
+        }
+        return;
+      }
       await ref.read(firestoreProvider).collection('payouts').add({
         'astrologerId': self.id,
-        'amount': self.earnings, // pendingPayout mirror handled server-side on process
+        // Only the accrued, not-yet-paid balance (server decrements
+        // pendingPayout when the admin marks it processed).
+        'amount': self.pendingPayout,
         'method': 'upi',
         'upi': upi.trim(),
         'status': 'pending',
@@ -84,7 +106,7 @@ class _EarningsTabState extends ConsumerState<EarningsTab> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('Available for payout', style: AppTypography.body),
-                      Text(Money.formatPaise(self.earnings),
+                      Text(Money.formatPaise(self.pendingPayout),
                           style: AppTypography.subtitle.copyWith(color: AppColors.primary)),
                     ],
                   ),
@@ -94,7 +116,7 @@ class _EarningsTabState extends ConsumerState<EarningsTab> {
                   label: 'Request payout',
                   icon: Icons.account_balance_outlined,
                   loading: _requesting,
-                  onPressed: _requesting || self.earnings <= 0 ? null : () => _requestPayout(self),
+                  onPressed: _requesting || self.pendingPayout <= 0 ? null : () => _requestPayout(self),
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 Text('Recent sessions', style: AppTypography.subtitle),
