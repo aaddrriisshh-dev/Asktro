@@ -311,8 +311,10 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* collapsed state */
 .sidebar--collapsed { width: 78px; padding: 18px 12px; }
-.sidebar--collapsed .sidebar__brand { justify-content: center; padding: 4px; }
-.sidebar--collapsed .brand-text { display: none; }
+.sidebar--collapsed .sidebar__brand { align-items: center; padding: 4px; }
+.sidebar--collapsed .brand-row { justify-content: center; }
+.sidebar--collapsed .brand-word,
+.sidebar--collapsed .brand-tag { display: none; }
 .sidebar--collapsed .sidebar__eyebrow { display: none; }
 .sidebar--collapsed .sidebar__link { justify-content: center; padding: 10px 0; gap: 0; }
 .sidebar--collapsed .sidebar__label { display: none; }
