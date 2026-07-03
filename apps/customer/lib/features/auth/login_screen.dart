@@ -112,11 +112,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 children: [
                   const SizedBox(height: 18),
                   const Center(child: AppLogo(height: 60)),
-                  const SizedBox(height: 42),
-                  Text('Welcome to', style: Ob.subtitleLg.copyWith(fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 2),
-                  Text('Asktro',
-                      style: Ob.hero.copyWith(fontSize: 46, height: 1, color: Ob.purpleDeep)),
+                  const SizedBox(height: 44),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text.rich(TextSpan(
+                      style: Ob.hero.copyWith(fontSize: 36, height: 1),
+                      children: const [
+                        TextSpan(text: 'Welcome to '),
+                        TextSpan(
+                            text: 'Asktro',
+                            style: TextStyle(color: Color(0xFF4B2A80), fontWeight: FontWeight.w700)),
+                      ],
+                    )),
+                  ),
                   const SizedBox(height: 14),
                   const SparkleDivider(),
                   const SizedBox(height: 16),
