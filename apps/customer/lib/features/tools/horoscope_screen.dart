@@ -35,10 +35,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
       _loading = true;
       _text = null;
     });
-    final t = await _service.daily(_sign.name);
+    final result = await _service.daily(_sign.name);
     if (!mounted) return;
     setState(() {
-      _text = t;
+      _text = result.text;
       _loading = false;
     });
   }
