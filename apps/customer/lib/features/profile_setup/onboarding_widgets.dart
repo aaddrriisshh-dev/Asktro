@@ -35,33 +35,28 @@ class OnboardingScaffold extends StatelessWidget {
       backgroundColor: Ob.bgColor,
       body: Stack(
         children: [
-          // reusable decorative layers (kept very subtle)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Opacity(opacity: 0.6, child: Image.asset(Ob.stars, fit: BoxFit.cover)),
-            ),
-          ),
+          // Faint zodiac-wheel watermark bleeding off the upper-right edge —
+          // the recurring celestial motif on every onboarding screen.
           Positioned(
-            top: -150,
-            left: -160,
+            top: 64,
+            right: -150,
             child: IgnorePointer(
-              child: Opacity(opacity: 0.5, child: Image.asset(Ob.glow, width: 380)),
+              child: Opacity(opacity: 0.16, child: Image.asset(Ob.zodiacWheel, width: 430)),
             ),
           ),
-          if (illustration != null)
-            Positioned(
-              top: 116,
-              right: -22,
-              child: IgnorePointer(
-                child: Image.asset(illustration!, width: 210),
-              ),
-            ),
+          // A lone gold sparkle near the heading.
+          const Positioned(
+            top: 150,
+            left: 22,
+            child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Ob.gold, size: 17)),
+          ),
+          // Subtle temple scenery along the bottom.
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
             child: IgnorePointer(
-              child: Opacity(opacity: 0.4, child: Image.asset(Ob.scenery, fit: BoxFit.fitWidth)),
+              child: Opacity(opacity: 0.5, child: Image.asset(Ob.scenery, fit: BoxFit.fitWidth)),
             ),
           ),
           SafeArea(
