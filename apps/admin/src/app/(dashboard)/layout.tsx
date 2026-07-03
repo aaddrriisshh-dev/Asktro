@@ -46,12 +46,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="celestial-bg" aria-hidden />
       <aside className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}>
         <div className="sidebar__brand">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="brand-emblem" src="/brand/emblem.png" alt="Asktro" />
-          <div className="brand-text">
+          <div className="brand-row">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="brand-emblem" src="/brand/emblem.png" alt="Asktro" />
             <span className="brand-word">Asktro<span className="brand-tld">.in</span></span>
-            <span className="brand-tag">Guidance written in the stars</span>
           </div>
+          <span className="brand-tag">Guidance written in the stars</span>
         </div>
         <p className="sidebar__eyebrow">Operations Console</p>
         <button
@@ -59,7 +59,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           onClick={() => setCollapsed((c) => !c)}
           aria-label={collapsed ? 'Open menu' : 'Close menu'}
         >
-          {collapsed ? 'Open ›' : '‹ Close'}
+          {collapsed ? '›' : '‹'}
         </button>
         <nav className="sidebar__nav">
           {NAV.map((n) => {
