@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
+import 'package:google_fonts/google_fonts.dart';
+
 import 'auth_controller.dart';
 import 'otp_screen.dart';
 import '../profile_setup/onboarding_style.dart';
@@ -112,20 +114,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 children: [
                   const SizedBox(height: 18),
                   const Center(child: AppLogo(height: 60)),
-                  const SizedBox(height: 44),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text.rich(TextSpan(
-                      style: Ob.hero.copyWith(fontSize: 36, height: 1),
-                      children: const [
-                        TextSpan(text: 'Welcome to '),
-                        TextSpan(
-                            text: 'Asktro',
-                            style: TextStyle(color: Color(0xFF4B2A80), fontWeight: FontWeight.w700)),
-                      ],
-                    )),
-                  ),
+                  const SizedBox(height: 40),
+                  Text('Welcome to',
+                      style: GoogleFonts.cormorantGaramond(
+                          fontSize: 26, fontWeight: FontWeight.w400, color: Ob.navy)),
+                  Text('Asktro',
+                      style: GoogleFonts.cormorantGaramond(
+                          fontSize: 56,
+                          fontWeight: FontWeight.w500,
+                          height: 0.95,
+                          letterSpacing: 1,
+                          color: const Color(0xFF4B2A80))),
                   const SizedBox(height: 14),
                   const SparkleDivider(),
                   const SizedBox(height: 16),
