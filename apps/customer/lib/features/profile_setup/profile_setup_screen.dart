@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
+import '../../app/router.dart';
 import '../../data/place_search_service.dart';
 import 'onboarding_style.dart';
 import 'onboarding_widgets.dart';
@@ -84,40 +86,52 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   Future<void> _finish() async {
-    final uid = ref.read(currentUidProvider);
-    if (uid == null) return;
-    setState(() => _saving = true);
-    try {
-      await ref.read(userRepositoryProvider).updateProfile(uid, {
-        'name': _name.text.trim(),
-        'gender': _gender,
-        'birthDateMs': _birthDate.millisecondsSinceEpoch,
-        'birthTimeKnown': !_timeUnknown,
-        'birthTime': _timeUnknown ? null : _birthTime24,
-        'birthPlace': _birthPlace,
-        'relationshipStatus': _relationship,
-        'languages': _languages.toList(),
-        'onboardingComplete': true,
-      });
-      ref.read(analyticsProvider).logEvent('profile_setup_complete');
-    } catch (_) {
-      if (mounted) {
-        setState(() => _saving = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not save your details. Please try again.'),
-        ));
-      }
-    }
+    await _completeSetup({
+      'name': _name.text.trim(),
+      'gender': _gender,
+      'birthDateMs': _birthDate.millisecondsSinceEpoch,
+      'birthTimeKnown': !_timeUnknown,
+      'birthTime': _timeUnknown ? null : _birthTime24,
+      'birthPlace': _birthPlace,
+      'relationshipStatus': _relationship,
+      'languages': _languages.toList(),
+      'onboardingComplete': true,
+    });
   }
 
   Future<void> _skip() async {
-    final uid = ref.read(currentUidProvider);
-    if (uid == null) return;
-    setState(() => _saving = true);
-    await ref.read(userRepositoryProvider).updateProfile(uid, {
+    await _completeSetup({
       if (_name.text.trim().isNotEmpty) 'name': _name.text.trim(),
       'onboardingComplete': true,
     });
+  }
+
+  /// Setup runs before login, so there's usually no uid yet: buffer the details
+  /// and move to login (they're written to Firestore right after sign-in by the
+  /// home gate). If a user is already signed in (e.g. editing later), save now.
+  Future<void> _completeSetup(Map<String, dynamic> data) async {
+    setState(() => _saving = true);
+    final uid = ref.read(currentUidProvider);
+    if (uid != null) {
+      try {
+        await ref.read(userRepositoryProvider).updateProfile(uid, data);
+        ref.read(analyticsProvider).logEvent('profile_setup_complete');
+      } catch (_) {
+        if (mounted) {
+          setState(() => _saving = false);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not save your details. Please try again.'),
+          ));
+        }
+        return;
+      }
+    } else {
+      ref.read(pendingProfileProvider.notifier).state = data;
+    }
+    await setSetupDone();
+    ref.read(setupDoneProvider.notifier).state = true;
+    if (!mounted) return;
+    context.go(uid != null ? '/home' : '/login');
   }
 
   @override

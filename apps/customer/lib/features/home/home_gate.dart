@@ -1,36 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
-import '../profile_setup/profile_setup_screen.dart';
 import 'home_shell.dart';
 
-/// Decides what a signed-in user sees at `/home`: the first-run profile setup
-/// wizard while their profile is incomplete, otherwise the real home. Keying
-/// off the realtime profile stream means the swap happens automatically the
-/// moment onboarding finishes (no manual navigation).
-class HomeGate extends ConsumerWidget {
+/// What a signed-in user sees at `/home`. Profile setup now runs BEFORE login,
+/// so on first arrival here we flush the details collected during setup
+/// (buffered in [pendingProfileProvider]) to Firestore against the new uid,
+/// then show the real home. Returning users have nothing pending and go
+/// straight to the home shell.
+class HomeGate extends ConsumerStatefulWidget {
   const HomeGate({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(myProfileProvider);
-    return async.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-      ),
-      error: (_, __) => const HomeShell(),
-      data: (profile) {
-        if (profile != null && !profile.onboardingComplete) {
-          return ProfileSetupScreen(
-            initialName: profile.name.isEmpty || profile.name == 'Guest'
-                ? null
-                : profile.name,
-          );
-        }
-        return const HomeShell();
-      },
-    );
+  ConsumerState<HomeGate> createState() => _HomeGateState();
+}
+
+class _HomeGateState extends ConsumerState<HomeGate> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _flushPendingProfile());
   }
+
+  Future<void> _flushPendingProfile() async {
+    final pending = ref.read(pendingProfileProvider);
+    final uid = ref.read(currentUidProvider);
+    if (pending == null || uid == null) return;
+    try {
+      await ref.read(userRepositoryProvider).updateProfile(uid, pending);
+      ref.read(analyticsProvider).logEvent('profile_setup_complete');
+    } catch (_) {
+      // Best effort — the user can update details later from Profile.
+    }
+    ref.read(pendingProfileProvider.notifier).state = null;
+  }
+
+  @override
+  Widget build(BuildContext context) => const HomeShell();
 }
