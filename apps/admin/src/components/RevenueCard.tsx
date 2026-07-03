@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase';
 import { formatPaise } from '@/lib/format';
 import { useCardFilter } from '@/lib/useCardFilter';
 import { Range } from '@/lib/dateRange';
-import { DateFilter } from './DateFilter';
+import { DrawerFilter } from './DrawerFilter';
 import { Drawer } from './Drawer';
 
 interface RevData {
@@ -81,9 +81,11 @@ const rupeeIcon = (
   </svg>
 );
 
+/** Double diagonal arrows (expand) — the card's open-drawer affordance. */
 const expandIcon = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 3h7v7M21 3l-8 8" />
+    <path d="M10 21H3v-7M3 21l8-8" />
   </svg>
 );
 
@@ -103,11 +105,17 @@ export function RevenueCard() {
 
   return (
     <>
-      <div className="stat dashcard c-green">
+      <div className="stat dashcard c-purple" onClick={() => setOpen(true)} role="button" tabIndex={0}>
+        <button
+          className="dashcard__expand"
+          onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+          aria-label="Open revenue analytics"
+        >
+          {expandIcon}
+        </button>
         <div className="stat__label">
           <span className="stat__icon">{rupeeIcon}</span>
           Total Revenue
-          <DateFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} />
         </div>
         {error ? (
           <div className="dashcard__err">Couldn’t load</div>
@@ -117,14 +125,14 @@ export function RevenueCard() {
           <div className="stat__value">{formatPaise(data?.gross ?? 0)}</div>
         )}
         <div className="stat__foot">
-          {!loading && !error && <span className="stat__pill green">{data?.count ?? 0} recharges</span>}
-          <button className="dashcard__view" onClick={() => setOpen(true)}>
-            View details {expandIcon}
-          </button>
+          {!loading && !error && <span className="stat__pill">{data?.count ?? 0} recharges</span>}
+          <span className="dashcard__range">{range.label}</span>
         </div>
       </div>
 
-      <Drawer open={open} onClose={() => setOpen(false)} title="Total Revenue" subtitle={range.label} accent="#2f9c63">
+      <Drawer open={open} onClose={() => setOpen(false)} title="Total Revenue" subtitle={range.label} accent="#8b6fd6">
+        <DrawerFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} />
+
         {error ? (
           <p className="dashcard__err">Couldn’t load revenue — {error}</p>
         ) : loading || !data ? (
@@ -132,32 +140,35 @@ export function RevenueCard() {
         ) : (
           <>
             <div className="metricgrid">
-              <Metric color="c-green" label="Gross Revenue" value={formatPaise(data.gross)} big />
+              <Metric color="c-purple" label="Gross Revenue" value={formatPaise(data.gross)} big />
               <Metric color="c-blue" label="Net Revenue" value={formatPaise(data.net)} big />
-              <Metric color="c-purple" label="Recharge Revenue" value={formatPaise(data.recharge)} />
+              <Metric color="c-green" label="Recharge Revenue" value={formatPaise(data.recharge)} />
               <Metric color="c-amber" label="Consultation billing" value={formatPaise(data.consultation)} />
               <Metric color="c-rose" label="Refunds" value={formatPaise(data.refunds)} />
               <Metric color="c-gold" label="Bonus (free credit)" value={formatPaise(data.bonus)} />
             </div>
 
-            <h3 style={{ margin: '4px 0 8px' }}>Daily breakdown</h3>
-            <div className="card" style={{ height: 240 }}>
+            <h3 style={{ margin: '4px 0 10px' }}>Daily breakdown</h3>
+            <div className="drawer-chart">
               {data.daily.length === 0 ? (
-                <p className="muted">No revenue in this period.</p>
+                <p className="drawer-muted">No revenue in this period.</p>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data.daily} margin={{ top: 10, right: 8, left: -12, bottom: 0 }}>
                     <defs>
                       <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2f9c63" stopOpacity={0.35} />
-                        <stop offset="100%" stopColor="#2f9c63" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#b79bf0" stopOpacity={0.55} />
+                        <stop offset="100%" stopColor="#b79bf0" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
-                    <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="#9891c2" />
-                    <YAxis tick={{ fontSize: 11 }} stroke="#9891c2" />
-                    <Tooltip formatter={(v: number) => [`₹${v.toLocaleString('en-IN')}`, 'Revenue']} />
-                    <Area type="monotone" dataKey="amount" stroke="#2f9c63" strokeWidth={2} fill="url(#rev)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" vertical={false} />
+                    <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#b3aede' }} stroke="rgba(255,255,255,0.15)" />
+                    <YAxis tick={{ fontSize: 11, fill: '#b3aede' }} stroke="rgba(255,255,255,0.15)" />
+                    <Tooltip
+                      contentStyle={{ background: '#2a2657', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, color: '#fff' }}
+                      formatter={(v: number) => [`₹${v.toLocaleString('en-IN')}`, 'Revenue']}
+                    />
+                    <Area type="monotone" dataKey="amount" stroke="#c4aef5" strokeWidth={2} fill="url(#rev)" />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
