@@ -230,6 +230,7 @@ tbody tr:last-child td { border-bottom: none; }
   flex-direction: column;
   flex: none;
   transition: width 0.22s ease, padding 0.22s ease;
+  box-shadow: 12px 0 44px rgba(30, 25, 60, 0.4), inset -1px 0 0 rgba(150, 132, 224, 0.35);
 }
 .sidebar__brand {
   display: flex;
