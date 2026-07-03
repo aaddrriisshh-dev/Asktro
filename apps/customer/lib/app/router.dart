@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'providers.dart';
 import '../features/splash/splash_screen.dart';
-import '../features/onboarding/onboarding_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/otp_screen.dart';
 import '../features/home/home_gate.dart';
@@ -43,15 +42,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       final loggedIn = auth.valueOrNull != null;
-      final onboardingDone = ref.read(onboardingDoneProvider);
       final loc = state.matchedLocation;
 
       final isAuthRoute = loc == '/login' || loc == '/otp';
-      final isBootRoute = loc == '/splash' || loc == '/onboarding';
+      final isBootRoute = loc == '/splash';
 
-      if (!onboardingDone) {
-        return loc == '/onboarding' ? null : '/onboarding';
-      }
+      // Intro onboarding carousel removed: splash -> login -> home. First-run
+      // profile setup is still handled inside the home gate after sign-in.
       if (!loggedIn) {
         return isAuthRoute ? null : '/login';
       }
@@ -61,7 +58,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
-      GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(
         path: '/otp',

@@ -22,7 +22,6 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import 'firebase_options.dart';
 import 'features/splash/splash_screen.dart';
-import 'features/onboarding/onboarding_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/otp_screen.dart';
 import 'features/profile_setup/profile_setup_screen.dart';
@@ -47,7 +46,6 @@ final _previewRouter = GoRouter(
     // returns to the gallery (some screens fill the whole screen and don't
     // auto-advance in preview, so there'd otherwise be no way back).
     GoRoute(path: '/splash', builder: (_, __) => _framed(const SplashScreen())),
-    GoRoute(path: '/onboarding', builder: (_, __) => _framed(const OnboardingScreen())),
     GoRoute(path: '/login', builder: (_, __) => _framed(const LoginScreen())),
     GoRoute(
       path: '/otp',
@@ -121,12 +119,12 @@ class _Entry {
   final String route;
 }
 
+// New flow order: splash -> profile setup -> login -> home (intro removed).
 const _entries = <_Entry>[
   _Entry('1 · Animated Splash', 'Gold-glow launch animation + wordmark', '/splash'),
-  _Entry('2 · Onboarding Intro', '3-page value carousel', '/onboarding'),
+  _Entry('2 · Profile Setup', '7-step details wizard', '/profile-setup'),
   _Entry('3 · Login', 'Phone + Google sign-in', '/login'),
-  _Entry('4 · Profile Setup', '7-step first-run wizard', '/profile-setup'),
-  _Entry('5 · Home', 'Main app shell (tabs)', '/home'),
+  _Entry('4 · Home', 'Main app shell (tabs)', '/home'),
 ];
 
 class _Gallery extends StatelessWidget {

@@ -98,18 +98,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Opacity(opacity: 0.16, child: Image.asset(Ob.zodiacWheel, width: 430)),
             ),
           ),
+          // Temple scenery pinned to the bottom. Using bottom + an explicit
+          // height (instead of a loose-height fitWidth image, which sized
+          // unpredictably and floated mid-screen) guarantees the band sits
+          // flush on the bottom edge. cover fills it fully; a short lavender
+          // gradient at the top blends the seam into the background.
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
+            height: MediaQuery.of(context).size.height * 0.30,
             child: IgnorePointer(
-              // Opaque temple scenery base, full width, sitting flush on the
-              // bottom edge. Uses the cropped `sceneryBase` (its own soft top
-              // fade) so there's no floating semi-transparent sky band.
-              child: Image.asset(
-                Ob.sceneryBase,
-                fit: BoxFit.fitWidth,
-                alignment: Alignment.bottomCenter,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    Ob.sceneryBase,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.bottomCenter,
+                  ),
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: Container(
+                      height: 72,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Ob.bgColor, Ob.bgColor.withValues(alpha: 0.0)],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
