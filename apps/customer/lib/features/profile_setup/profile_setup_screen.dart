@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../data/place_search_service.dart';
 import 'onboarding_style.dart';
 import 'onboarding_widgets.dart';
 
@@ -353,9 +356,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           const SizedBox(height: 34),
           Row(
             children: [
-              Expanded(child: _genderCard('male', Icons.man_rounded, 'Male', Ob.gold)),
+              Expanded(child: _genderCard('male', Icons.man, 'Male', Ob.gold)),
               const SizedBox(width: 16),
-              Expanded(child: _genderCard('female', Icons.woman_rounded, 'Female', Ob.purple)),
+              Expanded(child: _genderCard('female', Icons.woman, 'Female', Ob.purple)),
             ],
           ),
         ],
@@ -383,24 +386,52 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         child: Stack(
           children: [
             if (selected) const Positioned(top: 12, right: 12, child: GoldCheck(size: 26)),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 116,
-                  height: 116,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: accent.withValues(alpha: 0.12),
-                    border: Border.all(color: accent.withValues(alpha: 0.4), width: 1.4),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 112,
+                    height: 112,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // outer celestial ring
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: accent.withValues(alpha: 0.35), width: 1.4),
+                          ),
+                        ),
+                        // inner filled disc
+                        Container(
+                          width: 90,
+                          height: 90,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: accent.withValues(alpha: 0.12),
+                          ),
+                        ),
+                        Icon(icon, color: accent, size: 54),
+                        Positioned(
+                          top: 8,
+                          right: 12,
+                          child: Icon(Icons.auto_awesome,
+                              color: accent.withValues(alpha: 0.7), size: 12),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Icon(icon, color: accent, size: 60),
-                ),
-                const SizedBox(height: 18),
-                Text(label, style: Ob.optionLabel),
-                const SizedBox(height: 6),
-                Container(width: 26, height: 3, color: accent),
-              ],
+                  const SizedBox(height: 18),
+                  Text(label, style: Ob.optionLabel),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 28,
+                    height: 3,
+                    decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -812,8 +843,10 @@ class _WheelSpec {
   final ValueChanged<int> onChanged;
 }
 
-/// Birth-place typeahead: recently-searched chips, popular Indian cities, and a
-/// static filter. No network dependency; easy to swap for a Places API later.
+/// Birth-place autocomplete backed by a live geocoder (Nominatim, India). As
+/// the user types we debounce, query, and list matching towns/cities/villages.
+/// No "popular places" — the list is driven entirely by the user's search, so
+/// nobody feels excluded and the screen stays uncluttered.
 class _CitySearchField extends StatefulWidget {
   const _CitySearchField({this.initial, required this.onSelected});
   final String? initial;
@@ -824,50 +857,57 @@ class _CitySearchField extends StatefulWidget {
 }
 
 class _CitySearchFieldState extends State<_CitySearchField> {
+  final _service = PlaceSearchService();
   late final TextEditingController _c = TextEditingController(text: widget.initial ?? '');
+  Timer? _debounce;
+  bool _loading = false;
   String _query = '';
-
-  static const _recent = ['Noida, UP, India', 'Moradabad, UP, India'];
-  static const _popular = <List<String>>[
-    ['Delhi, India', 'Delhi, India'],
-    ['Mumbai, India', 'Maharashtra, India'],
-    ['Bengaluru, India', 'Karnataka, India'],
-    ['Kolkata, India', 'West Bengal, India'],
-  ];
-  static const _all = [
-    'Delhi, India', 'Mumbai, Maharashtra, India', 'Bengaluru, Karnataka, India',
-    'Kolkata, West Bengal, India', 'Chennai, Tamil Nadu, India',
-    'Hyderabad, Telangana, India', 'Pune, Maharashtra, India',
-    'Ahmedabad, Gujarat, India', 'Jaipur, Rajasthan, India',
-    'Lucknow, UP, India', 'Noida, UP, India', 'Moradabad, UP, India',
-    'Chandigarh, India', 'Surat, Gujarat, India', 'Kochi, Kerala, India',
-    'Bhopal, MP, India', 'Patna, Bihar, India', 'Guwahati, Assam, India',
-  ];
+  List<PlaceResult> _results = const [];
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _c.dispose();
     super.dispose();
   }
 
-  List<String> get _matches {
-    final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return const [];
-    return _all.where((c) => c.toLowerCase().contains(q)).take(6).toList();
+  void _onChanged(String v) {
+    widget.onSelected(v); // free text keeps the CTA usable
+    setState(() => _query = v);
+    _debounce?.cancel();
+    final q = v.trim();
+    if (q.length < 2) {
+      setState(() {
+        _results = const [];
+        _loading = false;
+      });
+      return;
+    }
+    setState(() => _loading = true);
+    _debounce = Timer(const Duration(milliseconds: 450), () async {
+      final r = await _service.search(q);
+      if (!mounted || q != _c.text.trim()) return; // drop stale responses
+      setState(() {
+        _results = r;
+        _loading = false;
+      });
+    });
   }
 
-  void _pick(String city) {
-    _c.text = city;
-    _c.selection = TextSelection.collapsed(offset: city.length);
-    setState(() => _query = '');
-    widget.onSelected(city);
+  void _pick(PlaceResult p) {
+    _c.text = p.label;
+    _c.selection = TextSelection.collapsed(offset: p.label.length);
+    setState(() {
+      _query = p.label;
+      _results = const [];
+    });
+    widget.onSelected(p.label);
     FocusScope.of(context).unfocus();
   }
 
   @override
   Widget build(BuildContext context) {
-    final matches = _matches;
-    final searching = _query.trim().isNotEmpty;
+    final q = _query.trim();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -882,15 +922,21 @@ class _CitySearchFieldState extends State<_CitySearchField> {
             autofocus: true,
             style: Ob.option.copyWith(fontSize: 16),
             cursorColor: Ob.purple,
-            onChanged: (v) {
-              setState(() => _query = v);
-              widget.onSelected(v);
-            },
+            onChanged: _onChanged,
             decoration: InputDecoration(
-              hintText: 'Search your birth place',
+              hintText: 'Search your town, city or village',
               hintStyle: Ob.option.copyWith(color: const Color(0xFF9E98B0), fontSize: 16),
               prefixIcon: const Icon(Icons.location_on_outlined, color: Ob.purple),
-              suffixIcon: const Icon(Icons.search_rounded, color: Ob.purple),
+              suffixIcon: _loading
+                  ? const Padding(
+                      padding: EdgeInsets.all(15),
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2.2, color: Ob.purple),
+                      ),
+                    )
+                  : const Icon(Icons.search_rounded, color: Ob.purple),
               filled: false,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -899,36 +945,8 @@ class _CitySearchFieldState extends State<_CitySearchField> {
             ),
           ),
         ),
-        const SizedBox(height: 18),
-        if (searching)
-          ...matches.map((c) => _placeTile(Icons.place_outlined, c, null))
-        else ...[
-          Text('Recently searched', style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: _recent
-                .map((r) => GestureDetector(
-                      onTap: () => _pick(r),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(color: Ob.lavenderChip, borderRadius: BorderRadius.circular(30)),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.history_rounded, size: 16, color: Ob.purple),
-                            const SizedBox(width: 6),
-                            Text(r, style: Ob.note.copyWith(color: Ob.navy)),
-                          ],
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
-          const SizedBox(height: 18),
-          Text('Popular places', style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
+        const SizedBox(height: 16),
+        if (_results.isNotEmpty)
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -937,31 +955,46 @@ class _CitySearchFieldState extends State<_CitySearchField> {
             ),
             child: Column(
               children: [
-                for (var i = 0; i < _popular.length; i++)
-                  _placeTile(Icons.account_balance_outlined, _popular[i][0], _popular[i][1], divider: i != _popular.length - 1),
+                for (var i = 0; i < _results.length; i++)
+                  _resultTile(_results[i], divider: i != _results.length - 1),
               ],
             ),
-          ),
-        ],
+          )
+        else if (!_loading && q.length >= 2)
+          _hint(Icons.search_off_rounded, 'No matching places found. Try a different spelling.')
+        else if (q.length < 2)
+          _hint(Icons.travel_explore_rounded, 'Start typing your birth town, city or village.'),
       ],
     );
   }
 
-  Widget _placeTile(IconData icon, String title, String? subtitle, {bool divider = false}) {
+  Widget _hint(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 4),
+      child: Row(
+        children: [
+          Icon(icon, color: Ob.grey, size: 18),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: Ob.note)),
+        ],
+      ),
+    );
+  }
+
+  Widget _resultTile(PlaceResult p, {bool divider = false}) {
     return Column(
       children: [
         ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
           leading: Container(
-            width: 42,
-            height: 42,
+            width: 40,
+            height: 40,
             decoration: const BoxDecoration(color: Ob.lavenderChip, shape: BoxShape.circle),
-            child: Icon(icon, color: Ob.purple, size: 20),
+            child: const Icon(Icons.place_outlined, color: Ob.purple, size: 20),
           ),
-          title: Text(title, style: Ob.option.copyWith(fontSize: 16)),
-          subtitle: subtitle == null ? null : Text(subtitle, style: Ob.note),
-          trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFB9B3C9)),
-          onTap: () => _pick(title),
+          title: Text(p.label, style: Ob.option.copyWith(fontSize: 15)),
+          trailing: const Icon(Icons.north_west_rounded, color: Color(0xFFB9B3C9), size: 18),
+          onTap: () => _pick(p),
         ),
         if (divider) const Divider(height: 1, indent: 66, endIndent: 16, color: Ob.border),
       ],

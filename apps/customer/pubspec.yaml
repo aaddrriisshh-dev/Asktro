@@ -40,6 +40,9 @@ dependencies:
   # AARs share the io.agora.rtc namespace which modern AGP rejects. Voice/video
   # calls are staged for a dedicated "calls" phase; chat consultations work now.
 
+  # Networking (birth-place geocoding search)
+  http: ^1.2.2
+
   # UI / utils
   google_fonts: ^6.2.1
   cached_network_image: ^3.4.1
