@@ -82,6 +82,15 @@ abstract final class Ob {
   static const String glow = 'assets/onboarding/dc_glow.png';
   static const String scenery = 'assets/onboarding/scenery.png';
   static const String gift = 'assets/onboarding/giftbox.png';
+  static const String ganesha = 'assets/onboarding/ganesha.png';
+  static const String zodiacWheel = 'assets/onboarding/zodiac_wheel.png';
+
+  // decorative library
+  static const String decoRing = 'assets/onboarding/deco_ring.png';
+  static const String decoSwirl = 'assets/onboarding/deco_swirl.png';
+  static const String decoConstellation = 'assets/onboarding/deco_constellation.png';
+  static const String decoCloud = 'assets/onboarding/deco_cloud.png';
+  static const String starFlare = 'assets/onboarding/star_flare.png';
 
   static const String ilName = 'assets/onboarding/il_name.png';
   static const String ilGender = 'assets/onboarding/il_gender.png';

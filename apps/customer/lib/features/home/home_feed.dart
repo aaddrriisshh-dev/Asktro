@@ -287,13 +287,13 @@ class _HomeBannersState extends State<_HomeBanners> {
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
       ),
       _banner(
-        gradient: _grad(const [Color(0xFFEBC15A), Color(0xFFCB962C)]),
-        onGold: true,
+        gradient: _grad(const [Color(0xFF5B3AA6), Color(0xFF3A2472)]),
+        onGold: false,
         kicker: '✦ DIVINE BLESSINGS',
         title: 'Book Group\nPujas',
-        subtitle: 'Starting from ₹999',
+        subtitle: 'Performed by verified pandits',
         cta: 'Book Now',
-        illustration: _omEmblem(),
+        illustration: Image.asset(Ob.ganesha, height: 172),
         onTap: () => _comingSoon(context, 'Group Pujas'),
       ),
       _trustBanner(),
@@ -388,20 +388,6 @@ class _HomeBannersState extends State<_HomeBanners> {
       ),
     );
   }
-
-  Widget _omEmblem() => Container(
-        width: 116,
-        height: 116,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.92),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 3),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14)],
-        ),
-        child: Text('ॐ',
-            style: TextStyle(fontSize: 58, color: Ob.purpleDeep, fontWeight: FontWeight.w600, height: 1)),
-      );
 
   Widget _trustBanner() {
     return Padding(

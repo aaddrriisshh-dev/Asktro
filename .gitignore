@@ -44,3 +44,4 @@ Thumbs.db
 *.swp
 .vscode/*
 !.vscode/extensions.json
+_raw/
