@@ -309,7 +309,10 @@ class _HomeBannersState extends State<_HomeBanners> {
         title: 'Book Group\nPujas',
         subtitle: 'By verified pandits',
         cta: 'Book Now',
-        illustration: Image.asset(Ob.ganesha, height: 176),
+        illustration: Padding(
+          padding: const EdgeInsets.only(right: 8, bottom: 4),
+          child: Image.asset(Ob.pujaMandala, height: 150),
+        ),
         onTap: () => _comingSoon(context, 'Group Pujas'),
       ),
       _trustBanner(),
@@ -370,21 +373,36 @@ class _HomeBannersState extends State<_HomeBanners> {
           decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(24), boxShadow: _bshadow),
           child: Stack(
             children: [
-              Positioned(right: -6, bottom: -10, child: illustration),
-              // Gradient "wipe": a left-to-right scrim so the copy stays crisp
-              // over the illustration.
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [Colors.black.withValues(alpha: 0.22), Colors.transparent],
-                      stops: const [0.0, 0.62],
+              // Soft gold glow behind the illustration so the subject sits in
+              // an intentional halo — no hard rectangle.
+              Positioned(
+                right: -36,
+                bottom: -36,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 216,
+                    height: 216,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [Color(0x66EAD079), Color(0x1FEAD079), Color(0x00EAD079)],
+                        stops: [0.0, 0.55, 1.0],
+                      ),
                     ),
                   ),
                 ),
               ),
+              Positioned(right: -6, bottom: -10, child: illustration),
+              // A few gold sparkles rising off the illustration.
+              const Positioned(
+                  right: 40, top: 12,
+                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0xCCF3D97C), size: 15))),
+              const Positioned(
+                  right: 16, top: 58,
+                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x99F3D97C), size: 10))),
+              const Positioned(
+                  right: 104, top: 26,
+                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x77F3D97C), size: 9))),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,

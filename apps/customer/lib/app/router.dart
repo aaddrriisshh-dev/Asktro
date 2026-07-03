@@ -15,6 +15,11 @@ import '../features/wallet/recharge_screen.dart';
 /// Whether onboarding has been completed (persisted locally).
 final onboardingDoneProvider = StateProvider<bool>((_) => false);
 
+/// Holds the router on the splash long enough for the launch animation to play.
+final splashGateProvider = FutureProvider<void>((ref) async {
+  await Future<void>.delayed(const Duration(milliseconds: 2500));
+});
+
 Future<bool> readOnboardingDone() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getBool('onboarding_done') ?? false;
@@ -27,12 +32,15 @@ Future<void> setOnboardingDone() async {
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authStateProvider);
+  final splashReady = ref.watch(splashGateProvider).hasValue;
 
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
-      // While auth is resolving, hold on splash.
-      if (auth.isLoading) return state.matchedLocation == '/splash' ? null : '/splash';
+      // Hold on splash while auth resolves and the launch animation plays.
+      if (auth.isLoading || !splashReady) {
+        return state.matchedLocation == '/splash' ? null : '/splash';
+      }
 
       final loggedIn = auth.valueOrNull != null;
       final onboardingDone = ref.read(onboardingDoneProvider);
