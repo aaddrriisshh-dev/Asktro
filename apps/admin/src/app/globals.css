@@ -108,7 +108,8 @@ html, body {
   margin: 0;
   padding: 0;
   background:
-    radial-gradient(1100px 520px at 100% -8%, #efe8ff 0%, rgba(239, 232, 255, 0) 60%),
+    radial-gradient(1000px 480px at 100% -8%, #efe8ff 0%, rgba(239, 232, 255, 0) 60%),
+    radial-gradient(760px 520px at -6% 110%, rgba(212, 175, 55, 0.07) 0%, rgba(212, 175, 55, 0) 60%),
     var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Poppins', sans-serif;
@@ -214,6 +215,7 @@ tbody tr:last-child td { border-bottom: none; }
   padding: 22px 16px;
   position: sticky;
   top: 0;
+  z-index: 1;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -262,4 +264,29 @@ tbody tr:last-child td { border-bottom: none; }
   cursor: pointer;
 }
 .sidebar__logout:hover { background: rgba(255, 255, 255, 0.14); }
-.main { flex: 1; padding: 32px 34px; max-width: 1180px; }
+.main { position: relative; z-index: 1; flex: 1; padding: 32px 34px; max-width: 1180px; }
+
+/* ---- Celestial backdrop behind every dashboard page ---- */
+.celestial-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.celestial-bg::before {
+  content: '';
+  position: absolute;
+  top: -150px;
+  right: -130px;
+  width: 580px;
+  height: 580px;
+  background: url('/brand/zodiac_wheel.png') center / contain no-repeat;
+  opacity: 0.07;
+}
+.celestial-bg::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 320px;
+  background: url('/brand/scenery.webp') center bottom / cover no-repeat;
+  opacity: 0.12;
+  -webkit-mask-image: linear-gradient(to top, #000 42%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 42%, transparent 100%);
+}

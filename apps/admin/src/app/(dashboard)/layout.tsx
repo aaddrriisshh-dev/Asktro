@@ -36,6 +36,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <div className="celestial-bg" aria-hidden />
       <aside className="sidebar">
         <div className="sidebar__brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
