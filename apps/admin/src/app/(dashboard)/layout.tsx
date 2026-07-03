@@ -36,50 +36,32 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <aside
-        style={{
-          width: 240,
-          background: 'var(--card)',
-          borderRight: '1px solid var(--border)',
-          padding: 20,
-          position: 'sticky',
-          top: 0,
-          height: '100vh',
-        }}
-      >
-        <h2 style={{ color: 'var(--primary)', marginTop: 0 }}>ASKTRO</h2>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <aside className="sidebar">
+        <div className="sidebar__brand">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/emblem.png" alt="" />
+          <span className="sidebar__brand-name">ASKTRO</span>
+        </div>
+        <p className="sidebar__eyebrow">Operations Console</p>
+        <nav className="sidebar__nav">
           {NAV.map((n) => {
             const active = pathname === n.href;
             return (
-              <Link
-                key={n.href}
-                href={n.href}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 12,
-                  background: active ? 'var(--accent)' : 'transparent',
-                  color: active ? 'var(--primary)' : 'var(--text)',
-                  fontWeight: active ? 600 : 400,
-                }}
-              >
+              <Link key={n.href} href={n.href} className={`sidebar__link${active ? ' active' : ''}`}>
                 {n.label}
               </Link>
             );
           })}
         </nav>
-        <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
-          <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
-            {user.email}
-            <br />
-            <span className="badge">{adminRole ?? 'admin'}</span>
-          </div>
-          <button className="btn secondary sm" style={{ width: '100%' }} onClick={() => logout()}>
+        <div className="sidebar__foot">
+          <div className="sidebar__email">{user.email}</div>
+          <span className="badge">{adminRole ?? 'admin'}</span>
+          <button className="sidebar__logout" onClick={() => logout()}>
             Log out
           </button>
         </div>
       </aside>
-      <main style={{ flex: 1, padding: 28, maxWidth: 1200 }}>{children}</main>
+      <main className="main">{children}</main>
     </div>
   );
 }
