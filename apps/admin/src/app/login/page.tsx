@@ -40,62 +40,44 @@ export default function LoginPage() {
 
   return (
     <div className="celestial">
-      {/* temple scenery grounded along the bottom — the ASKTRO celestial look */}
+      {/* zodiac wheels tucked into both top corners + temple scenery at the base */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="celestial__wheel celestial__wheel--left" src="/brand/zodiac_wheel.png" alt="" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="celestial__wheel" src="/brand/zodiac_wheel.png" alt="" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="celestial__scenery" src="/brand/scenery.webp" alt="" />
 
-      <div className="celestial__inner">
-        {/* Left: brand panel with the zodiac wheel as a subtle backdrop */}
-        <div className="celestial__brand">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="celestial__brand-wheel" src="/brand/zodiac_wheel.png" alt="" />
-          <div className="celestial__brand-content">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="celestial__brand-logo" src="/brand/asktro_logo.png" alt="Asktro" />
-            <h2 className="celestial__brand-title">
-              Guidance,<br />
-              <span>written in the stars.</span>
-            </h2>
-            <p className="celestial__brand-text">
-              The ASKTRO operations console — manage astrologers, wallets, payouts,
-              coupons and the whole celestial marketplace from one place.
-            </p>
-            <div className="celestial__feature">Approve &amp; manage astrologers</div>
-            <div className="celestial__feature">Wallets, recharges &amp; payouts</div>
-            <div className="celestial__feature">Live platform analytics</div>
-          </div>
-        </div>
+      <form onSubmit={submit} className="celestial__card">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="celestial__logo" src="/brand/asktro_logo.png" alt="Asktro" />
+        <p className="celestial__eyebrow">Operations Console</p>
+        <h1 className="celestial__title">Welcome back</h1>
+        <p className="celestial__subtitle">Sign in to manage the ASKTRO platform.</p>
 
-        {/* Right: sign-in card */}
-        <form onSubmit={submit} className="celestial__card">
-          <p className="celestial__eyebrow">Operations Console</p>
-          <h1 className="celestial__title">Welcome back</h1>
-          <p className="celestial__subtitle">Sign in to continue.</p>
-
-          <label className="celestial__label">Email</label>
-          <input
-            className="input"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ margin: '6px 0 14px' }}
-            required
-          />
-          <label className="celestial__label">Password</label>
-          <input
-            className="input"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ margin: '6px 0 16px' }}
-            required
-          />
-          {error && <p style={{ color: 'var(--error)', fontSize: 14, marginTop: 0 }}>{error}</p>}
-          <button className="btn" style={{ width: '100%' }} disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-      </div>
+        <label className="celestial__label">Email</label>
+        <input
+          className="input"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{ margin: '6px 0 14px' }}
+          required
+        />
+        <label className="celestial__label">Password</label>
+        <input
+          className="input"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ margin: '6px 0 16px' }}
+          required
+        />
+        {error && <p style={{ color: 'var(--error)', fontSize: 14, marginTop: 0 }}>{error}</p>}
+        <button className="btn" style={{ width: '100%' }} disabled={busy}>
+          {busy ? 'Signing in…' : 'Sign in'}
+        </button>
+      </form>
     </div>
   );
 }
