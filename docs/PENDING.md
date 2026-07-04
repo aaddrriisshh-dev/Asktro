@@ -140,10 +140,16 @@ write your profile; then add Vineet & Sanjay from the Admin Management page. Red
 3. `node scripts/set_admin.mjs <your-email> "Adrish"` → registers your super-admin profile.
 4. Redeploy the admin portal, sign out/in, then add **Vineet & Sanjay** from **Admin Management**.
 
-### ❓ Still open (needed to finish role-scoped Dashboard hiding for Ops)
-- Sachendra (Ops): besides Total Revenue + Money-held-&-owed, also hide net profit / pricing controls?
-- Meeraj (Astrology): do astrologer payouts sit with him or Operations?
-- Vineet & Sanjay's login emails (to create their super-admin accounts).
+### ✅ Role permissions FINALIZED (2026-07-04)
+- **Super (Adrish, Vineet, Sanjay):** full access. **3 dummy accounts created** via `seed_admins.mjs`
+  (`adrish@asktro.in` / `vineet@asktro.in` / `sanjay@asktro.in`, password `Asktro@2026`, no emails sent).
+- **Chief Operations (Sachendra):** everything **except** — Dashboard hides Total Revenue, Revenue-trend,
+  Money-held-&-owed and Test Recharge; **Pricing & Settings is view-only** (fields disabled, Save hidden;
+  Firestore rules block non-super config writes); **Payouts view-only** (can't process); no Admin page.
+- **Chief Astrology (Neeraj):** full astrologer world — onboarding, editing, **auditing session
+  transcripts** — plus Audit Log; **Payouts view-only**. Approve/Reject stays **Super-only**. Everything
+  else hidden.
+  - When Phone/Video Session consoles are built, add them to Neeraj's routes (for transcript auditing).
 
 ## 🔵 REMAINING MENU WORK (lower priority / dependent)
 - **Phone Sessions (#4) & Video Sessions (#5)** — new consoles; structurally ready but **empty until
