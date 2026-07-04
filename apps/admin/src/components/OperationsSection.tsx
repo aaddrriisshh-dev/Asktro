@@ -338,7 +338,7 @@ function TopAstrologers() {
 }
 
 // ================================================================ section
-export function OperationsSection() {
+export function OperationsSection({ showMoney = true }: { showMoney?: boolean }) {
   return (
     <div className="ops-wrap">
       <h2 className="ops-heading"><span className="ops-heading-dot" />Operations &amp; Insights</h2>
@@ -349,9 +349,11 @@ export function OperationsSection() {
           <NeedsAttention />
         </OpsPanel>
 
-        <OpsPanel title="Revenue trend" description="Daily gross revenue from recharges — pick any date range" icon={iconTrend} colorClass="c-green">
-          <RevenueTrend />
-        </OpsPanel>
+        {showMoney && (
+          <OpsPanel title="Revenue trend" description="Daily gross revenue from recharges — pick any date range" icon={iconTrend} colorClass="c-green">
+            <RevenueTrend />
+          </OpsPanel>
+        )}
 
         <OpsPanel title="Paid vs free users" description="Share of users (by sign-up date) who have ever recharged" icon={iconUsers} colorClass="c-rose">
           <PaidVsFree />
@@ -365,9 +367,11 @@ export function OperationsSection() {
           <AstrologerSupply />
         </OpsPanel>
 
-        <OpsPanel wide title="Money held &amp; owed" description="Your financial exposure — wallet liability and unpaid astrologer earnings" icon={iconWallet} colorClass="c-bronze">
-          <MoneyHeldOwed />
-        </OpsPanel>
+        {showMoney && (
+          <OpsPanel wide title="Money held &amp; owed" description="Your financial exposure — wallet liability and unpaid astrologer earnings" icon={iconWallet} colorClass="c-bronze">
+            <MoneyHeldOwed />
+          </OpsPanel>
+        )}
 
         <OpsPanel wide title="Top astrologers" description="Best performers by earnings — who to feature and reward" icon={iconTrophy} colorClass="c-indigo" defaultOpen={false}>
           <TopAstrologers />

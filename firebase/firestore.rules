@@ -13,6 +13,7 @@ service cloud.firestore {
     function uid() { return request.auth.uid; }
     function claims() { return request.auth.token; }
     function isAdmin() { return isSignedIn() && claims().role == 'admin'; }
+    function isSuperAdmin() { return isAdmin() && claims().adminRole == 'super'; }
     function isAstrologer() { return isSignedIn() && claims().role == 'astrologer'; }
     function isSelf(id) { return isSignedIn() && uid() == id; }
 
@@ -158,8 +159,8 @@ service cloud.firestore {
 
     // ================= global config =================
     match /config/{doc} {
-      allow read: if isSignedIn();  // clients read price/warn-times
-      allow write: if isAdmin();
+      allow read: if isSignedIn();       // clients read price/warn-times
+      allow write: if isSuperAdmin();    // only Super Admins change pricing/commission
     }
 
     // ================= CMS pages (privacy, terms, refund, about, faq) =======

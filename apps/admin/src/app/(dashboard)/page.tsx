@@ -12,8 +12,12 @@ import { TestRecharge } from '@/components/TestRecharge';
 import { OperationsSection } from '@/components/OperationsSection';
 import { UsersActivityTable } from '@/components/UsersActivityTable';
 import { PanelProvider } from '@/lib/panels';
+import { useAuth } from '@/lib/auth-context';
+import { canSeeMoney } from '@/lib/roles';
 
 export default function DashboardPage() {
+  const { adminRole } = useAuth();
+  const money = canSeeMoney(adminRole);
 
   return (
     <PanelProvider>
@@ -30,7 +34,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid dashgrid">
-        <RevenueCard />
+        {money && <RevenueCard />}
         <RegisteredUsersCard />
         <ActiveConsultationsCard />
         <ConversionCard />
@@ -42,9 +46,9 @@ export default function DashboardPage() {
         <PayoutCard />
       </div>
 
-      <OperationsSection />
+      <OperationsSection showMoney={money} />
 
-      <TestRecharge />
+      {money && <TestRecharge />}
 
       <UsersActivityTable />
     </div>

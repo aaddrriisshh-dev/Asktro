@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { rupeesToPaise } from '@/lib/format';
+import { useAuth } from '@/lib/auth-context';
+import { canEdit } from '@/lib/roles';
 
 interface Config {
   consultationPricePerMinutePaise: number;
@@ -32,6 +34,8 @@ const DEFAULTS: Config = {
 };
 
 export default function PricingPage() {
+  const { adminRole } = useAuth();
+  const editable = canEdit(adminRole, '/pricing');
   const [cfg, setCfg] = useState<Config>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
@@ -44,6 +48,7 @@ export default function PricingPage() {
   }, []);
 
   async function save() {
+    if (!editable) return;
     await setDoc(doc(db, 'config', 'global'), { ...cfg, updatedAt: serverTimestamp() }, { merge: true });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -59,7 +64,12 @@ export default function PricingPage() {
     <div>
       <h1>Pricing & Settings</h1>
       <p className="muted">Changes apply platform-wide instantly — no app update required.</p>
-      <div className="card grid" style={{ gridTemplateColumns: '1fr 1fr', maxWidth: 700 }}>
+      {!editable && (
+        <div className="card" style={{ borderLeft: '4px solid var(--gold)', marginBottom: 14 }}>
+          <strong>View only.</strong> <span className="muted">Your role can see these settings but not change them — a Super Admin manages pricing.</span>
+        </div>
+      )}
+      <fieldset disabled={!editable} className="card grid" style={{ gridTemplateColumns: '1fr 1fr', maxWidth: 700, opacity: editable ? 1 : 0.7, border: 'none' }}>
         <Field label="Price per minute (₹)"
           value={String(cfg.consultationPricePerMinutePaise / 100)}
           onChange={(v) => setCfg((c) => ({ ...c, consultationPricePerMinutePaise: rupeesToPaise(Number(v)) }))} />
@@ -74,11 +84,13 @@ export default function PricingPage() {
         <Field label="Session timeout (sec)" value={String(cfg.sessionTimeoutSec)} onChange={(v) => num('sessionTimeoutSec', v)} />
         <Field label="Request timeout (sec)" value={String(cfg.requestTimeoutSec)} onChange={(v) => num('requestTimeoutSec', v)} />
         <Field label="Commission (%)" value={String(cfg.commissionPercent)} onChange={(v) => num('commissionPercent', v)} />
-      </div>
-      <div style={{ marginTop: 16 }}>
-        <button className="btn" onClick={save}>Save settings</button>
-        {saved && <span style={{ marginLeft: 12, color: 'var(--success)' }}>Saved ✓</span>}
-      </div>
+      </fieldset>
+      {editable && (
+        <div style={{ marginTop: 16 }}>
+          <button className="btn" onClick={save}>Save settings</button>
+          {saved && <span style={{ marginLeft: 12, color: 'var(--success)' }}>Saved ✓</span>}
+        </div>
+      )}
     </div>
   );
 }

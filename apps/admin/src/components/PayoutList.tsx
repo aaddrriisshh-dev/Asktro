@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { callFn } from '@/lib/hooks';
 import { formatPaise, formatDate } from '@/lib/format';
+import { useAuth } from '@/lib/auth-context';
+import { canEdit } from '@/lib/roles';
 import { Metric } from './Metric';
 
 export interface PayoutRow {
@@ -36,6 +38,8 @@ const eyeIcon = (
 
 /** Payout console: live money summary + clickable Pending / Paid cards that open a popup. */
 export function PayoutList({ payouts }: { payouts: PayoutRow[] }) {
+  const { adminRole } = useAuth();
+  const canAct = canEdit(adminRole, '/payouts');
   const [rows, setRows] = useState<PayoutRow[]>(payouts);
   const [busy, setBusy] = useState<string | null>(null);
   const [active, setActive] = useState<'pending' | 'paid' | null>(null);
@@ -80,7 +84,7 @@ export function PayoutList({ payouts }: { payouts: PayoutRow[] }) {
             <span className={`tkt-badge pay-${p.status}`}>{STATUS_LABEL[p.status] ?? p.status}</span>
           </div>
         </div>
-        {!terminal && (
+        {!terminal && canAct && (
           <div className="tkt-actions">
             {p.status === 'pending' && (
               <button className="btn sm secondary" disabled={busy === p.id} onClick={() => decide(p, 'approved')}>Approve</button>
@@ -90,6 +94,9 @@ export function PayoutList({ payouts }: { payouts: PayoutRow[] }) {
             </button>
             <button className="btn sm danger" disabled={busy === p.id} onClick={() => decide(p, 'rejected')}>Reject</button>
           </div>
+        )}
+        {!terminal && !canAct && (
+          <p className="drawer-muted" style={{ margin: '6px 0 0', fontSize: 12 }}>View only — a Super Admin processes payouts.</p>
         )}
       </div>
     );
