@@ -1022,3 +1022,5 @@ tbody tr:last-child td { border-bottom: none; }
 .bub.them { align-self: flex-start; background: #f2eefb; color: var(--navy); border-bottom-left-radius: 4px; }
 .udet-log-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .udet-total { font-size: 11px; font-weight: 700; color: var(--gold-deep); background: rgba(212, 175, 55, 0.14); padding: 3px 10px; border-radius: 999px; }
+.udet-avatar { width: 54px; height: 54px; border-radius: 50%; flex: none; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #ead079, var(--gold)); color: var(--navy); font-family: var(--serif); font-size: 24px; font-weight: 600; border: 2px solid #fff; box-shadow: 0 6px 16px rgba(46, 43, 95, 0.14); }
+.udet-avatar img { width: 100%; height: 100%; object-fit: cover; }

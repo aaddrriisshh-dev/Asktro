@@ -123,6 +123,12 @@ export default function UserDetailPage() {
       <div className="udet-top">
         <div className="udet-title">
           <Link href="/" className="udet-back" aria-label="Back">←</Link>
+          <div className="udet-avatar">
+            {user.profilePhoto
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={user.profilePhoto as string} alt={(user.name as string) || 'Customer'} />
+              : <span>{((user.name as string) || '?').trim().charAt(0).toUpperCase()}</span>}
+          </div>
           <div>
             <h1 style={{ margin: 0 }}>{(user.name as string) || 'Unnamed customer'}
               <span className={`badge ${status === 'blocked' ? 'red' : 'green'}`} style={{ marginLeft: 10, verticalAlign: 'middle' }}>{status}</span>
