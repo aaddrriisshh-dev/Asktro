@@ -22,6 +22,7 @@ export default function UserDetailPage() {
   const [txns, setTxns] = useState<Any[]>([]);
   const [chat, setChat] = useState<Any[] | null>(null);
   const [chatConsId, setChatConsId] = useState<string | null>(null);
+  const [astroNames, setAstroNames] = useState<Record<string, string>>({});
   const [kundliOpen, setKundliOpen] = useState(false);
 
   useEffect(() => {
@@ -30,13 +31,46 @@ export default function UserDetailPage() {
       if (!snap.exists()) { setMissing(true); return; }
       setUser({ id, ...snap.data() });
       const cs = await getDocs(query(collection(db, 'consultations'), where('customerId', '==', id)));
-      const clist = cs.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b, 'createdAt') - ms(a, 'createdAt'));
+      const clist: Any[] = cs.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b, 'createdAt') - ms(a, 'createdAt'));
       setCons(clist);
-      setChatConsId(clist[0]?.id ?? null);
+      // chat log shows the customer's latest CHAT session
+      const chatCons = clist.find((c) => c.type === 'chat') ?? clist[0];
+      setChatConsId((chatCons?.id as string) ?? null);
       const ts = await getDocs(query(collection(db, 'walletTransactions'), where('userId', '==', id)));
       setTxns(ts.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b, 'createdAt') - ms(a, 'createdAt')));
+      const asnap = await getDocs(collection(db, 'astrologers'));
+      const names: Record<string, string> = {};
+      asnap.forEach((d) => { names[d.id] = (d.data() as { name?: string }).name ?? d.id.slice(0, 8); });
+      setAstroNames(names);
     })().catch(() => setMissing(true));
   }, [id]);
+
+  function CallLog({ title, icon, type }: { title: string; icon: string; type: string }) {
+    const list = cons.filter((c) => c.type === type);
+    return (
+      <div className="card" style={{ marginTop: 18 }}>
+        <div className="udet-log-head"><h3 className="celeste" style={{ margin: 0 }}>{icon} {title}</h3><span className="udet-total">{list.length} total</span></div>
+        {list.length === 0 ? <p className="muted">No {type} calls yet.</p> : (
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead><tr><th>Date &amp; time</th><th>Astrologer</th><th>Duration</th><th>Status</th><th>Charged</th></tr></thead>
+              <tbody>
+                {list.map((c) => (
+                  <tr key={c.id as string}>
+                    <td>{ms(c, 'createdAt') ? formatDate(ms(c, 'createdAt')) : '—'}</td>
+                    <td>{astroNames[c.astrologerId as string] ?? '—'}</td>
+                    <td>{Math.round(((c.billedSeconds as number) ?? 0) / 60 * 10) / 10} min</td>
+                    <td><span className={`badge ${c.status === 'active' ? 'green' : c.status === 'completed' ? 'green' : ''}`}>{(c.status as string) ?? '—'}</span></td>
+                    <td>{formatPaise(c.totalCharged as number)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // live chat log from the customer's latest consultation
   useEffect(() => {
@@ -153,27 +187,8 @@ export default function UserDetailPage() {
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: 18 }}>
-        <h3 className="celeste">↺ Consultation History</h3>
-        {cons.length === 0 ? <p className="muted">No consultations yet.</p> : (
-          <div style={{ overflowX: 'auto' }}>
-            <table>
-              <thead><tr><th>Date</th><th>Type</th><th>Status</th><th>Duration</th><th>Charged</th></tr></thead>
-              <tbody>
-                {cons.map((c) => (
-                  <tr key={c.id as string}>
-                    <td>{ms(c, 'createdAt') ? formatDate(ms(c, 'createdAt')) : '—'}</td>
-                    <td style={{ textTransform: 'capitalize' }}>{(c.type as string) ?? '—'}</td>
-                    <td><span className={`badge ${c.status === 'active' ? 'green' : ''}`}>{(c.status as string) ?? '—'}</span></td>
-                    <td>{Math.round(((c.billedSeconds as number) ?? 0) / 60 * 10) / 10} min</td>
-                    <td>{formatPaise(c.totalCharged as number)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <CallLog title="Voice Call History" icon="📞" type="voice" />
+      <CallLog title="Video Call History" icon="🎥" type="video" />
 
       <div className="card" style={{ marginTop: 18 }}>
         <h3 className="celeste">▤ Transaction History</h3>

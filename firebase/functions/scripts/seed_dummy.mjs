@@ -79,6 +79,11 @@ async function clearSeed() {
     let batch = db.batch();
     let n = 0;
     for (const doc of snap.docs) {
+      // consultations carry a chat `messages` subcollection — clear it first
+      if (col === 'consultations') {
+        const msgs = await doc.ref.collection('messages').get();
+        for (const m of msgs.docs) { await m.ref.delete(); total += 1; }
+      }
       batch.delete(doc.ref);
       n += 1;
       total += 1;
@@ -241,18 +246,34 @@ async function seed() {
   console.log(`  walletTransactions: ${rechargeTxns} recharges (+ bonuses/consultations/refunds)`);
 
   // -- 3) Consultations (some active for the Live table) --------------------
+  // A realistic astrology chat, seeded into every chat session so the admin
+  // detail page shows a live-looking conversation.
+  const CHAT_SCRIPT = [
+    ['customer', 'Namaste 🙏 Mujhe apne career ke baare mein jaanna tha.'],
+    ['astrologer', 'Namaste ji! Zaroor. Aapki kundli dekhne ke liye janm ki tareekh aur samay batayein.'],
+    ['customer', '5 March 1990, subah 7:30 baje, Hamirpur.'],
+    ['astrologer', 'Dhanyavaad. Aapke 10th house mein Shani mazboot hai — career mein sthirta aur pramoshan ke yog hain.'],
+    ['customer', 'Kya mujhe job change karni chahiye?'],
+    ['astrologer', 'Abhi thoda ruk jaiye. April ke baad Guru ki dasha shubh hai, tab badlaav behtar rahega.'],
+    ['customer', 'Aur paisa/investment ke liye samay kaisa hai?'],
+    ['astrologer', 'Agle 18–24 mahine property aur savings ke liye accha samay hai. Soch samajh kar aage badhein. 🌟'],
+    ['customer', 'Bahut bahut dhanyavaad 🙏'],
+    ['astrologer', 'Aapka swagat hai ji. Shubh kaamnayein! ✨'],
+  ];
   let activeCount = 0;
-  const CONS_COUNT = 22;
+  const CONS_COUNT = 24;
   for (let i = 0; i < CONS_COUNT; i++) {
     const isActive = i < 6; // first six are in-progress right now
     if (isActive) activeCount += 1;
     const astro = pick(astrologers);
     const cust = pick(users);
-    const type = pick(CONS_TYPES);
+    // guarantee a healthy mix: first third chat, then voice, then video, rest random
+    const type = i < 8 ? 'chat' : i < 14 ? 'voice' : i < 18 ? 'video' : pick(CONS_TYPES);
     const perMin = pick([1500, 2000, 2500, 3000]);
     const billedSeconds = isActive ? 30 + rand(600) : 60 + rand(1800);
     const totalCharged = Math.round((billedSeconds / 60) * perMin);
-    await db.collection('consultations').add({
+    const consRef = db.collection('consultations').doc();
+    await consRef.set({
       __seed: true,
       customerId: cust.id,
       astrologerId: astro.id,
@@ -273,8 +294,25 @@ async function seed() {
       createdAt: tsDaysAgo(isActive ? 0 : rand(30)),
       updatedAt: FieldValue.serverTimestamp(),
     });
+    // seed the chat transcript for chat sessions
+    if (type === 'chat') {
+      const startMs = Date.now() - (1 + rand(4)) * DAY - rand(6) * 3_600_000;
+      let mIdx = 0;
+      for (const [who, text] of CHAT_SCRIPT) {
+        await consRef.collection('messages').add({
+          __seed: true,
+          senderId: who === 'customer' ? cust.id : astro.id,
+          type: 'text',
+          text,
+          timestamp: Timestamp.fromMillis(startMs + mIdx * 90_000),
+          delivered: true,
+          seen: true,
+        });
+        mIdx += 1;
+      }
+    }
   }
-  console.log(`  consultations: ${CONS_COUNT} (${activeCount} active)`);
+  console.log(`  consultations: ${CONS_COUNT} (${activeCount} active, chat transcripts seeded)`);
 
   // -- 4) Payouts -----------------------------------------------------------
   const PAYOUT_COUNT = 12;

@@ -40,7 +40,7 @@ export function UsersActivityTable() {
   const [rows, setRows] = useState<UserRow[] | null>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const [perPage, setPerPage] = useState(10);
+  const [perPage, setPerPage] = useState(25);
   const [busy, setBusy] = useState<string | null>(null);
 
   async function load() {
@@ -162,11 +162,11 @@ export function UsersActivityTable() {
                 <td className="uat-date">{fmtDate(u.lastActive)}</td>
                 <td>
                   <div className="uat-actions">
-                    <Link href={`/users/${u.id}`} className="uat-act" title="View profile" aria-label="View profile">{icoEye}</Link>
-                    <Link href={`/users/${u.id}#chat`} className="uat-act" title="Chat log" aria-label="Chat log">{icoChat}</Link>
-                    <button className="uat-act" title="Credit minutes / wallet" disabled={busy === u.id} onClick={() => credit(u)}>{icoPlus}</button>
-                    <button className={`uat-act${u.status === 'blocked' ? ' on' : ''}`} title={u.status === 'blocked' ? 'Reactivate' : 'Suspend'} disabled={busy === u.id} onClick={() => suspend(u)}>{icoSuspend}</button>
-                    <button className="uat-act danger" title="Delete profile" disabled={busy === u.id} onClick={() => remove(u)}>{icoTrash}</button>
+                    <Link href={`/users/${u.id}`} className="uat-act view" title="View profile" aria-label="View profile">{icoEye}</Link>
+                    <Link href={`/users/${u.id}#chat`} className="uat-act chat" title="Chat log" aria-label="Chat log">{icoChat}</Link>
+                    <button className="uat-act credit" title="Credit minutes / wallet" disabled={busy === u.id} onClick={() => credit(u)}>{icoPlus}</button>
+                    <button className={`uat-act suspend${u.status === 'blocked' ? ' on' : ''}`} title={u.status === 'blocked' ? 'Reactivate' : 'Suspend'} disabled={busy === u.id} onClick={() => suspend(u)}>{icoSuspend}</button>
+                    <button className="uat-act delete" title="Delete profile" disabled={busy === u.id} onClick={() => remove(u)}>{icoTrash}</button>
                   </div>
                 </td>
               </tr>
@@ -181,7 +181,7 @@ export function UsersActivityTable() {
           <div className="uat-pager">
             <label className="muted">Rows
               <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(0); }}>
-                <option value={10}>10</option><option value={25}>25</option><option value={50}>50</option>
+                <option value={25}>25</option><option value={100}>100</option><option value={200}>200</option><option value={500}>500</option>
               </select>
             </label>
             <button className="uat-pg" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>‹</button>

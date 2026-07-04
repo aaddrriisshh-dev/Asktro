@@ -955,8 +955,11 @@ tbody tr:last-child td { border-bottom: none; }
 /* ================= Users activity table ================= */
 .uat-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
 .uat-search { max-width: 260px; padding: 9px 13px; font-size: 13.5px; }
-.uat-table { width: 100%; border-collapse: collapse; }
-.uat-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 600; padding: 9px 12px; border-bottom: 1px solid #efeafc; white-space: nowrap; }
+.uat-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.uat-table thead tr { background: linear-gradient(90deg, #f3eefc, #efe6ff 60%, #f6f0fb); }
+.uat-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--primary); font-weight: 700; padding: 12px; border-bottom: 2px solid #e6dbf9; white-space: nowrap; }
+.uat-table th:first-child { border-radius: 12px 0 0 0; }
+.uat-table th:last-child { border-radius: 0 12px 0 0; }
 .uat-table td { padding: 12px; border-bottom: 1px solid #f4f0fb; font-size: 13.5px; color: var(--text); white-space: nowrap; }
 .uat-table tbody tr:hover { background: #faf8ff; }
 .uat-table tbody tr:last-child td, .uat-table tr:last-child td { border-bottom: none; }
@@ -970,16 +973,23 @@ tbody tr:last-child td { border-bottom: none; }
 .pay-pill { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
 .pay-pill.paid { background: rgba(60, 179, 113, 0.16); color: #2f9c63; box-shadow: 0 0 0 1px rgba(60, 179, 113, 0.3) inset; }
 .pay-pill.free { background: rgba(217, 138, 31, 0.12); color: #b8862a; border: 1px dashed rgba(217, 138, 31, 0.5); }
-.uat-actions { display: flex; gap: 5px; }
+.uat-actions { display: flex; gap: 6px; }
+/* colour-coded, outlined action buttons */
 .uat-act {
-  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px;
-  background: #fff; border: 1px solid #ece4fb; color: var(--muted); cursor: pointer; text-decoration: none;
-  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+  --a: #7e57c2;
+  display: grid; place-items: center; width: 33px; height: 33px; border-radius: 10px;
+  background: color-mix(in srgb, var(--a) 9%, #fff); border: 1.5px solid color-mix(in srgb, var(--a) 32%, #fff);
+  color: var(--a); cursor: pointer; text-decoration: none;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
 }
-.uat-act:hover { background: #f3eefc; color: var(--primary); border-color: #e0d4f7; }
-.uat-act.danger:hover { background: rgba(214, 69, 69, 0.1); color: var(--error); border-color: rgba(214, 69, 69, 0.3); }
-.uat-act.on { background: rgba(214, 69, 69, 0.12); color: var(--error); border-color: rgba(214, 69, 69, 0.3); }
-.uat-act:disabled { opacity: 0.5; cursor: default; }
+.uat-act:hover { background: var(--a); color: #fff; border-color: var(--a); transform: translateY(-1px); box-shadow: 0 6px 14px color-mix(in srgb, var(--a) 30%, transparent); }
+.uat-act.view { --a: #3b6fd4; }
+.uat-act.chat { --a: #7e57c2; }
+.uat-act.credit { --a: #2f9c63; }
+.uat-act.suspend { --a: #d98a1f; }
+.uat-act.delete { --a: #d64545; }
+.uat-act.suspend.on { background: var(--a); color: #fff; }
+.uat-act:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
 .uat-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 14px; flex-wrap: wrap; font-size: 13px; }
 .uat-pager { display: flex; align-items: center; gap: 12px; }
 .uat-pager select { margin-left: 6px; padding: 5px 8px; border: 1px solid #e7e1f5; border-radius: 8px; font-size: 13px; }
@@ -1010,3 +1020,5 @@ tbody tr:last-child td { border-bottom: none; }
 .bub { max-width: 78%; padding: 9px 13px; border-radius: 14px; font-size: 13.5px; line-height: 1.45; }
 .bub.me { align-self: flex-end; background: linear-gradient(135deg, #7e5bd0, var(--primary-dark)); color: #fff; border-bottom-right-radius: 4px; }
 .bub.them { align-self: flex-start; background: #f2eefb; color: var(--navy); border-bottom-left-radius: 4px; }
+.udet-log-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.udet-total { font-size: 11px; font-weight: 700; color: var(--gold-deep); background: rgba(212, 175, 55, 0.14); padding: 3px 10px; border-radius: 999px; }
