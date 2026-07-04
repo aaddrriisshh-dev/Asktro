@@ -98,8 +98,9 @@ Gotchas we hit (so future deploys are smooth):
 - **Astrologer approval (Item 1)** — admin Astrologers page gained a **Reject** button (pending
   applications) and a **"N onboarding requests awaiting review"** banner at the top. Approve/Suspend/Reject
   all wired to `setAstrologerStatus`.
-- *(Astrologer self-application from their app — writing the initial `pending` record — is still a
-  Flutter-side task; the admin review side is now complete.)*
+- **DECISION (2026-07-04): astrologers are admin-created only — NO self-signup.** Profiles are created
+  from the dashboard "Add astrologer" form; astrologers do not apply from their app. Item 1 is therefore
+  **complete** (create + Approve/Reject/pending-review). Do not build an astrologer-app application form.
 
 **⏳ To activate (your end):** redeploy the admin portal (no new functions needed for D).
 
