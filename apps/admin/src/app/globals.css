@@ -729,6 +729,7 @@ tbody tr:last-child td { border-bottom: none; }
   background: color-mix(in srgb, var(--c) 20%, #fff); border: 1px solid color-mix(in srgb, var(--c) 40%, #fff);
   color: var(--c); transition: background 0.15s ease, color 0.15s ease;
 }
+.mc-go svg { display: block; }
 .mc-hint {
   display: block; margin-top: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px;
   text-transform: uppercase; color: var(--c);
