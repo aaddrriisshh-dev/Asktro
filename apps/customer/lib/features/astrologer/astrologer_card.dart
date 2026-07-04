@@ -74,7 +74,7 @@ class AstrologerCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const LabelBadge(text: '₹9/min', filled: false),
+              LabelBadge(text: a.rateLabel, filled: false),
             ],
           ),
           if (!compact) ...[

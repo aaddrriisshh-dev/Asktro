@@ -86,7 +86,17 @@ export const createConsultation = onCall(async (req) => {
       failedPrecondition('You already have an active consultation.');
     }
 
-    const price = config.consultationPricePerMinutePaise;
+    // Per-astrologer rate & commission, falling back to the global config when
+    // an astrologer has none set. Both are snapshotted onto the session so a
+    // later admin change never re-rates an in-progress consultation.
+    const price =
+      typeof astrologer.ratePerMinutePaise === 'number' && astrologer.ratePerMinutePaise > 0
+        ? astrologer.ratePerMinutePaise
+        : config.consultationPricePerMinutePaise;
+    const commissionPercent =
+      typeof astrologer.commissionPercent === 'number'
+        ? astrologer.commissionPercent
+        : config.commissionPercent;
     const agoraChannel = type === 'chat' ? null : `asktro_${consultationRef.id}_${randomUUID().slice(0, 8)}`;
 
     tx.set(consultationRef, {
@@ -95,6 +105,7 @@ export const createConsultation = onCall(async (req) => {
       type,
       pricePerMinute: price,
       pricePerSecond: pricePerSecond(price),
+      commissionPercent,
       status: 'waiting',
       paymentStatus: 'pending',
       networkStatus: 'ok',

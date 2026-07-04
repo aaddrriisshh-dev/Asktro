@@ -88,6 +88,25 @@ Gotchas we hit (so future deploys are smooth):
 
 ---
 
+## 🟢 DONE (recent — Part A: per-astrologer pricing & commission)
+
+- **Per-astrologer rate (Items 5, 7)** — each astrologer now carries their own `ratePerMinutePaise`.
+  `createConsultation` snapshots **that astrologer's** rate onto the session (falls back to the global
+  `config/global` price if unset). The customer app shows the real per-astrologer price on the
+  directory card **and** the profile (was hardcoded ₹9/min).
+- **Per-astrologer commission (Item 8)** — each astrologer carries `commissionPercent`; it's snapshotted
+  onto the session at start and used by `endConsultation` to split earnings (falls back to global).
+  Snapshotting means a later admin change never re-rates an in-progress call — it applies to the next one.
+- **Set at onboarding + editable (Item 8 "live change")** — the admin **Add astrologer** form now takes
+  price/min and commission, and routes through the `createAstrologer` function so the astrologer gets a
+  **real login + role claim** (the old form wrote a doc that could never sign in). Each row has an
+  **Edit rate** action (updates rate/commission live via `updateAstrologer`), and the table shows both.
+
+**⏳ To activate (your end):** redeploy 4 functions (`createConsultation`, `endConsultation`,
+`createAstrologer`, `updateAstrologer`), redeploy the admin portal, and rebuild the customer app.
+
+---
+
 ## 🟢 DONE (recent — Part B: customer-journey economics)
 
 The three billing-side items from the handwritten roadmap:

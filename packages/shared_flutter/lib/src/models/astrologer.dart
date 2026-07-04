@@ -24,6 +24,7 @@ class Astrologer extends Equatable {
     this.status = AstrologerStatus.pending,
     this.earnings = 0,
     this.pendingPayout = 0,
+    this.ratePerMinutePaise = 900,
     this.quickReplies = const [],
     this.availability = const {},
   });
@@ -47,10 +48,18 @@ class Astrologer extends Equatable {
   final AstrologerStatus status;
   final int earnings; // paise, lifetime gross (astrologer-side display)
   final int pendingPayout; // paise, accrued net earnings not yet paid out
+  final int ratePerMinutePaise; // this astrologer's price per minute
   final List<String> quickReplies;
   final Map<String, dynamic> availability;
 
   bool get isConsultable => onlineStatus && available && status == AstrologerStatus.approved;
+
+  /// Display label for the per-minute price, e.g. "₹9/min" or "₹12.50/min".
+  String get rateLabel {
+    final r = ratePerMinutePaise / 100;
+    final s = r == r.roundToDouble() ? r.toStringAsFixed(0) : r.toStringAsFixed(2);
+    return '₹$s/min';
+  }
 
   factory Astrologer.fromMap(String id, Map<String, dynamic> m) {
     return Astrologer(
@@ -73,6 +82,7 @@ class Astrologer extends Equatable {
       status: AstrologerStatus.fromString(m['accountStatus'] as String?),
       earnings: (m['earnings'] ?? 0) as int,
       pendingPayout: (m['pendingPayout'] ?? 0) as int,
+      ratePerMinutePaise: (m['ratePerMinutePaise'] ?? 900) as int,
       quickReplies: List<String>.from(m['quickReplies'] ?? const []),
       availability: Map<String, dynamic>.from(m['availability'] ?? const {}),
     );
@@ -83,6 +93,6 @@ class Astrologer extends Equatable {
         id, name, profilePhoto, about, experience, languages, expertise, rating,
         totalReviews, totalConsultations, followers, responseTimeSec,
         onlineStatus, available, verified, featured, status, earnings,
-        pendingPayout, quickReplies, availability,
+        pendingPayout, ratePerMinutePaise, quickReplies, availability,
       ];
 }

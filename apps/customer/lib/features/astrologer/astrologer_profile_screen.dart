@@ -132,6 +132,8 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
         ),
         const SizedBox(height: 4),
         Center(child: Text(a.expertise.join(' • '), style: AppTypography.caption)),
+        const SizedBox(height: AppSpacing.sm),
+        Center(child: LabelBadge(text: a.rateLabel, filled: true)),
         const SizedBox(height: AppSpacing.lg),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,

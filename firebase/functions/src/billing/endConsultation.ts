@@ -57,7 +57,11 @@ export const endConsultation = onCall(async (req) => {
     const fc = finalSnap.data()!;
 
     const grossEarned = fc.totalCharged ?? 0;
-    const net = astrologerNetEarning(grossEarned, config.commissionPercent);
+    // Use the per-astrologer commission snapshotted at session start; fall back
+    // to the global config for legacy sessions created before this field existed.
+    const commissionPercent =
+      typeof fc.commissionPercent === 'number' ? fc.commissionPercent : config.commissionPercent;
+    const net = astrologerNetEarning(grossEarned, commissionPercent);
     const receiptNo = receiptNumber(consultationId!, nowMs);
 
     tx.update(ref, {

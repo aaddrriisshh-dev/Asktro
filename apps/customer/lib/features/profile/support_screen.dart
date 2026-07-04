@@ -184,7 +184,7 @@ class _TicketTile extends StatelessWidget {
 }
 
 const _faqs = [
-  ('How is a consultation charged?', 'Every consultation is billed at ₹9 per minute, calculated per second, directly from your wallet.'),
+  ('How is a consultation charged?', "Each consultation is billed per minute at the astrologer's own rate (shown on their profile), calculated per second, directly from your wallet."),
   ('What happens if my balance runs out?', 'The consultation pauses. Recharge to resume exactly where you left off — your chat history is preserved.'),
   ('How do refunds work?', 'If a consultation ends due to an astrologer or network issue, unused balance is handled per our refund policy.'),
   ('How do I delete my account?', 'Profile → Delete account. This permanently removes your data after any active consultation ends.'),

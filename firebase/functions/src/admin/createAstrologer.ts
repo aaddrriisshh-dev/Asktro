@@ -34,7 +34,7 @@ export const createAstrologer = onCall(async (req) => {
   const d = (req.data ?? {}) as {
     name?: string; email?: string; phone?: string; password?: string;
     experience?: number; languages?: string[]; expertise?: string[];
-    about?: string; ratePerMinutePaise?: number;
+    about?: string; ratePerMinutePaise?: number; commissionPercent?: number;
   };
   if (!d.name || !d.email) badRequest('name and email are required.');
 
@@ -69,6 +69,7 @@ export const createAstrologer = onCall(async (req) => {
       languages: d.languages ?? [],
       expertise: d.expertise ?? [],
       ...(typeof d.ratePerMinutePaise === 'number' ? { ratePerMinutePaise: d.ratePerMinutePaise } : {}),
+      ...(typeof d.commissionPercent === 'number' ? { commissionPercent: d.commissionPercent } : {}),
       rating: 0,
       totalReviews: 0,
       totalConsultations: 0,
@@ -106,7 +107,7 @@ export const updateAstrologer = onCall(async (req) => {
   const { astrologerId, ...rest } = (req.data ?? {}) as { astrologerId?: string } & Record<string, unknown>;
   if (!astrologerId) badRequest('astrologerId is required.');
 
-  const allowed = ['name', 'phone', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'featured'];
+  const allowed = ['name', 'phone', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'commissionPercent', 'featured'];
   const patch: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
   for (const k of allowed) if (k in rest) patch[k] = rest[k];
 

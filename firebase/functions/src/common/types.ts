@@ -39,8 +39,9 @@ export interface ConsultationDoc {
   customerId: string;
   astrologerId: string;
   type: ConsultationType;
-  pricePerMinute: number; // paise snapshot
+  pricePerMinute: number; // paise snapshot (this astrologer's rate)
   pricePerSecond: number; // paise (may be fractional)
+  commissionPercent: number; // platform cut snapshot for this astrologer
   status: ConsultationStatus;
   paymentStatus: PaymentStatus;
   networkStatus: NetworkStatus;
