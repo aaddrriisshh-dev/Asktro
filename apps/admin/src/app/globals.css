@@ -710,28 +710,27 @@ tbody tr:last-child td { border-bottom: none; }
 .tkt-reply:focus { outline: none; border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 16%, transparent); }
 .tkt-actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 
-/* clickable category cards (User / Astrologer) that expand their ticket list */
-.tktcat-wrap { margin-top: 12px; }
-.tktcat {
-  --c: #3b6fd4;
-  width: 100%; display: flex; align-items: center; gap: 14px;
-  background: linear-gradient(150deg, color-mix(in srgb, var(--c) 14%, #fff), #fff 80%);
-  border: 1px solid color-mix(in srgb, var(--c) 26%, #fff);
-  border-radius: 16px; padding: 14px 16px; cursor: pointer; text-align: left;
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 12%, transparent);
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
+/* clickable metric cards (User / Astrologer tickets) + below-grid expansion */
+.metricchip--btn {
+  font: inherit; text-align: left; cursor: pointer; -webkit-appearance: none; appearance: none;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s ease;
 }
-.tktcat:hover { transform: translateY(-1px); box-shadow: 0 10px 22px color-mix(in srgb, var(--c) 20%, transparent); }
-.tktcat-ico {
-  font-size: 22px; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 13px;
-  background: color-mix(in srgb, var(--c) 16%, #fff); border: 1px solid color-mix(in srgb, var(--c) 26%, #fff); flex: none;
+.metricchip--btn:hover { transform: translateY(-2px); box-shadow: 0 12px 26px color-mix(in srgb, var(--c) 22%, transparent); }
+.metricchip--btn.is-active {
+  border-color: var(--c);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 45%, #fff), 0 10px 24px color-mix(in srgb, var(--c) 22%, transparent);
 }
-.tktcat-main { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
-.tktcat-main strong { font-family: var(--serif); font-size: 17px; color: var(--navy); font-weight: 600; }
-.tktcat-main em { font-style: normal; font-size: 12.5px; color: var(--muted); }
-.tktcat-count { font-family: var(--serif); font-size: 25px; font-weight: 600; color: color-mix(in srgb, var(--c) 55%, var(--navy)); }
-.tktcat .tkt-caret { color: var(--c); font-size: 13px; }
-.tktcat-list { margin: 12px 0 4px; }
+.mc-caret { font-style: normal; color: var(--c); font-size: 10px; margin-left: 3px; }
+
+.tktexp {
+  --c: #7e57c2;
+  margin-top: 16px; border: 1px solid color-mix(in srgb, var(--c) 28%, #fff); border-radius: 16px;
+  padding: 15px 16px; background: color-mix(in srgb, var(--c) 6%, #fff);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 10%, transparent);
+}
+.tktexp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 13px; }
+.tktexp-head span { font-family: var(--serif); font-size: 17px; color: var(--navy); font-weight: 600; }
+.tktexp-head em { font-style: normal; font-size: 12.5px; color: var(--muted); }
 
 /* ===== Payout list rows ===== */
 .pay-item { background: #fff; border: 1px solid #efeafc; border-radius: 14px; padding: 13px 15px; box-shadow: 0 4px 12px rgba(46, 43, 95, 0.04); }

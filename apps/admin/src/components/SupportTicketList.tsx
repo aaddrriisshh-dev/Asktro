@@ -19,8 +19,8 @@ export interface TicketRow {
 }
 
 const GROUPS = [
-  { key: 'customer', label: 'User Tickets', icon: '👤', color: 'c-blue' },
-  { key: 'astrologer', label: 'Astrologer Tickets', icon: '🔮', color: 'c-purple' },
+  { key: 'customer', label: 'User Tickets', icon: '👤', color: 'c-purple' },
+  { key: 'astrologer', label: 'Astrologer Tickets', icon: '🔮', color: 'c-amber' },
 ] as const;
 
 /**
@@ -33,7 +33,7 @@ export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [active, setActive] = useState<'customer' | 'astrologer' | null>(null);
 
   useEffect(() => setRows(tickets), [tickets]);
 
@@ -43,6 +43,7 @@ export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
     total: rows.length,
     high: rows.filter((t) => t.priority === 'high').length,
   };
+  const byRole = (role: string) => rows.filter((r) => r.role === role);
 
   async function sendReply(t: TicketRow) {
     if (!draft.trim()) return;
@@ -125,41 +126,44 @@ export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
     );
   }
 
+  const activeGroup = GROUPS.find((g) => g.key === active);
+  const activeRows = active
+    ? byRole(active).sort((a, b) => (a.status === b.status ? b.createdMs - a.createdMs : a.status === 'open' ? -1 : 1))
+    : [];
+
   return (
     <div className="tkt">
       <div className="metricgrid">
         <Metric color="c-red" label="Open" value={counts.open.toLocaleString('en-IN')} big />
         <Metric color="c-green" label="Closed" value={counts.closed.toLocaleString('en-IN')} big />
         <Metric color="c-blue" label="Total" value={counts.total.toLocaleString('en-IN')} />
+        {GROUPS.map((g) => {
+          const isActive = active === g.key;
+          return (
+            <button
+              key={g.key}
+              className={`metricchip ${g.color} metricchip--btn${isActive ? ' is-active' : ''}`}
+              onClick={() => setActive((a) => (a === g.key ? null : g.key))}
+            >
+              <span>{g.label} <i className="mc-caret">{isActive ? '▴' : '▾'}</i></span>
+              <strong>{byRole(g.key).length.toLocaleString('en-IN')}</strong>
+            </button>
+          );
+        })}
         <Metric color="c-rose" label="High priority" value={counts.high.toLocaleString('en-IN')} />
       </div>
 
-      {GROUPS.map((g) => {
-        const groupRows = rows
-          .filter((r) => r.role === g.key)
-          .sort((a, b) => (a.status === b.status ? b.createdMs - a.createdMs : a.status === 'open' ? -1 : 1));
-        const openN = groupRows.filter((r) => r.status === 'open').length;
-        const closedN = groupRows.filter((r) => r.status === 'closed').length;
-        const isOpen = !!expanded[g.key];
-        return (
-          <div className="tktcat-wrap" key={g.key}>
-            <button className={`tktcat ${g.color}`} onClick={() => setExpanded((s) => ({ ...s, [g.key]: !s[g.key] }))}>
-              <span className="tktcat-ico">{g.icon}</span>
-              <span className="tktcat-main">
-                <strong>{g.label}</strong>
-                <em>{openN} open · {closedN} closed</em>
-              </span>
-              <span className="tktcat-count">{groupRows.length}</span>
-              <span className="tkt-caret">{isOpen ? '▴' : '▾'}</span>
-            </button>
-            {isOpen && (
-              groupRows.length === 0
-                ? <p className="drawer-muted">No tickets yet.</p>
-                : <div className="tkt-list tktcat-list">{groupRows.map(renderTicket)}</div>
-            )}
+      {activeGroup && (
+        <div className={`tktexp ${activeGroup.color}`}>
+          <div className="tktexp-head">
+            <span>{activeGroup.icon} {activeGroup.label}</span>
+            <em>{activeRows.filter((r) => r.status === 'open').length} open · {activeRows.filter((r) => r.status === 'closed').length} closed</em>
           </div>
-        );
-      })}
+          {activeRows.length === 0
+            ? <p className="drawer-muted">No tickets yet.</p>
+            : <div className="tkt-list">{activeRows.map(renderTicket)}</div>}
+        </div>
+      )}
     </div>
   );
 }
