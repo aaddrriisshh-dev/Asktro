@@ -151,7 +151,20 @@ write your profile; then add Vineet & Sanjay from the Admin Management page. Red
   else hidden.
   - When Phone/Video Session consoles are built, add them to Neeraj's routes (for transcript auditing).
 
+## 🟢 DONE — Publishing modules (Commit & Push family)
+- **Push Notifications** — audience All/Paid/Unpaid/Astrologers, title, description, deep link, image
+  (Banner/Portrait), Commit & Push. `sendBroadcast` gained paid/unpaid segments + image + audit-with-name;
+  FCM carries the image.
+- **Banners** — placement Home/Consults/Wallet/Alerts/Profile, image, deep link, Commit & Push, added-by.
+- **Coupons** — audience (All/Unpaid/Paid), amount + bonus to wallet, expiry, image, auto-generated code,
+  Commit & Push, added-by.
+- `auth-context` now exposes the acting admin's **name** so client-side actions attribute too.
+
 ## 🔵 REMAINING MENU WORK (lower priority / dependent)
+- **Reports (#10)** — deserves a dedicated comprehensive design pass (metrics + CSV exports). Page exists
+  as a starting point.
+- **Customer Management (#2)** — exists as the Users activity table; could add the Live/All + Paid/Unpaid
+  tab split from the spec.
 - **Phone Sessions (#4) & Video Sessions (#5)** — new consoles; structurally ready but **empty until
   voice/video calling ships** (Agora). Build alongside the calling phase.
 - **Banners / Coupons / Push / Reports** — pages already exist; can be polished to fully match the
