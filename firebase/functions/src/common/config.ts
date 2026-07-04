@@ -6,12 +6,14 @@ import { GlobalConfig } from './types';
 export const DEFAULT_CONFIG: GlobalConfig = {
   consultationPricePerMinutePaise: 900, // ₹9/min
   minWalletToStartPaise: 1800, // 2 minutes
-  warnLevel1Sec: 120,
-  warnLevel2Sec: 30,
+  warnLevel1Sec: 60, // low-balance popup fires ~1 minute before exhaustion
+  warnLevel2Sec: 20,
   reconnectTimeoutSec: 45,
   sessionTimeoutSec: 300,
   requestTimeoutSec: 30,
   commissionPercent: 20,
+  freeChatMinutes: 3, // welcome free chat minutes for new customers
+  graceMinutes: 1, // one free grace minute when balance runs out mid-session
   featureFlags: {
     voice: true,
     video: true,

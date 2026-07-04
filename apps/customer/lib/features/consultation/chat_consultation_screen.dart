@@ -56,6 +56,7 @@ class ChatConsultationScreen extends ConsumerStatefulWidget {
 class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen> {
   final _input = TextEditingController();
   bool _lowBalanceShown = false;
+  bool _graceShown = false;
 
   String get _id => widget.consultationId;
 
@@ -145,6 +146,15 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   }
 
   Future<void> _handleWarn(ConsultationState s) async {
+    // Grace minute — a one-time gift when the balance ran out. Celebrate it and
+    // suppress the low-balance nudge for this cycle so they don't stack.
+    if (s.consultation.graceGranted && !_graceShown) {
+      _graceShown = true;
+      _lowBalanceShown = true;
+      if (mounted) await showGraceBonusDialog(context, minutes: 1);
+      return;
+    }
+
     // Level 1 — polite premium recharge dialog (once).
     if (s.warnLevel == 1 && !_lowBalanceShown) {
       _lowBalanceShown = true;

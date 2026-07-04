@@ -14,17 +14,21 @@ interface Config {
   sessionTimeoutSec: number;
   requestTimeoutSec: number;
   commissionPercent: number;
+  freeChatMinutes: number;
+  graceMinutes: number;
 }
 
 const DEFAULTS: Config = {
   consultationPricePerMinutePaise: 900,
   minWalletToStartPaise: 1800,
-  warnLevel1Sec: 120,
-  warnLevel2Sec: 30,
+  warnLevel1Sec: 60,
+  warnLevel2Sec: 20,
   reconnectTimeoutSec: 45,
   sessionTimeoutSec: 300,
   requestTimeoutSec: 30,
   commissionPercent: 20,
+  freeChatMinutes: 3,
+  graceMinutes: 1,
 };
 
 export default function PricingPage() {
@@ -62,8 +66,10 @@ export default function PricingPage() {
         <Field label="Minimum wallet to start (₹)"
           value={String(cfg.minWalletToStartPaise / 100)}
           onChange={(v) => setCfg((c) => ({ ...c, minWalletToStartPaise: rupeesToPaise(Number(v)) }))} />
-        <Field label="Warning level 1 (sec)" value={String(cfg.warnLevel1Sec)} onChange={(v) => num('warnLevel1Sec', v)} />
-        <Field label="Warning level 2 (sec)" value={String(cfg.warnLevel2Sec)} onChange={(v) => num('warnLevel2Sec', v)} />
+        <Field label="Free chat minutes (new user)" value={String(cfg.freeChatMinutes)} onChange={(v) => num('freeChatMinutes', v)} />
+        <Field label="Grace minutes (at zero balance)" value={String(cfg.graceMinutes)} onChange={(v) => num('graceMinutes', v)} />
+        <Field label="Low-balance warning (sec left)" value={String(cfg.warnLevel1Sec)} onChange={(v) => num('warnLevel1Sec', v)} />
+        <Field label="Final warning (sec left)" value={String(cfg.warnLevel2Sec)} onChange={(v) => num('warnLevel2Sec', v)} />
         <Field label="Reconnect timeout (sec)" value={String(cfg.reconnectTimeoutSec)} onChange={(v) => num('reconnectTimeoutSec', v)} />
         <Field label="Session timeout (sec)" value={String(cfg.sessionTimeoutSec)} onChange={(v) => num('sessionTimeoutSec', v)} />
         <Field label="Request timeout (sec)" value={String(cfg.requestTimeoutSec)} onChange={(v) => num('requestTimeoutSec', v)} />

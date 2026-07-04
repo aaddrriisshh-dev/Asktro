@@ -10,6 +10,7 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
+import { getGlobalConfig } from '../common/config';
 
 function generateReferralCode(uid: string): string {
   // Deterministic, collision-resistant, human-friendly.
@@ -29,7 +30,6 @@ export const onCustomerSignup = onDocumentCreated('users/{uid}', async (event) =
   };
   if (!data.referralCode) patch.referralCode = generateReferralCode(uid);
   if (data.walletBalance == null) patch.walletBalance = 0;
-  if (data.bonusBalance == null) patch.bonusBalance = 0;
   if (data.lockedBalance == null) patch.lockedBalance = 0;
   if (data.totalRecharge == null) patch.totalRecharge = 0;
   if (data.totalSpent == null) patch.totalSpent = 0;
@@ -38,5 +38,31 @@ export const onCustomerSignup = onDocumentCreated('users/{uid}', async (event) =
   if (data.accountStatus == null) patch.accountStatus = 'active';
   if (data.createdAt == null) patch.createdAt = FieldValue.serverTimestamp();
 
+  // Welcome bonus: grant N free chat minutes (as bonus credit) exactly once, so
+  // a brand-new customer can start their first chat with no recharge.
+  const config = await getGlobalConfig();
+  const welcomeBonus = (config.freeChatMinutes ?? 0) * config.consultationPricePerMinutePaise;
+  const priorBonus = (data.bonusBalance as number | undefined) ?? 0;
+  if (!data.signupBonusGranted && welcomeBonus > 0) {
+    patch.bonusBalance = priorBonus + welcomeBonus;
+    patch.signupBonusGranted = true;
+  } else if (data.bonusBalance == null) {
+    patch.bonusBalance = 0;
+  }
+
   await db.collection(Collections.users).doc(uid).set(patch, { merge: true });
+
+  // Record the welcome bonus in the ledger so it shows in transaction history.
+  if (patch.signupBonusGranted) {
+    await db.collection(Collections.walletTransactions).add({
+      userId: uid,
+      kind: 'bonus',
+      amount: welcomeBonus,
+      balanceBefore: priorBonus,
+      balanceAfter: priorBonus + welcomeBonus,
+      refId: 'signup_bonus',
+      note: `Welcome bonus — ${config.freeChatMinutes} free chat minutes`,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  }
 });

@@ -12,7 +12,8 @@ import { db, FieldValue, Timestamp } from '../common/admin';
 import { Collections } from '../common/collections';
 import { getGlobalConfig } from '../common/config';
 import { assertAuthed, badRequest, failedPrecondition, notFound } from '../common/errors';
-import { computeTick } from './engine';
+import { computeTick, deriveWarnLevel } from './engine';
+import { affordableSeconds } from '../common/money';
 import { writeLedger } from '../wallet/ledger';
 import { GlobalConfig, NetworkStatus } from '../common/types';
 
@@ -23,6 +24,8 @@ export interface TickOutcome {
   walletBalance: number;
   bonusBalance: number;
   billedSeconds: number;
+  /** True on the single tick where a one-time grace minute was granted. */
+  graceGranted?: boolean;
 }
 
 /**
@@ -61,15 +64,33 @@ export async function applyTick(
     warnLevel2Sec: config.warnLevel2Sec,
   });
 
-  const willPause = result.exhausted;
+  // One-time grace minute: if the balance just ran out and we haven't already
+  // gifted a grace minute for this session, add it as bonus credit and keep the
+  // session active instead of pausing. The client shows a celebratory popup.
+  const graceMinutes = config.graceMinutes ?? 0;
+  const grantGrace = result.exhausted && c.graceGranted !== true && graceMinutes > 0;
+  const graceBonus = grantGrace ? graceMinutes * (c.pricePerMinute as number) : 0;
+  const willPause = result.exhausted && !grantGrace;
 
-  if (result.chargedPaise > 0) {
+  const finalWallet = result.newWalletBalancePaise;
+  const finalBonus = result.newBonusBalancePaise + graceBonus;
+  const finalSpendable = finalWallet + finalBonus;
+  const finalRemainingSec = grantGrace
+    ? affordableSeconds(finalSpendable, c.pricePerMinute)
+    : result.remainingSec;
+  const finalWarnLevel = grantGrace
+    ? deriveWarnLevel(finalRemainingSec, false, config.warnLevel1Sec, config.warnLevel2Sec)
+    : result.warnLevel;
+
+  if (result.chargedPaise > 0 || graceBonus > 0) {
     tx.update(userRef, {
-      walletBalance: result.newWalletBalancePaise,
-      bonusBalance: result.newBonusBalancePaise,
-      totalSpent: FieldValue.increment(result.chargedPaise),
+      walletBalance: finalWallet,
+      bonusBalance: finalBonus,
+      ...(result.chargedPaise > 0 ? { totalSpent: FieldValue.increment(result.chargedPaise) } : {}),
       updatedAt: FieldValue.serverTimestamp(),
     });
+  }
+  if (result.chargedPaise > 0) {
     writeLedger(tx, {
       userId: c.customerId,
       kind: 'consultation',
@@ -80,28 +101,39 @@ export async function applyTick(
       note: `${c.type} consultation billing`,
     });
   }
+  if (graceBonus > 0) {
+    writeLedger(tx, {
+      userId: c.customerId,
+      kind: 'bonus',
+      amount: graceBonus,
+      balanceBefore: result.remainingSpendablePaise,
+      balanceAfter: finalSpendable,
+      refId: consultationId,
+      note: `Grace bonus — ${graceMinutes} free minute`,
+    });
+  }
 
   tx.update(consultationRef, {
     billedSeconds: FieldValue.increment(result.billedSeconds),
     totalCharged: FieldValue.increment(result.chargedPaise),
-    walletAfter: result.remainingSpendablePaise,
-    remainingSec: result.remainingSec,
-    warnLevel: result.warnLevel,
+    walletAfter: finalSpendable,
+    remainingSec: finalRemainingSec,
+    warnLevel: finalWarnLevel,
     lastTickAt: Timestamp.fromMillis(nowMs),
     networkStatus: networkStatus ?? c.networkStatus ?? 'ok',
-    ...(willPause
-      ? { status: 'paused', pausedAt: Timestamp.fromMillis(nowMs) }
-      : {}),
+    ...(grantGrace ? { graceGranted: true, graceGrantedAt: Timestamp.fromMillis(nowMs) } : {}),
+    ...(willPause ? { status: 'paused', pausedAt: Timestamp.fromMillis(nowMs) } : {}),
     updatedAt: FieldValue.serverTimestamp(),
   });
 
   return {
     status: willPause ? 'paused' : 'active',
-    remainingSec: result.remainingSec,
-    warnLevel: result.warnLevel,
-    walletBalance: result.newWalletBalancePaise,
-    bonusBalance: result.newBonusBalancePaise,
+    remainingSec: finalRemainingSec,
+    warnLevel: finalWarnLevel,
+    walletBalance: finalWallet,
+    bonusBalance: finalBonus,
     billedSeconds: result.billedSeconds,
+    graceGranted: grantGrace,
   };
 }
 

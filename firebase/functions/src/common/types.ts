@@ -28,6 +28,10 @@ export interface GlobalConfig {
   sessionTimeoutSec: number;
   requestTimeoutSec: number;
   commissionPercent: number;
+  /** Free chat minutes granted to a new customer at signup (as bonus credit). */
+  freeChatMinutes: number;
+  /** One-time grace minutes added when a live session's balance is exhausted. */
+  graceMinutes: number;
   featureFlags: Record<string, boolean>;
 }
 
