@@ -160,9 +160,13 @@ write your profile; then add Vineet & Sanjay from the Admin Management page. Red
   Commit & Push, added-by.
 - `auth-context` now exposes the acting admin's **name** so client-side actions attribute too.
 
+## 🟢 DONE — Reports (#10)
+Comprehensive: date-range filter, 8 KPI tiles (gross/net revenue, recharges, consultations, minutes,
+new users, refunds, payouts), revenue + consultations-by-type charts, and **CSV + Excel** exports for 8
+datasets (new users, consultations, wallet ledger, payouts, all users, astrologers, coupons, support).
+
 ## 🔵 REMAINING MENU WORK (lower priority / dependent)
-- **Reports (#10)** — deserves a dedicated comprehensive design pass (metrics + CSV exports). Page exists
-  as a starting point.
+- **Phone / Video Sessions (#4, #5)** — structurally ready; empty until Agora voice/video calling ships.
 - **Customer Management (#2)** — exists as the Users activity table; could add the Live/All + Paid/Unpaid
   tab split from the spec.
 - **Phone Sessions (#4) & Video Sessions (#5)** — new consoles; structurally ready but **empty until
