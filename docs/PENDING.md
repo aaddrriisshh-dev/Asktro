@@ -9,6 +9,34 @@ _Last updated: 2026-07-04_
 
 ---
 
+## ▶️ RESUME HERE (next session — 2026-07-04 EOD)
+
+**Deploy state:**
+- ✅ All Cloud Functions deployed (incl. new: createAdmin, setAdminRole, removeAdmin, listAdmins;
+  changed: createAstrologer, updateAstrologer, setAstrologerStatus, sendBroadcast).
+- ✅ Firestore rules deployed (pricing now super-only).
+- ⏳ **Admin portal NOT yet deployed** — this is the next step.
+- ❓ Invoker permission on the 4 new callables: **verify by testing** the Admin Management page after the
+  portal is up. If it errors with permission-denied, grant `allUsers` Cloud Run Invoker on those 4 services.
+
+**Decision — host the admin portal on VERCEL** (user has Vercel Pro; cheaper/flat vs Firebase Hosting
+which would need Cloud Run for the dynamic `[id]` routes). Setup (first-time, via vercel.com/new):
+1. Import repo `aaddrriisshh-dev/Asktro`, set **Root Directory = `apps/admin`**.
+2. Add env vars: the `NEXT_PUBLIC_FIREBASE_*` values (apiKey, authDomain, projectId, storageBucket,
+   messagingSenderId, appId) from Firebase console → Project settings → web app config. Plus optionally
+   `NEXT_PUBLIC_FIREBASE_FUNCTIONS_REGION=asia-south1`.
+3. Deploy → then log in to test roles.
+
+**Test accounts** (all password `Asktro@2026`, no emails sent): adrish@ / vineet@ / sanjay@ (Super),
+sachendra@ (Ops), neeraj@ (Astrology) — all @asktro.in.
+
+**Then: apps next.** User has NO keys yet (Agora / AI / Prokerala). Plan: build no-key app features
+(in-app banner display, coupon redemption, notification images) + scaffold voice/video (Agora) and AI
+chat (Claude/OpenAI + Prokerala) so they light up when keys arrive. NOTE: Flutter can't be compiled in the
+build env — write Dart carefully against existing patterns; user verifies on next app build.
+
+---
+
 ## 🔴 YOUR ACTION ITEMS (operational — you do these, no coding)
 
 ### ⚡ Deploy the wiring-audit fixes
