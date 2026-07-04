@@ -11,16 +11,15 @@ _Last updated: 2026-07-04_
 
 ## 🔴 YOUR ACTION ITEMS (operational — you do these, no coding)
 
-### ⚡ Deploy the wiring-audit fixes (do this next — one command)
-The audit fixes below are **coded and committed**. Two of them need action from you:
-
-1. **Deploy the new support trigger** (stamps ticket numbers + names on new tickets):
-   ```bash
-   export GOOGLE_APPLICATION_CREDENTIALS="$PWD/firebase/functions/serviceAccountKey.json"
-   PID=$(node -e "console.log(require('./firebase/functions/serviceAccountKey.json').project_id)")
-   firebase deploy --only functions:onSupportTicketCreated --project "$PID"
-   ```
-   (This is a Firestore trigger, **not** a callable — it does **not** need an `allUsers` invoker grant.)
+### ⚡ Deploy the wiring-audit fixes
+1. ~~**Deploy the new support trigger**~~ ✅ **Done (2026-07-04)** — `onSupportTicketCreated` is live
+   in `asia-south1` (Firestore document-created trigger). New tickets now auto-get a copyable
+   `ASK-TKT-000123` number, the raiser's name, role, and the mirrored message.
+   - *First-ever 2nd-gen/Eventarc trigger for this project* required a one-time IAM setup: the deploy
+     service account (`firebase-adminsdk-fbsvc@…`) was granted **Project IAM Admin** so Firebase could
+     add the Eventarc/Pub/Sub service-agent bindings itself. Expect the usual `409 already exists` →
+     `unable to queue` convergence stutter on the first deploy — it settles; verify with
+     `firebase functions:list`.
 2. **Rebuild the two Flutter apps** whenever you next make a build — the customer app now shows
    copyable ticket numbers, and the astrologer app now writes its name onto payout requests.
    (No rush; the admin-side reads already fall back gracefully until then.)
