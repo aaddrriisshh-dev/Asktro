@@ -11,6 +11,21 @@ _Last updated: 2026-07-04_
 
 ## 🔴 YOUR ACTION ITEMS (operational — you do these, no coding)
 
+### ⚡ Deploy the wiring-audit fixes (do this next — one command)
+The audit fixes below are **coded and committed**. Two of them need action from you:
+
+1. **Deploy the new support trigger** (stamps ticket numbers + names on new tickets):
+   ```bash
+   export GOOGLE_APPLICATION_CREDENTIALS="$PWD/firebase/functions/serviceAccountKey.json"
+   PID=$(node -e "console.log(require('./firebase/functions/serviceAccountKey.json').project_id)")
+   firebase deploy --only functions:onSupportTicketCreated --project "$PID"
+   ```
+   (This is a Firestore trigger, **not** a callable — it does **not** need an `allUsers` invoker grant.)
+2. **Rebuild the two Flutter apps** whenever you next make a build — the customer app now shows
+   copyable ticket numbers, and the astrologer app now writes its name onto payout requests.
+   (No rush; the admin-side reads already fall back gracefully until then.)
+
+
 ### Payments — dummy gateway → real Razorpay
 Right now recharges are driven by a **dummy gateway** (the 🧪 Test Recharge panel
 on the admin dashboard → `devSimulateRecharge`). It writes REAL ledger entries so
@@ -74,7 +89,37 @@ Gotchas we hit (so future deploys are smooth):
 
 ---
 
-## 🟢 DONE (recent — admin dashboard & consoles)
+## 🟢 DONE (recent — deep wiring audit + fixes)
+
+Full app↔backend↔portal audit run. **Verified real & correctly wired:** chat consultations,
+chat transcripts (message shape `senderId/type/text/image/timestamp` matches exactly), successful
+recharges (real ledger), and all revenue/user/consultation/chat-minute metrics. **Fixed the gaps
+the audit found:**
+
+- **Support message no longer lost** — the customer app writes the ticket text to `body`; the admin
+  console read only `message` and showed blank. Console now reads `message ?? body`, and a new
+  server trigger mirrors `body → message` on every new ticket. (`SupportTicketsCard.tsx`, `support/page.tsx`.)
+- **Ticket numbers + names now generated** — new Firestore trigger `onSupportTicketCreated` stamps a
+  copyable `ASK-TKT-000123` (atomic counter), the raiser's `userName` (from users/astrologers), and
+  `role` on every ticket — works for both apps, no rebuild needed. (`admin/supportTrigger.ts`.)
+  ⏳ **Needs deploy** (see action item above).
+- **Customer can copy their ticket number** — Help & Support screen now lists "Your tickets" with the
+  number, a copy button and live status. (`support_screen.dart`.) Takes effect on next app build.
+- **Payout name fixed** — astrologer app now writes `astrologerName` onto payout requests, so the admin
+  console shows a name, not an id. (`earnings_tab.dart`.) Takes effect on next app build.
+
+### Known-empty until their features ship (not bugs)
+- **Voice / Video** are stubs (Agora commented out; app shows "coming soon"). No `type:'voice'/'video'`
+  consultation docs are ever created, so the portal's voice/video minute columns, Voice/Video active
+  metrics, and Voice/Video Call History are **structurally correct but will stay empty** until the
+  calls phase is built. Backend (`createConsultation`, `generateAgoraToken`) is ready and waiting.
+- **Failed / pending payments** are **not recorded anywhere** — only successful recharges hit the ledger,
+  so payment drop-off is invisible. If you want funnel visibility, we'd add a `paymentAttempts` record
+  (write on initiate, update on success/failure). **Product decision for you** — flag it and I'll build it.
+
+---
+
+## 🟢 DONE (earlier — admin dashboard & consoles)
 
 - **Dashboard home** — 10 live, backend-wired cards (Revenue, Registered Users, Active
   Consultations, First-Recharge Conversion, Active/Total Astrologers, Paid/Unpaid Users,
@@ -95,11 +140,9 @@ Gotchas we hit (so future deploys are smooth):
 ## 🔵 REMAINING CODE WORK (prioritized)
 
 ### App-side flows (Flutter) — the other half of what we built in admin
-1. **Customer support ticket submission** — user raises a ticket in the app; system generates a
-   **ticket number** (e.g. `ASK-TKT-000123`) shown with a **copy** button. (Admin side is done.)
-2. **Astrologer payout request** — astrologer requests a payout from their portal (creates the
-   pending request the admin Payout console acts on). (Astrologer app has a basic version already;
-   verify it writes the fields the admin console reads: `astrologerName`, `amount`, `method`, `status`, `createdAt`.)
+1. ~~**Customer support ticket submission** + ticket number + copy button~~ ✅ **Done** — ticket number
+   generated server-side, shown with a copy button in the app.
+2. ~~**Astrologer payout request** writes `astrologerName`~~ ✅ **Done** — payout write now includes the name.
 
 ### Admin portal
 3. **Astrologers page** — wire the existing `createAstrologer` / `updateAstrologer` /

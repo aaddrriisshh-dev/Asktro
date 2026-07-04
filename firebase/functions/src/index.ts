@@ -41,6 +41,7 @@ export { createAstrologer, updateAstrologer, deleteAstrologer } from './admin/cr
 
 // ---- Admin support-ticket actions ----
 export { replySupportTicket, closeSupportTicket, reopenSupportTicket } from './admin/support';
+export { onSupportTicketCreated } from './admin/supportTrigger';
 
 // ---- Dev/testing: dummy payment gateway ----
 export { devSimulateRecharge } from './admin/devTools';

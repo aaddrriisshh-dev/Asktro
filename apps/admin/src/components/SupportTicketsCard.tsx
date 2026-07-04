@@ -43,7 +43,7 @@ function useTickets(range: Range): CardView<TicketData> {
         snap.forEach((doc) => {
           const t = doc.data() as {
             status?: string; customerId?: string | null; astrologerId?: string | null; priority?: string;
-            createdAt?: Timestamp; ticketNo?: string; subject?: string; message?: string; userName?: string;
+            createdAt?: Timestamp; ticketNo?: string; subject?: string; message?: string; body?: string; userName?: string;
             thread?: { by?: string; text?: string; at?: Timestamp }[];
           };
           if (t.status === 'open') open += 1;
@@ -59,7 +59,9 @@ function useTickets(range: Range): CardView<TicketData> {
             id: doc.id,
             ticketNo: t.ticketNo ?? `#${doc.id.slice(0, 6).toUpperCase()}`,
             subject: t.subject ?? 'Support request',
-            message: t.message ?? '',
+            // The customer app writes the body to `body`; the astrologer path / trigger
+            // mirror it to `message`. Read both so the ticket text is never blank.
+            message: t.message ?? t.body ?? '',
             status: t.status ?? 'open',
             who: t.userName ?? (t.customerId || t.astrologerId || 'Unknown').slice(0, 10),
             role,

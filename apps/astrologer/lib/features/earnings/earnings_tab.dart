@@ -48,6 +48,8 @@ class _EarningsTabState extends ConsumerState<EarningsTab> {
       }
       await ref.read(firestoreProvider).collection('payouts').add({
         'astrologerId': self.id,
+        // Denormalized so the admin payout console shows a name, not an id.
+        'astrologerName': self.name,
         // Only the accrued, not-yet-paid balance (server decrements
         // pendingPayout when the admin marks it processed).
         'amount': self.pendingPayout,

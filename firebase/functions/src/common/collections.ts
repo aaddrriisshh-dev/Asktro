@@ -16,6 +16,7 @@ export const Collections = {
   auditLogs: 'auditLogs',
   adminUsers: 'adminUsers',
   processedPayments: 'processedPayments', // idempotency keys for recharge
+  counters: 'counters', // atomic sequence docs (e.g. human-readable ticket numbers)
 } as const;
 
 export const ConfigDoc = { path: 'config/global' } as const;
