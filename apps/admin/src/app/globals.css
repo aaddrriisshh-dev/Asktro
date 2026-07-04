@@ -968,7 +968,7 @@ tbody tr:last-child td { border-bottom: none; }
 .uat-name { font-weight: 600; color: var(--navy); }
 .uat-phone { font-family: monospace; font-size: 12px; color: var(--muted); }
 .uat-unit { color: var(--muted); font-size: 11px; }
-.uat-amount { font-family: var(--serif); font-size: 15px; color: var(--navy); font-weight: 600; }
+.uat-amount { font-size: 16.5px; color: var(--navy); font-weight: 800; letter-spacing: 0.2px; }
 .uat-date { color: var(--muted); }
 .pay-pill { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
 .pay-pill.paid { background: rgba(60, 179, 113, 0.16); color: #2f9c63; box-shadow: 0 0 0 1px rgba(60, 179, 113, 0.3) inset; }
