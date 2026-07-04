@@ -35,6 +35,7 @@ export function Drawer({
         aria-modal="true"
         style={accent ? ({ ['--c']: accent } as React.CSSProperties) : undefined}
       >
+        <div className="drawer-decor" aria-hidden="true" />
         <div className="drawer-head">
           <div>
             <h2 className="drawer-title">{title}</h2>
