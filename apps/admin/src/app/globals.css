@@ -325,7 +325,7 @@ tbody tr:last-child td { border-bottom: none; }
 .sidebar--collapsed .sidebar__logout { font-size: 0; padding: 9px 0; }
 .sidebar--collapsed .sidebar__logout::before { content: '\23FB'; font-size: 15px; }
 
-.main { position: relative; z-index: 1; flex: 1; padding: 30px 34px; max-width: 1180px; }
+.main { position: relative; z-index: 1; flex: 1; min-width: 0; padding: 30px 34px; }
 
 /* ---- Celestial backdrop behind every dashboard page ---- */
 .celestial-bg {
