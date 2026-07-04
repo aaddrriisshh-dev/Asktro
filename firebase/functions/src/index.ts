@@ -38,3 +38,6 @@ export { adjustWallet, processPayout, setAstrologerStatus } from './admin/action
 
 // ---- Admin astrologer provisioning ----
 export { createAstrologer, updateAstrologer, deleteAstrologer } from './admin/createAstrologer';
+
+// ---- Admin support-ticket actions ----
+export { replySupportTicket, closeSupportTicket, reopenSupportTicket } from './admin/support';

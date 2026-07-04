@@ -7,6 +7,7 @@ import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
 import { Metric } from './Metric';
 import { DailyChart } from './DailyChart';
+import { SupportTicketList, TicketRow } from './SupportTicketList';
 
 interface TicketData {
   open: number;
@@ -16,6 +17,7 @@ interface TicketData {
   fromAstrologers: number;
   highPriority: number;
   daily: { day: string; value: number }[];
+  tickets: TicketRow[];
 }
 
 function useTickets(range: Range): CardView<TicketData> {
@@ -37,8 +39,13 @@ function useTickets(range: Range): CardView<TicketData> {
         ));
         let open = 0, closed = 0, fromCustomers = 0, fromAstrologers = 0, highPriority = 0;
         const byDay = new Map<string, number>();
+        const tickets: TicketRow[] = [];
         snap.forEach((doc) => {
-          const t = doc.data() as { status?: string; customerId?: string | null; astrologerId?: string | null; priority?: string; createdAt?: Timestamp };
+          const t = doc.data() as {
+            status?: string; customerId?: string | null; astrologerId?: string | null; priority?: string;
+            createdAt?: Timestamp; ticketNo?: string; subject?: string; message?: string; userName?: string;
+            thread?: { by?: string; text?: string; at?: Timestamp }[];
+          };
           if (t.status === 'open') open += 1;
           else if (t.status === 'closed') closed += 1;
           if (t.customerId) fromCustomers += 1;
@@ -47,9 +54,23 @@ function useTickets(range: Range): CardView<TicketData> {
           const ms = t.createdAt?.toMillis?.() ?? range.start;
           const key = new Date(ms).toISOString().slice(0, 10);
           byDay.set(key, (byDay.get(key) ?? 0) + 1);
+          const role: 'customer' | 'astrologer' = t.astrologerId ? 'astrologer' : 'customer';
+          tickets.push({
+            id: doc.id,
+            ticketNo: t.ticketNo ?? `#${doc.id.slice(0, 6).toUpperCase()}`,
+            subject: t.subject ?? 'Support request',
+            message: t.message ?? '',
+            status: t.status ?? 'open',
+            who: t.userName ?? (t.customerId || t.astrologerId || 'Unknown').slice(0, 10),
+            role,
+            priority: t.priority ?? 'normal',
+            createdMs: ms,
+            thread: (t.thread ?? []).map((m) => ({ by: m.by ?? 'admin', text: m.text ?? '', atMs: m.at?.toMillis?.() ?? ms })),
+          });
         });
+        tickets.sort((a, b) => b.createdMs - a.createdMs);
         const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: day.slice(5), value }));
-        if (!cancelled) setData({ open, closed, total: snap.size, fromCustomers, fromAstrologers, highPriority, daily });
+        if (!cancelled) setData({ open, closed, total: snap.size, fromCustomers, fromAstrologers, highPriority, daily, tickets });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
       } finally {
@@ -89,7 +110,11 @@ export function SupportTicketsCard() {
             <Metric color="c-amber" label="From astrologers" value={d.fromAstrologers.toLocaleString('en-IN')} />
             <Metric color="c-rose" label="High priority" value={d.highPriority.toLocaleString('en-IN')} />
           </div>
-          <h3 style={{ margin: '4px 0 10px' }}>Tickets raised per day</h3>
+
+          <h3 style={{ margin: '4px 0 10px' }}>Tickets</h3>
+          <SupportTicketList tickets={d.tickets} />
+
+          <h3 style={{ margin: '20px 0 10px' }}>Tickets raised per day</h3>
           <div className="drawer-chart">
             <DailyChart data={d.daily} color="#e0564a" name="Tickets" />
           </div>

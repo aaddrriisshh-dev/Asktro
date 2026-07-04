@@ -146,7 +146,7 @@ async function seed() {
     const createdAt = tsDaysAgo(rand(30)); // registered within the last 30 days
     const paid = chance(0.6); // ~60% have recharged at least once
     const uref = db.collection('users').doc();
-    users.push({ id: uref.id, paid });
+    users.push({ id: uref.id, paid, name });
 
     let balance = 0;
     let totalRecharge = 0;
@@ -293,17 +293,33 @@ async function seed() {
   console.log(`  payouts: ${PAYOUT_COUNT} (7 pending / 5 approved)`);
 
   // -- 5) Support tickets ---------------------------------------------------
+  const MESSAGES = {
+    'Payment not credited': 'I recharged ₹500 through UPI but the amount never showed up in my wallet. The money was debited from my bank. Please credit it or refund me.',
+    'Astrologer was rude': 'The astrologer I consulted was dismissive and rude during my call. I felt disrespected and want this looked into.',
+    'Call disconnected': 'My voice call kept disconnecting after 2 minutes but I was still charged for the full session. Please review the billing.',
+    'Refund request': 'I was charged twice for the same consultation. Requesting a refund for the duplicate charge at the earliest.',
+    'Wrong prediction': 'The prediction I received was completely off and the astrologer seemed unsure. Can I get a partial refund?',
+    'App keeps crashing': 'The app crashes every time I try to open the chat screen on my Android phone. I cannot start any consultation.',
+    'Cannot recharge': 'Every time I try to recharge, the payment page fails to load. I have tried UPI and card both. Please help.',
+    'Bonus not applied': 'The ₹100 bonus on ₹100 recharge offer was not applied to my wallet. I only see the base amount.',
+  };
   const TICKET_COUNT = 13;
   let openTickets = 0;
   for (let i = 0; i < TICKET_COUNT; i++) {
     const open = i < 8;
     if (open) openTickets += 1;
     const fromAstro = chance(0.3);
+    const who = fromAstro ? pick(astrologers) : pick(users);
+    const subject = pick(SUBJECTS);
     await db.collection('supportTickets').add({
       __seed: true,
-      customerId: fromAstro ? null : pick(users).id,
-      astrologerId: fromAstro ? pick(astrologers).id : null,
-      subject: pick(SUBJECTS),
+      ticketNo: `ASK-TKT-${String(100000 + i)}`,
+      customerId: fromAstro ? null : who.id,
+      astrologerId: fromAstro ? who.id : null,
+      userName: who.name,
+      subject,
+      message: MESSAGES[subject] ?? 'Please help me resolve my issue as soon as possible.',
+      thread: [],
       status: open ? 'open' : 'closed',
       priority: pick(['low', 'normal', 'high']),
       createdAt: tsDaysAgo(rand(30)),
