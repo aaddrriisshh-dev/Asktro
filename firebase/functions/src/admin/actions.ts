@@ -8,6 +8,7 @@ import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertRole, badRequest, failedPrecondition, notFound } from '../common/errors';
 import { writeLedger } from '../wallet/ledger';
+import { adminName } from '../common/actor';
 
 /** Credit or debit a user's wallet (finance/super admin). */
 export const adjustWallet = onCall(async (req) => {
@@ -108,7 +109,9 @@ export const processPayout = onCall(async (req) => {
   return { ok: true };
 });
 
-/** Set an astrologer's approval/status (ops/super admin). */
+/** Set an astrologer's approval/status. Approve/Reject are the vetting gate and
+ *  are Super-admin-only; suspend/reactivate can be done by any admin. The
+ *  approving admin's name is recorded so the console can show "Approved by ___". */
 export const setAstrologerStatus = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
   const { astrologerId, status } = (req.data ?? {}) as {
@@ -117,14 +120,26 @@ export const setAstrologerStatus = onCall(async (req) => {
   };
   if (!astrologerId || !status) badRequest('astrologerId and status are required.');
 
-  await db.collection(Collections.astrologers).doc(astrologerId!).set(
-    { accountStatus: status, updatedAt: FieldValue.serverTimestamp() },
-    { merge: true },
-  );
+  const isSuper = req.auth?.token?.adminRole === 'super';
+  if ((status === 'approved' || status === 'rejected') && !isSuper) {
+    failedPrecondition('Only a Super Admin can approve or reject an astrologer.');
+  }
+
+  const patch: Record<string, unknown> = { accountStatus: status, updatedAt: FieldValue.serverTimestamp() };
+  if (status === 'approved') {
+    const nm = await adminName(actor);
+    patch.verified = true;
+    patch.approvedBy = actor;
+    patch.approvedByName = nm;
+    patch.approvedAt = FieldValue.serverTimestamp();
+  }
+
+  await db.collection(Collections.astrologers).doc(astrologerId!).set(patch, { merge: true });
   await db.collection(Collections.auditLogs).add({
     actorUid: actor,
     actorRole: 'admin',
-    action: 'setAstrologerStatus',
+    actorName: await adminName(actor),
+    action: `astrologer_${status}`,
     targetType: 'astrologer',
     targetId: astrologerId,
     after: { status },

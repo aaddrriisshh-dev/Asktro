@@ -215,6 +215,38 @@ tbody tr:last-child td { border-bottom: none; }
 .badge.gold { background: rgba(184, 134, 42, 0.16); color: #9a6f1c; }
 .badge.purple { background: rgba(126, 91, 208, 0.14); color: #6b4bc0; }
 
+/* Add-astrologer form */
+.astro-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 620px) { .astro-form { grid-template-columns: 1fr; } }
+.af { display: flex; flex-direction: column; gap: 4px; }
+.af > span { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .01em; }
+.af-label { font-size: 12px; font-weight: 700; color: var(--navy); letter-spacing: .04em; text-transform: uppercase; margin: 16px 0 8px; }
+.pickrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.pickchip { font-size: 13px; font-weight: 600; padding: 6px 13px; border-radius: 999px; cursor: pointer;
+  background: #fff; border: 1px solid var(--line); color: var(--navy); transition: all .12s ease; }
+.pickchip:hover { border-color: var(--primary); }
+.pickchip.on { background: linear-gradient(135deg, #7e5bd0, var(--primary-dark)); color: #fff; border-color: transparent; }
+.tktmodal-foot .btn { min-width: 96px; }
+
+/* Astrologer view page */
+.aview-grid { display: grid; grid-template-columns: 320px 1fr; gap: 18px; align-items: start; }
+@media (max-width: 860px) { .aview-grid { grid-template-columns: 1fr; } }
+.aview-avatar { width: 118px; height: 118px; border-radius: 50%; margin: 0 auto; display: grid; place-items: center;
+  overflow: hidden; background: linear-gradient(135deg, #ead079, var(--gold)); color: var(--navy); font-family: var(--serif);
+  font-size: 46px; font-weight: 600; border: 3px solid #fff; box-shadow: 0 8px 22px rgba(46,43,95,.16); position: relative; }
+.aview-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.aview-meta { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.aview-meta .row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--navy); }
+.aview-meta .row span.k { color: var(--muted); min-width: 92px; }
+.aview-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 720px) { .aview-stats { grid-template-columns: repeat(2, 1fr); } }
+.aview-stat { background: var(--card, #fff); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow-1, 0 6px 16px rgba(46,43,95,.06)); }
+.aview-stat .k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.aview-stat .v { font-size: 24px; font-weight: 800; margin-top: 4px; }
+.aview-tabs { display: inline-flex; gap: 4px; background: #f2eefb; border-radius: 12px; padding: 4px; margin: 18px 0 14px; }
+.aview-tab { border: 0; background: none; padding: 8px 16px; border-radius: 9px; font-weight: 700; font-size: 13.5px; color: var(--muted); cursor: pointer; }
+.aview-tab.on { background: #fff; color: var(--primary); box-shadow: 0 2px 8px rgba(46,43,95,.08); }
+
 .muted { color: var(--muted); }
 .kpi-value { font-family: var(--serif); font-size: 40px; font-weight: 600; color: var(--navy); line-height: 1.1; }
 .grid { display: grid; gap: 16px; }

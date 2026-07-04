@@ -1,0 +1,144 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { callFn } from '@/lib/hooks';
+import { formatPaise, formatDate } from '@/lib/format';
+
+type Any = Record<string, unknown>;
+const ms = (t: Any | undefined, k: string) => (t?.[k] as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0;
+const minsOf = (c: Any) => Math.round(((c.billedSeconds as number) ?? 0) / 60 * 10) / 10;
+
+export default function AstrologerViewPage() {
+  const { id } = useParams<{ id: string }>();
+  const [a, setA] = useState<Any | null>(null);
+  const [missing, setMissing] = useState(false);
+  const [cons, setCons] = useState<Any[]>([]);
+  const [tab, setTab] = useState<'voice' | 'video' | 'all'>('all');
+
+  useEffect(() => {
+    (async () => {
+      const snap = await getDoc(doc(db, 'astrologers', id));
+      if (!snap.exists()) { setMissing(true); return; }
+      setA({ id, ...snap.data() });
+      const cs = await getDocs(query(collection(db, 'consultations'), where('astrologerId', '==', id)));
+      setCons(cs.docs.map((d) => ({ id: d.id, ...d.data() })).sort((x, y) => ms(y, 'createdAt') - ms(x, 'createdAt')));
+    })().catch(() => setMissing(true));
+  }, [id]);
+
+  async function editProfile() {
+    if (!a) return;
+    const rateStr = prompt('Price per minute (₹):', String(((a.ratePerMinutePaise as number) ?? 900) / 100));
+    if (rateStr === null) return;
+    const commStr = prompt('Commission (%):', String((a.commissionPercent as number) ?? ''));
+    if (commStr === null) return;
+    try {
+      await callFn('updateAstrologer', { astrologerId: id, ratePerMinutePaise: Math.round((Number(rateStr) || 0) * 100), commissionPercent: Number(commStr) || 0 });
+      setA({ ...a, ratePerMinutePaise: Math.round((Number(rateStr) || 0) * 100), commissionPercent: Number(commStr) || 0 });
+    } catch (e) { alert('Failed: ' + (e as Error).message); }
+  }
+
+  if (missing) return <div><Link href="/astrologers" className="btn secondary sm">← Back</Link><p className="muted" style={{ marginTop: 20 }}>Astrologer not found.</p></div>;
+  if (!a) return <p className="muted">Loading…</p>;
+
+  const voice = cons.filter((c) => c.type === 'voice');
+  const video = cons.filter((c) => c.type === 'video');
+  const list = tab === 'voice' ? voice : tab === 'video' ? video : cons;
+  const rating = (a.rating as number) ?? 0;
+  const status = (a.accountStatus as string) ?? 'pending';
+
+  return (
+    <div className="udet">
+      <div className="udet-top">
+        <div className="udet-title">
+          <Link href="/astrologers" className="udet-back" aria-label="Back">←</Link>
+          <div>
+            <h1 style={{ margin: 0 }}>{(a.name as string) || 'Unnamed'}
+              <span className={`badge ${status === 'approved' ? 'green' : status === 'pending' ? 'amber' : 'red'}`} style={{ marginLeft: 10, verticalAlign: 'middle' }}>{status}</span>
+              {a.isAI ? <span className="badge purple" style={{ marginLeft: 6 }}>AI</span> : null}
+            </h1>
+            <p className="muted" style={{ margin: '2px 0 0', fontSize: 12.5, fontFamily: 'monospace' }}>
+              ID {id.slice(0, 8)} · added {ms(a, 'addedAt') ? formatDate(ms(a, 'addedAt')) : (ms(a, 'createdAt') ? formatDate(ms(a, 'createdAt')) : '—')}
+            </p>
+          </div>
+        </div>
+        <button className="btn sm" onClick={editProfile}>✎ Edit Profile</button>
+      </div>
+
+      <div className="aview-grid">
+        <div className="card" style={{ textAlign: 'center' }}>
+          <div className="aview-avatar">
+            {a.profilePhoto
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={a.profilePhoto as string} alt={(a.name as string) || 'A'} />
+              : <span>{((a.name as string) || '?').trim().charAt(0).toUpperCase()}</span>}
+          </div>
+          <h3 style={{ margin: '12px 0 2px' }}>{a.name as string}</h3>
+          <div className="muted" style={{ fontSize: 13 }}>★ {rating.toFixed(1)} ({(a.totalReviews as number) ?? 0})</div>
+          <div style={{ marginTop: 8 }}><span className={`badge ${a.onlineStatus ? 'green' : ''}`}>{a.onlineStatus ? '● Online' : 'Offline'}</span></div>
+
+          <div className="aview-meta" style={{ textAlign: 'left' }}>
+            <div className="row"><span className="k">Email</span><b>{(a.email as string) || '—'}</b></div>
+            <div className="row"><span className="k">Phone</span><b>{(a.phone as string) || '—'}</b></div>
+            <div className="row"><span className="k">Experience</span><b>{(a.experience as number) ?? 0} years</b></div>
+            <div className="row"><span className="k">Rate</span><b>₹{(((a.ratePerMinutePaise as number) ?? 900) / 100)}/min</b></div>
+            <div className="row"><span className="k">Commission</span><b style={{ color: 'var(--gold-deep)' }}>{(a.commissionPercent as number) ?? '—'}%</b></div>
+            <div className="row"><span className="k">Added by</span><b>{(a.addedByName as string) || '—'}</b></div>
+            <div className="row"><span className="k">Approved by</span><b>{(a.approvedByName as string) || '—'}</b></div>
+          </div>
+
+          {Array.isArray(a.expertise) && (a.expertise as string[]).length > 0 && (
+            <div style={{ marginTop: 16, textAlign: 'left' }}>
+              <p className="af-label" style={{ margin: '0 0 8px' }}>Expertise Areas</p>
+              <div className="pickrow">{(a.expertise as string[]).map((x) => <span key={x} className="badge amber">{x}</span>)}</div>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="aview-stats">
+            <div className="aview-stat"><div className="k">📞 Total Calls</div><div className="v">{voice.length}</div></div>
+            <div className="aview-stat"><div className="k">🎥 Video Calls</div><div className="v">{video.length}</div></div>
+            <div className="aview-stat"><div className="k">💰 Earnings</div><div className="v">{formatPaise((a.earnings as number) ?? 0)}</div></div>
+            <div className="aview-stat"><div className="k">⭐ Rating</div><div className="v">{rating.toFixed(1)}</div></div>
+          </div>
+
+          <div className="aview-tabs">
+            <button className={`aview-tab${tab === 'voice' ? ' on' : ''}`} onClick={() => setTab('voice')}>Audio Calls</button>
+            <button className={`aview-tab${tab === 'video' ? ' on' : ''}`} onClick={() => setTab('video')}>Video Calls</button>
+            <button className={`aview-tab${tab === 'all' ? ' on' : ''}`} onClick={() => setTab('all')}>All Sessions</button>
+          </div>
+
+          <div className="card">
+            <h3 className="celeste" style={{ marginTop: 0 }}>{tab === 'voice' ? '📞 Audio' : tab === 'video' ? '🎥 Video' : '🗂 All'} session history</h3>
+            {list.length === 0 ? (
+              <p className="drawer-muted" style={{ textAlign: 'center', padding: '24px 0' }}>
+                No {tab === 'all' ? '' : tab + ' '}sessions yet.{(tab === 'voice' || tab === 'video') ? ' Call logs populate once voice/video calling is enabled.' : ''}
+              </p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table>
+                  <thead><tr><th>Date</th><th>Type</th><th>Duration</th><th>Status</th><th>Charged</th></tr></thead>
+                  <tbody>
+                    {list.map((c) => (
+                      <tr key={c.id as string}>
+                        <td>{ms(c, 'createdAt') ? formatDate(ms(c, 'createdAt')) : '—'}</td>
+                        <td style={{ textTransform: 'capitalize' }}>{(c.type as string) ?? '—'}</td>
+                        <td>{minsOf(c)} min</td>
+                        <td><span className={`badge ${c.status === 'completed' || c.status === 'active' ? 'green' : ''}`}>{(c.status as string) ?? '—'}</span></td>
+                        <td>{formatPaise(c.totalCharged as number)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

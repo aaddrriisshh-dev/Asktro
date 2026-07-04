@@ -12,6 +12,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { auth, db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertRole, badRequest, failedPrecondition, HttpsError } from '../common/errors';
+import { adminName } from '../common/actor';
 
 function tempPassword(): string {
   const s = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
@@ -23,7 +24,8 @@ function tempPassword(): string {
 function requireOpsOrSuper(req: Parameters<Parameters<typeof onCall>[0]>[0]): string {
   const actor = assertRole(req, 'admin');
   const role = req.auth?.token?.adminRole;
-  if (role !== 'super' && role !== 'ops') failedPrecondition('Requires ops or super admin.');
+  // Ops, Astrology and Super can all onboard astrologers; only Super approves.
+  if (role !== 'super' && role !== 'ops' && role !== 'astrology') failedPrecondition('Requires an admin role.');
   return actor;
 }
 
@@ -60,6 +62,11 @@ export const createAstrologer = onCall(async (req) => {
 
   await auth.setCustomUserClaims(uid, { role: 'astrologer' });
 
+  // Only a Super Admin's additions go live immediately; anyone else's wait in
+  // "pending" for a super to approve. Either way we record who added them.
+  const isSuper = req.auth?.token?.adminRole === 'super';
+  const actorNm = await adminName(actor);
+
   await db.collection(Collections.astrologers).doc(uid).set(
     {
       name: d.name!.trim(),
@@ -80,9 +87,13 @@ export const createAstrologer = onCall(async (req) => {
       pendingPayout: 0,
       onlineStatus: false,
       available: false,
-      verified: true,
+      verified: isSuper,
       featured: false,
-      accountStatus: 'approved',
+      accountStatus: isSuper ? 'approved' : 'pending',
+      addedBy: actor,
+      addedByName: actorNm,
+      addedAt: FieldValue.serverTimestamp(),
+      ...(isSuper ? { approvedBy: actor, approvedByName: actorNm, approvedAt: FieldValue.serverTimestamp() } : {}),
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     },
