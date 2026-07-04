@@ -19,31 +19,28 @@ export interface TicketRow {
 }
 
 const GROUPS = [
-  { key: 'customer', label: 'User Tickets', icon: '👤' },
-  { key: 'astrologer', label: 'Astrologer Tickets', icon: '🔮' },
+  { key: 'customer', label: 'User Tickets', icon: '👤', color: 'c-blue' },
+  { key: 'astrologer', label: 'Astrologer Tickets', icon: '🔮', color: 'c-purple' },
 ] as const;
 
 /**
- * Support console: live summary + two collapsible groups (users / astrologers),
- * each split into collapsible Open / Closed sections. Reply and close per ticket.
+ * Support console: live summary chips + two clickable category cards
+ * (User / Astrologer). Each card expands in place to show that group's
+ * tickets, where the admin can read the message, reply and close/reopen.
  */
 export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
   const [rows, setRows] = useState<TicketRow[]>(tickets);
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ customer: true, astrologer: true });
-  const [secOpen, setSecOpen] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => setRows(tickets), [tickets]);
 
-  // live counts — recomputed on every reply/close so the summary stays in sync
   const counts = {
     open: rows.filter((t) => t.status === 'open').length,
     closed: rows.filter((t) => t.status === 'closed').length,
     total: rows.length,
-    fromCustomers: rows.filter((t) => t.role === 'customer').length,
-    fromAstro: rows.filter((t) => t.role === 'astrologer').length,
     high: rows.filter((t) => t.priority === 'high').length,
   };
 
@@ -128,58 +125,37 @@ export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
     );
   }
 
-  function renderSection(groupKey: string, status: 'open' | 'closed', label: string, secRows: TicketRow[]) {
-    const key = `${groupKey}:${status}`;
-    const isOpen = secOpen[key] ?? status === 'open'; // Open expanded by default, Closed collapsed
-    return (
-      <div className="tktsec">
-        <button
-          className="tktsec-head"
-          onClick={() => setSecOpen((s) => ({ ...s, [key]: !(s[key] ?? status === 'open') }))}
-        >
-          <span className={`tktsec-dot ${status}`} />
-          {label} <em>{secRows.length}</em>
-          <span className="tkt-caret">{isOpen ? '▴' : '▾'}</span>
-        </button>
-        {isOpen && (
-          secRows.length === 0
-            ? <p className="drawer-muted" style={{ padding: '6px 0 10px' }}>No {status} tickets.</p>
-            : <div className="tkt-list">{secRows.map(renderTicket)}</div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="tkt">
       <div className="metricgrid">
         <Metric color="c-red" label="Open" value={counts.open.toLocaleString('en-IN')} big />
         <Metric color="c-green" label="Closed" value={counts.closed.toLocaleString('en-IN')} big />
         <Metric color="c-blue" label="Total" value={counts.total.toLocaleString('en-IN')} />
-        <Metric color="c-purple" label="From users" value={counts.fromCustomers.toLocaleString('en-IN')} />
-        <Metric color="c-amber" label="From astrologers" value={counts.fromAstro.toLocaleString('en-IN')} />
         <Metric color="c-rose" label="High priority" value={counts.high.toLocaleString('en-IN')} />
       </div>
 
       {GROUPS.map((g) => {
-        const groupRows = rows.filter((r) => r.role === g.key);
-        const openRows = groupRows.filter((r) => r.status === 'open');
-        const closedRows = groupRows.filter((r) => r.status === 'closed');
-        const gOpen = groupOpen[g.key];
+        const groupRows = rows
+          .filter((r) => r.role === g.key)
+          .sort((a, b) => (a.status === b.status ? b.createdMs - a.createdMs : a.status === 'open' ? -1 : 1));
+        const openN = groupRows.filter((r) => r.status === 'open').length;
+        const closedN = groupRows.filter((r) => r.status === 'closed').length;
+        const isOpen = !!expanded[g.key];
         return (
-          <div className="tktgrp" key={g.key}>
-            <button className="tktgrp-head" onClick={() => setGroupOpen((s) => ({ ...s, [g.key]: !s[g.key] }))}>
-              <span className="tktgrp-title">{g.icon} {g.label}</span>
-              <span className="tktgrp-meta">
-                <em>{groupRows.length}</em>
-                <span className="tkt-caret">{gOpen ? '▴' : '▾'}</span>
+          <div className="tktcat-wrap" key={g.key}>
+            <button className={`tktcat ${g.color}`} onClick={() => setExpanded((s) => ({ ...s, [g.key]: !s[g.key] }))}>
+              <span className="tktcat-ico">{g.icon}</span>
+              <span className="tktcat-main">
+                <strong>{g.label}</strong>
+                <em>{openN} open · {closedN} closed</em>
               </span>
+              <span className="tktcat-count">{groupRows.length}</span>
+              <span className="tkt-caret">{isOpen ? '▴' : '▾'}</span>
             </button>
-            {gOpen && (
-              <div className="tktgrp-body">
-                {renderSection(g.key, 'open', 'Open', openRows)}
-                {renderSection(g.key, 'closed', 'Closed', closedRows)}
-              </div>
+            {isOpen && (
+              groupRows.length === 0
+                ? <p className="drawer-muted">No tickets yet.</p>
+                : <div className="tkt-list tktcat-list">{groupRows.map(renderTicket)}</div>
             )}
           </div>
         );
