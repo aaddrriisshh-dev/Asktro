@@ -552,15 +552,16 @@ tbody tr:last-child td { border-bottom: none; }
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; z-index: 3;
   background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 30%, transparent) 70%, transparent);
 }
-/* Crisp gold celestial watermarks — mandala low-right, emblem high-right */
+/* Slowly rotating zodiac wheel, peeking from the top-right corner */
 .drawer-decor {
-  position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background-image: url(/brand/puja_mandala.webp), url(/brand/emblem.png);
-  background-repeat: no-repeat, no-repeat;
-  background-position: right -90px bottom -80px, right -34px top 84px;
-  background-size: 360px, 190px;
-  opacity: 0.13;
+  position: absolute; top: -78px; right: -78px; width: 280px; height: 280px;
+  z-index: 0; pointer-events: none;
+  background: url(/brand/zodiac_wheel.png) center / contain no-repeat;
+  opacity: 0.1;
+  animation: spin-wheel 90s linear infinite;
 }
+@keyframes spin-wheel { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .drawer-decor { animation: none; } }
 .drawer-head, .drawer-body { position: relative; z-index: 1; }
 .drawer-root.open { pointer-events: auto; }
 .drawer-root.open .drawer-scrim { background: rgba(20, 16, 45, 0.32); }
