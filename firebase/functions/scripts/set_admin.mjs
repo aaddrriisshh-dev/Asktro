@@ -9,16 +9,18 @@
 //       Generate new private key). This file is gitignored — never commit it.
 //
 // Run from the firebase/functions folder:
-//   node scripts/set_admin.mjs you@example.com
+//   node scripts/set_admin.mjs you@example.com "Your Name"
 //
 // After it runs, sign out and back in to the portal for the role to take effect.
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { readFileSync } from 'node:fs';
 
 const email = process.argv[2];
+const name = process.argv[3] || '';
 if (!email) {
-  console.error('Usage: node scripts/set_admin.mjs <email>');
+  console.error('Usage: node scripts/set_admin.mjs <email> "<name>"');
   process.exit(1);
 }
 
@@ -41,6 +43,18 @@ initializeApp({ credential: cert(svc) });
 try {
   const user = await getAuth().getUserByEmail(email);
   await getAuth().setCustomUserClaims(user.uid, { role: 'admin', adminRole: 'super' });
+  // Also write the adminUsers profile so the Admin Management roster and the
+  // "added by / approved by" attribution show a real name.
+  await getFirestore().collection('adminUsers').doc(user.uid).set(
+    {
+      name: name || user.displayName || email.split('@')[0],
+      email,
+      adminRole: 'super',
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
   console.log(`\n✓ ${email} is now a SUPER ADMIN (uid ${user.uid}).`);
   console.log('Sign out and sign back in to the portal for it to take effect.\n');
 } catch (e) {

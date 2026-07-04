@@ -212,6 +212,8 @@ tbody tr:last-child td { border-bottom: none; }
 .badge.green { background: rgba(60, 179, 113, 0.13); color: #2f9c63; }
 .badge.red { background: rgba(214, 69, 69, 0.12); color: var(--error); }
 .badge.amber { background: rgba(212, 175, 55, 0.16); color: var(--gold-deep); }
+.badge.gold { background: rgba(184, 134, 42, 0.16); color: #9a6f1c; }
+.badge.purple { background: rgba(126, 91, 208, 0.14); color: #6b4bc0; }
 
 .muted { color: var(--muted); }
 .kpi-value { font-family: var(--serif); font-size: 40px; font-weight: 600; color: var(--navy); line-height: 1.1; }

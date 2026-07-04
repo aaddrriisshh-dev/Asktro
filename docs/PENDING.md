@@ -108,6 +108,22 @@ Gotchas we hit (so future deploys are smooth):
 - **Action attribution everywhere:** every admin action carries the acting admin's name, shown inline
   (e.g. astrologer "Added by X · Approved by Y") and visible to all admins — approval is super-admin-only.
 
+## 🟢 DONE — Admin roles & attribution foundation (RBAC)
+
+- **Three admin tiers** on the `adminRole` claim: `super` (full) · `ops` (Chief Operations) ·
+  `astrology` (Chief Astrology). Backend `admin/admins.ts`: `createAdmin`, `setAdminRole`,
+  `removeAdmin`, `listAdmins` (all super-only except read). Actions write audit rows with `actorName`.
+- **Admin Management page** (`/admins`, super-only) — roster grouped by role, add admin (creates login +
+  shows temp password), change role, remove. In the celestial portal design.
+- **Role-aware sidebar** — `lib/roles.ts` maps each role to visible routes; the sidebar filters itself and
+  the layout redirects an admin away from any route their role can't open. Footer shows the role label.
+- **Bootstrap** — `set_admin.mjs` now also writes the `adminUsers` profile (name/email/role) so the
+  roster and attribution have a real name.
+
+**⏳ To activate:** deploy 4 new callables (`createAdmin`, `setAdminRole`, `removeAdmin`, `listAdmins`)
+— new callables need the `allUsers` Cloud Run Invoker grant; re-run `set_admin.mjs <you> "Adrish"` to
+write your profile; then add Vineet & Sanjay from the Admin Management page. Redeploy the admin portal.
+
 ## 🔵 NEXT BUILD QUEUE — the left-panel menu (from the 12-section spec)
 The admin portal sidebar, in order: 1 Dashboard ✓ · 2 Customer Management · 3 Astrologer Management
 (Add form + View page per screenshots + attribution/approval) · 4 Phone Sessions · 5 Video Sessions ·

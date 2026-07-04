@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
+import { canSee, canOpen, landingFor, ROLE_LABEL } from '@/lib/roles';
 
 const I = (p: ReactNode) => (
   <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -25,6 +26,7 @@ const NAV = [
   { href: '/support', label: 'Support', icon: I(<><circle cx="12" cy="12" r="10" /><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></>) },
   { href: '/cms', label: 'CMS', icon: I(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></>) },
   { href: '/audit', label: 'Audit Log', icon: I(<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />) },
+  { href: '/admins', label: 'Admin Management', icon: I(<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></>) },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -34,12 +36,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) router.replace('/login');
-  }, [loading, user, isAdmin, router]);
+    if (!loading && (!user || !isAdmin)) { router.replace('/login'); return; }
+    // Keep an admin out of sections their role can't open.
+    if (!loading && user && isAdmin && !canOpen(adminRole, pathname)) {
+      router.replace(landingFor(adminRole));
+    }
+  }, [loading, user, isAdmin, adminRole, pathname, router]);
 
   if (loading || !user || !isAdmin) {
     return <div style={{ display: 'grid', placeItems: 'center', height: '100vh' }}>Loading…</div>;
   }
+
+  const nav = NAV.filter((n) => canSee(adminRole, n.href));
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -69,7 +77,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           {collapsed ? '›' : '‹'}
         </button>
         <nav className="sidebar__nav">
-          {NAV.map((n) => {
+          {nav.map((n) => {
             const active = pathname === n.href;
             return (
               <Link key={n.href} href={n.href} className={`sidebar__link${active ? ' active' : ''}`} title={n.label}>
@@ -81,7 +89,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar__foot">
           <div className="sidebar__email">{user.email}</div>
-          <span className="badge">{adminRole ?? 'admin'}</span>
+          <span className="badge">{ROLE_LABEL[adminRole ?? ''] ?? 'Admin'}</span>
           <button className="sidebar__logout" onClick={() => logout()}>
             Log out
           </button>

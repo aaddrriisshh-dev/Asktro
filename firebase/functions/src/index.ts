@@ -43,5 +43,8 @@ export { createAstrologer, updateAstrologer, deleteAstrologer } from './admin/cr
 export { replySupportTicket, closeSupportTicket, reopenSupportTicket } from './admin/support';
 export { onSupportTicketCreated } from './admin/supportTrigger';
 
+// ---- Admin team management (roles & attribution) ----
+export { createAdmin, setAdminRole, removeAdmin, listAdmins } from './admin/admins';
+
 // ---- Dev/testing: dummy payment gateway ----
 export { devSimulateRecharge } from './admin/devTools';
