@@ -708,4 +708,17 @@ tbody tr:last-child td { border-bottom: none; }
   border: 1px solid #e7e1f5; border-radius: 12px; padding: 10px 12px; font-size: 13.5px; font-family: inherit;
 }
 .tkt-reply:focus { outline: none; border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 16%, transparent); }
-.tkt-actions { display: flex; gap: 10px; margin-top: 10px; }
+.tkt-actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+
+/* ===== Payout list rows ===== */
+.pay-item { background: #fff; border: 1px solid #efeafc; border-radius: 14px; padding: 13px 15px; box-shadow: 0 4px 12px rgba(46, 43, 95, 0.04); }
+.pay-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pay-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pay-name { font-size: 14.5px; color: var(--navy); font-weight: 600; }
+.pay-sub { font-size: 12px; color: var(--muted); text-transform: capitalize; }
+.pay-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex: none; }
+.pay-amount { font-family: var(--serif); font-size: 19px; color: var(--navy); font-weight: 600; }
+.tkt-badge.pay-pending { background: rgba(217, 138, 31, 0.16); color: #b8862a; }
+.tkt-badge.pay-approved { background: rgba(59, 111, 212, 0.14); color: #3b6fd4; }
+.tkt-badge.pay-processed { background: rgba(60, 179, 113, 0.14); color: #2f9c63; }
+.tkt-badge.pay-rejected { background: rgba(224, 86, 74, 0.14); color: #d1483c; }
