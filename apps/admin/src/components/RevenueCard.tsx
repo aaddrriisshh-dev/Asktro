@@ -157,18 +157,18 @@ export function RevenueCard() {
                   <AreaChart data={data.daily} margin={{ top: 10, right: 8, left: -12, bottom: 0 }}>
                     <defs>
                       <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#b79bf0" stopOpacity={0.55} />
-                        <stop offset="100%" stopColor="#b79bf0" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#8b6fd6" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#8b6fd6" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" vertical={false} />
-                    <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#b3aede' }} stroke="rgba(255,255,255,0.15)" />
-                    <YAxis tick={{ fontSize: 11, fill: '#b3aede' }} stroke="rgba(255,255,255,0.15)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#efeafc" vertical={false} />
+                    <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#9891c2' }} stroke="#e7e1f5" />
+                    <YAxis tick={{ fontSize: 11, fill: '#9891c2' }} stroke="#e7e1f5" />
                     <Tooltip
-                      contentStyle={{ background: '#2a2657', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, color: '#fff' }}
+                      contentStyle={{ background: '#fff', border: '1px solid #ece4fb', borderRadius: 10, color: '#2e2b5f' }}
                       formatter={(v: number) => [`₹${v.toLocaleString('en-IN')}`, 'Revenue']}
                     />
-                    <Area type="monotone" dataKey="amount" stroke="#c4aef5" strokeWidth={2} fill="url(#rev)" />
+                    <Area type="monotone" dataKey="amount" stroke="#8b6fd6" strokeWidth={2} fill="url(#rev)" />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
