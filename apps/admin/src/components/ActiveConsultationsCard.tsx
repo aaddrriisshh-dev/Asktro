@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { formatPaise } from '@/lib/format';
+import { formatPaise, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
 import { Metric } from './Metric';
@@ -60,7 +60,7 @@ function useConsultations(range: Range): CardView<ConsData> {
           const key = new Date(ms).toISOString().slice(0, 10);
           byDay.set(key, (byDay.get(key) ?? 0) + 1);
         });
-        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: day.slice(5), value }));
+        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
 
         if (!cancelled) setData({
           activeNow: activeSnap.size, activeChat, activeVoice, activeVideo,

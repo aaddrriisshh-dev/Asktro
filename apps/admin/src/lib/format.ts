@@ -13,6 +13,15 @@ export function formatDate(ms?: number | null): string {
   return new Date(ms).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** 'YYYY-MM-DD' → '7 Jun' — an unambiguous chart-axis day label. */
+export function shortDay(iso: string): string {
+  const parts = iso.split('-');
+  const m = parseInt(parts[1], 10);
+  const d = parseInt(parts[2], 10);
+  return `${d} ${MONTHS[m - 1] ?? ''}`.trim();
+}
+
 export function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { formatPaise } from '@/lib/format';
+import { formatPaise, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
 import { Metric } from './Metric';
@@ -54,7 +54,7 @@ function useConversion(range: Range): CardView<ConvData> {
         });
         const registered = snap.size;
         const rate = registered ? Math.round((converted / registered) * 100) : 0;
-        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: day.slice(5), value }));
+        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
         if (!cancelled) setData({
           registered, converted, rate, unpaid: registered - converted, sameDay,
           avgRecharge: converted ? Math.round(rechargeSum / converted) : 0, daily,

@@ -8,9 +8,11 @@ import {
 } from 'recharts';
 import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { formatPaise } from '@/lib/format';
+import { formatPaise, shortDay } from '@/lib/format';
+import { useCardFilter } from '@/lib/useCardFilter';
+import { Range } from '@/lib/dateRange';
+import { DrawerFilter } from './DrawerFilter';
 
-const DAY = 86_400_000;
 const dayKey = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
 // ---------------------------------------------------------------- panel shell
@@ -88,26 +90,33 @@ function NeedsAttention() {
 
 // ================================================================ 2. Revenue trend
 function RevenueTrend() {
+  const { preset, setPreset, custom, setCustom, range } = useCardFilter('ops_revenue', 'last30');
   const [data, setData] = useState<{ day: string; value: number }[] | null>(null);
   useEffect(() => {
+    let cancelled = false;
+    setData(null);
     (async () => {
-      const start = Date.now() - 29 * DAY;
       const snap = await getDocs(query(
         collection(db, 'walletTransactions'),
-        where('createdAt', '>=', Timestamp.fromMillis(start)), orderBy('createdAt', 'asc'),
+        where('createdAt', '>=', Timestamp.fromMillis(range.start)),
+        where('createdAt', '<', Timestamp.fromMillis(range.end)),
+        orderBy('createdAt', 'asc'),
       ));
       const byDay = new Map<string, number>();
       snap.forEach((doc) => {
         const t = doc.data() as { kind?: string; amount?: number; createdAt?: Timestamp };
         if (t.kind !== 'recharge') return;
-        const k = dayKey(t.createdAt?.toMillis?.() ?? start);
+        const k = dayKey(t.createdAt?.toMillis?.() ?? range.start);
         byDay.set(k, (byDay.get(k) ?? 0) + (t.amount ?? 0));
       });
-      setData([...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, v]) => ({ day: day.slice(5), value: Math.round(v / 100) })));
-    })().catch(() => setData([]));
-  }, []);
-  if (!data) return <Skel h={230} />;
+      if (!cancelled) setData([...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, v]) => ({ day: shortDay(day), value: Math.round(v / 100) })));
+    })().catch(() => { if (!cancelled) setData([]); });
+    return () => { cancelled = true; };
+  }, [range.start, range.end]);
   return (
+    <>
+      <div className="ops-filter"><DrawerFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} /></div>
+      {!data ? <Skel h={230} /> : (
     <div style={{ height: 230 }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
@@ -119,24 +128,36 @@ function RevenueTrend() {
         </AreaChart>
       </ResponsiveContainer>
     </div>
+      )}
+    </>
   );
 }
 
 // ================================================================ 3. Paid vs Free
 function PaidVsFree() {
+  const { preset, setPreset, custom, setCustom, range } = useCardFilter('ops_paidfree', 'allTime');
   const [d, setD] = useState<{ paid: number; free: number } | null>(null);
   useEffect(() => {
+    let cancelled = false;
+    setD(null);
     (async () => {
-      const snap = await getDocs(collection(db, 'users'));
+      const snap = await getDocs(query(
+        collection(db, 'users'),
+        where('createdAt', '>=', Timestamp.fromMillis(range.start)),
+        where('createdAt', '<', Timestamp.fromMillis(range.end)),
+      ));
       let paid = 0, free = 0;
       snap.forEach((doc) => { ((doc.data() as { totalRecharge?: number }).totalRecharge ?? 0) > 0 ? paid++ : free++; });
-      setD({ paid, free });
-    })().catch(() => setD({ paid: 0, free: 0 }));
-  }, []);
-  if (!d) return <Skel h={230} />;
-  const total = d.paid + d.free || 1;
-  const pct = Math.round((d.paid / total) * 100);
+      if (!cancelled) setD({ paid, free });
+    })().catch(() => { if (!cancelled) setD({ paid: 0, free: 0 }); });
+    return () => { cancelled = true; };
+  }, [range.start, range.end]);
+  const total = (d?.paid ?? 0) + (d?.free ?? 0) || 1;
+  const pct = Math.round(((d?.paid ?? 0) / total) * 100);
   return (
+    <>
+      <div className="ops-filter"><DrawerFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} /></div>
+      {!d ? <Skel h={210} /> : (
     <div className="pvf">
       <div className="pvf-chart">
         <ResponsiveContainer width="100%" height={190}>
@@ -154,32 +175,41 @@ function PaidVsFree() {
         <div><i style={{ background: '#c9c4e0' }} /> Free users <b>{d.free.toLocaleString('en-IN')}</b></div>
       </div>
     </div>
+      )}
+    </>
   );
 }
 
 // ================================================================ 4. Consultation activity
 function ConsultationActivity() {
+  const { preset, setPreset, custom, setCustom, range } = useCardFilter('ops_consult', 'last30');
   const [data, setData] = useState<{ day: string; chat: number; voice: number; video: number }[] | null>(null);
   useEffect(() => {
+    let cancelled = false;
+    setData(null);
     (async () => {
-      const start = Date.now() - 13 * DAY;
       const snap = await getDocs(query(
         collection(db, 'consultations'),
-        where('createdAt', '>=', Timestamp.fromMillis(start)), orderBy('createdAt', 'asc'),
+        where('createdAt', '>=', Timestamp.fromMillis(range.start)),
+        where('createdAt', '<', Timestamp.fromMillis(range.end)),
+        orderBy('createdAt', 'asc'),
       ));
       const byDay = new Map<string, { chat: number; voice: number; video: number }>();
       snap.forEach((doc) => {
         const c = doc.data() as { type?: string; createdAt?: Timestamp };
-        const k = dayKey(c.createdAt?.toMillis?.() ?? start);
+        const k = dayKey(c.createdAt?.toMillis?.() ?? range.start);
         const cur = byDay.get(k) ?? { chat: 0, voice: 0, video: 0 };
         if (c.type === 'chat') cur.chat++; else if (c.type === 'voice') cur.voice++; else if (c.type === 'video') cur.video++;
         byDay.set(k, cur);
       });
-      setData([...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, v]) => ({ day: day.slice(5), ...v })));
-    })().catch(() => setData([]));
-  }, []);
-  if (!data) return <Skel h={230} />;
+      if (!cancelled) setData([...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, v]) => ({ day: shortDay(day), ...v })));
+    })().catch(() => { if (!cancelled) setData([]); });
+    return () => { cancelled = true; };
+  }, [range.start, range.end]);
   return (
+    <>
+      <div className="ops-filter"><DrawerFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} /></div>
+      {!data ? <Skel h={230} /> : (
     <div style={{ height: 230 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
@@ -193,6 +223,8 @@ function ConsultationActivity() {
         </BarChart>
       </ResponsiveContainer>
     </div>
+      )}
+    </>
   );
 }
 
@@ -317,15 +349,15 @@ export function OperationsSection() {
           <NeedsAttention />
         </OpsPanel>
 
-        <OpsPanel title="Revenue trend" description="Daily gross revenue (recharges) over the last 30 days" icon={iconTrend} colorClass="c-green">
+        <OpsPanel title="Revenue trend" description="Daily gross revenue from recharges — pick any date range" icon={iconTrend} colorClass="c-green">
           <RevenueTrend />
         </OpsPanel>
 
-        <OpsPanel title="Paid vs free users" description="Share of registered users who have ever recharged" icon={iconUsers} colorClass="c-rose">
+        <OpsPanel title="Paid vs free users" description="Share of users (by sign-up date) who have ever recharged" icon={iconUsers} colorClass="c-rose">
           <PaidVsFree />
         </OpsPanel>
 
-        <OpsPanel title="Consultation activity" description="Sessions per day by type — chat, voice, video (last 14 days)" icon={iconChat} colorClass="c-blue">
+        <OpsPanel title="Consultation activity" description="Sessions per day by type — chat, voice, video — pick any date range" icon={iconChat} colorClass="c-blue">
           <ConsultationActivity />
         </OpsPanel>
 

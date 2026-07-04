@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { formatPaise } from '@/lib/format';
+import { formatPaise, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
 import { DailyChart } from './DailyChart';
@@ -60,7 +60,7 @@ function usePayouts(range: Range): CardView<PayoutData> {
           });
         });
         payouts.sort((a, b) => b.createdMs - a.createdMs);
-        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: day.slice(5), value }));
+        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
         if (!cancelled) setData({
           pendingAmount, pendingCount, approvedAmount, approvedCount, totalAmount,
           count: snap.size, avg: snap.size ? Math.round(totalAmount / snap.size) : 0, daily, payouts,

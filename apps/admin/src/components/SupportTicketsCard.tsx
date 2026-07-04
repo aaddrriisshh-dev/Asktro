@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
 import { DailyChart } from './DailyChart';
@@ -68,7 +69,7 @@ function useTickets(range: Range): CardView<TicketData> {
           });
         });
         tickets.sort((a, b) => b.createdMs - a.createdMs);
-        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: day.slice(5), value }));
+        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
         if (!cancelled) setData({ open, closed, total: snap.size, fromCustomers, fromAstrologers, highPriority, daily, tickets });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);

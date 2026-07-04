@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { formatPaise } from '@/lib/format';
+import { formatPaise, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
 import { Metric } from './Metric';
@@ -58,7 +58,7 @@ function useRevenue(range: Range): CardView<RevData> {
         const net = gross - refunds;
         const daily = [...byDay.entries()]
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([day, amount]) => ({ day: day.slice(5), value: Math.round(amount / 100) }));
+          .map(([day, amount]) => ({ day: shortDay(day), value: Math.round(amount / 100) }));
         if (!cancelled) setData({ gross, net, recharge, bonus, consultation, refunds, count, daily });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);

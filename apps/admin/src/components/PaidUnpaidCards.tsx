@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { formatPaise } from '@/lib/format';
+import { formatPaise, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
 import { Metric } from './Metric';
@@ -65,7 +65,7 @@ function useUsersMonetisation(range: Range): CardView<PayData> {
         });
         const total = snap.size;
         const unpaid = total - paid;
-        const toDaily = (m: Map<string, number>) => [...m.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: day.slice(5), value }));
+        const toDaily = (m: Map<string, number>) => [...m.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
         if (!cancelled) setData({
           total, paid, unpaid,
           paidPct: total ? Math.round((paid / total) * 100) : 0,

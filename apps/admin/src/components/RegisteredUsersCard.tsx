@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
 import { Metric } from './Metric';
@@ -49,7 +50,7 @@ function useRegisteredUsers(range: Range): CardView<UsersData> {
           const key = new Date(ms).toISOString().slice(0, 10);
           byDay.set(key, (byDay.get(key) ?? 0) + 1);
         });
-        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: day.slice(5), value }));
+        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
         if (!cancelled) setData({ total: snap.size, male, female, withEmail, blocked, paid, daily });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);

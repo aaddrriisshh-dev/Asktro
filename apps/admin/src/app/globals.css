@@ -898,6 +898,7 @@ tbody tr:last-child td { border-bottom: none; }
 .ops-titles em { font-style: normal; font-size: 12px; color: var(--muted); }
 .ops-caret { color: var(--c); font-size: 13px; flex: none; }
 .ops-body { padding: 4px 18px 20px; }
+.ops-filter { margin: 2px 0 14px; }
 
 /* Needs-attention tiles */
 .na-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
