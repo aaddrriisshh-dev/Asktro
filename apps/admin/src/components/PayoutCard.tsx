@@ -6,7 +6,6 @@ import { db } from '@/lib/firebase';
 import { formatPaise } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
-import { Metric } from './Metric';
 import { DailyChart } from './DailyChart';
 import { PayoutList, PayoutRow } from './PayoutList';
 
@@ -97,16 +96,6 @@ export function PayoutCard() {
       useData={usePayouts}
       renderDrawer={(d) => (
         <>
-          <div className="metricgrid">
-            <Metric color="c-bronze" label="Pending payout" value={formatPaise(d.pendingAmount)} big />
-            <Metric color="c-green" label="Approved payout" value={formatPaise(d.approvedAmount)} big />
-            <Metric color="c-amber" label="Pending requests" value={d.pendingCount.toLocaleString('en-IN')} />
-            <Metric color="c-blue" label="Approved requests" value={d.approvedCount.toLocaleString('en-IN')} />
-            <Metric color="c-purple" label="Total requested" value={formatPaise(d.totalAmount)} />
-            <Metric color="c-gold" label="Avg payout" value={formatPaise(d.avg)} />
-          </div>
-
-          <h3 style={{ margin: '4px 0 10px' }}>Payout requests</h3>
           <PayoutList payouts={d.payouts} />
 
           <h3 style={{ margin: '20px 0 10px' }}>Payout requests per day</h3>
