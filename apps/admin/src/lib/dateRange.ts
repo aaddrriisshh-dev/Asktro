@@ -6,6 +6,7 @@ export type Preset =
   | 'last30'
   | 'thisMonth'
   | 'prevMonth'
+  | 'allTime'
   | 'custom';
 
 export const PRESETS: { key: Preset; label: string }[] = [
@@ -15,6 +16,7 @@ export const PRESETS: { key: Preset; label: string }[] = [
   { key: 'last30', label: 'Last 30 Days' },
   { key: 'thisMonth', label: 'This Month' },
   { key: 'prevMonth', label: 'Previous Month' },
+  { key: 'allTime', label: 'All Time' },
   { key: 'custom', label: 'Custom Range' },
 ];
 
@@ -53,6 +55,9 @@ export function resolveRange(preset: Preset, custom?: { start?: string; end?: st
       const e = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
       return { start: s, end: e, label: 'Previous Month' };
     }
+    case 'allTime':
+      // everything from the epoch through the end of today
+      return { start: 0, end: t0 + DAY, label: 'All Time' };
     case 'custom': {
       // custom supports full date + time (datetime-local values).
       const s = custom?.start ? new Date(custom.start).getTime() : t0;
