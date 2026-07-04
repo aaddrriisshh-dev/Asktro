@@ -73,7 +73,10 @@ export default function AstrologersPage() {
                 const rate = rupees(a.ratePerMinutePaise);
                 return (
                   <tr key={a.id}>
-                    <td>{a.name}{a.verified ? ' ✓' : ''}</td>
+                    <td>
+                      {a.name}{a.verified ? ' ✓' : ''}
+                      {a.isAI ? <span className="badge" style={{ marginLeft: 6, fontSize: 11 }}>AI</span> : ''}
+                    </td>
                     <td>{a.experience ?? 0}y</td>
                     <td>{(a.rating ?? 0).toFixed(1)}★ ({a.totalReviews ?? 0})</td>
                     <td>{rate != null ? `₹${rate}` : <span className="muted">default</span>}</td>
@@ -103,8 +106,9 @@ export default function AstrologersPage() {
 function AddAstrologer({ onDone }: { onDone: () => void }) {
   const [form, setForm] = useState({
     name: '', phone: '', email: '', experience: '', languages: '', expertise: '', about: '',
-    ratePerMinute: '', commissionPercent: '',
+    ratePerMinute: '', commissionPercent: '', profilePhoto: '',
   });
+  const [isAI, setIsAI] = useState(false);
   const [busy, setBusy] = useState(false);
 
   function set(k: string, v: string) {
@@ -128,6 +132,8 @@ function AddAstrologer({ onDone }: { onDone: () => void }) {
         about: form.about.trim(),
         ratePerMinutePaise: form.ratePerMinute ? Math.round(Number(form.ratePerMinute) * 100) : undefined,
         commissionPercent: form.commissionPercent ? Number(form.commissionPercent) : undefined,
+        profilePhoto: form.profilePhoto.trim() || undefined,
+        isAI,
       });
       if (res?.tempPassword) {
         alert(`Astrologer created.\n\nLogin email: ${form.email.trim()}\nTemporary password: ${res.tempPassword}\n\nShare these; they can change the password after first login.`);
@@ -154,8 +160,13 @@ function AddAstrologer({ onDone }: { onDone: () => void }) {
         <input className="input" placeholder="Expertise (comma separated)" value={form.expertise} onChange={(e) => set('expertise', e.target.value)} />
         <input className="input" placeholder="Price per minute (₹)" value={form.ratePerMinute} onChange={(e) => set('ratePerMinute', e.target.value)} />
         <input className="input" placeholder="Commission (%)" value={form.commissionPercent} onChange={(e) => set('commissionPercent', e.target.value)} />
+        <input className="input" placeholder="Profile photo URL" value={form.profilePhoto} onChange={(e) => set('profilePhoto', e.target.value)} />
       </div>
       <textarea className="input" placeholder="About" style={{ marginTop: 12 }} value={form.about} onChange={(e) => set('about', e.target.value)} />
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 14 }}>
+        <input type="checkbox" checked={isAI} onChange={(e) => setIsAI(e.target.checked)} />
+        AI astrologer (adds a subtle “AI” tag in the app)
+      </label>
       <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>
         Leave price / commission blank to use the platform defaults from Pricing &amp; Settings.
       </p>

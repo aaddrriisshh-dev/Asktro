@@ -88,6 +88,29 @@ Gotchas we hit (so future deploys are smooth):
 
 ---
 
+## 🟢 DONE (recent — Part C: 51 AI astrologers)
+
+- **`isAI` flag** on the astrologer model + a deliberately **understated "✦ AI" tag** on the card and
+  profile (low-contrast, so a profile reads as a real astrologer at a glance while still disclosing AI).
+- **Seed script `scripts/seed_ai_astrologers.mjs`** — creates **51 AI astrologers**: mixed male/female
+  Indian names (with honorifics like Acharya/Pandit/Guru), portrait photos, 2–4 specialties (Vedic,
+  Numerology, Tarot, Palmistry, Vastu, KP, Nadi…), Asktro-verified, varied per-minute prices (₹9–₹40 so
+  per-astrologer pricing shows), realistic ratings/experience, `commissionPercent: 100` (no payout
+  accrues for AI). Tagged `__seedAI: true` → `--clear` removes only these.
+- **Admin** — Add-astrologer form gained an **AI checkbox** + **photo URL**; table shows an **AI** marker.
+  `createAstrologer`/`updateAstrologer` accept `isAI` + `profilePhoto`.
+
+**⚠️ Before launch:** the seeded photos are randomuser.me **placeholders** — swap `profilePhoto` on
+`isAI==true` docs for real AI-generated Indian astrologer images.
+**Note:** these AI personas are *listed & browsable* now; the actual AI chat auto-replies are the separate
+Conversational-AI integration (still pending — a customer starting a chat with an AI persona won't get an
+automated reply until that's wired).
+
+**⏳ To activate (your end):** run the seed script once, redeploy `createAstrologer` + `updateAstrologer`,
+redeploy the admin portal, rebuild the customer app.
+
+---
+
 ## 🟢 DONE (recent — Part A: per-astrologer pricing & commission)
 
 - **Per-astrologer rate (Items 5, 7)** — each astrologer now carries their own `ratePerMinutePaise`.

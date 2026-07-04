@@ -25,6 +25,7 @@ class Astrologer extends Equatable {
     this.earnings = 0,
     this.pendingPayout = 0,
     this.ratePerMinutePaise = 900,
+    this.isAI = false,
     this.quickReplies = const [],
     this.availability = const {},
   });
@@ -49,6 +50,7 @@ class Astrologer extends Equatable {
   final int earnings; // paise, lifetime gross (astrologer-side display)
   final int pendingPayout; // paise, accrued net earnings not yet paid out
   final int ratePerMinutePaise; // this astrologer's price per minute
+  final bool isAI; // AI persona vs a human astrologer
   final List<String> quickReplies;
   final Map<String, dynamic> availability;
 
@@ -83,6 +85,7 @@ class Astrologer extends Equatable {
       earnings: (m['earnings'] ?? 0) as int,
       pendingPayout: (m['pendingPayout'] ?? 0) as int,
       ratePerMinutePaise: (m['ratePerMinutePaise'] ?? 900) as int,
+      isAI: (m['isAI'] ?? false) as bool,
       quickReplies: List<String>.from(m['quickReplies'] ?? const []),
       availability: Map<String, dynamic>.from(m['availability'] ?? const {}),
     );
@@ -93,6 +96,6 @@ class Astrologer extends Equatable {
         id, name, profilePhoto, about, experience, languages, expertise, rating,
         totalReviews, totalConsultations, followers, responseTimeSec,
         onlineStatus, available, verified, featured, status, earnings,
-        pendingPayout, ratePerMinutePaise, quickReplies, availability,
+        pendingPayout, ratePerMinutePaise, isAI, quickReplies, availability,
       ];
 }

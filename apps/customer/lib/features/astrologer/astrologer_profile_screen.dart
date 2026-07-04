@@ -128,6 +128,7 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
           children: [
             Text(a.name, style: AppTypography.title),
             if (a.verified) ...[const SizedBox(width: 6), const VerifiedBadge(size: 18)],
+            if (a.isAI) ...[const SizedBox(width: 6), const AiBadge()],
           ],
         ),
         const SizedBox(height: 4),
