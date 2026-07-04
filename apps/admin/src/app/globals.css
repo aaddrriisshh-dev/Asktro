@@ -721,14 +721,13 @@ tbody tr:last-child td { border-bottom: none; }
   border-color: var(--c);
   box-shadow: 0 12px 26px color-mix(in srgb, var(--c) 24%, transparent);
 }
-.metricchip--btn:hover .mc-go { background: var(--c); color: #fff; }
-/* prominent corner arrow so it clearly reads as clickable */
+/* clean corner "view" icon — no background box, just the glyph */
 .mc-go {
-  position: absolute; top: 11px; right: 11px; z-index: 1;
-  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px;
-  background: color-mix(in srgb, var(--c) 20%, #fff); border: 1px solid color-mix(in srgb, var(--c) 40%, #fff);
-  color: var(--c); transition: background 0.15s ease, color 0.15s ease;
+  position: absolute; top: 13px; right: 13px; z-index: 1;
+  display: grid; place-items: center; color: var(--c);
+  transition: transform 0.15s ease, opacity 0.15s ease; opacity: 0.75;
 }
+.metricchip--btn:hover .mc-go { opacity: 1; transform: scale(1.12); }
 .mc-go svg { display: block; }
 .mc-hint {
   display: block; margin-top: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px;
