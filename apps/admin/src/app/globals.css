@@ -611,6 +611,65 @@ tbody tr:last-child td { border-bottom: none; }
 .drawer-body { padding: 24px 30px 46px; overflow-y: auto; }
 .drawer-body h3 { font-family: var(--serif); color: var(--navy); font-size: 17px; }
 
+/* ================= Tiling panel workspace ================= */
+/* Up to 3 detail panels tile as columns (left → right); each can move or close. */
+.pnl {
+  --c: #8b6fd6; --n: 1; --i: 0;
+  --colw: max(300px, min(600px, calc((100vw - 48px) / var(--n))));
+  position: fixed; top: 0; height: 100%;
+  width: var(--colw);
+  right: calc((var(--n) - 1 - var(--i)) * var(--colw));
+  z-index: 60;
+  background:
+    radial-gradient(130% 55% at 100% 0%, color-mix(in srgb, var(--c) 9%, #fff) 0%, transparent 60%),
+    linear-gradient(180deg, #fdfbff 0%, #f5f1fc 100%);
+  color: var(--text);
+  border-left: 1px solid color-mix(in srgb, var(--c) 20%, #e6dff5);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: pnl-in 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes pnl-in { from { transform: translateX(26px); opacity: 0.5; } to { transform: none; opacity: 1; } }
+.pnl::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; z-index: 3;
+  background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 30%, transparent) 70%, transparent);
+}
+/* only the leftmost panel gets the rounded free edge + shadow onto the dashboard */
+.pnl--lead { border-radius: 26px 0 0 26px; border-left: 1px solid rgba(255, 255, 255, 0.8); box-shadow: -12px 0 30px rgba(20, 16, 45, 0.14); }
+
+.pnl-decor {
+  position: absolute; top: -150px; right: -150px; width: 460px; height: 460px; z-index: 0; pointer-events: none;
+  background: url(/brand/zodiac_wheel.png) center / contain no-repeat; opacity: 0.1;
+  animation: spin-wheel 120s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .pnl-decor { animation: none; } .pnl { animation: none; } }
+
+.pnl-head {
+  position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+  padding: 22px 22px 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 15%, #fff), transparent 82%);
+  border-bottom: 1px solid color-mix(in srgb, var(--c) 16%, #eee);
+}
+.pnl-titles { min-width: 0; }
+.pnl-title { margin: 0; font-family: var(--serif); font-size: 22px; color: var(--navy); font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.pnl-title::before { content: ''; width: 9px; height: 24px; border-radius: 5px; background: var(--c); flex: none; box-shadow: 0 4px 12px color-mix(in srgb, var(--c) 40%, transparent); }
+.pnl-sub { margin: 4px 0 0 19px; color: var(--gold-deep); font-size: 11.5px; letter-spacing: 1.2px; text-transform: uppercase; }
+.pnl-tools { display: flex; gap: 6px; flex: none; }
+.pnl-move, .pnl-close {
+  background: #fff; border: 1px solid #ece4fb; width: 32px; height: 32px; border-radius: 9px;
+  color: var(--muted); cursor: pointer; display: grid; place-items: center; font-size: 18px; line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.pnl-move:hover:not(:disabled), .pnl-close:hover { background: #f6f2fe; color: var(--primary); }
+.pnl-move:disabled { opacity: 0.35; cursor: default; }
+.pnl-body { position: relative; z-index: 1; padding: 20px 22px 44px; overflow-y: auto; }
+.pnl-body h3 { font-family: var(--serif); color: var(--navy); font-size: 16px; }
+/* on small screens panels go full-width and stack (most-recent on top) */
+@media (max-width: 760px) {
+  .pnl { --colw: 100vw; right: 0 !important; border-radius: 0; }
+  .pnl--lead { border-radius: 0; }
+}
+
 /* Light-drawer filter: preset chips + full date & time custom picker */
 .dfil { margin-bottom: 22px; }
 .dfil-presets { display: flex; flex-wrap: wrap; gap: 8px; }

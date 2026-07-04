@@ -1,10 +1,11 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import { useCardFilter } from '@/lib/useCardFilter';
 import { Preset, Range } from '@/lib/dateRange';
 import { DrawerFilter } from './DrawerFilter';
-import { Drawer } from './Drawer';
+import { Panel } from './Panel';
+import { usePanels } from '@/lib/panels';
 
 /** Shape every card's data hook returns. */
 export interface CardView<T = unknown> {
@@ -49,14 +50,14 @@ export function DashCard<T>({
 }) {
   const { preset, setPreset, custom, setCustom, range } = useCardFilter(cardKey, defaultPreset);
   const view = useData(range);
-  const [open, setOpen] = useState(false);
+  const { openPanel } = usePanels();
 
   return (
     <>
-      <div className={`stat dashcard ${accentClass}`} onClick={() => setOpen(true)} role="button" tabIndex={0}>
+      <div className={`stat dashcard ${accentClass}`} onClick={() => openPanel(cardKey)} role="button" tabIndex={0}>
         <button
           className="dashcard__expand"
-          onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+          onClick={(e) => { e.stopPropagation(); openPanel(cardKey); }}
           aria-label={`Open ${title}`}
         >
           {expandIcon}
@@ -78,7 +79,7 @@ export function DashCard<T>({
         </div>
       </div>
 
-      <Drawer open={open} onClose={() => setOpen(false)} title={title} subtitle={range.label} accent={accent} decor={decor}>
+      <Panel id={cardKey} title={title} subtitle={range.label} accent={accent} decor={decor}>
         <DrawerFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} />
         {view.error ? (
           <p className="dashcard__err">Couldn’t load — {view.error}</p>
@@ -87,7 +88,7 @@ export function DashCard<T>({
         ) : (
           renderDrawer(view.data, range)
         )}
-      </Drawer>
+      </Panel>
     </>
   );
 }

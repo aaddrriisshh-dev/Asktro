@@ -13,11 +13,13 @@ import { SupportTicketsCard } from '@/components/SupportTicketsCard';
 import { PayoutCard } from '@/components/PayoutCard';
 import { TestRecharge } from '@/components/TestRecharge';
 import { OperationsSection } from '@/components/OperationsSection';
+import { PanelProvider } from '@/lib/panels';
 
 export default function DashboardPage() {
   const active = useCollection('consultations', [where('status', '==', 'active')]);
 
   return (
+    <PanelProvider>
     <div>
       <div className="hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -70,5 +72,6 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+    </PanelProvider>
   );
 }
