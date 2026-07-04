@@ -19,11 +19,14 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { readFileSync } from 'node:fs';
 
 const ADMINS = [
-  { name: 'Adrish', email: 'adrish@asktro.in' },
-  { name: 'Vineet', email: 'vineet@asktro.in' },
-  { name: 'Sanjay', email: 'sanjay@asktro.in' },
+  { name: 'Adrish', email: 'adrish@asktro.in', adminRole: 'super' },
+  { name: 'Vineet', email: 'vineet@asktro.in', adminRole: 'super' },
+  { name: 'Sanjay', email: 'sanjay@asktro.in', adminRole: 'super' },
+  { name: 'Sachendra', email: 'sachendra@asktro.in', adminRole: 'ops' },
+  { name: 'Neeraj', email: 'neeraj@asktro.in', adminRole: 'astrology' },
 ];
 const DEFAULT_PASSWORD = 'Asktro@2026';
+const ROLE_LABEL = { super: 'Super Admin', ops: 'Chief Operations', astrology: 'Chief Astrology' };
 
 const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || 'serviceAccountKey.json';
 let svc;
@@ -65,15 +68,15 @@ async function run() {
       uid = u.uid;
       created = true;
     }
-    await auth.setCustomUserClaims(uid, { role: 'admin', adminRole: 'super' });
+    await auth.setCustomUserClaims(uid, { role: 'admin', adminRole: a.adminRole });
     await db.collection('adminUsers').doc(uid).set(
-      { name: a.name, email: a.email, adminRole: 'super', createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() },
+      { name: a.name, email: a.email, adminRole: a.adminRole, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() },
       { merge: true },
     );
-    console.log(`✓ ${a.name.padEnd(7)} ${a.email.padEnd(22)} ${created ? '(new)' : '(updated)'}`);
+    console.log(`✓ ${a.name.padEnd(10)} ${a.email.padEnd(24)} ${(ROLE_LABEL[a.adminRole] ?? a.adminRole).padEnd(18)} ${created ? '(new)' : '(updated)'}`);
   }
-  console.log(`\nAll three are SUPER ADMINS. Shared login password: ${password}`);
-  console.log('They send/receive no notifications. Sign in at the portal to test each one.\n');
+  console.log(`\nAll accounts share the login password: ${password}`);
+  console.log('They send/receive no notifications. Sign in at the portal to test each role.\n');
 }
 
 run().then(() => process.exit(0)).catch((e) => { console.error('\nFailed:', e.message); process.exit(1); });
