@@ -554,11 +554,11 @@ tbody tr:last-child td { border-bottom: none; }
 }
 /* Slowly rotating zodiac wheel, peeking from the top-right corner */
 .drawer-decor {
-  position: absolute; top: -78px; right: -78px; width: 280px; height: 280px;
+  position: absolute; top: -150px; right: -150px; width: 500px; height: 500px;
   z-index: 0; pointer-events: none;
   background: url(/brand/zodiac_wheel.png) center / contain no-repeat;
-  opacity: 0.1;
-  animation: spin-wheel 90s linear infinite;
+  opacity: 0.11;
+  animation: spin-wheel 120s linear infinite;
 }
 @keyframes spin-wheel { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .drawer-decor { animation: none; } }
