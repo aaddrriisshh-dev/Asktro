@@ -11,6 +11,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { db, messaging, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertRole, badRequest } from '../common/errors';
+import { adminName } from '../common/actor';
 
 export const onNotificationCreated = onDocumentCreated('notifications/{id}', async (event) => {
   const snap = event.data;
@@ -25,10 +26,16 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
 
   const resp = await messaging.sendEachForMulticast({
     tokens,
-    notification: { title: n.title, body: n.body },
+    notification: {
+      title: n.title,
+      body: n.body,
+      ...(n.image ? { imageUrl: String(n.image) } : {}),
+    },
     data: {
       type: String(n.type ?? ''),
       deeplink: String(n.deeplink ?? ''),
+      image: String(n.image ?? ''),
+      imageStyle: String(n.imageStyle ?? ''),
       notificationId: snap.id,
     },
   });
@@ -51,13 +58,15 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
 });
 
 export const sendBroadcast = onCall(async (req) => {
-  assertRole(req, 'admin');
-  const { title, body, type, deeplink, segment, uids } = (req.data ?? {}) as {
+  const actor = assertRole(req, 'admin');
+  const { title, body, type, deeplink, image, imageStyle, segment, uids } = (req.data ?? {}) as {
     title?: string;
     body?: string;
     type?: string;
     deeplink?: string;
-    segment?: 'all_users' | 'astrologers' | 'list';
+    image?: string;
+    imageStyle?: 'banner' | 'portrait';
+    segment?: 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers' | 'list';
     uids?: string[];
   };
   if (!title || !body) badRequest('title and body are required.');
@@ -68,6 +77,11 @@ export const sendBroadcast = onCall(async (req) => {
   } else if (segment === 'astrologers') {
     const snap = await db.collection(Collections.astrologers).where('accountStatus', '==', 'approved').get();
     targetIds = snap.docs.map((d) => d.id);
+  } else if (segment === 'paid_users' || segment === 'unpaid_users') {
+    // Single-field query (auto-indexed); drop deleted accounts client-side.
+    const op = segment === 'paid_users' ? '>' : '==';
+    const snap = await db.collection(Collections.users).where('totalRecharge', op, 0).get();
+    targetIds = snap.docs.filter((d) => d.data().accountStatus !== 'deleted').map((d) => d.id);
   } else {
     const snap = await db.collection(Collections.users).where('accountStatus', '==', 'active').get();
     targetIds = snap.docs.map((d) => d.id);
@@ -84,6 +98,8 @@ export const sendBroadcast = onCall(async (req) => {
       body,
       type: type ?? 'announcement',
       deeplink: deeplink ?? null,
+      image: image ?? null,
+      imageStyle: imageStyle ?? null,
       read: false,
       createdAt: FieldValue.serverTimestamp(),
     });
@@ -93,6 +109,12 @@ export const sendBroadcast = onCall(async (req) => {
     }
   }
   if (count % 400 !== 0) await batch.commit();
+
+  await db.collection(Collections.auditLogs).add({
+    actorUid: actor, actorRole: 'admin', actorName: await adminName(actor),
+    action: 'sendBroadcast', targetType: 'segment', targetId: segment ?? 'all_users',
+    after: { title, delivered: targetIds.length }, createdAt: FieldValue.serverTimestamp(),
+  });
 
   return { ok: true, delivered: targetIds.length };
 });
