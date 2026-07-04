@@ -12,6 +12,7 @@ import { PaidUsersCard, UnpaidUsersCard } from '@/components/PaidUnpaidCards';
 import { SupportTicketsCard } from '@/components/SupportTicketsCard';
 import { PayoutCard } from '@/components/PayoutCard';
 import { TestRecharge } from '@/components/TestRecharge';
+import { OperationsSection } from '@/components/OperationsSection';
 
 export default function DashboardPage() {
   const active = useCollection('consultations', [where('status', '==', 'active')]);
@@ -41,6 +42,8 @@ export default function DashboardPage() {
         <SupportTicketsCard />
         <PayoutCard />
       </div>
+
+      <OperationsSection />
 
       <TestRecharge />
 

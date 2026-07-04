@@ -811,3 +811,83 @@ tbody tr:last-child td { border-bottom: none; }
 .testrc-msg.ok { background: rgba(60, 179, 113, 0.12); color: #2f9c63; }
 .testrc-msg.err { background: rgba(224, 86, 74, 0.12); color: #d1483c; }
 @media (max-width: 560px) { .testrc-grid { grid-template-columns: 1fr; } }
+
+/* ================= Operations & Insights section ================= */
+.ops-wrap { margin-top: 26px; position: relative; }
+.ops-heading { display: flex; align-items: center; gap: 11px; font-family: var(--serif); font-size: 23px; color: var(--navy); margin: 0; }
+.ops-heading-dot { width: 11px; height: 26px; border-radius: 6px; background: linear-gradient(180deg, var(--gold), var(--gold-deep)); box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4); }
+.ops-sub { color: var(--muted); font-size: 13.5px; margin: 6px 0 18px 22px; max-width: 720px; }
+
+.opsgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.ops--wide { grid-column: 1 / -1; }
+@media (max-width: 900px) { .opsgrid { grid-template-columns: 1fr; } .ops--wide { grid-column: auto; } }
+
+.ops {
+  --c: #7e57c2; position: relative; overflow: hidden;
+  background: linear-gradient(180deg, #ffffff, #fdfbff);
+  border: 1px solid color-mix(in srgb, var(--c) 22%, #efeafc);
+  border-radius: 18px; box-shadow: 0 8px 22px rgba(46, 43, 95, 0.05);
+}
+.ops::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--c), transparent 75%); }
+.ops-head { width: 100%; display: flex; align-items: center; gap: 13px; background: none; border: none; padding: 16px 18px; cursor: pointer; text-align: left; }
+.ops-ico {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; flex: none;
+  background: color-mix(in srgb, var(--c) 14%, #fff); border: 1px solid color-mix(in srgb, var(--c) 30%, #fff); color: var(--c);
+}
+.ops-titles { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.ops-titles strong { font-family: var(--serif); font-size: 17px; color: var(--navy); font-weight: 600; }
+.ops-titles em { font-style: normal; font-size: 12px; color: var(--muted); }
+.ops-caret { color: var(--c); font-size: 13px; flex: none; }
+.ops-body { padding: 4px 18px 20px; }
+
+/* Needs-attention tiles */
+.na-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.na-tile {
+  --c: #e0564a; position: relative; display: flex; flex-direction: column; gap: 4px; text-decoration: none;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--c) 15%, #fff), #fff 80%);
+  border: 1px solid color-mix(in srgb, var(--c) 28%, #fff); border-radius: 15px; padding: 16px 17px;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 12%, transparent); transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.na-tile:hover { transform: translateY(-2px); box-shadow: 0 12px 26px color-mix(in srgb, var(--c) 22%, transparent); }
+.na-n { font-family: var(--serif); font-size: 34px; font-weight: 600; color: color-mix(in srgb, var(--c) 60%, var(--navy)); line-height: 1; }
+.na-label { font-size: 13.5px; font-weight: 600; color: var(--navy); }
+.na-hint { font-size: 11.5px; color: var(--muted); }
+.na-go { margin-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; color: var(--c); }
+
+/* donut modules (paid-vs-free, supply) */
+.pvf { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.pvf-chart { position: relative; width: 200px; flex: none; }
+.pvf-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; }
+.pvf-center strong { font-family: var(--serif); font-size: 30px; color: var(--navy); display: block; line-height: 1; }
+.pvf-center span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.pvf-legend { display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; color: var(--text); flex: 1; min-width: 150px; }
+.pvf-legend > div { display: flex; align-items: center; gap: 8px; }
+.pvf-legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.pvf-legend b { margin-left: auto; color: var(--navy); font-family: var(--serif); font-size: 16px; }
+.pvf-split { flex-direction: column; align-items: stretch; gap: 6px; font-size: 12px; color: var(--muted); }
+.pvf-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: #efeafc; }
+.pvf-bar span { display: block; }
+
+/* money held & owed */
+.mho { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 620px) { .mho { grid-template-columns: 1fr; } }
+.mho-fig {
+  --c: #3b6fd4; display: flex; flex-direction: column; gap: 6px;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--c) 12%, #fff), #fff 82%);
+  border: 1px solid color-mix(in srgb, var(--c) 24%, #fff); border-radius: 15px; padding: 16px 18px;
+}
+.mho-label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.mho-fig strong { font-family: var(--serif); font-size: 30px; color: color-mix(in srgb, var(--c) 55%, var(--navy)); line-height: 1; }
+.mho-hint { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+
+/* top astrologers table */
+.ops-table { width: 100%; border-collapse: collapse; }
+.ops-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid #efeafc; }
+.ops-table td { padding: 11px 12px; border-bottom: 1px solid #f4f0fb; font-size: 13.5px; color: var(--text); }
+.ops-table tr:last-child td { border-bottom: none; }
+.ops-name { font-weight: 600; color: var(--navy); }
+.ops-earn { font-family: var(--serif); font-size: 15px; color: var(--navy); font-weight: 600; }
+.ops-rank { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; font-size: 12px; font-weight: 700; background: #efeafc; color: var(--primary); }
+.ops-rank.r1 { background: rgba(212, 175, 55, 0.22); color: var(--gold-deep); }
+.ops-rank.r2 { background: rgba(148, 163, 184, 0.22); color: #64748b; }
+.ops-rank.r3 { background: rgba(184, 134, 42, 0.2); color: #b8862a; }
