@@ -1,9 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { callFn } from '@/lib/hooks';
 import { formatDate } from '@/lib/format';
 import { Metric } from './Metric';
+
+const expandIcon = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 3h7v7M21 3l-8 8" />
+    <path d="M10 21H3v-7M3 21l8-8" />
+  </svg>
+);
 
 export interface TicketRow {
   id: string;
@@ -36,6 +44,12 @@ export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
   const [active, setActive] = useState<'customer' | 'astrologer' | null>(null);
 
   useEffect(() => setRows(tickets), [tickets]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setActive(null); }
+    if (active) window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active]);
 
   const counts = {
     open: rows.filter((t) => t.status === 'open').length,
@@ -137,32 +151,39 @@ export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
         <Metric color="c-red" label="Open" value={counts.open.toLocaleString('en-IN')} big />
         <Metric color="c-green" label="Closed" value={counts.closed.toLocaleString('en-IN')} big />
         <Metric color="c-blue" label="Total" value={counts.total.toLocaleString('en-IN')} />
-        {GROUPS.map((g) => {
-          const isActive = active === g.key;
-          return (
-            <button
-              key={g.key}
-              className={`metricchip ${g.color} metricchip--btn${isActive ? ' is-active' : ''}`}
-              onClick={() => setActive((a) => (a === g.key ? null : g.key))}
-            >
-              <span>{g.label} <i className="mc-caret">{isActive ? '▴' : '▾'}</i></span>
-              <strong>{byRole(g.key).length.toLocaleString('en-IN')}</strong>
-            </button>
-          );
-        })}
+        {GROUPS.map((g) => (
+          <button
+            key={g.key}
+            className={`metricchip ${g.color} metricchip--btn`}
+            onClick={() => setActive(g.key)}
+          >
+            <span className="mc-go">{expandIcon}</span>
+            <span>{g.label}</span>
+            <strong>{byRole(g.key).length.toLocaleString('en-IN')}</strong>
+            <span className="mc-hint">Tap to open</span>
+          </button>
+        ))}
         <Metric color="c-rose" label="High priority" value={counts.high.toLocaleString('en-IN')} />
       </div>
 
-      {activeGroup && (
-        <div className={`tktexp ${activeGroup.color}`}>
-          <div className="tktexp-head">
-            <span>{activeGroup.icon} {activeGroup.label}</span>
-            <em>{activeRows.filter((r) => r.status === 'open').length} open · {activeRows.filter((r) => r.status === 'closed').length} closed</em>
+      {activeGroup && createPortal(
+        <div className="tktmodal-root" role="dialog" aria-modal="true" onClick={() => setActive(null)}>
+          <div className={`tktmodal ${activeGroup.color}`} onClick={(e) => e.stopPropagation()}>
+            <div className="tktmodal-head">
+              <div>
+                <h3>{activeGroup.icon} {activeGroup.label}</h3>
+                <p>{activeRows.filter((r) => r.status === 'open').length} open · {activeRows.filter((r) => r.status === 'closed').length} closed</p>
+              </div>
+              <button className="tktmodal-close" onClick={() => setActive(null)} aria-label="Close">×</button>
+            </div>
+            <div className="tktmodal-body">
+              {activeRows.length === 0
+                ? <p className="drawer-muted">No tickets yet.</p>
+                : <div className="tkt-list">{activeRows.map(renderTicket)}</div>}
+            </div>
           </div>
-          {activeRows.length === 0
-            ? <p className="drawer-muted">No tickets yet.</p>
-            : <div className="tkt-list">{activeRows.map(renderTicket)}</div>}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

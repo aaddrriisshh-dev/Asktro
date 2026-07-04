@@ -710,27 +710,60 @@ tbody tr:last-child td { border-bottom: none; }
 .tkt-reply:focus { outline: none; border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 16%, transparent); }
 .tkt-actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 
-/* clickable metric cards (User / Astrologer tickets) + below-grid expansion */
+/* clickable metric cards (User / Astrologer tickets) — open a centered popup */
 .metricchip--btn {
   font: inherit; text-align: left; cursor: pointer; -webkit-appearance: none; appearance: none;
+  border-color: color-mix(in srgb, var(--c) 42%, #fff);
   transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s ease;
 }
-.metricchip--btn:hover { transform: translateY(-2px); box-shadow: 0 12px 26px color-mix(in srgb, var(--c) 22%, transparent); }
-.metricchip--btn.is-active {
+.metricchip--btn:hover {
+  transform: translateY(-2px);
   border-color: var(--c);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 45%, #fff), 0 10px 24px color-mix(in srgb, var(--c) 22%, transparent);
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--c) 24%, transparent);
 }
-.mc-caret { font-style: normal; color: var(--c); font-size: 10px; margin-left: 3px; }
+.metricchip--btn:hover .mc-go { background: var(--c); color: #fff; }
+/* prominent corner arrow so it clearly reads as clickable */
+.mc-go {
+  position: absolute; top: 11px; right: 11px; z-index: 1;
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px;
+  background: color-mix(in srgb, var(--c) 20%, #fff); border: 1px solid color-mix(in srgb, var(--c) 40%, #fff);
+  color: var(--c); transition: background 0.15s ease, color 0.15s ease;
+}
+.mc-hint {
+  display: block; margin-top: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px;
+  text-transform: uppercase; color: var(--c);
+}
 
-.tktexp {
-  --c: #7e57c2;
-  margin-top: 16px; border: 1px solid color-mix(in srgb, var(--c) 28%, #fff); border-radius: 16px;
-  padding: 15px 16px; background: color-mix(in srgb, var(--c) 6%, #fff);
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 10%, transparent);
+/* centered ticket popup */
+.tktmodal-root {
+  position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 20px;
+  background: rgba(20, 16, 45, 0.42); animation: tktfade 0.16s ease;
 }
-.tktexp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 13px; }
-.tktexp-head span { font-family: var(--serif); font-size: 17px; color: var(--navy); font-weight: 600; }
-.tktexp-head em { font-style: normal; font-size: 12.5px; color: var(--muted); }
+@keyframes tktfade { from { opacity: 0; } to { opacity: 1; } }
+.tktmodal {
+  --c: #7e57c2;
+  width: 620px; max-width: 94vw; max-height: 86vh; display: flex; flex-direction: column; overflow: hidden;
+  background: linear-gradient(180deg, #fdfbff 0%, #f5f1fc 100%);
+  border: 1px solid color-mix(in srgb, var(--c) 24%, #fff); border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(20, 16, 45, 0.4);
+  animation: tktpop 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes tktpop { from { transform: translateY(12px) scale(0.98); opacity: 0.5; } to { transform: none; opacity: 1; } }
+.tktmodal-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 16%, #fff), transparent 82%);
+  border-bottom: 1px solid color-mix(in srgb, var(--c) 16%, #eee);
+}
+.tktmodal-head h3 { margin: 0; font-family: var(--serif); font-size: 21px; color: var(--navy); font-weight: 600; }
+.tktmodal-head p { margin: 3px 0 0; font-size: 12.5px; color: var(--muted); }
+.tktmodal-close {
+  background: #fff; border: 1px solid #ece4fb; width: 34px; height: 34px; border-radius: 10px; flex: none;
+  font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; display: grid; place-items: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tktmodal-close:hover { background: #f6f2fe; color: var(--primary); }
+.tktmodal-body { overflow-y: auto; padding: 18px 22px 24px; }
+@media (prefers-reduced-motion: reduce) { .tktmodal-root, .tktmodal { animation: none; } }
 
 /* ===== Payout list rows ===== */
 .pay-item { background: #fff; border: 1px solid #efeafc; border-radius: 14px; padding: 13px 15px; box-shadow: 0 4px 12px rgba(46, 43, 95, 0.04); }
