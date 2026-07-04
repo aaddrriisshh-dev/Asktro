@@ -88,6 +88,23 @@ Gotchas we hit (so future deploys are smooth):
 
 ---
 
+## 🟢 DONE (recent — Part D: portal history + astrologer approval)
+
+- **Full consultation history (Item 6)** — the customer detail page now shows a **unified timeline of
+  every session** (chat/voice/video), newest first, each expandable in place. Chat sessions expand to the
+  **full live transcript**; voice/video show a recording placeholder ("appears once calling is enabled").
+  Replaces the old "latest session only" chat log + separate call tables. Added an **Account Snapshot**
+  card (wallet, bonus, recharged, spent, sessions).
+- **Astrologer approval (Item 1)** — admin Astrologers page gained a **Reject** button (pending
+  applications) and a **"N onboarding requests awaiting review"** banner at the top. Approve/Suspend/Reject
+  all wired to `setAstrologerStatus`.
+- *(Astrologer self-application from their app — writing the initial `pending` record — is still a
+  Flutter-side task; the admin review side is now complete.)*
+
+**⏳ To activate (your end):** redeploy the admin portal (no new functions needed for D).
+
+---
+
 ## 🟢 DONE (recent — Part C: 51 AI astrologers)
 
 - **`isAI` flag** on the astrologer model + a deliberately **understated "✦ AI" tag** on the card and

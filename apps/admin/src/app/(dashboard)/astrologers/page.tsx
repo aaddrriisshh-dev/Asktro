@@ -56,6 +56,19 @@ export default function AstrologersPage() {
 
       {showAdd && <AddAstrologer onDone={() => setShowAdd(false)} />}
 
+      {(() => {
+        const pending = rows.filter((a: Row) => (a.accountStatus ?? 'pending') === 'pending');
+        if (pending.length === 0) return null;
+        return (
+          <div className="card" style={{ borderLeft: '4px solid var(--amber, #d99a00)', marginBottom: 16 }}>
+            <strong>{pending.length} onboarding request{pending.length === 1 ? '' : 's'} awaiting review</strong>
+            <span className="muted" style={{ marginLeft: 8, fontSize: 13 }}>
+              {pending.map((a: Row) => a.name).slice(0, 6).join(', ')}{pending.length > 6 ? '…' : ''} — Approve or Reject below.
+            </span>
+          </div>
+        );
+      })()}
+
       <div className="card">
         {loading ? (
           <p className="muted">Loading…</p>
@@ -83,10 +96,13 @@ export default function AstrologersPage() {
                     <td>{typeof a.commissionPercent === 'number' ? `${a.commissionPercent}%` : <span className="muted">default</span>}</td>
                     <td>{a.onlineStatus ? '🟢' : '⚪'}</td>
                     <td><span className={`badge ${STATUS_COLORS[a.accountStatus] ?? ''}`}>{a.accountStatus ?? 'pending'}</span></td>
-                    <td style={{ display: 'flex', gap: 6 }}>
+                    <td style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <button className="btn sm secondary" onClick={() => editRates(a)}>Edit rate</button>
                       {a.accountStatus !== 'approved' && (
                         <button className="btn sm" onClick={() => setStatus(a.id, 'approved')}>Approve</button>
+                      )}
+                      {(a.accountStatus === 'pending' || !a.accountStatus) && (
+                        <button className="btn sm danger" onClick={() => { if (confirm(`Reject ${a.name}'s application?`)) setStatus(a.id, 'rejected'); }}>Reject</button>
                       )}
                       {a.accountStatus === 'approved' && (
                         <button className="btn sm secondary" onClick={() => setStatus(a.id, 'suspended')}>Suspend</button>

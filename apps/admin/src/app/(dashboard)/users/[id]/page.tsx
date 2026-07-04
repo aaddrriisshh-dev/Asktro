@@ -12,6 +12,71 @@ import { formatPaise, rupeesToPaise, formatDate } from '@/lib/format';
 
 type Any = Record<string, unknown>;
 const ms = (t: Any | undefined, k: string) => (t?.[k] as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0;
+const minsOf = (c: Any) => Math.round(((c.billedSeconds as number) ?? 0) / 60 * 10) / 10;
+
+/** One consultation in the history timeline; expands to its live transcript (chat)
+ *  or a recording placeholder (voice/video, until calling ships). */
+function SessionCard({ c, meId, astroName }: { c: Any; meId: string; astroName: string }) {
+  const [open, setOpen] = useState(false);
+  const [msgs, setMsgs] = useState<Any[] | null>(null);
+  const type = (c.type as string) ?? 'chat';
+
+  useEffect(() => {
+    if (!open || type !== 'chat') return;
+    const unsub = onSnapshot(
+      query(collection(db, `consultations/${c.id}/messages`), orderBy('timestamp', 'asc'), limit(500)),
+      (snap) => setMsgs(snap.docs.map((d) => d.data())),
+      () => setMsgs([]),
+    );
+    return () => unsub();
+  }, [open, type, c.id]);
+
+  const icon = type === 'voice' ? '📞' : type === 'video' ? '🎥' : '💬';
+  const status = (c.status as string) ?? '—';
+
+  return (
+    <div className={`udet-sess${open ? ' open' : ''}`}>
+      <button className="udet-sess-head" onClick={() => setOpen((o) => !o)}>
+        <span className="udet-sess-icon">{icon}</span>
+        <div className="udet-sess-main">
+          <span className="udet-sess-title">{type.charAt(0).toUpperCase() + type.slice(1)} · {astroName}</span>
+          <span className="udet-sess-sub">
+            {ms(c, 'createdAt') ? formatDate(ms(c, 'createdAt')) : '—'} · {minsOf(c)} min · {formatPaise(c.totalCharged as number)}
+          </span>
+        </div>
+        <span className={`badge ${status === 'active' || status === 'completed' ? 'green' : ''}`}>{status}</span>
+        <span className="ops-caret">{open ? '▴' : '▾'}</span>
+      </button>
+      {open && (
+        <div className="udet-sess-body">
+          {type === 'chat' ? (
+            msgs === null ? <p className="muted">Loading…</p>
+              : msgs.length === 0 ? <p className="drawer-muted">No messages in this session.</p>
+                : (
+                  <div className="udet-chat">
+                    {msgs.map((m, i) => {
+                      const mine = (m.senderId as string) === meId;
+                      return (
+                        <div key={i} className={`bub ${mine ? 'me' : 'them'}`}>
+                          {(m.type as string) === 'image' && m.image
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={m.image as string} alt="attachment" style={{ maxWidth: 200, borderRadius: 10 }} />
+                            : <span>{(m.text as string) ?? ''}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+          ) : (
+            <p className="drawer-muted" style={{ margin: 0 }}>
+              {type} call · {minsOf(c)} min. The call recording will appear here once voice/video calling is enabled.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,8 +85,6 @@ export default function UserDetailPage() {
   const [missing, setMissing] = useState(false);
   const [cons, setCons] = useState<Any[]>([]);
   const [txns, setTxns] = useState<Any[]>([]);
-  const [chat, setChat] = useState<Any[] | null>(null);
-  const [chatConsId, setChatConsId] = useState<string | null>(null);
   const [astroNames, setAstroNames] = useState<Record<string, string>>({});
   const [kundliOpen, setKundliOpen] = useState(false);
 
@@ -33,9 +96,6 @@ export default function UserDetailPage() {
       const cs = await getDocs(query(collection(db, 'consultations'), where('customerId', '==', id)));
       const clist: Any[] = cs.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b, 'createdAt') - ms(a, 'createdAt'));
       setCons(clist);
-      // chat log shows the customer's latest CHAT session
-      const chatCons = clist.find((c) => c.type === 'chat') ?? clist[0];
-      setChatConsId((chatCons?.id as string) ?? null);
       const ts = await getDocs(query(collection(db, 'walletTransactions'), where('userId', '==', id)));
       setTxns(ts.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b, 'createdAt') - ms(a, 'createdAt')));
       const asnap = await getDocs(collection(db, 'astrologers'));
@@ -44,44 +104,6 @@ export default function UserDetailPage() {
       setAstroNames(names);
     })().catch(() => setMissing(true));
   }, [id]);
-
-  function CallLog({ title, icon, type }: { title: string; icon: string; type: string }) {
-    const list = cons.filter((c) => c.type === type);
-    return (
-      <div className="card" style={{ marginTop: 18 }}>
-        <div className="udet-log-head"><h3 className="celeste" style={{ margin: 0 }}>{icon} {title}</h3><span className="udet-total">{list.length} total</span></div>
-        {list.length === 0 ? <p className="muted">No {type} calls yet.</p> : (
-          <div style={{ overflowX: 'auto' }}>
-            <table>
-              <thead><tr><th>Date &amp; time</th><th>Astrologer</th><th>Duration</th><th>Status</th><th>Charged</th></tr></thead>
-              <tbody>
-                {list.map((c) => (
-                  <tr key={c.id as string}>
-                    <td>{ms(c, 'createdAt') ? formatDate(ms(c, 'createdAt')) : '—'}</td>
-                    <td>{astroNames[c.astrologerId as string] ?? '—'}</td>
-                    <td>{Math.round(((c.billedSeconds as number) ?? 0) / 60 * 10) / 10} min</td>
-                    <td><span className={`badge ${c.status === 'active' ? 'green' : c.status === 'completed' ? 'green' : ''}`}>{(c.status as string) ?? '—'}</span></td>
-                    <td>{formatPaise(c.totalCharged as number)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // live chat log from the customer's latest consultation
-  useEffect(() => {
-    if (!chatConsId) { setChat([]); return; }
-    const unsub = onSnapshot(
-      query(collection(db, `consultations/${chatConsId}/messages`), orderBy('timestamp', 'asc'), limit(300)),
-      (snap) => setChat(snap.docs.map((d) => d.data())),
-      () => setChat([]),
-    );
-    return () => unsub();
-  }, [chatConsId]);
 
   async function act(kind: 'credit' | 'suspend' | 'delete') {
     if (!user) return;
@@ -116,6 +138,14 @@ export default function UserDetailPage() {
     { label: 'Place of birth', value: (user.birthPlace as string) || '—' },
     { label: 'Languages', value: Array.isArray(user.languages) ? (user.languages as string[]).join(', ') : '—' },
     { label: 'Relationship', value: (user.relationshipStatus as string) || '—' },
+  ];
+
+  const snapshot = [
+    { label: 'Wallet balance', value: formatPaise((user.walletBalance as number) ?? 0) },
+    { label: 'Bonus / free credit', value: formatPaise((user.bonusBalance as number) ?? 0) },
+    { label: 'Total recharged', value: formatPaise((user.totalRecharge as number) ?? 0) },
+    { label: 'Total spent', value: formatPaise((user.totalSpent as number) ?? 0) },
+    { label: 'Consultations', value: String(cons.length) },
   ];
 
   return (
@@ -170,31 +200,32 @@ export default function UserDetailPage() {
           </div>
         </div>
 
-        <div className="udet-right card" id="chat">
-          <div className="udet-chat-head">
-            <h3 className="celeste" style={{ margin: 0 }}>💬 Live Chat Log</h3>
-            <span className="muted" style={{ fontSize: 12 }}>{chatConsId ? 'Latest session' : 'No sessions yet'}</span>
-          </div>
-          <div className="udet-chat">
-            {chat === null ? <p className="muted">Loading…</p>
-              : chat.length === 0 ? <p className="drawer-muted">No chat messages yet. Conversations from the app appear here live.</p>
-                : chat.map((m, i) => {
-                  const mine = (m.senderId as string) === id; // customer's own message
-                  return (
-                    <div key={i} className={`bub ${mine ? 'me' : 'them'}`}>
-                      {(m.type as string) === 'image' && m.image
-                        // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={m.image as string} alt="attachment" style={{ maxWidth: 200, borderRadius: 10 }} />
-                        : <span>{(m.text as string) ?? ''}</span>}
-                    </div>
-                  );
-                })}
+        <div className="udet-right card">
+          <h3 className="celeste" style={{ marginTop: 0 }}>◇ Account Snapshot</h3>
+          <div className="udet-fields">
+            {snapshot.map((s) => (
+              <div key={s.label} className="udet-field"><span>{s.label}</span><strong>{s.value}</strong></div>
+            ))}
           </div>
         </div>
       </div>
 
-      <CallLog title="Voice Call History" icon="📞" type="voice" />
-      <CallLog title="Video Call History" icon="🎥" type="video" />
+      <div className="card" id="chat" style={{ marginTop: 18 }}>
+        <div className="udet-log-head">
+          <h3 className="celeste" style={{ margin: 0 }}>🗂 Consultation History</h3>
+          <span className="udet-total">{cons.length} session{cons.length === 1 ? '' : 's'}</span>
+        </div>
+        <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>
+          Every chat, voice and video session, newest first. Tap any session to read the full transcript.
+        </p>
+        {cons.length === 0
+          ? <p className="drawer-muted">No consultations yet. Sessions from the app appear here.</p>
+          : <div className="udet-sess-list">
+              {cons.map((c) => (
+                <SessionCard key={c.id as string} c={c} meId={id} astroName={astroNames[c.astrologerId as string] ?? '—'} />
+              ))}
+            </div>}
+      </div>
 
       <div className="card" style={{ marginTop: 18 }}>
         <h3 className="celeste">▤ Transaction History</h3>

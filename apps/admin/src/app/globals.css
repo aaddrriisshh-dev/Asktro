@@ -1022,5 +1022,17 @@ tbody tr:last-child td { border-bottom: none; }
 .bub.them { align-self: flex-start; background: #f2eefb; color: var(--navy); border-bottom-left-radius: 4px; }
 .udet-log-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .udet-total { font-size: 11px; font-weight: 700; color: var(--gold-deep); background: rgba(212, 175, 55, 0.14); padding: 3px 10px; border-radius: 999px; }
+
+/* Consultation-history timeline (customer detail page) */
+.udet-sess-list { display: flex; flex-direction: column; gap: 10px; }
+.udet-sess { border: 1px solid #ece5f8; border-radius: 14px; overflow: hidden; background: #fff; transition: box-shadow .18s ease; }
+.udet-sess.open { box-shadow: 0 8px 22px rgba(46, 43, 95, 0.09); border-color: #ddd0f4; }
+.udet-sess-head { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: none; border: 0; cursor: pointer; text-align: left; }
+.udet-sess-head:hover { background: #faf8ff; }
+.udet-sess-icon { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 10px; background: #f2eefb; font-size: 16px; }
+.udet-sess-main { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.udet-sess-title { font-weight: 700; font-size: 14px; color: var(--navy); }
+.udet-sess-sub { font-size: 12px; color: var(--muted); }
+.udet-sess-body { padding: 4px 14px 14px; border-top: 1px solid #f0ebfa; }
 .udet-avatar { width: 54px; height: 54px; border-radius: 50%; flex: none; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #ead079, var(--gold)); color: var(--navy); font-family: var(--serif); font-size: 24px; font-weight: 600; border: 2px solid #fff; box-shadow: 0 6px 16px rgba(46, 43, 95, 0.14); }
 .udet-avatar img { width: 100%; height: 100%; object-fit: cover; }
