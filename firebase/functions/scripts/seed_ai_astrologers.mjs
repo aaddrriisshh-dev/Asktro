@@ -56,8 +56,9 @@ const LAST = ['Sharma', 'Verma', 'Gupta', 'Iyer', 'Nair', 'Reddy', 'Rao', 'Patel
 const LANGS = ['Hindi', 'English', 'Tamil', 'Telugu', 'Bengali', 'Marathi', 'Kannada', 'Punjabi', 'Gujarati', 'Malayalam'];
 const EXPERTISE = ['Vedic Astrology', 'Numerology', 'Tarot', 'Palmistry', 'Vastu', 'KP System', 'Nadi',
   'Lal Kitab', 'Prashna', 'Face Reading', 'Vedic Remedies', 'Kundli Matching'];
-// Per-minute price options in paise (₹9 – ₹40).
-const RATES = [900, 1100, 1500, 1800, 2100, 2500, 3000, 3500, 4000];
+// AI personas are priced uniformly: ₹9/min, 35% platform commission.
+const AI_RATE_PAISE = 900;
+const AI_COMMISSION = 35;
 const ABOUT = [
   'brings clarity to matters of career, love and destiny with time-tested Vedic wisdom.',
   'specialises in relationship, marriage and compatibility guidance rooted in your birth chart.',
@@ -108,8 +109,8 @@ async function seed() {
       totalConsultations: 100 + rand(20000),
       followers: 200 + rand(50000),
       responseTimeSec: 5 + rand(40),
-      ratePerMinutePaise: pick(RATES),
-      commissionPercent: 100, // AI personas: platform keeps all, no payout accrues
+      ratePerMinutePaise: AI_RATE_PAISE, // ₹9/min for every AI persona
+      commissionPercent: AI_COMMISSION,  // 35% platform commission
       earnings: 0,
       pendingPayout: 0,
       onlineStatus: online,

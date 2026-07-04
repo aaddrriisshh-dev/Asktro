@@ -94,6 +94,29 @@ Gotchas we hit (so future deploys are smooth):
 
 ---
 
+## 📌 DECISIONS (2026-07-04, from handwritten menu spec + screenshots)
+
+- **Pricing model = per-astrologer.** Each astrologer sets their OWN ₹/min AND commission % at
+  onboarding (kept from Part A). Global `config/global` price is only the fallback default.
+- **AI astrologers (the 51 seeded): ₹9/min, 35% commission — permanent.** (`seed_ai_astrologers.mjs`
+  updated; re-run the seed to apply to the existing 51.)
+- **Design language: keep the existing celestial portal look** (violet + gold) for all new admin
+  screens — the Add-astrologer form and astrologer View page match the *structure* of the reference
+  screenshots but are rendered in our portal's design system, not the reference's orange/white style.
+- **Admin roles (page ⑪):** 3 Super Admins (Adrish, Vineet, Sanjay = full) · Chief Ops (Sachendra =
+  all except Total Revenue + Money-held-&-owed) · Chief Astrology (Meeraj = astrology only).
+- **Action attribution everywhere:** every admin action carries the acting admin's name, shown inline
+  (e.g. astrologer "Added by X · Approved by Y") and visible to all admins — approval is super-admin-only.
+
+## 🔵 NEXT BUILD QUEUE — the left-panel menu (from the 12-section spec)
+The admin portal sidebar, in order: 1 Dashboard ✓ · 2 Customer Management · 3 Astrologer Management
+(Add form + View page per screenshots + attribution/approval) · 4 Phone Sessions · 5 Video Sessions ·
+6 Recharge Plans ✓ · 7 Banners · 8 Coupons · 9 Push Notifications · 10 Reports (Claude to spec) ·
+11 CMS · 12 Audit Log · + Admin Management (RBAC + 3 super-admin logins). Sections 7/8/9/11 share one
+**Commit-&-Push publishing engine** (compose → target → push → live in app).
+
+---
+
 ## 🟢 DONE (recent — Part D: portal history + astrologer approval)
 
 - **Full consultation history (Item 6)** — the customer detail page now shows a **unified timeline of
