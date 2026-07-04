@@ -41,6 +41,12 @@ all analytics work, but no real money moves. Before launch:
 - [ ] Replace placeholder Agora secrets with real ones: `AGORA_APP_ID`, `AGORA_APP_CERTIFICATE`.
       (The token-minting function already exists; the apps don't call it yet.)
 
+### AI chat + Vedic astrology — keys needed to make AI astrologers respond
+The 51 AI astrologers are seeded and browsable, but they can't *reply* until this is wired.
+- [ ] **AI provider key** — Claude (Anthropic) or OpenAI, for the conversational replies.
+- [ ] **Prokerala API key** (Vedic astrology) — Kundli/Nakshatra/Dasha etc.
+      Both keys will be stored as Cloud Functions secrets and called **server-side** (never in the app).
+
 ### Security hardening (before public launch)
 - [ ] Enable **Firebase App Check** (Functions console showed a "Configure App Check" banner).
       This is the real network-layer hardening — it ensures calls come from *your* apps,
@@ -245,6 +251,10 @@ the audit found:**
 
 ## 📌 DECISIONS / NOTES (so we don't relitigate)
 
+- **No server needed — the stack is fully serverless.** Backend = Firebase Cloud Functions, Firestore,
+  Auth, Storage, FCM, all managed by Google on the Blaze (pay-per-use) plan. No VM to rent/patch/restart.
+  AI-chat calls (Claude/OpenAI + Prokerala) run **inside Cloud Functions** so keys stay secret; Agora runs
+  its own media servers and we only mint tokens. The only cost is usage — hence the billing-budget action item.
 - **`allUsers` Cloud Run Invoker is intentional & permanent** for callable functions. It only makes
   the endpoint reachable; the real gate is the in-function `assertRole(req, 'admin')` check. Do NOT
   revoke it — the functions would stop working. App Check is the future hardening, not removing this.
