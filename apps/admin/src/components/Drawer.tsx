@@ -9,6 +9,7 @@ export function Drawer({
   title,
   subtitle,
   accent,
+  decor,
   children,
 }: {
   open: boolean;
@@ -16,6 +17,7 @@ export function Drawer({
   title: string;
   subtitle?: string;
   accent?: string;
+  decor?: string;
   children: ReactNode;
 }) {
   useEffect(() => {
@@ -30,7 +32,7 @@ export function Drawer({
     <div className={`drawer-root${open ? ' open' : ''}`} aria-hidden={!open}>
       <div className="drawer-scrim" onClick={onClose} />
       <aside
-        className="drawer-panel"
+        className={`drawer-panel${decor ? ' ' + decor : ''}`}
         role="dialog"
         aria-modal="true"
         style={accent ? ({ ['--c']: accent } as React.CSSProperties) : undefined}

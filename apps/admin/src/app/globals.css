@@ -500,6 +500,11 @@ tbody tr:last-child td { border-bottom: none; }
 .c-green { --c: #2f9c63; }
 .c-amber { --c: #d98a1f; }
 .c-rose { --c: #d0567e; }
+.c-teal { --c: #12a594; }
+.c-indigo { --c: #5b5bd6; }
+.c-slate { --c: #64748b; }
+.c-red { --c: #e0564a; }
+.c-bronze { --c: #b8862a; }
 .dashcard__skel {
   height: 40px; width: 62%; border-radius: 8px; margin: 4px 0;
   background: linear-gradient(90deg, #f1ecfa 25%, #e9e2f6 37%, #f1ecfa 63%);
@@ -563,6 +568,10 @@ tbody tr:last-child td { border-bottom: none; }
 @keyframes spin-wheel { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .drawer-decor { animation: none; } }
 .drawer-head, .drawer-body { position: relative; z-index: 1; }
+/* per-card variety — the wheel sits in a different corner for each panel */
+.drawer-panel.decor-tl .drawer-decor { top: -150px; left: -150px; right: auto; }
+.drawer-panel.decor-br .drawer-decor { top: auto; bottom: -160px; right: -150px; }
+.drawer-panel.decor-bl .drawer-decor { top: auto; bottom: -160px; left: -150px; right: auto; }
 .drawer-root.open { pointer-events: auto; }
 .drawer-root.open .drawer-scrim { background: rgba(20, 16, 45, 0.32); }
 .drawer-root.open .drawer-panel { transform: translateX(0); }
@@ -645,3 +654,16 @@ tbody tr:last-child td { border-bottom: none; }
   box-shadow: 0 6px 18px rgba(46, 43, 95, 0.05);
 }
 .drawer-muted { color: var(--muted); padding: 20px; text-align: center; }
+
+/* Proportion bar with legend (roster splits) */
+.barbd-track {
+  display: flex; height: 18px; border-radius: 999px; overflow: hidden;
+  background: #efeafc; box-shadow: inset 0 1px 2px rgba(46, 43, 95, 0.08);
+}
+.barbd-seg { transition: width 0.3s ease; }
+.barbd-seg:first-child { border-radius: 999px 0 0 999px; }
+.barbd-seg:last-child { border-radius: 0 999px 999px 0; }
+.barbd-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.barbd-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.barbd-legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.barbd-legend strong { color: var(--navy); }

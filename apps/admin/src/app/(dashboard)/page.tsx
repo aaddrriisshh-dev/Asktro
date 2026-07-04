@@ -4,6 +4,13 @@ import { useCollection } from '@/lib/hooks';
 import { formatPaise } from '@/lib/format';
 import { where } from 'firebase/firestore';
 import { RevenueCard } from '@/components/RevenueCard';
+import { RegisteredUsersCard } from '@/components/RegisteredUsersCard';
+import { ActiveConsultationsCard } from '@/components/ActiveConsultationsCard';
+import { ConversionCard } from '@/components/ConversionCard';
+import { ActiveAstrologersCard, TotalAstrologersCard } from '@/components/AstrologersCards';
+import { PaidUsersCard, UnpaidUsersCard } from '@/components/PaidUnpaidCards';
+import { SupportTicketsCard } from '@/components/SupportTicketsCard';
+import { PayoutCard } from '@/components/PayoutCard';
 
 export default function DashboardPage() {
   const active = useCollection('consultations', [where('status', '==', 'active')]);
@@ -23,6 +30,15 @@ export default function DashboardPage() {
 
       <div className="grid dashgrid">
         <RevenueCard />
+        <RegisteredUsersCard />
+        <ActiveConsultationsCard />
+        <ConversionCard />
+        <ActiveAstrologersCard />
+        <TotalAstrologersCard />
+        <PaidUsersCard />
+        <UnpaidUsersCard />
+        <SupportTicketsCard />
+        <PayoutCard />
       </div>
 
       <div className="card" style={{ marginTop: 22 }}>
