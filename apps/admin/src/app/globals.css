@@ -217,7 +217,7 @@ tbody tr:last-child td { border-bottom: none; }
 .kpi-value { font-family: var(--serif); font-size: 40px; font-weight: 600; color: var(--navy); line-height: 1.1; }
 .grid { display: grid; gap: 16px; }
 /* dashboard stat grid — many small fixed-width cards, packed from the left */
-.dashgrid { grid-template-columns: repeat(auto-fill, minmax(232px, 262px)); justify-content: start; }
+.dashgrid { grid-template-columns: repeat(auto-fill, minmax(184px, 210px)); justify-content: start; gap: 12px; }
 
 /* ---- Premium navy sidebar ---- */
 .sidebar {
@@ -493,6 +493,16 @@ tbody tr:last-child td { border-bottom: none; }
   padding: 3px 10px; border-radius: 999px;
 }
 
+/* compact sizing so the ~10 cards use less of the viewport (more room below) */
+.stat.dashcard { padding: 13px 15px; border-radius: 14px; }
+.dashcard .stat__label { margin-bottom: 7px; font-size: 11.5px; }
+.dashcard .stat__icon { width: 28px; height: 28px; border-radius: 8px; }
+.dashcard .stat__value { font-size: 26px; }
+.dashcard .stat__foot { margin-top: 9px; }
+.dashcard .stat__pill { font-size: 10px; padding: 2px 8px; }
+.dashcard .dashcard__range { font-size: 10px; padding: 2px 8px; }
+.stat.dashcard .dashcard__expand { width: 26px; height: 26px; top: 9px; right: 9px; }
+
 /* Generic accent classes (usable outside .stat, e.g. metric chips) */
 .c-purple { --c: #7e57c2; }
 .c-gold { --c: #c99a2e; }
@@ -721,13 +731,14 @@ tbody tr:last-child td { border-bottom: none; }
   border-color: var(--c);
   box-shadow: 0 12px 26px color-mix(in srgb, var(--c) 24%, transparent);
 }
-/* clean corner "view" icon — no background box, just the glyph */
+/* clean corner "view" icon — no background box, full accent colour so it reads clickable */
 .mc-go {
   position: absolute; top: 13px; right: 13px; z-index: 1;
   display: grid; place-items: center; color: var(--c);
-  transition: transform 0.15s ease, opacity 0.15s ease; opacity: 0.75;
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--c) 30%, transparent));
+  transition: transform 0.15s ease;
 }
-.metricchip--btn:hover .mc-go { opacity: 1; transform: scale(1.12); }
+.metricchip--btn:hover .mc-go { transform: scale(1.15); }
 .mc-go svg { display: block; }
 .mc-hint {
   display: block; margin-top: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px;
