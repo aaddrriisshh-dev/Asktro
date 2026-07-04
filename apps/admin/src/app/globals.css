@@ -217,7 +217,7 @@ tbody tr:last-child td { border-bottom: none; }
 .kpi-value { font-family: var(--serif); font-size: 40px; font-weight: 600; color: var(--navy); line-height: 1.1; }
 .grid { display: grid; gap: 16px; }
 /* dashboard stat grid — many small fixed-width cards, packed from the left */
-.dashgrid { grid-template-columns: repeat(auto-fill, minmax(184px, 210px)); justify-content: start; gap: 12px; }
+.dashgrid { grid-template-columns: repeat(auto-fill, minmax(184px, 1fr)); gap: 12px; }
 
 /* ---- Premium navy sidebar ---- */
 .sidebar {
