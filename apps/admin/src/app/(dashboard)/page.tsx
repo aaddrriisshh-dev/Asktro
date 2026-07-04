@@ -1,8 +1,5 @@
 'use client';
 
-import { useCollection } from '@/lib/hooks';
-import { formatPaise } from '@/lib/format';
-import { where } from 'firebase/firestore';
 import { RevenueCard } from '@/components/RevenueCard';
 import { RegisteredUsersCard } from '@/components/RegisteredUsersCard';
 import { ActiveConsultationsCard } from '@/components/ActiveConsultationsCard';
@@ -13,10 +10,10 @@ import { SupportTicketsCard } from '@/components/SupportTicketsCard';
 import { PayoutCard } from '@/components/PayoutCard';
 import { TestRecharge } from '@/components/TestRecharge';
 import { OperationsSection } from '@/components/OperationsSection';
+import { UsersActivityTable } from '@/components/UsersActivityTable';
 import { PanelProvider } from '@/lib/panels';
 
 export default function DashboardPage() {
-  const active = useCollection('consultations', [where('status', '==', 'active')]);
 
   return (
     <PanelProvider>
@@ -49,28 +46,7 @@ export default function DashboardPage() {
 
       <TestRecharge />
 
-      <div className="card" style={{ marginTop: 22 }}>
-        <h3 className="live-head"><span className="live-dot" />Live activity</h3>
-        {active.rows.length === 0 ? (
-          <p className="muted">No consultations in progress right now.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr><th>Consultation</th><th>Type</th><th>Billed</th><th>Charged</th></tr>
-            </thead>
-            <tbody>
-              {active.rows.slice(0, 10).map((c) => (
-                <tr key={c.id}>
-                  <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.id.slice(0, 10)}</td>
-                  <td>{c.type}</td>
-                  <td>{c.billedSeconds ?? 0}s</td>
-                  <td>{formatPaise(c.totalCharged)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <UsersActivityTable />
     </div>
     </PanelProvider>
   );

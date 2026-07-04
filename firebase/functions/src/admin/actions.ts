@@ -133,3 +133,33 @@ export const setAstrologerStatus = onCall(async (req) => {
 
   return { ok: true };
 });
+
+/** Suspend, reactivate or soft-delete a customer (ops/super admin). */
+export const setUserStatus = onCall(async (req) => {
+  const actor = assertRole(req, 'admin');
+  const { userId, status } = (req.data ?? {}) as {
+    userId?: string;
+    status?: 'active' | 'blocked' | 'deleted';
+  };
+  if (!userId || !status) badRequest('userId and status are required.');
+
+  const ref = db.collection(Collections.users).doc(userId!);
+  const snap = await ref.get();
+  if (!snap.exists) notFound('User not found.');
+
+  await ref.set(
+    { accountStatus: status, updatedAt: FieldValue.serverTimestamp() },
+    { merge: true },
+  );
+
+  await db.collection(Collections.auditLogs).add({
+    actorUid: actor,
+    actorRole: 'admin',
+    action: `user_${status}`,
+    targetType: 'user',
+    targetId: userId,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  return { ok: true };
+});

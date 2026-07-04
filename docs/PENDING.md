@@ -108,6 +108,11 @@ Gotchas we hit (so future deploys are smooth):
 5. Same live-update / popup polish is now consistent across Support & Payout; apply to any
    future interactive cards.
 
+### Integrations to wire when APIs are ready
+- **Vedic astrology API (Prokerala)** — the customer detail page has a **"Kundli & Planetary Details — Coming soon"** section. Wire Nakshatra / Moon sign / Ascendant / Dasha from the birth details (name, DOB, time, place already captured) once the API key is in.
+- **Conversational AI (Claude / OpenAI)** for AI-astrologer chats, layered with the Vedic API. Astrologer listings will mix **AI astrologers** and **real astrologers**; the customer picks and chat routes accordingly.
+- Deploy `setUserStatus` (already written) + `adjustWallet` so the Users-activity **Credit / Suspend / Delete** actions go live (View/Chat already work).
+
 ### Bigger features (decide scope)
 6. **Voice / Video calling** — Agora token function exists; apps show "coming soon". Build for v1
    or ship chat-only. (Biggest effort.)

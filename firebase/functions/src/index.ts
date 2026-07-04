@@ -34,7 +34,7 @@ export { setUserRole, deleteAccount } from './auth/adminAndDeletion';
 export { onNotificationCreated, sendBroadcast } from './notifications/sender';
 
 // ---- Admin financial actions ----
-export { adjustWallet, processPayout, setAstrologerStatus } from './admin/actions';
+export { adjustWallet, processPayout, setAstrologerStatus, setUserStatus } from './admin/actions';
 
 // ---- Admin astrologer provisioning ----
 export { createAstrologer, updateAstrologer, deleteAstrologer } from './admin/createAstrologer';
