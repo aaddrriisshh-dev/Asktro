@@ -88,6 +88,26 @@ Gotchas we hit (so future deploys are smooth):
 
 ---
 
+## 🟢 DONE (recent — Part B: customer-journey economics)
+
+The three billing-side items from the handwritten roadmap:
+- **Free first minutes (Item 2)** — new customers get `freeChatMinutes` (default **3**) of chat as
+  bonus credit at signup (in `onCustomerSignup`), so a brand-new user can start their first chat with
+  zero recharge. Logged to the wallet ledger. *(Countdown timer + live deduction were already done.)*
+- **Low-balance popup at ~1 min (Item 3)** — default warning moved 2 min → **~1 min**
+  (`warnLevel1Sec` 120→60). Chat only for now (voice/video await the calling phase).
+- **1-minute grace bonus (Item 4)** — when a live session's balance hits zero, the billing tick gifts a
+  one-time **grace minute** (`graceMinutes`, default 1) and keeps the session active instead of pausing;
+  the app shows a celebratory popup ("1 extra minute added to your wallet"). Tracked via `graceGranted`
+  on the consultation doc.
+- All four values (**free minutes, grace minutes, low-balance & final warning thresholds**) are now
+  **live-editable** in the admin **Pricing & Settings** page and read from `config/global` at billing time.
+
+**⏳ To activate (your end):** redeploy 2 functions (`tickConsultation`, `onCustomerSignup`), redeploy the
+admin portal for the new Pricing fields, and rebuild the Flutter apps for the grace popup + free-minutes UX.
+
+---
+
 ## 🟢 DONE (recent — deep wiring audit + fixes)
 
 Full app↔backend↔portal audit run. **Verified real & correctly wired:** chat consultations,
