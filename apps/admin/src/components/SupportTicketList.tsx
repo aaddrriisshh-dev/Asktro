@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { callFn } from '@/lib/hooks';
 import { formatDate } from '@/lib/format';
+import { Metric } from './Metric';
 
 export interface TicketRow {
   id: string;
@@ -10,30 +11,40 @@ export interface TicketRow {
   subject: string;
   message: string;
   status: string;
-  who: string; // display name / id
+  who: string;
   role: 'customer' | 'astrologer';
   priority: string;
   createdMs: number;
   thread: { by: string; text: string; atMs: number }[];
 }
 
-type Tab = 'open' | 'closed' | 'all';
+const GROUPS = [
+  { key: 'customer', label: 'User Tickets', icon: '👤' },
+  { key: 'astrologer', label: 'Astrologer Tickets', icon: '🔮' },
+] as const;
 
-/** Interactive ticket list: read the message, reply, and close/reopen. */
+/**
+ * Support console: live summary + two collapsible groups (users / astrologers),
+ * each split into collapsible Open / Closed sections. Reply and close per ticket.
+ */
 export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
   const [rows, setRows] = useState<TicketRow[]>(tickets);
-  const [tab, setTab] = useState<Tab>('open');
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ customer: true, astrologer: true });
+  const [secOpen, setSecOpen] = useState<Record<string, boolean>>({});
 
   useEffect(() => setRows(tickets), [tickets]);
 
-  const shown = rows.filter((t) => (tab === 'all' ? true : t.status === tab));
+  // live counts — recomputed on every reply/close so the summary stays in sync
   const counts = {
     open: rows.filter((t) => t.status === 'open').length,
     closed: rows.filter((t) => t.status === 'closed').length,
-    all: rows.length,
+    total: rows.length,
+    fromCustomers: rows.filter((t) => t.role === 'customer').length,
+    fromAstro: rows.filter((t) => t.role === 'astrologer').length,
+    high: rows.filter((t) => t.priority === 'high').length,
   };
 
   async function sendReply(t: TicketRow) {
@@ -64,78 +75,115 @@ export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
     }
   }
 
+  function renderTicket(t: TicketRow) {
+    const isExpanded = openId === t.id;
+    return (
+      <div key={t.id} className={`tkt-item${isExpanded ? ' expanded' : ''}`}>
+        <button className="tkt-head" onClick={() => { setOpenId(isExpanded ? null : t.id); setDraft(''); }}>
+          <div className="tkt-head-main">
+            <span className="tkt-no">{t.ticketNo}</span>
+            <span className="tkt-subject">{t.subject}</span>
+          </div>
+          <div className="tkt-head-meta">
+            <span className={`tkt-badge ${t.status}`}>{t.status}</span>
+            <span className="tkt-caret">{isExpanded ? '▴' : '▾'}</span>
+          </div>
+        </button>
+        {isExpanded && (
+          <div className="tkt-body">
+            <div className="tkt-meta-line">
+              <span>{t.role === 'astrologer' ? '🔮' : '👤'} {t.who}</span>
+              <span>{formatDate(t.createdMs)}</span>
+              {t.priority && <span className={`tkt-pri ${t.priority}`}>{t.priority}</span>}
+            </div>
+            <div className="tkt-msg">
+              <span className="tkt-msg-from">Message</span>
+              <p>{t.message || '(no message provided)'}</p>
+            </div>
+            {t.thread.map((m, i) => (
+              <div key={i} className="tkt-msg reply">
+                <span className="tkt-msg-from">{m.by === 'admin' ? 'You (admin)' : m.by}</span>
+                <p>{m.text}</p>
+              </div>
+            ))}
+            <textarea
+              className="tkt-reply"
+              placeholder="Type a reply to the user…"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+            />
+            <div className="tkt-actions">
+              <button className="btn sm" disabled={busy === t.id || !draft.trim()} onClick={() => sendReply(t)}>
+                {busy === t.id ? 'Sending…' : 'Send reply'}
+              </button>
+              {t.status === 'closed' ? (
+                <button className="btn sm secondary" disabled={busy === t.id} onClick={() => setStatus(t, false)}>Reopen</button>
+              ) : (
+                <button className="btn sm danger" disabled={busy === t.id} onClick={() => setStatus(t, true)}>Close ticket</button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderSection(groupKey: string, status: 'open' | 'closed', label: string, secRows: TicketRow[]) {
+    const key = `${groupKey}:${status}`;
+    const isOpen = secOpen[key] ?? status === 'open'; // Open expanded by default, Closed collapsed
+    return (
+      <div className="tktsec">
+        <button
+          className="tktsec-head"
+          onClick={() => setSecOpen((s) => ({ ...s, [key]: !(s[key] ?? status === 'open') }))}
+        >
+          <span className={`tktsec-dot ${status}`} />
+          {label} <em>{secRows.length}</em>
+          <span className="tkt-caret">{isOpen ? '▴' : '▾'}</span>
+        </button>
+        {isOpen && (
+          secRows.length === 0
+            ? <p className="drawer-muted" style={{ padding: '6px 0 10px' }}>No {status} tickets.</p>
+            : <div className="tkt-list">{secRows.map(renderTicket)}</div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="tkt">
-      <div className="tkt-tabs">
-        {(['open', 'closed', 'all'] as Tab[]).map((k) => (
-          <button key={k} className={`tkt-tab${tab === k ? ' active' : ''}`} onClick={() => setTab(k)}>
-            {k[0].toUpperCase() + k.slice(1)} <span>{counts[k]}</span>
-          </button>
-        ))}
+      <div className="metricgrid">
+        <Metric color="c-red" label="Open" value={counts.open.toLocaleString('en-IN')} big />
+        <Metric color="c-green" label="Closed" value={counts.closed.toLocaleString('en-IN')} big />
+        <Metric color="c-blue" label="Total" value={counts.total.toLocaleString('en-IN')} />
+        <Metric color="c-purple" label="From users" value={counts.fromCustomers.toLocaleString('en-IN')} />
+        <Metric color="c-amber" label="From astrologers" value={counts.fromAstro.toLocaleString('en-IN')} />
+        <Metric color="c-rose" label="High priority" value={counts.high.toLocaleString('en-IN')} />
       </div>
 
-      {shown.length === 0 ? (
-        <p className="drawer-muted">No {tab === 'all' ? '' : tab} tickets in this period.</p>
-      ) : (
-        <div className="tkt-list">
-          {shown.map((t) => {
-            const isOpen = openId === t.id;
-            return (
-              <div key={t.id} className={`tkt-item${isOpen ? ' expanded' : ''}`}>
-                <button className="tkt-head" onClick={() => { setOpenId(isOpen ? null : t.id); setDraft(''); }}>
-                  <div className="tkt-head-main">
-                    <span className="tkt-no">{t.ticketNo}</span>
-                    <span className="tkt-subject">{t.subject}</span>
-                  </div>
-                  <div className="tkt-head-meta">
-                    <span className={`tkt-badge ${t.status}`}>{t.status}</span>
-                    <span className="tkt-caret">{isOpen ? '▴' : '▾'}</span>
-                  </div>
-                </button>
-
-                {isOpen && (
-                  <div className="tkt-body">
-                    <div className="tkt-meta-line">
-                      <span>{t.role === 'astrologer' ? '🔮' : '👤'} {t.who}</span>
-                      <span>{formatDate(t.createdMs)}</span>
-                      {t.priority && <span className={`tkt-pri ${t.priority}`}>{t.priority}</span>}
-                    </div>
-
-                    <div className="tkt-msg">
-                      <span className="tkt-msg-from">Message</span>
-                      <p>{t.message || '(no message provided)'}</p>
-                    </div>
-
-                    {t.thread.map((m, i) => (
-                      <div key={i} className={`tkt-msg reply`}>
-                        <span className="tkt-msg-from">{m.by === 'admin' ? 'You (admin)' : m.by}</span>
-                        <p>{m.text}</p>
-                      </div>
-                    ))}
-
-                    <textarea
-                      className="tkt-reply"
-                      placeholder="Type a reply to the user…"
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                    />
-                    <div className="tkt-actions">
-                      <button className="btn sm" disabled={busy === t.id || !draft.trim()} onClick={() => sendReply(t)}>
-                        {busy === t.id ? 'Sending…' : 'Send reply'}
-                      </button>
-                      {t.status === 'closed' ? (
-                        <button className="btn sm secondary" disabled={busy === t.id} onClick={() => setStatus(t, false)}>Reopen</button>
-                      ) : (
-                        <button className="btn sm danger" disabled={busy === t.id} onClick={() => setStatus(t, true)}>Close ticket</button>
-                      )}
-                    </div>
-                  </div>
-                )}
+      {GROUPS.map((g) => {
+        const groupRows = rows.filter((r) => r.role === g.key);
+        const openRows = groupRows.filter((r) => r.status === 'open');
+        const closedRows = groupRows.filter((r) => r.status === 'closed');
+        const gOpen = groupOpen[g.key];
+        return (
+          <div className="tktgrp" key={g.key}>
+            <button className="tktgrp-head" onClick={() => setGroupOpen((s) => ({ ...s, [g.key]: !s[g.key] }))}>
+              <span className="tktgrp-title">{g.icon} {g.label}</span>
+              <span className="tktgrp-meta">
+                <em>{groupRows.length}</em>
+                <span className="tkt-caret">{gOpen ? '▴' : '▾'}</span>
+              </span>
+            </button>
+            {gOpen && (
+              <div className="tktgrp-body">
+                {renderSection(g.key, 'open', 'Open', openRows)}
+                {renderSection(g.key, 'closed', 'Closed', closedRows)}
               </div>
-            );
-          })}
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

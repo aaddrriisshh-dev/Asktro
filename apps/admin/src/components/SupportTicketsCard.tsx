@@ -5,7 +5,6 @@ import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/
 import { db } from '@/lib/firebase';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
-import { Metric } from './Metric';
 import { DailyChart } from './DailyChart';
 import { SupportTicketList, TicketRow } from './SupportTicketList';
 
@@ -102,16 +101,6 @@ export function SupportTicketsCard() {
       useData={useTickets}
       renderDrawer={(d) => (
         <>
-          <div className="metricgrid">
-            <Metric color="c-red" label="Open" value={d.open.toLocaleString('en-IN')} big />
-            <Metric color="c-green" label="Closed" value={d.closed.toLocaleString('en-IN')} big />
-            <Metric color="c-blue" label="Total" value={d.total.toLocaleString('en-IN')} />
-            <Metric color="c-purple" label="From customers" value={d.fromCustomers.toLocaleString('en-IN')} />
-            <Metric color="c-amber" label="From astrologers" value={d.fromAstrologers.toLocaleString('en-IN')} />
-            <Metric color="c-rose" label="High priority" value={d.highPriority.toLocaleString('en-IN')} />
-          </div>
-
-          <h3 style={{ margin: '4px 0 10px' }}>Tickets</h3>
           <SupportTicketList tickets={d.tickets} />
 
           <h3 style={{ margin: '20px 0 10px' }}>Tickets raised per day</h3>

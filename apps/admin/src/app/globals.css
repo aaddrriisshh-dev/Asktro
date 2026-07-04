@@ -710,6 +710,20 @@ tbody tr:last-child td { border-bottom: none; }
 .tkt-reply:focus { outline: none; border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 16%, transparent); }
 .tkt-actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 
+/* collapsible user/astrologer groups + open/closed sections */
+.tktgrp { border: 1px solid #efeafc; border-radius: 14px; margin-top: 14px; overflow: hidden; background: #fff; box-shadow: 0 4px 12px rgba(46, 43, 95, 0.04); }
+.tktgrp-head { width: 100%; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #faf7ff, #fff); border: none; padding: 14px 16px; cursor: pointer; }
+.tktgrp-title { font-family: var(--serif); font-size: 16px; color: var(--navy); font-weight: 600; display: inline-flex; align-items: center; gap: 9px; }
+.tktgrp-meta { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); }
+.tktgrp-meta em { font-style: normal; font-weight: 700; color: var(--primary); background: #efeafc; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+.tktgrp-body { padding: 6px 14px 14px; border-top: 1px solid #f2eefb; display: flex; flex-direction: column; gap: 6px; }
+.tktsec-head { width: 100%; display: flex; align-items: center; gap: 8px; background: none; border: none; padding: 9px 4px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--navy); }
+.tktsec-head em { font-style: normal; color: var(--muted); font-weight: 600; }
+.tktsec-head .tkt-caret { margin-left: auto; }
+.tktsec-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.tktsec-dot.open { background: #e0564a; }
+.tktsec-dot.closed { background: #2f9c63; }
+
 /* ===== Payout list rows ===== */
 .pay-item { background: #fff; border: 1px solid #efeafc; border-radius: 14px; padding: 13px 15px; box-shadow: 0 4px 12px rgba(46, 43, 95, 0.04); }
 .pay-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
