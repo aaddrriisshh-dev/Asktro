@@ -124,6 +124,34 @@ Gotchas we hit (so future deploys are smooth):
 — new callables need the `allUsers` Cloud Run Invoker grant; re-run `set_admin.mjs <you> "Adrish"` to
 write your profile; then add Vineet & Sanjay from the Admin Management page. Redeploy the admin portal.
 
+## 🟢 DONE — Astrologer Management (screenshots) + Audit Log + attribution
+
+- **Add astrologer** redesigned as a modal matching the reference (photo · name · phone · email ·
+  experience · ₹/min · commission · bio · expertise + language chips · AI toggle), in the celestial design.
+- **Astrologer View page** (`/astrologers/[id]`) — profile card, stat tiles (calls/video/earnings/rating),
+  Audio/Video/All-session tabs — matches the reference.
+- **Approval flow + attribution:** Ops/Astrology/Super can onboard; a non-super add starts **pending**;
+  **only a Super approves/rejects**. Records **Added by / Approved by** (shown in the table & view).
+- **Audit Log** upgraded — live, searchable, colour-coded, shows the acting admin's name.
+
+### ⏳ ACTIVATION CHECKLIST for the whole roles/astrologer batch (deploy when ready)
+1. Deploy new callables (need `allUsers` invoker grant): `createAdmin`, `setAdminRole`, `removeAdmin`, `listAdmins`.
+2. Redeploy modified callables: `createAstrologer`, `updateAstrologer`, `setAstrologerStatus`.
+3. `node scripts/set_admin.mjs <your-email> "Adrish"` → registers your super-admin profile.
+4. Redeploy the admin portal, sign out/in, then add **Vineet & Sanjay** from **Admin Management**.
+
+### ❓ Still open (needed to finish role-scoped Dashboard hiding for Ops)
+- Sachendra (Ops): besides Total Revenue + Money-held-&-owed, also hide net profit / pricing controls?
+- Meeraj (Astrology): do astrologer payouts sit with him or Operations?
+- Vineet & Sanjay's login emails (to create their super-admin accounts).
+
+## 🔵 REMAINING MENU WORK (lower priority / dependent)
+- **Phone Sessions (#4) & Video Sessions (#5)** — new consoles; structurally ready but **empty until
+  voice/video calling ships** (Agora). Build alongside the calling phase.
+- **Banners / Coupons / Push / Reports** — pages already exist; can be polished to fully match the
+  Commit-&-Push spec + audience/placement targeting when you want.
+- **Dashboard revenue-hiding for Ops** — pending the ❓ answers above.
+
 ## 🔵 NEXT BUILD QUEUE — the left-panel menu (from the 12-section spec)
 The admin portal sidebar, in order: 1 Dashboard ✓ · 2 Customer Management · 3 Astrologer Management
 (Add form + View page per screenshots + attribution/approval) · 4 Phone Sessions · 5 Video Sessions ·
