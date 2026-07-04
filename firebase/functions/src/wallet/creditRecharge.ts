@@ -86,6 +86,8 @@ export async function creditRecharge(params: {
       walletBalance: FieldValue.increment(walletCredit),
       bonusBalance: FieldValue.increment(bonus),
       totalRecharge: FieldValue.increment(walletCredit),
+      // stamp the first-recharge moment so conversion analytics can measure it
+      ...(isFirstRecharge ? { firstRechargeAt: FieldValue.serverTimestamp() } : {}),
       updatedAt: FieldValue.serverTimestamp(),
     });
 

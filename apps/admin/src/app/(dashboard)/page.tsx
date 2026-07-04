@@ -11,6 +11,7 @@ import { ActiveAstrologersCard, TotalAstrologersCard } from '@/components/Astrol
 import { PaidUsersCard, UnpaidUsersCard } from '@/components/PaidUnpaidCards';
 import { SupportTicketsCard } from '@/components/SupportTicketsCard';
 import { PayoutCard } from '@/components/PayoutCard';
+import { TestRecharge } from '@/components/TestRecharge';
 
 export default function DashboardPage() {
   const active = useCollection('consultations', [where('status', '==', 'active')]);
@@ -40,6 +41,8 @@ export default function DashboardPage() {
         <SupportTicketsCard />
         <PayoutCard />
       </div>
+
+      <TestRecharge />
 
       <div className="card" style={{ marginTop: 22 }}>
         <h3 className="live-head"><span className="live-dot" />Live activity</h3>

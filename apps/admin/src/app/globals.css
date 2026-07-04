@@ -722,3 +722,26 @@ tbody tr:last-child td { border-bottom: none; }
 .tkt-badge.pay-approved { background: rgba(59, 111, 212, 0.14); color: #3b6fd4; }
 .tkt-badge.pay-processed { background: rgba(60, 179, 113, 0.14); color: #2f9c63; }
 .tkt-badge.pay-rejected { background: rgba(224, 86, 74, 0.14); color: #d1483c; }
+
+/* ===== Test Recharge (dummy gateway) panel ===== */
+.testrc { margin-top: 22px; padding: 0; overflow: hidden; }
+.testrc-head {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(135deg, #fff, #faf7ff); border: none; padding: 16px 20px; cursor: pointer;
+}
+.testrc-title { font-family: var(--serif); font-size: 18px; color: var(--navy); font-weight: 600; display: inline-flex; align-items: center; gap: 10px; }
+.testrc-title em { font-style: normal; font-size: 10.5px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--gold-deep); background: rgba(212, 175, 55, 0.14); padding: 2px 8px; border-radius: 999px; }
+.testrc-caret { color: var(--muted); }
+.testrc-body { padding: 4px 20px 20px; border-top: 1px solid #f0ecfa; }
+.testrc-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin: 12px 0; }
+.testrc-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.testrc-grid select, .testrc-grid input {
+  padding: 10px 12px; border: 1px solid #e7e1f5; border-radius: 10px; font-size: 14px; font-family: inherit; background: #fff; color: var(--text);
+}
+.testrc-grid select:focus, .testrc-grid input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(126, 87, 194, 0.14); }
+.testrc-hint { font-size: 13px; color: var(--muted); margin: 4px 0 12px; }
+.testrc-actions { display: flex; gap: 10px; }
+.testrc-msg { margin: 14px 0 0; padding: 11px 14px; border-radius: 12px; font-size: 13.5px; font-weight: 500; }
+.testrc-msg.ok { background: rgba(60, 179, 113, 0.12); color: #2f9c63; }
+.testrc-msg.err { background: rgba(224, 86, 74, 0.12); color: #d1483c; }
+@media (max-width: 560px) { .testrc-grid { grid-template-columns: 1fr; } }
