@@ -237,6 +237,43 @@ tbody tr:last-child td { border-bottom: none; }
 .sess-col-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
 .sess-scroll { flex: 1; overflow-y: auto; margin-top: 8px; }
 
+/* Live promo preview (push / banner / coupon composer) */
+.promo-wrap { position: sticky; top: 16px; }
+.promo-kind { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+.promo-card { margin-top: 8px; border-radius: 16px; overflow: hidden; box-shadow: 0 12px 30px rgba(46,43,95,.18); max-width: 360px; }
+.promo-img-banner { width: 100%; height: 150px; object-fit: cover; display: block; }
+.promo-body { padding: 14px 16px; }
+.promo-img-portrait { width: 62px; height: 62px; border-radius: 12px; object-fit: cover; flex: none; }
+.promo-title { display: block; font-size: 15.5px; font-weight: 800; line-height: 1.25; }
+.promo-text { margin: 4px 0 0; font-size: 13px; line-height: 1.4; }
+.color-field { display: flex; align-items: center; gap: 8px; }
+.color-field input[type="color"] { width: 40px; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: none; cursor: pointer; padding: 2px; }
+
+/* Desktop image uploader */
+.imgup { display: flex; align-items: center; gap: 14px; }
+.imgup-preview { width: 84px; height: 84px; border-radius: 12px; border: 1.5px dashed var(--line); background: #faf8ff;
+  display: grid; place-items: center; cursor: pointer; overflow: hidden; flex: none; transition: border-color .15s; }
+.imgup-preview:hover { border-color: var(--primary); }
+.imgup-preview.has { border-style: solid; }
+.imgup-preview img { width: 100%; height: 100%; object-fit: cover; }
+.imgup--wide .imgup-preview { width: 160px; height: 84px; }
+.imgup-plus { font-size: 28px; color: var(--muted); }
+.imgup-side { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
+
+/* Customer Management — three equal expandable cards (Live | Paid | Unpaid) */
+.cust3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px; align-items: start; }
+@media (max-width: 1000px) { .cust3 { grid-template-columns: 1fr; } }
+.custcard { display: flex; flex-direction: column; }
+.custlist { display: flex; flex-direction: column; margin-top: 6px; }
+.custrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 2px; border-bottom: 1px solid #f0ebfa; }
+.custrow:last-child { border-bottom: none; }
+.custrow .nm { font-weight: 600; font-size: 13.5px; color: var(--navy); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.custrow .ph { font-size: 12px; color: var(--muted); }
+.custrow-right { display: flex; align-items: center; gap: 8px; flex: none; }
+.cust-wallet { font-size: 12.5px; font-weight: 700; color: var(--gold-deep); }
+.custfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0ebfa; font-size: 12.5px; }
+.custfoot select { margin-left: 6px; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--line); }
+
 /* Astrologer view page */
 .aview-grid { display: grid; grid-template-columns: 320px 1fr; gap: 18px; align-items: start; }
 @media (max-width: 860px) { .aview-grid { grid-template-columns: 1fr; } }

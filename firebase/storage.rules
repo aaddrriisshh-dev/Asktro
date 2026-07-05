@@ -26,6 +26,18 @@ service firebase.storage {
       allow write: if isAdmin() && isImage() && underMB(8);
     }
 
+    // Admin-uploaded astrologer photos: public read, admin write.
+    match /astrologer_photos/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isImage() && underMB(8);
+    }
+
+    // Push-notification / promo images: public read, admin write.
+    match /notification_images/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isImage() && underMB(8);
+    }
+
     // Chat images: only participants of the consultation may read/write.
     // Path carries the consultationId; membership enforced via Firestore-side
     // rules on the message doc that references the file.

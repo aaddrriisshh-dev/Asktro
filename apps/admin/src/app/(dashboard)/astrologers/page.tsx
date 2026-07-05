@@ -5,6 +5,21 @@ import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { useCollection, callFn, Row } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
+import { ImageUpload } from '@/components/ImageUpload';
+
+const PAGE_OPTIONS = [10, 100, 500, 1000];
+function RowsFoot({ shown, total, limit, setLimit }: { shown: number; total: number; limit: number; setLimit: (n: number) => void }) {
+  return (
+    <div className="custfoot">
+      <span className="muted">Showing {shown} of {total}</span>
+      <label className="muted">Rows
+        <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
+          {PAGE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
+      </label>
+    </div>
+  );
+}
 
 const STATUS_COLORS: Record<string, string> = {
   approved: 'green', pending: 'amber', suspended: 'red', rejected: 'red', disabled: 'red',
@@ -21,6 +36,8 @@ export default function AstrologersPage() {
   const isSuper = adminRole === 'super';
   const [showAdd, setShowAdd] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [pendingLimit, setPendingLimit] = useState(10);
+  const [allLimit, setAllLimit] = useState(10);
 
   async function setStatus(id: string, status: string) {
     setBusy(id);
@@ -116,7 +133,8 @@ export default function AstrologersPage() {
               <span className="udet-total">{pending.length} waiting</span>
             </div>
             <p className="muted" style={{ marginTop: 6, fontSize: 12.5 }}>{isSuper ? 'Approve or reject each request.' : 'A Super Admin approves or rejects these.'}</p>
-            <div className="sess-scroll">{astroTable(pending)}</div>
+            <div className="sess-scroll">{astroTable(pending.slice(0, pendingLimit))}</div>
+            <RowsFoot shown={Math.min(pendingLimit, pending.length)} total={pending.length} limit={pendingLimit} setLimit={setPendingLimit} />
           </div>
 
           {/* SECTION — View All */}
@@ -125,7 +143,8 @@ export default function AstrologersPage() {
               <h3 className="celeste" style={{ margin: 0 }}>📋 View All Astrologers</h3>
               <span className="udet-total">{rows.length} total</span>
             </div>
-            <div className="sess-scroll">{astroTable(rows)}</div>
+            <div className="sess-scroll">{astroTable(rows.slice(0, allLimit))}</div>
+            <RowsFoot shown={Math.min(allLimit, rows.length)} total={rows.length} limit={allLimit} setLimit={setAllLimit} />
           </div>
         </>
       )}
@@ -179,8 +198,11 @@ function AddAstrologerModal({ isSuper, onClose }: { isSuper: boolean; onClose: (
           <button className="tktmodal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
         <div className="tktmodal-body">
+          <div className="af" style={{ marginBottom: 14 }}>
+            <span>Photo</span>
+            <ImageUpload folder="astrologer_photos" value={f.profilePhoto} onChange={(url) => set('profilePhoto', url)} />
+          </div>
           <div className="astro-form">
-            <label className="af"><span>Photo URL</span><input className="input" placeholder="https://…" value={f.profilePhoto} onChange={(e) => set('profilePhoto', e.target.value)} /></label>
             <label className="af"><span>Name *</span><input className="input" placeholder="Pt. Rajesh Sharma" value={f.name} onChange={(e) => set('name', e.target.value)} /></label>
             <label className="af"><span>Phone</span><input className="input" placeholder="+91 98765 43210" value={f.phone} onChange={(e) => set('phone', e.target.value)} /></label>
             <label className="af"><span>Email * (login)</span><input className="input" placeholder="astro@example.com" value={f.email} onChange={(e) => set('email', e.target.value)} /></label>

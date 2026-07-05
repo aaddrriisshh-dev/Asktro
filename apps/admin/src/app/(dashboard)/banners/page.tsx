@@ -6,14 +6,19 @@ import { db } from '@/lib/firebase';
 import { useCollection } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 import { formatDate } from '@/lib/format';
+import { ImageUpload } from '@/components/ImageUpload';
+import { PromoPreview } from '@/components/PromoPreview';
 
 const PLACEMENTS = ['home', 'consults', 'wallet', 'alerts', 'profile'] as const;
 const PLACE_LABEL: Record<string, string> = { home: 'Home', consults: 'Consults', wallet: 'Wallet', alerts: 'Alerts', profile: 'Profile' };
+const PRESETS = ['#2e2b5f', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
 
 export default function BannersPage() {
   const { rows, loading } = useCollection('banners');
   const { user, adminName } = useAuth();
   const [f, setF] = useState({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
+  const [bg, setBg] = useState('#2e2b5f');
+  const [fg, setFg] = useState('#ffffff');
   const [busy, setBusy] = useState(false);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
@@ -23,9 +28,8 @@ export default function BannersPage() {
     try {
       await addDoc(collection(db, 'banners'), {
         title: f.title.trim(), description: f.description.trim(), image: f.image.trim(),
-        deeplink: f.deeplink.trim() || null, placement: f.placement, active: true,
-        createdBy: user?.uid ?? null, createdByName: adminName || null,
-        createdAt: serverTimestamp(),
+        deeplink: f.deeplink.trim() || null, placement: f.placement, bgColor: bg, textColor: fg, active: true,
+        createdBy: user?.uid ?? null, createdByName: adminName || null, createdAt: serverTimestamp(),
       });
       setF({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
     } catch (e) { alert('Failed: ' + (e as Error).message); }
@@ -34,27 +38,42 @@ export default function BannersPage() {
 
   return (
     <div>
-      <h1 style={{ marginBottom: 2 }}>Banners</h1>
-      <p className="muted" style={{ margin: 0, fontSize: 13 }}>Merchandise the app. Commit &amp; Push drops a banner into the chosen area.</p>
+      <h1 style={{ marginBottom: 2 }}>Banners Management</h1>
+      <p className="muted" style={{ margin: 0, fontSize: 13 }}>Design the banner, preview it, then Commit &amp; Push to the chosen area of the app.</p>
 
-      <div className="card" style={{ marginTop: 16, marginBottom: 20 }}>
-        <h3 style={{ marginTop: 0 }}>New banner</h3>
-        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <label className="af"><span>Title</span><input className="input" value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
-          <label className="af"><span>Deep link (optional)</span><input className="input" placeholder="asktro://…" value={f.deeplink} onChange={(e) => set('deeplink', e.target.value)} /></label>
-          <label className="af"><span>Image URL</span><input className="input" placeholder="https://…" value={f.image} onChange={(e) => set('image', e.target.value)} /></label>
-          <label className="af"><span>Placement</span>
-            <select className="input" value={f.placement} onChange={(e) => set('placement', e.target.value)}>
-              {PLACEMENTS.map((p) => <option key={p} value={p}>{PLACE_LABEL[p]}</option>)}
-            </select>
-          </label>
+      <div className="grid" style={{ gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 18, marginTop: 16 }}>
+        <div className="card">
+          <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <label className="af"><span>Title</span><input className="input" value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
+            <label className="af"><span>Placement</span>
+              <select className="input" value={f.placement} onChange={(e) => set('placement', e.target.value)}>
+                {PLACEMENTS.map((p) => <option key={p} value={p}>{PLACE_LABEL[p]}</option>)}
+              </select>
+            </label>
+          </div>
+          <label className="af" style={{ marginTop: 12 }}><span>Description</span>
+            <textarea className="input" rows={2} value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
+          <label className="af" style={{ marginTop: 12 }}><span>Deep link (optional)</span>
+            <input className="input" placeholder="asktro://…" value={f.deeplink} onChange={(e) => set('deeplink', e.target.value)} /></label>
+
+          <p className="af-label">Image (upload from your desktop)</p>
+          <ImageUpload folder="banner_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
+
+          <p className="af-label">Background &amp; text colour</p>
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Background</span><input type="color" value={bg} onChange={(e) => setBg(e.target.value)} /></div>
+            <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Text</span><input type="color" value={fg} onChange={(e) => setFg(e.target.value)} /></div>
+            <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
+          </div>
+
+          <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
-        <label className="af" style={{ marginTop: 12 }}><span>Description</span>
-          <textarea className="input" rows={2} value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
-        <div style={{ marginTop: 14 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
+
+        <PromoPreview kind="banner" title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg} />
       </div>
 
-      <div className="card">
+      <div className="card" style={{ marginTop: 18 }}>
+        <h3 className="celeste" style={{ marginTop: 0 }}>Live banners</h3>
         {loading ? <p className="muted">Loading…</p> : rows.length === 0 ? <p className="muted">No banners yet.</p> : (
           <div style={{ overflowX: 'auto' }}>
             <table>
