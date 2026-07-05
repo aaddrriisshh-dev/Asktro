@@ -16,8 +16,8 @@ export const ROLE_LABEL: Record<string, string> = {
 //        auditing session transcripts) + Payouts as view-only.
 const ROLE_ROUTES: Record<AdminRole, string[] | '*'> = {
   super: '*',
-  ops: ['/', '/astrologers', '/users', '/plans', '/banners', '/coupons', '/payouts', '/pricing', '/broadcast', '/reports', '/support', '/cms', '/audit'],
-  astrology: ['/astrologers', '/payouts', '/audit'],
+  ops: ['/', '/users', '/astrologers', '/phone-sessions', '/video-sessions', '/plans', '/banners', '/coupons', '/broadcast', '/reports', '/cms', '/audit', '/payouts', '/pricing', '/support'],
+  astrology: ['/astrologers', '/phone-sessions', '/video-sessions', '/payouts', '/audit'],
 };
 
 // Routes a role may OPEN but not change (view-only). Enforced in the UI and,
