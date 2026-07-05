@@ -46,6 +46,8 @@ Widget _codePill(Coupon c, Color fg, Color chipBg) => Container(
 Widget _grabCta(BuildContext ctx, Coupon c, PromoTheme? th) {
   final grad = th != null ? promoAccent(th) : const LinearGradient(colors: kPromoGoldAccent);
   final txt = th?.accentTx ?? Ob.navy;
+  // Use the admin's call-to-action text when set; fall back to a sensible default.
+  final label = (c.ctaText?.trim().isNotEmpty ?? false) ? c.ctaText!.trim() : 'Grab this offer';
   return SizedBox(
     width: double.infinity,
     child: Material(
@@ -61,7 +63,7 @@ Widget _grabCta(BuildContext ctx, Coupon c, PromoTheme? th) {
           child: Container(
             height: 50,
             alignment: Alignment.center,
-            child: Text('Grab this offer', style: Ob.option.copyWith(color: txt, fontWeight: FontWeight.w800, fontSize: 15)),
+            child: Text(label, style: Ob.option.copyWith(color: txt, fontWeight: FontWeight.w800, fontSize: 15)),
           ),
         ),
       ),
