@@ -206,7 +206,7 @@ Future<void> _full(BuildContext context, PromoTheme th, String title, String bod
       child: Stack(
         fit: StackFit.expand,
         children: [
-          PromoSurface(theme: th, variant: PromoVariant.full, radius: 0, showFrame: false, child: const SizedBox.expand()),
+          PromoSurface(theme: th, variant: PromoVariant.full, radius: 0, showFrame: false, artHero: false, child: const SizedBox.expand()),
           SafeArea(
             child: Stack(
               children: [

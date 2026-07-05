@@ -25,6 +25,7 @@ class PromoSurface extends StatelessWidget {
     this.variant = PromoVariant.card,
     this.radius = 20,
     this.showFrame = true,
+    this.artHero = true,
   });
 
   final PromoTheme theme;
@@ -32,6 +33,12 @@ class PromoSurface extends StatelessWidget {
   final PromoVariant variant;
   final double radius;
   final bool showFrame;
+
+  /// When false, a split theme's foreground gift/mandala hero art is suppressed
+  /// on the full-screen variant — used when the caller draws its own hero (the
+  /// promo popup) so the two don't stack into a double gift. The background
+  /// gradient, wheel watermark and golden frame are unaffected.
+  final bool artHero;
 
   Widget _wheel(String art) {
     final color = art == 'zgold'
@@ -78,7 +85,7 @@ class PromoSurface extends StatelessWidget {
           alignment: Alignment.centerRight,
           child: FractionallySizedBox(widthFactor: 0.46, heightFactor: 0.94, alignment: Alignment.centerRight, child: img),
         ),),),);
-      } else if (variant == PromoVariant.full) {
+      } else if (variant == PromoVariant.full && artHero) {
         out.add(Positioned.fill(child: IgnorePointer(child: Align(
           alignment: const Alignment(0, -0.42),
           child: FractionallySizedBox(widthFactor: 0.66, heightFactor: 0.4, child: img),
