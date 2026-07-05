@@ -46,77 +46,89 @@ export default function AstrologersPage() {
 
   const pending = rows.filter((a: Row) => (a.accountStatus ?? 'pending') === 'pending');
 
+  function astroTable(list: Row[]) {
+    if (list.length === 0) return <p className="drawer-muted">Nothing here yet.</p>;
+    return (
+      <div style={{ overflowX: 'auto' }}>
+        <table>
+          <thead>
+            <tr><th>Astrologer</th><th>Rate</th><th>Commission</th><th>Online</th><th>Status</th><th>Attribution</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {list.map((a: Row) => {
+              const rate = rupees(a.ratePerMinutePaise);
+              const st = a.accountStatus ?? 'pending';
+              return (
+                <tr key={a.id}>
+                  <td>
+                    <Link href={`/astrologers/${a.id}`} style={{ fontWeight: 700 }}>{a.name || 'Unnamed'}</Link>
+                    {a.verified ? ' ✓' : ''}
+                    {a.isAI ? <span className="badge purple" style={{ marginLeft: 6, fontSize: 11 }}>AI</span> : ''}
+                  </td>
+                  <td>{rate != null ? `₹${rate}/min` : <span className="muted">default</span>}</td>
+                  <td>{typeof a.commissionPercent === 'number' ? `${a.commissionPercent}%` : <span className="muted">default</span>}</td>
+                  <td>{a.onlineStatus ? '🟢' : '⚪'}</td>
+                  <td><span className={`badge ${STATUS_COLORS[st] ?? ''}`}>{st}</span></td>
+                  <td className="muted" style={{ fontSize: 12 }}>
+                    {a.addedByName ? <>Added by <b>{a.addedByName as string}</b></> : <span>—</span>}
+                    {a.approvedByName ? <><br />Approved by <b>{a.approvedByName as string}</b></> : null}
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <Link href={`/astrologers/${a.id}`} className="btn sm secondary">View</Link>
+                      <button className="btn sm secondary" disabled={busy === a.id} onClick={() => editRates(a)}>Edit rate</button>
+                      {st !== 'approved' && isSuper && (
+                        <button className="btn sm" disabled={busy === a.id} onClick={() => setStatus(a.id, 'approved')}>Approve</button>
+                      )}
+                      {st === 'pending' && isSuper && (
+                        <button className="btn sm danger" disabled={busy === a.id} onClick={() => { if (confirm(`Reject ${a.name}?`)) setStatus(a.id, 'rejected'); }}>Reject</button>
+                      )}
+                      {st === 'approved' && (
+                        <button className="btn sm secondary" disabled={busy === a.id} onClick={() => setStatus(a.id, 'suspended')}>Suspend</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="uat-head">
         <div>
           <h1 style={{ marginBottom: 2 }}>Astrologer Management</h1>
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>Onboard, approve and manage real &amp; AI astrologers.</p>
         </div>
-        <button className="btn" onClick={() => setShowAdd(true)}>+ Add astrologer</button>
+        <button className="btn" onClick={() => setShowAdd(true)}>+ Add New Astrologer</button>
       </div>
 
-      {pending.length > 0 && (
-        <div className="card" style={{ borderLeft: '4px solid var(--gold)', marginTop: 16 }}>
-          <strong>{pending.length} onboarding request{pending.length === 1 ? '' : 's'} awaiting approval</strong>
-          <span className="muted" style={{ marginLeft: 8, fontSize: 13 }}>
-            {isSuper ? 'Approve or reject below.' : 'A Super Admin needs to approve these.'}
-          </span>
-        </div>
-      )}
-
-      <div className="card" style={{ marginTop: 16 }}>
-        {loading ? <p className="muted">Loading…</p> : (
-          <div style={{ overflowX: 'auto' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Astrologer</th><th>Rate</th><th>Commission</th><th>Online</th>
-                  <th>Status</th><th>Attribution</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((a: Row) => {
-                  const rate = rupees(a.ratePerMinutePaise);
-                  const st = a.accountStatus ?? 'pending';
-                  return (
-                    <tr key={a.id}>
-                      <td>
-                        <Link href={`/astrologers/${a.id}`} style={{ fontWeight: 700 }}>{a.name || 'Unnamed'}</Link>
-                        {a.verified ? ' ✓' : ''}
-                        {a.isAI ? <span className="badge purple" style={{ marginLeft: 6, fontSize: 11 }}>AI</span> : ''}
-                      </td>
-                      <td>{rate != null ? `₹${rate}/min` : <span className="muted">default</span>}</td>
-                      <td>{typeof a.commissionPercent === 'number' ? `${a.commissionPercent}%` : <span className="muted">default</span>}</td>
-                      <td>{a.onlineStatus ? '🟢' : '⚪'}</td>
-                      <td><span className={`badge ${STATUS_COLORS[st] ?? ''}`}>{st}</span></td>
-                      <td className="muted" style={{ fontSize: 12 }}>
-                        {a.addedByName ? <>Added by <b>{a.addedByName as string}</b></> : <span>—</span>}
-                        {a.approvedByName ? <><br />Approved by <b>{a.approvedByName as string}</b></> : null}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          <Link href={`/astrologers/${a.id}`} className="btn sm secondary">View</Link>
-                          <button className="btn sm secondary" disabled={busy === a.id} onClick={() => editRates(a)}>Edit rate</button>
-                          {st !== 'approved' && isSuper && (
-                            <button className="btn sm" disabled={busy === a.id} onClick={() => setStatus(a.id, 'approved')}>Approve</button>
-                          )}
-                          {st === 'pending' && isSuper && (
-                            <button className="btn sm danger" disabled={busy === a.id} onClick={() => { if (confirm(`Reject ${a.name}?`)) setStatus(a.id, 'rejected'); }}>Reject</button>
-                          )}
-                          {st === 'approved' && (
-                            <button className="btn sm secondary" disabled={busy === a.id} onClick={() => setStatus(a.id, 'suspended')}>Suspend</button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {loading ? <p className="muted" style={{ marginTop: 16 }}>Loading…</p> : (
+        <>
+          {/* SECTION — Pending Approval */}
+          <div className="card sess-col" style={{ marginTop: 16, borderTop: '3px solid var(--gold)' }}>
+            <div className="sess-col-head">
+              <h3 className="celeste" style={{ margin: 0 }}>🕐 Pending Approval</h3>
+              <span className="udet-total">{pending.length} waiting</span>
+            </div>
+            <p className="muted" style={{ marginTop: 6, fontSize: 12.5 }}>{isSuper ? 'Approve or reject each request.' : 'A Super Admin approves or rejects these.'}</p>
+            <div className="sess-scroll">{astroTable(pending)}</div>
           </div>
-        )}
-      </div>
+
+          {/* SECTION — View All */}
+          <div className="card sess-col" style={{ marginTop: 16, borderTop: '3px solid var(--primary)' }}>
+            <div className="sess-col-head">
+              <h3 className="celeste" style={{ margin: 0 }}>📋 View All Astrologers</h3>
+              <span className="udet-total">{rows.length} total</span>
+            </div>
+            <div className="sess-scroll">{astroTable(rows)}</div>
+          </div>
+        </>
+      )}
 
       {showAdd && createPortal(<AddAstrologerModal isSuper={isSuper} onClose={() => setShowAdd(false)} />, document.body)}
     </div>
