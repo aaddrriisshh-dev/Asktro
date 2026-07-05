@@ -9,8 +9,9 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
-import { assertRole, badRequest, notFound } from '../common/errors';
+import { assertRole, assertAuthed, badRequest, notFound, failedPrecondition } from '../common/errors';
 import { writeLedger } from '../wallet/ledger';
+import { creditRecharge, autoResumePausedSession } from '../wallet/creditRecharge';
 
 export const devSimulateRecharge = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
@@ -59,4 +60,26 @@ export const devSimulateRecharge = onCall(async (req) => {
     createdAt: FieldValue.serverTimestamp(),
   });
   return { ok: true, ...result };
+});
+
+/**
+ * simulateRechargeSelf — a "dummy gateway" for the SIGNED-IN user to recharge a
+ * plan without Razorpay, running the SAME creditRecharge logic (plan bonus,
+ * ledger, notification) a real payment would. For pre-launch testing only:
+ * gated behind config/global.devPaymentsEnabled so it is inert in production.
+ */
+export const simulateRechargeSelf = onCall(async (req) => {
+  const userId = assertAuthed(req);
+  const { planId } = (req.data ?? {}) as { planId?: string };
+  if (!planId) badRequest('planId is required.');
+
+  const cfg = await db.collection('config').doc('global').get();
+  if (cfg.data()?.devPaymentsEnabled !== true) {
+    failedPrecondition('Test payments are disabled. Enable config/global.devPaymentsEnabled to use this.');
+  }
+
+  const ref = `dev_${userId.slice(0, 6)}_${Date.now()}`;
+  const result = await creditRecharge({ userId, paymentId: ref, orderId: ref, planId: planId!, source: 'callable' });
+  const resumedConsultationId = await autoResumePausedSession(userId);
+  return { ...result, resumedConsultationId };
 });

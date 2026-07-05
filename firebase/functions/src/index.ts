@@ -47,4 +47,4 @@ export { onSupportTicketCreated } from './admin/supportTrigger';
 export { createAdmin, setAdminRole, removeAdmin, listAdmins } from './admin/admins';
 
 // ---- Dev/testing: dummy payment gateway ----
-export { devSimulateRecharge } from './admin/devTools';
+export { devSimulateRecharge, simulateRechargeSelf } from './admin/devTools';

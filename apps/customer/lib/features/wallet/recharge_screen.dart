@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
@@ -103,6 +105,28 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
     _snack('Payment was not completed. Your wallet was not charged.');
   }
 
+  // Debug-only "dummy gateway": credits the wallet through the same server logic
+  // a real payment uses, so the offer → celebration → bonus loop can be tested
+  // before Razorpay keys exist. Server-guarded by config/global.devPaymentsEnabled.
+  Future<void> _simulatePay() async {
+    final plan = _selected;
+    if (plan == null) return;
+    setState(() => _processing = true);
+    try {
+      await ref.read(functionsProvider).httpsCallable('simulateRechargeSelf').call({'planId': plan.id});
+      if (!mounted) return;
+      setState(() => _processing = false);
+      ref.read(analyticsProvider).logEvent(AnalyticsEvents.rechargeSuccess, params: {
+        'planId': plan.id, 'amount': plan.amount, 'simulated': true,
+      });
+      _showSuccess(plan);
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      setState(() => _processing = false);
+      _snack(e.message ?? 'Simulated payment failed');
+    }
+  }
+
   void _showSuccess(RechargePlan plan) {
     showDialog(
       context: context,
@@ -203,13 +227,23 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-                    child: GoldButton(
-                      label: _selected == null
-                          ? 'Select an amount'
-                          : 'Proceed  •  ${Money.formatPaise(_selected!.amount)}',
-                      icon: null,
-                      loading: _processing,
-                      onPressed: (_selected == null || _processing) ? null : _startRecharge,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GoldButton(
+                          label: _selected == null
+                              ? 'Select an amount'
+                              : 'Proceed  •  ${Money.formatPaise(_selected!.amount)}',
+                          icon: null,
+                          loading: _processing,
+                          onPressed: (_selected == null || _processing) ? null : _startRecharge,
+                        ),
+                        if (kDebugMode && _selected != null)
+                          TextButton(
+                            onPressed: _processing ? null : _simulatePay,
+                            child: const Text('Simulate payment (test)'),
+                          ),
+                      ],
                     ),
                   ),
                 ],
