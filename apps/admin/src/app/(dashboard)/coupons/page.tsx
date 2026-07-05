@@ -140,7 +140,13 @@ export default function CouponsPage() {
                     <td><span className="badge amber">{AUD_LABEL[c.audience] ?? 'All Users'}</span></td>
                     <td>{c.usedCount ?? 0}{c.usageLimit ? ` / ${c.usageLimit}` : ''}</td>
                     <td className="muted" style={{ fontSize: 13 }}>{(c.createdByName as string) || '—'}</td>
-                    <td><button className={`btn sm ${c.active ? 'secondary' : ''}`} onClick={() => updateDoc(doc(db, 'coupons', c.id), { active: !c.active })}>{c.active ? 'On' : 'Off'}</button></td>
+                    <td>
+                      <label className="switch" title={c.active ? 'Active — visible in the app' : 'Off — hidden from the app'}>
+                        <input type="checkbox" checked={!!c.active} onChange={() => updateDoc(doc(db, 'coupons', c.id), { active: !c.active })} />
+                        <span className="track"></span>
+                        <span className="switch-lbl">{c.active ? 'On' : 'Off'}</span>
+                      </label>
+                    </td>
                     <td><button className="btn sm danger" onClick={() => { if (confirm('Delete this coupon?')) deleteDoc(doc(db, 'coupons', c.id)); }}>Delete</button></td>
                   </tr>
                 ))}

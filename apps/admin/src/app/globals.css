@@ -1188,3 +1188,14 @@ tbody tr:last-child td { border-bottom: none; }
 .udet-sess-body { padding: 4px 14px 14px; border-top: 1px solid #f0ebfa; }
 .udet-avatar { width: 54px; height: 54px; border-radius: 50%; flex: none; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #ead079, var(--gold)); color: var(--navy); font-family: var(--serif); font-size: 24px; font-weight: 600; border: 2px solid #fff; box-shadow: 0 6px 16px rgba(46, 43, 95, 0.14); }
 .udet-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---- toggle switch (Active status) ---- */
+.switch { position: relative; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch .track { position: relative; width: 42px; height: 24px; border-radius: 999px; background: #cfc9e0; transition: background .2s ease; flex: none; }
+.switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(30, 20, 60, .35); transition: transform .2s ease; }
+.switch input:checked + .track { background: linear-gradient(120deg, var(--primary, #7E57C2), #5E3FBE); }
+.switch input:checked + .track::after { transform: translateX(18px); }
+.switch input:focus-visible + .track { outline: 2px solid var(--primary, #7E57C2); outline-offset: 2px; }
+.switch .switch-lbl { font-size: 12px; font-weight: 600; color: var(--muted); min-width: 26px; }
+.switch input:checked ~ .switch-lbl { color: var(--primary, #7E57C2); }
