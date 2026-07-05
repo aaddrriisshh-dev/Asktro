@@ -80,7 +80,7 @@ class AstrologerRepository {
         .where((a) =>
             a.name.toLowerCase().contains(q) ||
             a.expertise.any((e) => e.toLowerCase().contains(q)) ||
-            a.languages.any((l) => l.toLowerCase().contains(q)))
+            a.languages.any((l) => l.toLowerCase().contains(q)),)
         .toList();
   }
 }
@@ -155,7 +155,7 @@ class CatalogRepository {
         final list = s.docs.map((d) {
           final ts = d.data()['createdAt'];
           return PromoBanner.fromMap(d.id, d.data(),
-              createdAtMs: ts is Timestamp ? ts.millisecondsSinceEpoch : 0);
+              createdAtMs: ts is Timestamp ? ts.millisecondsSinceEpoch : 0,);
         }).toList()
           ..sort((a, b) {
             if (a.priority != b.priority) return b.priority.compareTo(a.priority);
@@ -206,7 +206,7 @@ class WalletRepository {
               d.data(),
               createdAtMs: ts is Timestamp ? ts.millisecondsSinceEpoch : null,
             );
-          }).toList());
+          }).toList(),);
 }
 
 class NotificationRepository {
@@ -226,7 +226,7 @@ class NotificationRepository {
               d.data(),
               createdAtMs: ts is Timestamp ? ts.millisecondsSinceEpoch : null,
             );
-          }).toList());
+          }).toList(),);
 
   Future<void> markRead(String id) =>
       _db.collection('notifications').doc(id).update({'read': true});

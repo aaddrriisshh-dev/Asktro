@@ -45,7 +45,7 @@ class ConnectivityBanner extends ConsumerWidget {
                         const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 18),
                         const SizedBox(width: 8),
                         Text('No Internet Connection. Trying to reconnect…',
-                            style: AppTypography.caption.copyWith(color: Colors.white)),
+                            style: AppTypography.caption.copyWith(color: Colors.white),),
                       ],
                     ),
                   ),

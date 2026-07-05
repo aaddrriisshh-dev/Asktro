@@ -31,7 +31,7 @@ class ConsultationServiceImpl implements ConsultationService {
     required ConsultationType type,
   }) =>
       _call('createConsultation', {'astrologerId': astrologerId, 'type': type.name},
-          (m) => StartConsultationResult(consultationId: m['consultationId'] as String));
+          (m) => StartConsultationResult(consultationId: m['consultationId'] as String),);
 
   @override
   Future<Result<void>> activate(String consultationId) =>
@@ -52,7 +52,7 @@ class ConsultationServiceImpl implements ConsultationService {
 
   @override
   Future<Result<void>> pause(String consultationId, {String? reason}) => _call(
-      'pauseConsultation', {'consultationId': consultationId, if (reason != null) 'reason': reason}, (_) {});
+      'pauseConsultation', {'consultationId': consultationId, if (reason != null) 'reason': reason}, (_) {},);
 
   @override
   Future<Result<void>> resume(String consultationId) =>
@@ -79,7 +79,7 @@ class ConsultationServiceImpl implements ConsultationService {
   @override
   Future<Result<void>> rate(String consultationId, {required double rating, String? review}) =>
       _call('rateConsultation',
-          {'consultationId': consultationId, 'rating': rating, if (review != null) 'review': review}, (_) {});
+          {'consultationId': consultationId, 'rating': rating, if (review != null) 'review': review}, (_) {},);
 
   @override
   Stream<Consultation> watch(String consultationId) => _db

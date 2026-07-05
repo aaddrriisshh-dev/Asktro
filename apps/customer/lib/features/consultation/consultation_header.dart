@@ -44,7 +44,7 @@ class ConsultationHeader extends StatelessWidget {
                   Flexible(
                     child: Text(astrologerName,
                         style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
-                        overflow: TextOverflow.ellipsis),
+                        overflow: TextOverflow.ellipsis,),
                   ),
                   if (verified) ...[const SizedBox(width: 4), const VerifiedBadge(size: 14)],
                 ],
@@ -61,7 +61,7 @@ class ConsultationHeader extends StatelessWidget {
                   Icon(Icons.timer_outlined, size: 16, color: _timerColor),
                   const SizedBox(width: 4),
                   Text(Money.formatDuration(remainingSec),
-                      style: AppTypography.body.copyWith(color: _timerColor, fontWeight: FontWeight.w700)),
+                      style: AppTypography.body.copyWith(color: _timerColor, fontWeight: FontWeight.w700),),
                 ],
               ),
             ),

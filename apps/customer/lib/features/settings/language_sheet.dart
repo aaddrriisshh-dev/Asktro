@@ -102,7 +102,7 @@ class _LanguageSheetState extends ConsumerState<_LanguageSheet> {
               alignment: Alignment.center,
               decoration: const BoxDecoration(color: Ob.lavenderChip, shape: BoxShape.circle),
               child: Text(native.substring(0, 1),
-                  style: Ob.option.copyWith(color: Ob.purple, fontSize: 17)),
+                  style: Ob.option.copyWith(color: Ob.purple, fontSize: 17),),
             ),
             const SizedBox(width: 14),
             Expanded(

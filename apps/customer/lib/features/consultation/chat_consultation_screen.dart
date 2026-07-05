@@ -184,7 +184,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
             Text('Consultation Paused', style: AppTypography.subtitle),
             const SizedBox(height: AppSpacing.xs),
             Text('Recharge now to continue exactly where you left off.',
-                style: AppTypography.caption, textAlign: TextAlign.center),
+                style: AppTypography.caption, textAlign: TextAlign.center,),
             const SizedBox(height: AppSpacing.xl),
             PrimaryButton(
               label: 'Recharge',
@@ -233,7 +233,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
         ref.read(analyticsProvider).logEvent(AnalyticsEvents.consultationCompleted, params: {
           'type': c.type.name,
           'durationSec': c.duration,
-        });
+        },);
         showConsultationEnd(context, ref, consultation: c, astrologer: widget.astrologer);
       },
       failure: (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))),
@@ -307,7 +307,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text('${widget.astrologer.name} is typing…',
-                      style: AppTypography.caption.copyWith(fontStyle: FontStyle.italic)),
+                      style: AppTypography.caption.copyWith(fontStyle: FontStyle.italic),),
                 ),
               ),
             _Composer(
@@ -362,19 +362,19 @@ class _Bubble extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(imageUrl!, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined)),
+                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),),
               ),
             if (text.isNotEmpty)
               Padding(
                 padding: EdgeInsets.only(top: hasImage ? 6 : 0, left: hasImage ? 6 : 0, right: hasImage ? 6 : 0),
                 child: Text(text,
-                    style: AppTypography.body.copyWith(color: mine ? Colors.white : AppColors.textDark)),
+                    style: AppTypography.body.copyWith(color: mine ? Colors.white : AppColors.textDark),),
               ),
             if (mine)
               Padding(
                 padding: const EdgeInsets.only(top: 2, right: 2),
                 child: Icon(seen ? Icons.done_all_rounded : Icons.done_rounded,
-                    size: 14, color: mine ? Colors.white70 : AppColors.textSecondary),
+                    size: 14, color: mine ? Colors.white70 : AppColors.textSecondary,),
               ),
           ],
         ),

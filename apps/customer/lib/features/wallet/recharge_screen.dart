@@ -11,7 +11,7 @@ import '../profile_setup/onboarding_style.dart';
 import '../profile_setup/onboarding_widgets.dart';
 
 final _plansProvider = StreamProvider.autoDispose<List<RechargePlan>>(
-    (ref) => ref.watch(catalogRepositoryProvider).watchPlans());
+    (ref) => ref.watch(catalogRepositoryProvider).watchPlans(),);
 
 /// "Add Cash" — pick an amount, then pay via Razorpay. The wallet is credited
 /// server-side (Cloud Function) on payment verification.
@@ -165,7 +165,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
         ref.read(analyticsProvider).logEvent(AnalyticsEvents.rechargeSuccess, params: {
           'planId': plan.id,
           'amount': plan.amount,
-        });
+        },);
         _showSuccess(plan);
       },
       failure: (f) => _snack(f.message),
@@ -194,7 +194,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
       setState(() => _processing = false);
       ref.read(analyticsProvider).logEvent(AnalyticsEvents.rechargeSuccess, params: {
         'planId': plan.id, 'amount': plan.amount, 'simulated': 1,
-      });
+      },);
       _showSuccess(plan);
     } catch (e) {
       // Backend not deployed/enabled yet — still preview the celebration UI so
@@ -248,7 +248,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                     const Icon(Icons.account_balance_wallet_rounded, size: 16, color: Ob.purple),
                     const SizedBox(width: 6),
                     Text(Money.formatPaise(balance),
-                        style: Ob.option.copyWith(fontSize: 13, fontWeight: FontWeight.w600, color: Ob.purple)),
+                        style: Ob.option.copyWith(fontSize: 13, fontWeight: FontWeight.w600, color: Ob.purple),),
                   ],
                 ),
               ),
@@ -312,7 +312,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                             runSpacing: spacing,
                             children: [for (final p in shown) _tile(p, w)],
                           );
-                        }),
+                        },),
                       ],
                     ),
                   ),
@@ -459,7 +459,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                 width: 38,
                 height: 38,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.35), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.35), shape: BoxShape.circle),
                 child: const Text('🎁', style: TextStyle(fontSize: 20)),
               ),
               const SizedBox(width: 12),
@@ -470,7 +470,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                     Text('View all offers', style: Ob.title.copyWith(color: Ob.navy, fontSize: 16)),
                     const SizedBox(height: 2),
                     Text('Coupons & extra-bonus deals on your recharge',
-                        style: Ob.option.copyWith(color: Ob.navy.withOpacity(0.8), fontSize: 12)),
+                        style: Ob.option.copyWith(color: Ob.navy.withValues(alpha: 0.8), fontSize: 12),),
                   ],
                 ),
               ),
@@ -569,7 +569,7 @@ class _RechargeCelebrationState extends State<_RechargeCelebration> with SingleT
         child: Transform.scale(
           scale: 0.4 + appear * 0.9,
           child: Icon(Icons.auto_awesome,
-              size: s.size, color: s.gold ? const Color(0xFFF3D97C) : Colors.white),
+              size: s.size, color: s.gold ? const Color(0xFFF3D97C) : Colors.white,),
         ),
       ),
     );
@@ -624,14 +624,14 @@ class _RechargeCelebrationState extends State<_RechargeCelebration> with SingleT
             Text('Congratulations! 🎉', style: Ob.title.copyWith(fontSize: 26), textAlign: TextAlign.center),
             const SizedBox(height: 8),
             Text('${Money.formatPaise(plan.walletCredit)} added to your wallet',
-                style: Ob.subtitle, textAlign: TextAlign.center),
+                style: Ob.subtitle, textAlign: TextAlign.center,),
             if (bonus > 0) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                 decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(999)),
                 child: Text('🎁  +${Money.formatPaise(bonus)} bonus unlocked!',
-                    style: Ob.option.copyWith(color: Ob.navy, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                    style: Ob.option.copyWith(color: Ob.navy, fontWeight: FontWeight.w700, fontSize: 13.5),),
               ),
             ],
             const SizedBox(height: 22),

@@ -161,7 +161,7 @@ class _TicketTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: (closed ? Colors.green : AppColors.primary).withOpacity(0.12),
+                    color: (closed ? Colors.green : AppColors.primary).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(

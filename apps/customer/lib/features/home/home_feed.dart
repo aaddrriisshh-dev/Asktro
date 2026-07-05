@@ -14,15 +14,15 @@ import '../profile_setup/onboarding_widgets.dart';
 import '../wallet/promo_surface.dart';
 
 final _onlineProvider = StreamProvider.autoDispose<List<Astrologer>>(
-    (ref) => ref.watch(astrologerRepositoryProvider).watchOnline());
+    (ref) => ref.watch(astrologerRepositoryProvider).watchOnline(),);
 final _featuredProvider = StreamProvider.autoDispose<List<Astrologer>>(
-    (ref) => ref.watch(astrologerRepositoryProvider).watchFeatured());
+    (ref) => ref.watch(astrologerRepositoryProvider).watchFeatured(),);
 final _topRatedProvider = StreamProvider.autoDispose<List<Astrologer>>(
-    (ref) => ref.watch(astrologerRepositoryProvider).watchTopRated());
+    (ref) => ref.watch(astrologerRepositoryProvider).watchTopRated(),);
 final _newestProvider = StreamProvider.autoDispose<List<Astrologer>>(
-    (ref) => ref.watch(astrologerRepositoryProvider).watchNewest());
+    (ref) => ref.watch(astrologerRepositoryProvider).watchNewest(),);
 final _homeBannersProvider = StreamProvider.autoDispose<List<PromoBanner>>(
-    (ref) => ref.watch(catalogRepositoryProvider).watchBanners('home'));
+    (ref) => ref.watch(catalogRepositoryProvider).watchBanners('home'),);
 
 void _comingSoon(BuildContext context, String title) {
   showModalBottomSheet(
@@ -131,7 +131,7 @@ class HomeFeed extends ConsumerWidget {
                     child: hasPhoto
                         ? Image.network(photo, width: 46, height: 46, fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) =>
-                                Text(initial, style: Ob.title.copyWith(color: Colors.white, fontSize: 20)))
+                                Text(initial, style: Ob.title.copyWith(color: Colors.white, fontSize: 20)),)
                         : Text(initial, style: Ob.title.copyWith(color: Colors.white, fontSize: 20)),
                   ),
                   Positioned(
@@ -152,14 +152,14 @@ class HomeFeed extends ConsumerWidget {
           const SizedBox(width: 10),
           Flexible(
             child: Text('Hi $first',
-                style: Ob.title.copyWith(fontSize: 18), overflow: TextOverflow.ellipsis),
+                style: Ob.title.copyWith(fontSize: 18), overflow: TextOverflow.ellipsis,),
           ),
           const SizedBox(width: 8),
           _addCash(context),
           const SizedBox(width: 7),
           // Notification bell → the Alerts tab.
           _iconCircle(Icons.notifications_none_rounded,
-              () => ref.read(homeTabProvider.notifier).state = 3),
+              () => ref.read(homeTabProvider.notifier).state = 3,),
           const SizedBox(width: 5),
           _iconCircle(Icons.language_rounded, () => showLanguageSheet(context)),
           const SizedBox(width: 5),
@@ -238,7 +238,7 @@ class _ToolTabs extends StatelessWidget {
       child: Row(
         children: [
           _tool(context, 'assets/onboarding/tool_horoscope.png', 'Daily\nHoroscope',
-              () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HoroscopeScreen()))),
+              () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HoroscopeScreen())),),
           _tool(context, 'assets/onboarding/tool_match.png', 'Kundali\nMatch', () => _comingSoon(context, 'Kundali Match')),
           _tool(context, 'assets/onboarding/tool_kundali.png', 'Janam\nKundali', () => _comingSoon(context, 'Janam Kundali')),
           _tool(context, 'assets/onboarding/tool_free.png', 'Free\nServices', () => _comingSoon(context, 'Free Services')),
@@ -267,7 +267,7 @@ class _ToolTabs extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(label,
                     textAlign: TextAlign.center,
-                    style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600, height: 1.2)),
+                    style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600, height: 1.2),),
               ],
             ),
           ),
@@ -406,7 +406,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
             children: [
               if (hasImg)
                 Image.network(b.image, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),),
               if (hasImg)
                 const DecoratedBox(
                   decoration: BoxDecoration(
@@ -429,7 +429,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
                         child: Text(b.title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: Ob.title.copyWith(color: fg, fontSize: 22, height: 1.1)),
+                            style: Ob.title.copyWith(color: fg, fontSize: 22, height: 1.1),),
                       ),
                     if (b.subtitle.isNotEmpty) ...[
                       const SizedBox(height: 5),
@@ -438,7 +438,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
                         child: Text(b.subtitle,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: Ob.note.copyWith(color: fg.withValues(alpha: 0.92))),
+                            style: Ob.note.copyWith(color: fg.withValues(alpha: 0.92)),),
                       ),
                     ],
                     if ((b.cta ?? '').isNotEmpty) ...[
@@ -447,7 +447,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(13)),
                         child: Text('${b.cta}  →',
-                            style: Ob.option.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700, color: bg)),
+                            style: Ob.option.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700, color: bg),),
                       ),
                     ],
                   ],
@@ -471,13 +471,13 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
           Text(b.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Ob.title.copyWith(color: fg, fontSize: 22, height: 1.1)),
+              style: Ob.title.copyWith(color: fg, fontSize: 22, height: 1.1),),
         if (b.subtitle.isNotEmpty) ...[
           const SizedBox(height: 5),
           Text(b.subtitle,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Ob.note.copyWith(color: fg.withValues(alpha: 0.92))),
+              style: Ob.note.copyWith(color: fg.withValues(alpha: 0.92)),),
         ],
         if ((b.cta ?? '').isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -485,7 +485,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(gradient: promoAccent(th), borderRadius: BorderRadius.circular(13)),
             child: Text('${b.cta}  →',
-                style: Ob.option.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700, color: th.accentTx ?? Ob.navy)),
+                style: Ob.option.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700, color: th.accentTx ?? Ob.navy),),
           ),
         ],
       ],
@@ -566,20 +566,20 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
               // A few gold sparkles rising off the illustration.
               const Positioned(
                   right: 40, top: 12,
-                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0xCCF3D97C), size: 15))),
+                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0xCCF3D97C), size: 15)),),
               const Positioned(
                   right: 16, top: 58,
-                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x99F3D97C), size: 10))),
+                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x99F3D97C), size: 10)),),
               const Positioned(
                   right: 104, top: 26,
-                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x77F3D97C), size: 9))),
+                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x77F3D97C), size: 9)),),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(kicker,
                       style: Ob.note.copyWith(
-                          color: const Color(0xFFEAD79A), letterSpacing: 1.4, fontWeight: FontWeight.w600, fontSize: 11)),
+                          color: const Color(0xFFEAD79A), letterSpacing: 1.4, fontWeight: FontWeight.w600, fontSize: 11,),),
                   const SizedBox(height: 6),
                   SizedBox(width: 195, child: Text(title, style: Ob.title.copyWith(color: Colors.white, fontSize: 25, height: 1.05))),
                   const SizedBox(height: 4),
@@ -589,7 +589,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
                     decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(14)),
                     child: Text('$cta  →',
-                        style: Ob.option.copyWith(fontSize: 13, fontWeight: FontWeight.w600, color: Ob.navy)),
+                        style: Ob.option.copyWith(fontSize: 13, fontWeight: FontWeight.w600, color: Ob.navy),),
                   ),
                 ],
               ),
@@ -608,7 +608,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
         decoration: BoxDecoration(
             gradient: _grad(const [Color(0xFF5238A0), Color(0xFF2E2159)]),
             borderRadius: BorderRadius.circular(24),
-            boxShadow: _bshadow),
+            boxShadow: _bshadow,),
         child: Stack(
           children: [
             // faint zodiac-wheel watermark, top-right
@@ -675,7 +675,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
             const SizedBox(height: 9),
             Text(label,
                 textAlign: TextAlign.center,
-                style: Ob.note.copyWith(color: Colors.white, fontSize: 10.5, height: 1.2, fontWeight: FontWeight.w600)),
+                style: Ob.note.copyWith(color: Colors.white, fontSize: 10.5, height: 1.2, fontWeight: FontWeight.w600),),
           ],
         ),
       );

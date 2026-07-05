@@ -29,7 +29,7 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
     if (type != ConsultationType.chat) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Voice & video calls are coming soon. Please use Chat for now.'),
-      ));
+      ),);
       return;
     }
     setState(() => _starting = true);
@@ -42,10 +42,10 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
         ref.read(analyticsProvider).logEvent(AnalyticsEvents.consultationStarted, params: {
           'type': type.name,
           'astrologerId': a.id,
-        });
+        },);
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => ChatConsultationScreen(consultationId: start.consultationId, astrologer: a),
-        ));
+        ),);
       },
       failure: (f) {
         if (f.code == 'INSUFFICIENT_BALANCE') {
@@ -90,7 +90,7 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
             IconButton(
               tooltip: isFav ? 'Remove favourite' : 'Add favourite',
               icon: Icon(isFav ? Icons.favorite : Icons.favorite_border,
-                  color: isFav ? AppColors.error : AppColors.textSecondary),
+                  color: isFav ? AppColors.error : AppColors.textSecondary,),
               onPressed: () => ref
                   .read(userRepositoryProvider)
                   .toggleFavourite(profile.id, widget.astrologerId, !isFav),

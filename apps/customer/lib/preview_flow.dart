@@ -87,7 +87,7 @@ Widget _framed(Widget child) {
                       Icon(Icons.close_rounded, color: Colors.white, size: 18),
                       SizedBox(width: 6),
                       Text('Menu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    ]),
+                    ],),
                   ),
                 ),
               ),
@@ -151,7 +151,7 @@ class _Gallery extends StatelessWidget {
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               title: Text(e.label,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17)),
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17),),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(e.subtitle),

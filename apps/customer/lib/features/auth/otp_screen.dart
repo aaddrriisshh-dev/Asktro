@@ -111,7 +111,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               Row(
                 children: [
                   Text('Code sent to ${widget.args.phone}',
-                      style: AppTypography.body.copyWith(color: AppColors.textSecondary)),
+                      style: AppTypography.body.copyWith(color: AppColors.textSecondary),),
                   TextButton(onPressed: () => context.pop(), child: const Text('Edit')),
                 ],
               ),
@@ -138,7 +138,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               Center(
                 child: _seconds > 0
                     ? Text('Resend code in 00:${_seconds.toString().padLeft(2, '0')}',
-                        style: AppTypography.caption)
+                        style: AppTypography.caption,)
                     : TextButton(onPressed: _resend, child: const Text('Resend code')),
               ),
             ],

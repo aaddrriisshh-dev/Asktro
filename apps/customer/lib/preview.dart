@@ -50,7 +50,7 @@ class _PreviewShellState extends State<_PreviewShell> {
   int _i = 0;
   late final _tabs = [
     const _HomePreview(),
-    _ChatPreview(),
+    const _ChatPreview(),
     const _WalletPreview(),
     const _ProfilePreview(),
   ];
@@ -99,19 +99,19 @@ class _HomePreview extends StatelessWidget {
                 const Icon(Icons.account_balance_wallet, size: 18, color: AppColors.primary),
                 const SizedBox(width: 6),
                 Text(Money.formatPaise(64000), style: AppTypography.body.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
-              ]),
+              ],),
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.lg),
         Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(color: AppColors.card, borderRadius: AppRadius.searchR, boxShadow: AppShadows.soft),
-          child: Row(children: const [
+          decoration: const BoxDecoration(color: AppColors.card, borderRadius: AppRadius.searchR, boxShadow: AppShadows.soft),
+          child: const Row(children: [
             Icon(Icons.search, color: AppColors.textSecondary),
             SizedBox(width: 8),
             Text('Search astrologers...', style: TextStyle(color: AppColors.textSecondary)),
-          ]),
+          ],),
         ),
         const SizedBox(height: AppSpacing.lg),
         GradientCard(
@@ -130,7 +130,7 @@ class _HomePreview extends StatelessWidget {
         ..._samples.map((a) => Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: _SampleAstroCard(a: a),
-            )),
+            ),),
       ],
     );
   }
@@ -155,12 +155,12 @@ class _SampleAstroCard extends StatelessWidget {
                     Row(children: [
                       Flexible(child: Text(a.name, style: AppTypography.subtitle, overflow: TextOverflow.ellipsis)),
                       if (a.verified) ...[const SizedBox(width: 6), const VerifiedBadge()],
-                    ]),
+                    ],),
                     Text(a.expertise.join(' • '), style: AppTypography.caption),
                     Row(children: [
                       const Icon(Icons.star_rounded, size: 16, color: AppColors.warning),
                       Text(' ${a.rating} · ${a.experience}y exp', style: AppTypography.caption),
-                    ]),
+                    ],),
                   ],
                 ),
               ),
@@ -196,7 +196,7 @@ class _ChatPreview extends StatelessWidget {
               decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(14)),
               child: Text('⏱ 01:58', style: AppTypography.body.copyWith(color: AppColors.warning, fontWeight: FontWeight.w700)),
             ),
-          ]),
+          ],),
         ),
         const Expanded(
           child: Padding(
@@ -269,17 +269,17 @@ class _WalletPreview extends StatelessWidget {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('₹499', style: AppTypography.title),
             Text('+ ₹150 bonus', style: AppTypography.caption.copyWith(color: AppColors.success)),
-          ])),
+          ],),),
           const LabelBadge(text: 'Recommended'),
-        ])),
+        ],),),
         const SizedBox(height: AppSpacing.sm),
         AppCard(child: Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('₹199', style: AppTypography.title),
             Text('+ ₹30 bonus', style: AppTypography.caption.copyWith(color: AppColors.success)),
-          ])),
+          ],),),
           const LabelBadge(text: 'Popular', filled: false),
-        ])),
+        ],),),
       ],
     );
   }
@@ -298,8 +298,8 @@ class _ProfilePreview extends StatelessWidget {
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Adrish', style: AppTypography.subtitle),
             Text('+91 90000 00000', style: AppTypography.caption),
-          ]),
-        ]),
+          ],),
+        ],),
         const SizedBox(height: AppSpacing.xl),
         const EmptyState(
           icon: Icons.card_giftcard_rounded,

@@ -37,7 +37,7 @@ class WalletTab extends ConsumerWidget {
                 if ((profile?.bonusBalance ?? 0) > 0) ...[
                   const SizedBox(height: 4),
                   Text('Includes ${Money.formatPaise(profile!.bonusBalance)} bonus',
-                      style: AppTypography.caption.copyWith(color: Colors.white70)),
+                      style: AppTypography.caption.copyWith(color: Colors.white70),),
                 ],
                 const SizedBox(height: AppSpacing.lg),
                 SizedBox(
@@ -98,12 +98,12 @@ class _TxnTile extends StatelessWidget {
             CircleAvatar(
               backgroundColor: (credit ? AppColors.success : AppColors.primary).withValues(alpha: 0.12),
               child: Icon(credit ? Icons.south_west_rounded : Icons.north_east_rounded,
-                  color: credit ? AppColors.success : AppColors.primary, size: 20),
+                  color: credit ? AppColors.success : AppColors.primary, size: 20,),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(t.note ?? t.kind.name,
-                  style: AppTypography.body, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  style: AppTypography.body, maxLines: 1, overflow: TextOverflow.ellipsis,),
             ),
             Text(
               '${credit ? '+' : '-'}${Money.formatPaise(t.amount.abs())}',

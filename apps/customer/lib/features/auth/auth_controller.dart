@@ -64,7 +64,7 @@ class AuthController {
   Future<Result<void>> signInWithGoogle() async {
     try {
       final googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return ResultFailure(const Failure(message: 'Sign-in cancelled'));
+      if (googleUser == null) return const ResultFailure(Failure(message: 'Sign-in cancelled'));
       final googleAuth = await googleUser.authentication;
       final cred = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,

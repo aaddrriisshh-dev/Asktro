@@ -29,25 +29,25 @@ class ProfileTab extends ConsumerWidget {
             _card([
               _row(Icons.account_balance_wallet_rounded, 'My Wallet',
                   onTap: () => context.push('/recharge'),
-                  trailing: _pill(Money.formatPaise(profile?.spendablePaise ?? 0))),
+                  trailing: _pill(Money.formatPaise(profile?.spendablePaise ?? 0)),),
               _row(Icons.chat_bubble_outline_rounded, 'My Sessions',
-                  onTap: () => _soon(context, 'My Sessions')),
+                  onTap: () => _soon(context, 'My Sessions'),),
               _row(Icons.favorite_border_rounded, 'My Favourites',
-                  onTap: () => _soon(context, 'My Favourites')),
+                  onTap: () => _soon(context, 'My Favourites'),),
               _row(Icons.self_improvement_rounded, 'Suggested Remedies',
-                  onTap: () => _soon(context, 'Suggested Remedies')),
+                  onTap: () => _soon(context, 'Suggested Remedies'),),
             ]),
             _label('EXPLORE'),
             _card([
               _row(Icons.auto_awesome_rounded, 'Chat with an Astrologer',
                   onTap: () => Navigator.of(context)
-                      .push(MaterialPageRoute(builder: (_) => const SearchScreen()))),
+                      .push(MaterialPageRoute(builder: (_) => const SearchScreen())),),
               _row(Icons.live_tv_rounded, 'Live Session', onTap: () => _soon(context, 'Live Session')),
               _row(Icons.card_giftcard_rounded, 'Free Service',
-                  onTap: () => _soon(context, 'Free Service'), badge: 'NEW'),
+                  onTap: () => _soon(context, 'Free Service'), badge: 'NEW',),
               if (profile != null)
                 _row(Icons.redeem_rounded, 'Refer a Friend',
-                    onTap: () => _referral(context, profile.referralCode)),
+                    onTap: () => _referral(context, profile.referralCode),),
             ]),
             _label('SETTINGS'),
             _card([
@@ -59,15 +59,15 @@ class ProfileTab extends ConsumerWidget {
                       onChanged: (v) => ref
                           .read(userRepositoryProvider)
                           .updateProfile(profile.id, {'notificationEnabled': v}),
-                    )),
+                    ),),
               _row(Icons.headset_mic_rounded, 'Help & Support',
-                  onTap: () => _push(context, const SupportScreen())),
+                  onTap: () => _push(context, const SupportScreen()),),
               _row(Icons.privacy_tip_outlined, 'Privacy Policy',
-                  onTap: () => _push(context, const CmsViewerScreen(page: 'privacy', title: 'Privacy Policy'))),
+                  onTap: () => _push(context, const CmsViewerScreen(page: 'privacy', title: 'Privacy Policy')),),
               _row(Icons.description_outlined, 'Terms of Service',
-                  onTap: () => _push(context, const CmsViewerScreen(page: 'terms', title: 'Terms of Service'))),
+                  onTap: () => _push(context, const CmsViewerScreen(page: 'terms', title: 'Terms of Service')),),
               _row(Icons.info_outline_rounded, 'About ASKTRO',
-                  onTap: () => _push(context, const CmsViewerScreen(page: 'about', title: 'About ASKTRO'))),
+                  onTap: () => _push(context, const CmsViewerScreen(page: 'about', title: 'About ASKTRO')),),
             ]),
             const SizedBox(height: 8),
             GestureDetector(
@@ -82,7 +82,7 @@ class ProfileTab extends ConsumerWidget {
                 ),
                 child: Center(
                   child: Text('Log out',
-                      style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w600)),
+                      style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w600),),
                 ),
               ),
             ),
@@ -91,7 +91,7 @@ class ProfileTab extends ConsumerWidget {
               child: TextButton(
                 onPressed: () => _confirmDelete(context, ref),
                 child: Text('Delete account',
-                    style: Ob.note.copyWith(color: const Color(0xFFD64545))),
+                    style: Ob.note.copyWith(color: const Color(0xFFD64545)),),
               ),
             ),
           ],
@@ -108,7 +108,7 @@ class ProfileTab extends ConsumerWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF8E6BD1), Color(0xFF5E3FBE)]),
+            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF8E6BD1), Color(0xFF5E3FBE)],),
         borderRadius: BorderRadius.circular(26),
         boxShadow: [BoxShadow(color: const Color(0xFF5E3FBE).withValues(alpha: 0.28), blurRadius: 22, offset: const Offset(0, 12))],
       ),
@@ -127,7 +127,7 @@ class ProfileTab extends ConsumerWidget {
                 clipBehavior: Clip.antiAlias,
                 child: (profile?.profilePhoto != null && profile!.profilePhoto!.isNotEmpty)
                     ? Image.network(profile.profilePhoto!, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _initial(initial))
+                        errorBuilder: (_, __, ___) => _initial(initial),)
                     : _initial(initial),
               ),
               const SizedBox(width: 16),
@@ -137,7 +137,7 @@ class ProfileTab extends ConsumerWidget {
                   children: [
                     Text(name.isEmpty ? 'Your Profile' : name,
                         style: Ob.title.copyWith(color: Colors.white, fontSize: 25),
-                        overflow: TextOverflow.ellipsis),
+                        overflow: TextOverflow.ellipsis,),
                     Text(profile?.phone ?? '', style: Ob.note.copyWith(color: const Color(0xFFE1D6F7))),
                   ],
                 ),
@@ -155,9 +155,9 @@ class ProfileTab extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('WALLET BALANCE',
-                        style: Ob.note.copyWith(color: const Color(0xFFEAD79A), fontSize: 10, letterSpacing: 1)),
+                        style: Ob.note.copyWith(color: const Color(0xFFEAD79A), fontSize: 10, letterSpacing: 1),),
                     Text(Money.formatPaise(profile?.spendablePaise ?? 0),
-                        style: Ob.title.copyWith(color: Colors.white, fontSize: 22)),
+                        style: Ob.title.copyWith(color: Colors.white, fontSize: 22),),
                   ],
                 ),
                 const Spacer(),
@@ -167,7 +167,7 @@ class ProfileTab extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
                     decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(12)),
                     child: Text('+ Add Money',
-                        style: Ob.option.copyWith(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        style: Ob.option.copyWith(fontSize: 12.5, fontWeight: FontWeight.w600),),
                   ),
                 ),
               ],
@@ -180,7 +180,7 @@ class ProfileTab extends ConsumerWidget {
 
   Widget _initial(String initial) => Center(
         child: Text(initial,
-            style: Ob.title.copyWith(color: Colors.white, fontSize: 32)),
+            style: Ob.title.copyWith(color: Colors.white, fontSize: 32),),
       );
 
   // ---- rows / cards ----
@@ -197,7 +197,7 @@ class ProfileTab extends ConsumerWidget {
             rows[i],
             if (i != rows.length - 1) const Divider(height: 1, indent: 64, endIndent: 16, color: Ob.border),
           ],
-        ]),
+        ],),
       );
 
   Widget _row(IconData icon, String label, {VoidCallback? onTap, Widget? trailing, String? badge}) {
@@ -248,7 +248,7 @@ class ProfileTab extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
         decoration: const BoxDecoration(
-            color: Ob.bgColor, borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+            color: Ob.bgColor, borderRadius: BorderRadius.vertical(top: Radius.circular(28)),),
         padding: const EdgeInsets.fromLTRB(24, 22, 24, 34),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -263,7 +263,7 @@ class ProfileTab extends ConsumerWidget {
             Text(title, style: Ob.title, textAlign: TextAlign.center),
             const SizedBox(height: 8),
             Text("This feature is on its way — check back soon ✦",
-                style: Ob.subtitle, textAlign: TextAlign.center),
+                style: Ob.subtitle, textAlign: TextAlign.center,),
           ],
         ),
       ),
@@ -276,7 +276,7 @@ class ProfileTab extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
         decoration: const BoxDecoration(
-            color: Ob.bgColor, borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+            color: Ob.bgColor, borderRadius: BorderRadius.vertical(top: Radius.circular(28)),),
         padding: const EdgeInsets.fromLTRB(24, 22, 24, 34),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -284,15 +284,15 @@ class ProfileTab extends ConsumerWidget {
             Text('Refer a Friend', style: Ob.title),
             const SizedBox(height: 8),
             Text('Share your code — you both get wallet credit when they recharge.',
-                style: Ob.subtitle, textAlign: TextAlign.center),
+                style: Ob.subtitle, textAlign: TextAlign.center,),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
               decoration: BoxDecoration(
                   color: Ob.lavenderChip, borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Ob.selectedBorder)),
+                  border: Border.all(color: Ob.selectedBorder),),
               child: Text(code.isEmpty ? '—' : code,
-                  style: Ob.title.copyWith(color: Ob.purpleDeep, letterSpacing: 2)),
+                  style: Ob.title.copyWith(color: Ob.purpleDeep, letterSpacing: 2),),
             ),
           ],
         ),
@@ -306,12 +306,12 @@ class ProfileTab extends ConsumerWidget {
       builder: (_) => AlertDialog(
         title: const Text('Delete account?'),
         content: const Text(
-            'This permanently removes your profile and data. Active consultations must be finished first.'),
+            'This permanently removes your profile and data. Active consultations must be finished first.',),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete', style: TextStyle(color: Color(0xFFD64545)))),
+              child: const Text('Delete', style: TextStyle(color: Color(0xFFD64545))),),
         ],
       ),
     );

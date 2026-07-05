@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
@@ -77,15 +76,15 @@ class _HistoryTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('${c.type.name[0].toUpperCase()}${c.type.name.substring(1)} consultation',
-                    style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
+                    style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),),
                 const SizedBox(height: 2),
                 Text('${Money.formatDurationLong(c.duration)} • ${c.status.name}',
-                    style: AppTypography.caption),
+                    style: AppTypography.caption,),
               ],
             ),
           ),
           Text(Money.formatPaise(c.totalCharged),
-              style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
+              style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),),
         ],
       ),
     );

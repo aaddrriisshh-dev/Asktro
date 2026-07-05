@@ -14,11 +14,11 @@ class _Page {
 
 const _pages = [
   _Page(Icons.chat_bubble_outline_rounded, 'Talk to Trusted Astrologers',
-      'Get instant guidance from verified professional astrologers through chat, voice and video consultations.'),
+      'Get instant guidance from verified professional astrologers through chat, voice and video consultations.',),
   _Page(Icons.account_balance_wallet_outlined, 'Recharge & Consult Anytime',
-      'A simple wallet with secure payments and instant consultations, whenever you need clarity.'),
+      'A simple wallet with secure payments and instant consultations, whenever you need clarity.',),
   _Page(Icons.lock_outline_rounded, 'Private & Secure',
-      'Every consultation is private, encrypted and completely secure.'),
+      'Every consultation is private, encrypted and completely secure.',),
 ];
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -92,7 +92,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         Text(p.title, style: AppTypography.title, textAlign: TextAlign.center),
                         const SizedBox(height: AppSpacing.md),
                         Text(p.body, style: AppTypography.body.copyWith(color: AppColors.textSecondary),
-                            textAlign: TextAlign.center),
+                            textAlign: TextAlign.center,),
                       ],
                     ),
                   );

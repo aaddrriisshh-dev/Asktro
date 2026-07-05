@@ -121,7 +121,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           setState(() => _saving = false);
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Could not save your details. Please try again.'),
-          ));
+          ),);
         }
         return;
       }
@@ -220,12 +220,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             textAlign: TextAlign.center,
             text: TextSpan(
               style: Ob.subtitle.copyWith(fontSize: 16, color: Ob.navy),
-              children: [
-                const TextSpan(text: "You've unlocked your "),
+              children: const [
+                TextSpan(text: "You've unlocked your "),
                 TextSpan(
                     text: 'Free Chat',
-                    style: TextStyle(color: Ob.goldDeep, fontWeight: FontWeight.w600)),
-                const TextSpan(text: ' with an Astrologer  ✦'),
+                    style: TextStyle(color: Ob.goldDeep, fontWeight: FontWeight.w600),),
+                TextSpan(text: ' with an Astrologer  ✦'),
               ],
             ),
           ),
@@ -317,7 +317,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             const SizedBox(height: 8),
             Text(title,
                 style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center),
+                textAlign: TextAlign.center,),
             const SizedBox(height: 4),
             Text(desc, style: Ob.note.copyWith(fontSize: 11), textAlign: TextAlign.center),
           ],
@@ -429,7 +429,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                           top: 8,
                           right: 12,
                           child: Icon(Icons.auto_awesome,
-                              color: accent.withValues(alpha: 0.7), size: 12),
+                              color: accent.withValues(alpha: 0.7), size: 12,),
                         ),
                       ],
                     ),
@@ -593,7 +593,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           const SizedBox(height: 8),
           _stepHead('Tell us your relationship status',
               'This helps our astrologers give you more relevant and personalized guidance.',
-              accent: 'relationship'),
+              accent: 'relationship',),
           const SizedBox(height: 22),
           Row(
             children: [
@@ -631,7 +631,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         children: [
           const SizedBox(height: 8),
           _stepHead('Select all your languages',
-              "Choose the languages you're comfortable in. You can always change this later."),
+              "Choose the languages you're comfortable in. You can always change this later.",),
           const SizedBox(height: 22),
           LayoutBuilder(builder: (context, c) {
             const spacing = 10.0;
@@ -641,7 +641,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               runSpacing: spacing,
               children: [for (final l in langs) SizedBox(width: w, child: _languageTile(l[0], l[1]))],
             );
-          }),
+          },),
           const SizedBox(height: 18),
           const InfoNote(icon: Icons.language_rounded, body: 'You can add or remove languages anytime from your profile settings.'),
         ],
@@ -683,7 +683,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               child: Text(label,
                   style: Ob.option.copyWith(fontSize: 13.5),
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
+                  overflow: TextOverflow.ellipsis,),
             ),
             selected
                 ? const GoldCheck(size: 20)

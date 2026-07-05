@@ -17,7 +17,7 @@ class RtcTokenServiceImpl implements RtcTokenService {
         appId: m['appId'] as String,
         channel: m['channel'] as String,
         uid: (m['uid'] ?? 0) as int,
-      ));
+      ),);
     } on FirebaseFunctionsException catch (e) {
       return ResultFailure(Failure(message: e.message ?? 'Could not join call', code: e.code));
     } catch (e) {

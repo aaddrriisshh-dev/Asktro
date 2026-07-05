@@ -6,11 +6,10 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 import '../profile_setup/onboarding_style.dart';
-import '../profile_setup/onboarding_widgets.dart';
 import 'promo_surface.dart';
 
 final _couponsProvider = StreamProvider.autoDispose<List<Coupon>>(
-    (ref) => ref.watch(catalogRepositoryProvider).watchCoupons());
+    (ref) => ref.watch(catalogRepositoryProvider).watchCoupons(),);
 
 /// Guards the app-open offer popup so it shows at most once per app launch.
 final offerPopupShownProvider = StateProvider<bool>((ref) => false);
@@ -76,7 +75,7 @@ Widget _closeBtn(BuildContext ctx, Color fg) => GestureDetector(
         width: 32,
         height: 32,
         alignment: Alignment.center,
-        decoration: BoxDecoration(color: Colors.black.withOpacity(0.22), shape: BoxShape.circle),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.22), shape: BoxShape.circle),
         child: Icon(Icons.close_rounded, color: fg, size: 19),
       ),
     );
@@ -113,14 +112,14 @@ Future<void> _showCenter(BuildContext context, Coupon c, PromoTheme? th) {
             const SizedBox(height: 14),
             Text(_ttl(c), style: Ob.title.copyWith(fontSize: 22, color: fg), textAlign: TextAlign.center),
             const SizedBox(height: 8),
-            Text(_bodyText(c), style: Ob.subtitle.copyWith(fontSize: 14, color: fg.withOpacity(0.9)), textAlign: TextAlign.center),
+            Text(_bodyText(c), style: Ob.subtitle.copyWith(fontSize: 14, color: fg.withValues(alpha: 0.9)), textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            _codePill(c, fg, th != null ? fg.withOpacity(0.16) : _hex(c.bgColor, Ob.purple)),
+            _codePill(c, fg, th != null ? fg.withValues(alpha: 0.16) : _hex(c.bgColor, Ob.purple)),
             const SizedBox(height: 18),
             _grabCta(ctx, c, th),
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('Maybe later', style: Ob.option.copyWith(color: fg.withOpacity(0.8), fontWeight: FontWeight.w600)),
+              child: Text('Maybe later', style: Ob.option.copyWith(color: fg.withValues(alpha: 0.8), fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -160,9 +159,9 @@ Future<void> _showHalf(BuildContext context, Coupon c, PromoTheme th) {
                   children: [
                     Text(_ttl(c), style: Ob.title.copyWith(color: fg, fontSize: 23), textAlign: TextAlign.center),
                     const SizedBox(height: 10),
-                    Text(_bodyText(c), style: Ob.subtitle.copyWith(color: fg.withOpacity(0.92), fontSize: 14), textAlign: TextAlign.center),
+                    Text(_bodyText(c), style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 14), textAlign: TextAlign.center),
                     const SizedBox(height: 18),
-                    _codePill(c, fg, fg.withOpacity(0.16)),
+                    _codePill(c, fg, fg.withValues(alpha: 0.16)),
                     const SizedBox(height: 16),
                     _grabCta(ctx, c, th),
                   ],
@@ -202,9 +201,9 @@ Future<void> _showFull(BuildContext context, Coupon c, PromoTheme th) {
                     children: [
                       Text(_ttl(c), style: Ob.title.copyWith(color: fg, fontSize: 27), textAlign: TextAlign.center),
                       const SizedBox(height: 10),
-                      Text(_bodyText(c), style: Ob.subtitle.copyWith(color: fg.withOpacity(0.92), fontSize: 15), textAlign: TextAlign.center),
+                      Text(_bodyText(c), style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 15), textAlign: TextAlign.center),
                       const SizedBox(height: 18),
-                      _codePill(c, fg, fg.withOpacity(0.16)),
+                      _codePill(c, fg, fg.withValues(alpha: 0.16)),
                       const SizedBox(height: 14),
                       _grabCta(ctx, c, th),
                     ],
@@ -267,7 +266,7 @@ class _OfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final th = promoThemeById(coupon.theme);
-    final onTap = () => context.push('/recharge?coupon=${Uri.encodeComponent(coupon.code)}');
+    Future<Object?> onTap() => context.push('/recharge?coupon=${Uri.encodeComponent(coupon.code)}');
     if (th != null) return _themed(context, th, onTap);
 
     // Fallback (no theme): the original solid-colour ticket.
@@ -291,7 +290,7 @@ class _OfferCard extends StatelessWidget {
                 ],
               ),
             ),
-            _tearFooter(context, fg, Colors.white.withOpacity(0.12)),
+            _tearFooter(context, fg, Colors.white.withValues(alpha: 0.12)),
           ],
         ),
       ),
@@ -320,7 +319,7 @@ class _OfferCard extends StatelessWidget {
         radius: 20,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [top, _tearFooter(context, fg, Colors.black.withOpacity(0.14))],
+          children: [top, _tearFooter(context, fg, Colors.black.withValues(alpha: 0.14))],
         ),
       ),
     );
@@ -331,11 +330,11 @@ class _OfferCard extends StatelessWidget {
         children: [
           Text(coupon.title.isNotEmpty ? coupon.title : 'Wallet offer', style: Ob.title.copyWith(color: fg, fontSize: 19)),
           const SizedBox(height: 6),
-          Text(_bodyText(coupon), style: Ob.subtitle.copyWith(color: fg.withOpacity(0.9), fontSize: 13.5)),
+          Text(_bodyText(coupon), style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.9), fontSize: 13.5)),
           if (coupon.minimumRecharge > 0) ...[
             const SizedBox(height: 6),
             Text('On recharge of ${Money.formatPaise(coupon.minimumRecharge)} or more',
-                style: Ob.option.copyWith(color: fg.withOpacity(0.75), fontSize: 11.5)),
+                style: Ob.option.copyWith(color: fg.withValues(alpha: 0.75), fontSize: 11.5),),
           ],
           if (reward) ...[
             const SizedBox(height: 10),

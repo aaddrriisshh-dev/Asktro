@@ -18,7 +18,7 @@ Future<void> showConsultationEnd(
   return Navigator.of(context).push(MaterialPageRoute(
     fullscreenDialog: true,
     builder: (_) => _ConsultationEndScreen(consultation: consultation, astrologer: astrologer),
-  ));
+  ),);
 }
 
 class _ConsultationEndScreen extends ConsumerStatefulWidget {
@@ -47,7 +47,7 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
     ref.read(analyticsProvider).logEvent(AnalyticsEvents.ratingSubmitted, params: {
       'rating': _rating,
       'astrologerId': widget.astrologer.id,
-    });
+    },);
     _close();
   }
 
@@ -96,7 +96,7 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
                   return IconButton(
                     onPressed: () => setState(() => _rating = i + 1),
                     icon: Icon(filled ? Icons.star_rounded : Icons.star_border_rounded,
-                        color: AppColors.warning, size: 36),
+                        color: AppColors.warning, size: 36,),
                   );
                 }),
               ),

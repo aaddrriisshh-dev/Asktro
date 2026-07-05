@@ -18,7 +18,7 @@ class WalletServiceImpl implements WalletService {
         currency: (m['currency'] ?? 'INR') as String,
         keyId: m['keyId'] as String,
         planId: m['planId'] as String,
-      ));
+      ),);
     } on FirebaseFunctionsException catch (e) {
       return ResultFailure(Failure(message: e.message ?? 'Could not start recharge', code: e.code));
     } catch (e) {
@@ -61,7 +61,7 @@ class WalletServiceImpl implements WalletService {
       return Success(CouponValidation(
         couponId: (m['couponId'] ?? '') as String,
         discountPaise: (m['discountPaise'] ?? 0) as int,
-      ));
+      ),);
     } on FirebaseFunctionsException catch (e) {
       return ResultFailure(Failure(message: e.message ?? 'Invalid coupon', code: e.code));
     } catch (e) {

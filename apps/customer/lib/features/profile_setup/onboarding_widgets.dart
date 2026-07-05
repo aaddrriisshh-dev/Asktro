@@ -70,7 +70,7 @@ class OnboardingScaffold extends StatelessWidget {
                     physics: const BouncingScrollPhysics(),
                     // generous bottom padding so the last item never crowds the CTA
                     padding: const EdgeInsets.fromLTRB(
-                        Ob.screenPad, Ob.section, Ob.screenPad, 28),
+                        Ob.screenPad, Ob.section, Ob.screenPad, 28,),
                     child: content,
                   ),
                 ),
@@ -110,7 +110,7 @@ class OnboardingScaffold extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('Explore More',
-                        style: Ob.subtitle.copyWith(color: Ob.navy, fontWeight: FontWeight.w600)),
+                        style: Ob.subtitle.copyWith(color: Ob.navy, fontWeight: FontWeight.w600),),
                     const Icon(Icons.chevron_right_rounded, color: Ob.navy, size: 20),
                   ],
                 ),
@@ -209,7 +209,7 @@ class SparkleDivider extends StatelessWidget {
           height: 1.4,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-                colors: [Ob.gold.withValues(alpha: 0.6), Ob.gold.withValues(alpha: 0)]),
+                colors: [Ob.gold.withValues(alpha: 0.6), Ob.gold.withValues(alpha: 0)],),
           ),
         ),
       ],
@@ -399,7 +399,7 @@ class OptionRow extends StatelessWidget {
             if (selected) const GoldCheck(size: 24) else const SizedBox.shrink(),
             const SizedBox(width: 6),
             Icon(Icons.chevron_right_rounded,
-                color: selected ? Ob.goldDeep : const Color(0xFFB9B3C9), size: 22),
+                color: selected ? Ob.goldDeep : const Color(0xFFB9B3C9), size: 22,),
           ],
         ),
       ),

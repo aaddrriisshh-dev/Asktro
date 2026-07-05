@@ -58,7 +58,7 @@ class ConsultationController extends StateNotifier<AsyncValue<ConsultationState>
         ),
       );
       _syncTimers(c.status);
-    }, onError: (e, st) => state = AsyncValue.error(e, st));
+    }, onError: (e, st) => state = AsyncValue.error(e, st),);
   }
 
   void _syncTimers(ConsultationStatus status) {

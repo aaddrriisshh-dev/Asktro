@@ -55,7 +55,7 @@ class PromoSurface extends StatelessWidget {
             gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: theme.bg),
           ),
         ),
-      ]);
+      ],);
     }
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -77,12 +77,12 @@ class PromoSurface extends StatelessWidget {
         out.add(Positioned.fill(child: IgnorePointer(child: Align(
           alignment: Alignment.centerRight,
           child: FractionallySizedBox(widthFactor: 0.46, heightFactor: 0.94, alignment: Alignment.centerRight, child: img),
-        ))));
+        ),),),);
       } else if (variant == PromoVariant.full) {
         out.add(Positioned.fill(child: IgnorePointer(child: Align(
           alignment: const Alignment(0, -0.42),
           child: FractionallySizedBox(widthFactor: 0.66, heightFactor: 0.4, child: img),
-        ))));
+        ),),),);
       }
       // half: intentionally no split art.
     } else if (theme.layout == PromoLayout.wm) {
@@ -91,7 +91,7 @@ class PromoSurface extends StatelessWidget {
         out.add(Positioned.fill(child: IgnorePointer(child: Align(
           alignment: const Alignment(0.1, -0.35),
           child: FractionallySizedBox(widthFactor: 0.85, heightFactor: 0.5, child: wheel),
-        ))));
+        ),),),);
       } else {
         out.add(Positioned.fill(child: IgnorePointer(child: Align(
           alignment: Alignment.topRight,
@@ -99,7 +99,7 @@ class PromoSurface extends StatelessWidget {
             widthFactor: 0.6, heightFactor: 1.3, alignment: Alignment.topRight,
             child: FractionalTranslation(translation: const Offset(0.12, -0.18), child: wheel),
           ),
-        ))));
+        ),),),);
       }
     }
     return out;
@@ -119,8 +119,8 @@ class PromoSurface extends StatelessWidget {
               child: DecoratedBox(decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(radius > 6 ? radius - 6 : 0.0),
                 border: Border.all(color: theme.edge, width: 1),
-              )),
-            ))),
+              ),),
+            ),),),
           child,
         ],
       ),

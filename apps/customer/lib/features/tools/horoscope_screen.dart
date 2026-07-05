@@ -59,7 +59,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
         foregroundColor: Ob.navy,
         title: Text('Daily Horoscope',
             style: GoogleFonts.cormorantGaramond(
-                fontSize: 24, fontWeight: FontWeight.w700, color: Ob.navy)),
+                fontSize: 24, fontWeight: FontWeight.w700, color: Ob.navy,),),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -114,7 +114,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               ),
               alignment: Alignment.center,
               child: Text(s.symbol,
-                  style: TextStyle(fontSize: 26, color: sel ? Ob.goldDeep : Ob.purple)),
+                  style: TextStyle(fontSize: 26, color: sel ? Ob.goldDeep : Ob.purple),),
             ),
           );
         },
@@ -158,7 +158,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 TextButton(
                   onPressed: _load,
                   child: Text('Retry',
-                      style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w600)),
+                      style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w600),),
                 ),
               ],
             )

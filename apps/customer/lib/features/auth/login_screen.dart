@@ -46,7 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (!mounted) return;
         setState(() => _loading = false);
         context.push('/otp',
-            extra: OtpArgs(phone: e164, verificationId: verificationId, resendToken: resendToken));
+            extra: OtpArgs(phone: e164, verificationId: verificationId, resendToken: resendToken),);
       },
       onAutoVerified: (_) {
         if (mounted) context.go('/home');
@@ -126,14 +126,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 28),
                   Text('Welcome to',
                       style: GoogleFonts.cormorantGaramond(
-                          fontSize: 26, fontWeight: FontWeight.w400, color: Ob.navy)),
+                          fontSize: 26, fontWeight: FontWeight.w400, color: Ob.navy,),),
                   Text('Asktro',
                       style: GoogleFonts.cormorantGaramond(
                           fontSize: 56,
                           fontWeight: FontWeight.w500,
                           height: 0.95,
                           letterSpacing: 1,
-                          color: const Color(0xFF4B2A80))),
+                          color: const Color(0xFF4B2A80),),),
                   const SizedBox(height: 14),
                   const SparkleDivider(),
                   const SizedBox(height: 16),
@@ -162,10 +162,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   GoldButton(label: 'Continue', loading: _loading, onPressed: _loading ? null : _continue),
                   const SizedBox(height: 22),
                   Row(children: [
-                    Expanded(child: Divider(color: Ob.border)),
+                    const Expanded(child: Divider(color: Ob.border)),
                     Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text('or', style: Ob.note)),
-                    Expanded(child: Divider(color: Ob.border)),
-                  ]),
+                    const Expanded(child: Divider(color: Ob.border)),
+                  ],),
                   const SizedBox(height: 22),
                   SecondaryButton(
                     label: 'Continue with Google',
