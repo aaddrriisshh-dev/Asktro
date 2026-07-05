@@ -131,3 +131,12 @@ class PromoSurface extends StatelessWidget {
 /// The gold (or theme-specific) reward/CTA chip gradient.
 LinearGradient promoAccent(PromoTheme t) =>
     LinearGradient(colors: t.accent ?? kPromoGoldAccent);
+
+/// Headline colour that adapts to the theme's background brightness: gold on
+/// dark grounds (where it reads richly — most celestial themes) and the theme's
+/// own text colour on light grounds (where gold would wash out). Averaging the
+/// gradient stops keeps mid-tone/multi-stop themes sensible.
+Color promoHeadline(PromoTheme t) {
+  final lum = t.bg.map((c) => c.computeLuminance()).reduce((a, b) => a + b) / t.bg.length;
+  return lum < 0.45 ? const Color(0xFFF3D97C) : t.tx;
+}

@@ -101,6 +101,7 @@ Future<void> _showCenter(BuildContext context, Coupon c, PromoTheme? th) {
     barrierDismissible: true,
     builder: (ctx) {
       final fg = th?.tx ?? Ob.navy;
+      final head = th != null ? promoHeadline(th) : fg;
       final content = Padding(
         padding: const EdgeInsets.fromLTRB(22, 24, 22, 16),
         child: Column(
@@ -112,7 +113,7 @@ Future<void> _showCenter(BuildContext context, Coupon c, PromoTheme? th) {
               child: Text(th?.medal ?? '🎁', style: const TextStyle(fontSize: 30)),
             ),
             const SizedBox(height: 14),
-            Text(_ttl(c), style: Ob.title.copyWith(fontSize: 22, color: fg), textAlign: TextAlign.center),
+            Text(_ttl(c), style: Ob.title.copyWith(fontSize: 22, color: head), textAlign: TextAlign.center),
             const SizedBox(height: 8),
             Text(_bodyText(c), style: Ob.subtitle.copyWith(fontSize: 14, color: fg.withValues(alpha: 0.9)), textAlign: TextAlign.center),
             const SizedBox(height: 16),
@@ -141,6 +142,7 @@ Future<void> _showCenter(BuildContext context, Coupon c, PromoTheme? th) {
 
 Future<void> _showHalf(BuildContext context, Coupon c, PromoTheme th) {
   final fg = th.tx;
+  final head = promoHeadline(th);
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
@@ -159,7 +161,7 @@ Future<void> _showHalf(BuildContext context, Coupon c, PromoTheme th) {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(_ttl(c), style: Ob.title.copyWith(color: fg, fontSize: 28, height: 1.15), textAlign: TextAlign.center),
+                    Text(_ttl(c), style: Ob.title.copyWith(color: head, fontSize: 28, height: 1.15), textAlign: TextAlign.center),
                     const SizedBox(height: 12),
                     Text(_bodyText(c), style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 16, height: 1.35), textAlign: TextAlign.center),
                     const SizedBox(height: 18),
@@ -179,6 +181,7 @@ Future<void> _showHalf(BuildContext context, Coupon c, PromoTheme th) {
 
 Future<void> _showFull(BuildContext context, Coupon c, PromoTheme th) {
   final fg = th.tx;
+  final head = promoHeadline(th); // gold on dark grounds, theme text on light
   return showGeneralDialog(
     context: context,
     barrierDismissible: true,
@@ -197,27 +200,65 @@ Future<void> _showFull(BuildContext context, Coupon c, PromoTheme th) {
             child: Stack(
               children: [
                 Positioned(top: 10, right: 16, child: _closeBtn(ctx, fg)),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(28, 24, 28, 40),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(_ttl(c),
-                            style: Ob.title.copyWith(color: fg, fontSize: 38, height: 1.1, decoration: TextDecoration.none),
-                            textAlign: TextAlign.center),
-                        const SizedBox(height: 14),
-                        Text(_bodyText(c),
-                            style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 18, height: 1.35, decoration: TextDecoration.none),
-                            textAlign: TextAlign.center),
-                        const SizedBox(height: 26),
-                        _codePill(c, fg, fg.withValues(alpha: 0.16)),
-                        const SizedBox(height: 18),
-                        _grabCta(ctx, c, th),
-                      ],
-                    ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 40, 28, 40),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Hero zone — fills the upper half so the takeover never feels blank.
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('✦  A GIFT FOR YOU',
+                              style: Ob.option.copyWith(color: head, fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 2, decoration: TextDecoration.none),
+                              textAlign: TextAlign.center),
+                          const SizedBox(height: 22),
+                          SizedBox(
+                            height: 150,
+                            width: 150,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [Ob.gold.withValues(alpha: 0.34), Ob.gold.withValues(alpha: 0.0)],
+                                      stops: const [0.15, 1.0],
+                                    ),
+                                  ),
+                                  child: const SizedBox.expand(),
+                                ),
+                                Image.asset(Ob.gift, height: 118),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Text('Everyone loves a gift, right?',
+                              style: Ob.title.copyWith(color: head, fontSize: 20, fontStyle: FontStyle.italic, decoration: TextDecoration.none),
+                              textAlign: TextAlign.center),
+                        ],
+                      ),
+                      // Offer zone — anchored to the bottom.
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(_ttl(c),
+                              style: Ob.title.copyWith(color: head, fontSize: 32, height: 1.12, decoration: TextDecoration.none),
+                              textAlign: TextAlign.center),
+                          const SizedBox(height: 12),
+                          Text(_bodyText(c),
+                              style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 16, height: 1.35, decoration: TextDecoration.none),
+                              textAlign: TextAlign.center),
+                          const SizedBox(height: 22),
+                          _codePill(c, fg, fg.withValues(alpha: 0.16)),
+                          const SizedBox(height: 18),
+                          _grabCta(ctx, c, th),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
