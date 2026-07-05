@@ -37,7 +37,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   Future<void> _maybeShowOfferPopup() async {
     if (ref.read(offerPopupShownProvider)) return;
     try {
-      final coupons = await ref.read(catalogRepositoryProvider).watchCoupons().first;
+      // Server-fetch (not the cache-first live stream) so a deleted coupon still
+      // sitting in Firestore's offline cache can never surface as the popup.
+      final coupons = await ref.read(catalogRepositoryProvider).fetchActiveCoupons();
       if (!mounted || coupons.isEmpty) return;
       ref.read(offerPopupShownProvider.notifier).state = true;
       await showOfferPopup(context, coupons.first);

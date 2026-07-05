@@ -172,21 +172,33 @@ class CatalogRepository {
       .where('active', isEqualTo: true)
       .limit(50)
       .snapshots()
-      .map((s) {
-        final list = s.docs.map((d) {
-          final data = d.data();
-          final exp = data['expiry'];
-          final created = data['createdAt'];
-          return Coupon.fromMap(
-            d.id,
-            data,
-            expiryMs: exp is Timestamp ? exp.millisecondsSinceEpoch : null,
-            createdAtMs: created is Timestamp ? created.millisecondsSinceEpoch : 0,
-          );
-        }).where((c) => !c.isExpired).toList()
-          ..sort((a, b) => b.createdAtMs.compareTo(a.createdAtMs));
-        return list;
-      });
+      .map((s) => _mapCoupons(s.docs));
+
+  // One-shot fetch that prefers the SERVER over the local cache. The app-open
+  // popup uses this so it never surfaces a stale/deleted coupon that Firestore's
+  // offline cache still holds — a live-stream's first emission is cache-first.
+  Future<List<Coupon>> fetchActiveCoupons() async {
+    final snap = await _db
+        .collection('coupons')
+        .where('active', isEqualTo: true)
+        .limit(50)
+        .get(const GetOptions(source: Source.server));
+    return _mapCoupons(snap.docs);
+  }
+
+  List<Coupon> _mapCoupons(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) =>
+      docs.map((d) {
+        final data = d.data();
+        final exp = data['expiry'];
+        final created = data['createdAt'];
+        return Coupon.fromMap(
+          d.id,
+          data,
+          expiryMs: exp is Timestamp ? exp.millisecondsSinceEpoch : null,
+          createdAtMs: created is Timestamp ? created.millisecondsSinceEpoch : 0,
+        );
+      }).where((c) => !c.isExpired).toList()
+        ..sort((a, b) => b.createdAtMs.compareTo(a.createdAtMs));
 }
 
 class WalletRepository {
