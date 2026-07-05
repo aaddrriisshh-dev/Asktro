@@ -12,6 +12,7 @@ class RechargePlan extends Equatable {
     this.recommended = false,
     this.displayOrder = 0,
     this.active = true,
+    this.planType = 'regular',
   });
 
   final String id;
@@ -22,8 +23,11 @@ class RechargePlan extends Equatable {
   final bool recommended;
   final int displayOrder;
   final bool active;
+  // 'regular' shows on the recharge screen; 'offer' is banner-only.
+  final String planType;
 
   int get totalCredit => walletCredit + bonus;
+  bool get isOffer => planType == 'offer';
 
   factory RechargePlan.fromMap(String id, Map<String, dynamic> m) => RechargePlan(
         id: id,
@@ -34,11 +38,12 @@ class RechargePlan extends Equatable {
         recommended: (m['recommended'] ?? false) as bool,
         displayOrder: (m['displayOrder'] ?? 0) as int,
         active: (m['active'] ?? true) as bool,
+        planType: (m['planType'] ?? 'regular') as String? ?? 'regular',
       );
 
   @override
   List<Object?> get props =>
-      [id, amount, walletCredit, bonus, popular, recommended, displayOrder, active];
+      [id, amount, walletCredit, bonus, popular, recommended, displayOrder, active, planType];
 }
 
 /// Admin-managed promotional banner. Named `PromoBanner` to avoid colliding

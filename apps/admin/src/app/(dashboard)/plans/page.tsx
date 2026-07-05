@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { addDoc, collection, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useCollection } from '@/lib/hooks';
+import { useCollection, Row } from '@/lib/hooks';
 import { formatPaise, rupeesToPaise } from '@/lib/format';
 
 export default function PlansPage() {
   const { rows, loading } = useCollection('rechargePlans');
-  const [f, setF] = useState({ amount: '', bonus: '', order: '' });
+  const [f, setF] = useState({ amount: '', bonus: '', order: '', type: 'regular' });
 
   async function add() {
     const amount = rupeesToPaise(Number(f.amount));
@@ -17,52 +17,85 @@ export default function PlansPage() {
       amount,
       walletCredit: amount,
       bonus: rupeesToPaise(Number(f.bonus) || 0),
+      planType: f.type,
       popular: false,
       recommended: false,
       displayOrder: Number(f.order) || 0,
       active: true,
     });
-    setF({ amount: '', bonus: '', order: '' });
+    setF({ amount: '', bonus: '', order: '', type: 'regular' });
   }
 
   async function toggle(id: string, field: string, value: boolean) {
     await updateDoc(doc(db, 'rechargePlans', id), { [field]: !value });
   }
 
+  async function switchType(id: string, current: string | undefined) {
+    await updateDoc(doc(db, 'rechargePlans', id), { planType: (current ?? 'regular') === 'offer' ? 'regular' : 'offer' });
+  }
+
+  const isOffer = (p: Row) => ((p.planType as string) ?? 'regular') === 'offer';
+  const regular = rows.filter((p) => !isOffer(p));
+  const offers = rows.filter((p) => isOffer(p));
+
+  function table(list: typeof rows) {
+    if (list.length === 0) return <p className="muted" style={{ margin: '6px 0' }}>None yet.</p>;
+    return (
+      <table>
+        <thead>
+          <tr><th>Amount</th><th>Bonus</th><th>Total</th><th>Type</th><th>Popular</th><th>Recommended</th><th>Active</th><th></th></tr>
+        </thead>
+        <tbody>
+          {list.map((p) => (
+            <tr key={p.id}>
+              <td>{formatPaise(p.amount)}</td>
+              <td>{formatPaise(p.bonus)}</td>
+              <td>{formatPaise((p.walletCredit ?? p.amount ?? 0) + (p.bonus ?? 0))}</td>
+              <td><button className={`btn sm ${isOffer(p) ? '' : 'secondary'}`} onClick={() => switchType(p.id, p.planType)}>{isOffer(p) ? '🎁 Offer' : 'Regular'}</button></td>
+              <td><button className="btn sm secondary" onClick={() => toggle(p.id, 'popular', p.popular)}>{p.popular ? 'Yes' : 'No'}</button></td>
+              <td><button className="btn sm secondary" onClick={() => toggle(p.id, 'recommended', p.recommended)}>{p.recommended ? 'Yes' : 'No'}</button></td>
+              <td><button className="btn sm secondary" onClick={() => toggle(p.id, 'active', p.active)}>{p.active ? 'On' : 'Off'}</button></td>
+              <td><button className="btn sm danger" onClick={() => deleteDoc(doc(db, 'rechargePlans', p.id))}>Delete</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+
   return (
     <div>
-      <h1>Recharge Plans</h1>
-      <div className="card" style={{ marginBottom: 20 }}>
+      <h1 style={{ marginBottom: 2 }}>Recharge Plans</h1>
+      <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+        <b>Regular</b> plans show on the app&apos;s recharge screen. <b>Offer</b> plans are hidden there and only appear when a user taps a <b>Recharge banner</b> tied to them.
+      </p>
+
+      <div className="card" style={{ margin: '16px 0 20px' }}>
         <h3 style={{ marginTop: 0 }}>New plan</h3>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <input className="input" placeholder="Amount ₹" style={{ width: 140 }} value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
-          <input className="input" placeholder="Bonus ₹" style={{ width: 140 }} value={f.bonus} onChange={(e) => setF({ ...f, bonus: e.target.value })} />
-          <input className="input" placeholder="Order" style={{ width: 100 }} value={f.order} onChange={(e) => setF({ ...f, order: e.target.value })} />
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <input className="input" placeholder="Amount ₹" style={{ width: 130 }} value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
+          <input className="input" placeholder="Bonus ₹" style={{ width: 130 }} value={f.bonus} onChange={(e) => setF({ ...f, bonus: e.target.value })} />
+          <input className="input" placeholder="Order" style={{ width: 90 }} value={f.order} onChange={(e) => setF({ ...f, order: e.target.value })} />
+          <select className="input" style={{ width: 150 }} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
+            <option value="regular">Regular</option>
+            <option value="offer">🎁 Offer (banner-only)</option>
+          </select>
           <button className="btn" onClick={add}>Add plan</button>
         </div>
       </div>
-      <div className="card">
-        {loading ? <p className="muted">Loading…</p> : (
-          <table>
-            <thead>
-              <tr><th>Amount</th><th>Bonus</th><th>Total</th><th>Popular</th><th>Recommended</th><th>Active</th><th></th></tr>
-            </thead>
-            <tbody>
-              {rows.map((p) => (
-                <tr key={p.id}>
-                  <td>{formatPaise(p.amount)}</td>
-                  <td>{formatPaise(p.bonus)}</td>
-                  <td>{formatPaise((p.walletCredit ?? p.amount ?? 0) + (p.bonus ?? 0))}</td>
-                  <td><button className="btn sm secondary" onClick={() => toggle(p.id, 'popular', p.popular)}>{p.popular ? 'Yes' : 'No'}</button></td>
-                  <td><button className="btn sm secondary" onClick={() => toggle(p.id, 'recommended', p.recommended)}>{p.recommended ? 'Yes' : 'No'}</button></td>
-                  <td><button className="btn sm secondary" onClick={() => toggle(p.id, 'active', p.active)}>{p.active ? 'On' : 'Off'}</button></td>
-                  <td><button className="btn sm danger" onClick={() => deleteDoc(doc(db, 'rechargePlans', p.id))}>Delete</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+
+      {loading ? <p className="muted">Loading…</p> : (
+        <>
+          <div className="card" style={{ marginBottom: 16 }}>
+            <h3 className="celeste" style={{ marginTop: 0 }}>Regular plans <span className="muted" style={{ fontSize: 13, fontWeight: 400 }}>· shown on the recharge screen</span></h3>
+            {table(regular)}
+          </div>
+          <div className="card">
+            <h3 className="celeste" style={{ marginTop: 0 }}>🎁 Offer plans <span className="muted" style={{ fontSize: 13, fontWeight: 400 }}>· banner-only, hidden from the recharge screen</span></h3>
+            {table(offers)}
+          </div>
+        </>
+      )}
     </div>
   );
 }

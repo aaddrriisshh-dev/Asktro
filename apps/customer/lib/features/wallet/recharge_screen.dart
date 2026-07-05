@@ -192,9 +192,12 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
               }
               // When opened from a Recharge banner, lock the screen to that one
               // plan so the user pays exactly the promoted amount (no switching).
+              // Otherwise show only Regular plans — Offer plans are banner-only.
               final wanted = widget.preselectPlanId;
               final offerMode = wanted != null && wanted.isNotEmpty && list.any((p) => p.id == wanted);
-              final shown = offerMode ? list.where((p) => p.id == wanted).toList() : list;
+              final shown = offerMode
+                  ? list.where((p) => p.id == wanted).toList()
+                  : list.where((p) => !p.isOffer).toList();
               if (offerMode && !_appliedPreselect) {
                 _appliedPreselect = true;
                 final picked = shown.first;
