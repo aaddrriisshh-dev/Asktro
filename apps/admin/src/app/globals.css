@@ -1199,3 +1199,20 @@ tbody tr:last-child td { border-bottom: none; }
 .switch input:focus-visible + .track { outline: 2px solid var(--primary, #7E57C2); outline-offset: 2px; }
 .switch .switch-lbl { font-size: 12px; font-weight: 600; color: var(--muted); min-width: 26px; }
 .switch input:checked ~ .switch-lbl { color: var(--primary, #7E57C2); }
+
+/* ---- promo theme picker ---- */
+.theme-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.theme-sw { position: relative; height: 62px; border-radius: 12px; border: 1.5px solid var(--line); cursor: pointer; overflow: hidden; padding: 0; display: flex; align-items: flex-end; transition: transform .12s ease, box-shadow .12s ease; }
+.theme-sw:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -10px rgba(46,43,95,.5); }
+.theme-sw.on { box-shadow: 0 0 0 2px #f0c96b, 0 8px 18px -10px rgba(46,43,95,.5); }
+.theme-sw__medal { position: absolute; top: 6px; left: 8px; font-size: 15px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+.theme-sw__name { width: 100%; padding: 4px 8px 5px; font-size: 10.5px; font-weight: 700; line-height: 1.1; background: linear-gradient(0deg, rgba(0,0,0,.16), transparent); }
+.theme-sw__tick { position: absolute; top: 5px; right: 6px; width: 17px; height: 17px; border-radius: 50%; background: #f0c96b; color: #3a2600; font-size: 11px; font-weight: 900; display: grid; place-items: center; }
+.theme-sw--none { background: repeating-linear-gradient(45deg, #f3f0fa, #f3f0fa 6px, #ece6f8 6px, #ece6f8 12px); align-items: center; justify-content: center; color: var(--muted); font-size: 12px; font-weight: 700; }
+.theme-sw--none.on { color: var(--primary); }
+
+/* ---- promo theme rendering inside the preview ---- */
+.promo-frame { position: absolute; inset: 6px; border-radius: 12px; border: 1px solid rgba(243,217,124,.6); opacity: .55; pointer-events: none; z-index: 2; }
+.promo-art { position: absolute; top: 0; right: 0; height: 100%; width: 44%; z-index: 1; pointer-events: none; background-repeat: no-repeat; background-position: right center; background-size: contain; }
+.promo-wm { position: absolute; top: -30%; right: -14%; width: 58%; height: 160%; z-index: 0; pointer-events: none; background-repeat: no-repeat; background-position: top right; background-size: contain; }
+.promo-wm--big { top: 8%; right: -18%; width: 78%; height: 60%; background-position: center right; }

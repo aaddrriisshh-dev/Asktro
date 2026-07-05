@@ -9,6 +9,8 @@ import { formatPaise, rupeesToPaise } from '@/lib/format';
 import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
 import { LandingControls, DisplayMode } from '@/components/LandingControls';
+import { ThemePicker } from '@/components/ThemePicker';
+import { PromoTheme } from '@/lib/promoThemes';
 
 const AUDIENCES = [
   { key: 'all', label: 'All Users' },
@@ -39,7 +41,16 @@ export default function CouponsPage() {
   const [lBg, setLBg] = useState('#6b4bc0');
   const [lFg, setLFg] = useState('#ffffff');
   const [busy, setBusy] = useState(false);
+  const [theme, setTheme] = useState('');
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
+
+  // Picking a theme drives the preview and stores its id; bg/fg keep solid
+  // fallbacks for older app builds. "None" clears back to manual colours.
+  function applyTheme(t: PromoTheme | null) {
+    if (!t) { setTheme(''); return; }
+    setTheme(t.id);
+    setBg(t.base); setFg(t.tx); setLBg(t.base); setLFg(t.tx);
+  }
 
   const autoBody = `Get ${f.amount ? `₹${f.amount}` : '₹—'}${f.bonus ? ` + ₹${f.bonus} bonus` : ''} in your wallet`;
   const previewBody = f.description.trim() || autoBody;
@@ -63,10 +74,12 @@ export default function CouponsPage() {
         landingBody: displayMode !== 'small' ? (lBody.trim() || null) : null,
         landingBgColor: displayMode !== 'small' ? lBg : null,
         landingTextColor: displayMode !== 'small' ? lFg : null,
+        theme: theme || null,
         expiry: f.expiry ? Timestamp.fromDate(new Date(f.expiry)) : null, active: true,
         createdBy: user?.uid ?? null, createdByName: adminName || null, createdAt: Timestamp.now(),
       });
       setF({ code: '', title: '', description: '', amount: '', bonus: '', minRecharge: '', usageLimit: '', audience: 'all', image: '', expiry: '' });
+      setTheme('');
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
       setLTitle(''); setLBody(''); setLBg('#6b4bc0'); setLFg('#ffffff');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
@@ -104,7 +117,10 @@ export default function CouponsPage() {
             {AUDIENCES.map((a) => <button key={a.key} type="button" className={`pickchip${f.audience === a.key ? ' on' : ''}`} onClick={() => set('audience', a.key)}>{a.label}</button>)}
           </div>
 
-          <p className="af-label">Image (upload from your desktop)</p>
+          <p className="af-label">Theme (pick one — no design needed)</p>
+          <ThemePicker value={theme} onSelect={applyTheme} />
+
+          <p className="af-label">Image (optional — overrides the theme background)</p>
           <ImageUpload folder="notification_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
 
           <p className="af-label">Background &amp; text colour</p>
@@ -121,7 +137,7 @@ export default function CouponsPage() {
           <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
 
-        <PromoPreview kind="coupon" title={f.title || 'Your coupon title'} body={previewBody} code={f.code || 'ASK-XXXXX'} image={f.image} imageStyle="banner" bg={bg} fg={fg}
+        <PromoPreview kind="coupon" theme={theme} title={f.title || 'Your coupon title'} body={previewBody} code={f.code || 'ASK-XXXXX'} image={f.image} imageStyle="banner" bg={bg} fg={fg}
           displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
           landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
       </div>

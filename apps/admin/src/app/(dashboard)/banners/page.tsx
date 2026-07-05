@@ -10,6 +10,8 @@ import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
 import { LandingControls, DisplayMode } from '@/components/LandingControls';
 import { DeepLinkSelect } from '@/components/DeepLinkSelect';
+import { ThemePicker } from '@/components/ThemePicker';
+import { PromoTheme } from '@/lib/promoThemes';
 
 const PLACEMENTS = ['home', 'consults', 'wallet', 'alerts', 'profile'] as const;
 const PLACE_LABEL: Record<string, string> = { home: 'Home', consults: 'Consults', wallet: 'Wallet', alerts: 'Alerts', profile: 'Profile' };
@@ -34,7 +36,14 @@ export default function BannersPage() {
   const [lBg, setLBg] = useState('#2e2b5f');
   const [lFg, setLFg] = useState('#ffffff');
   const [busy, setBusy] = useState(false);
+  const [theme, setTheme] = useState('');
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
+
+  function applyTheme(t: PromoTheme | null) {
+    if (!t) { setTheme(''); return; }
+    setTheme(t.id);
+    setBg(t.base); setFg(t.tx); setLBg(t.base); setLFg(t.tx);
+  }
 
   const activePlans = plans.filter((p) => p.active !== false);
   const planLabel = (p: Row) => {
@@ -61,9 +70,11 @@ export default function BannersPage() {
         landingBody: displayMode !== 'small' ? (lBody.trim() || null) : null,
         landingBgColor: displayMode !== 'small' ? lBg : null,
         landingTextColor: displayMode !== 'small' ? lFg : null,
+        theme: theme || null,
         createdBy: user?.uid ?? null, createdByName: adminName || null, createdAt: serverTimestamp(),
       });
       setF({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
+      setTheme('');
       setBannerType('marketing'); setPlanId('');
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
       setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
@@ -115,7 +126,10 @@ export default function BannersPage() {
               <DeepLinkSelect value={f.deeplink} onChange={(v) => set('deeplink', v)} /></div>
           )}
 
-          <p className="af-label">Image (upload from your desktop)</p>
+          <p className="af-label">Theme (pick one — no design needed)</p>
+          <ThemePicker value={theme} onSelect={applyTheme} />
+
+          <p className="af-label">Image (optional — overrides the theme background)</p>
           <ImageUpload folder="banner_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
 
           <p className="af-label">Background &amp; text colour</p>
@@ -132,7 +146,7 @@ export default function BannersPage() {
           <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
 
-        <PromoPreview kind="banner" title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
+        <PromoPreview kind="banner" theme={theme} title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
           displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
           landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
       </div>

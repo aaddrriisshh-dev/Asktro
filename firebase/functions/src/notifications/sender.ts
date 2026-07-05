@@ -41,6 +41,7 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
       ctaText: String(n.ctaText ?? ''),
       bgColor: String(n.bgColor ?? ''),
       textColor: String(n.textColor ?? ''),
+      theme: String(n.theme ?? ''),
       notificationId: snap.id,
     },
   });
@@ -64,7 +65,7 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
 
 export const sendBroadcast = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
-  const { title, body, type, deeplink, image, imageStyle, bgColor, textColor, displayMode, portraitImage, ctaText, landingTitle, landingBody, landingBgColor, landingTextColor, segment, uids } = (req.data ?? {}) as {
+  const { title, body, type, deeplink, image, imageStyle, bgColor, textColor, displayMode, portraitImage, ctaText, landingTitle, landingBody, landingBgColor, landingTextColor, theme, segment, uids } = (req.data ?? {}) as {
     title?: string;
     body?: string;
     type?: string;
@@ -80,6 +81,7 @@ export const sendBroadcast = onCall(async (req) => {
     landingBody?: string;
     landingBgColor?: string;
     landingTextColor?: string;
+    theme?: string;
     segment?: 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers' | 'list';
     uids?: string[];
   };
@@ -123,6 +125,7 @@ export const sendBroadcast = onCall(async (req) => {
       landingBody: landingBody ?? null,
       landingBgColor: landingBgColor ?? null,
       landingTextColor: landingTextColor ?? null,
+      theme: theme ?? null,
       read: false,
       createdAt: FieldValue.serverTimestamp(),
     });

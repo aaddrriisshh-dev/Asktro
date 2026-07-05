@@ -6,6 +6,8 @@ import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
 import { LandingControls, DisplayMode } from '@/components/LandingControls';
 import { DeepLinkSelect } from '@/components/DeepLinkSelect';
+import { ThemePicker } from '@/components/ThemePicker';
+import { PromoTheme } from '@/lib/promoThemes';
 
 type Segment = 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers';
 const AUDIENCE: { key: Segment; label: string }[] = [
@@ -31,7 +33,14 @@ export default function BroadcastPage() {
   const [lFg, setLFg] = useState('#ffffff');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [theme, setTheme] = useState('');
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
+
+  function applyTheme(t: PromoTheme | null) {
+    if (!t) { setTheme(''); return; }
+    setTheme(t.id);
+    setBg(t.base); setFg(t.tx); setLBg(t.base); setLFg(t.tx);
+  }
 
   async function send() {
     if (!f.title.trim() || !f.body.trim()) return alert('Title and message are required.');
@@ -52,9 +61,11 @@ export default function BroadcastPage() {
         landingBody: displayMode !== 'small' ? (lBody.trim() || undefined) : undefined,
         landingBgColor: displayMode !== 'small' ? lBg : undefined,
         landingTextColor: displayMode !== 'small' ? lFg : undefined,
+        theme: theme || undefined,
       });
       setResult(`✓ Pushed to ${res.delivered} ${label}.`);
       setF({ title: '', body: '', deeplink: '', image: '' });
+      setTheme('');
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
       setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
@@ -81,7 +92,10 @@ export default function BroadcastPage() {
           <div className="af" style={{ marginTop: 12 }}><span>On tap — go to</span>
             <DeepLinkSelect value={f.deeplink} onChange={(v) => set('deeplink', v)} /></div>
 
-          <p className="af-label">Image (upload from your desktop)</p>
+          <p className="af-label">Theme (pick one — no design needed)</p>
+          <ThemePicker value={theme} onSelect={applyTheme} />
+
+          <p className="af-label">Image (optional — overrides the theme background)</p>
           <ImageUpload folder="notification_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
           {f.image && (
             <div className="pickrow" style={{ marginTop: 10 }}>
@@ -108,7 +122,7 @@ export default function BroadcastPage() {
         </div>
 
         {/* Live preview */}
-        <PromoPreview kind="push" title={f.title} body={f.body} image={f.image} imageStyle={imageStyle} bg={bg} fg={fg}
+        <PromoPreview kind="push" theme={theme} title={f.title} body={f.body} image={f.image} imageStyle={imageStyle} bg={bg} fg={fg}
           displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
           landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
       </div>
