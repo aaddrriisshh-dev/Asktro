@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
@@ -15,11 +16,15 @@ final _plansProvider = StreamProvider.autoDispose<List<RechargePlan>>(
 /// "Add Cash" — pick an amount, then pay via Razorpay. The wallet is credited
 /// server-side (Cloud Function) on payment verification.
 class RechargeScreen extends ConsumerStatefulWidget {
-  const RechargeScreen({super.key, this.preselectPlanId});
+  const RechargeScreen({super.key, this.preselectPlanId, this.preselectCoupon});
 
   /// When opened from a Recharge banner (/recharge?plan=<id>), the matching
   /// plan is pre-selected so the user can pay in one tap.
   final String? preselectPlanId;
+
+  /// When opened from the Offers screen (/recharge?coupon=<CODE>), the coupon
+  /// field is pre-filled and auto-applied once a plan is selected.
+  final String? preselectCoupon;
 
   @override
   ConsumerState<RechargeScreen> createState() => _RechargeScreenState();
@@ -27,10 +32,16 @@ class RechargeScreen extends ConsumerStatefulWidget {
 
 class _RechargeScreenState extends ConsumerState<RechargeScreen> {
   late final Razorpay _razorpay;
+  final _couponCtrl = TextEditingController();
   RechargePlan? _selected;
   RechargeOrder? _order;
   bool _processing = false;
   bool _appliedPreselect = false;
+
+  // Applied-coupon state.
+  CouponValidation? _coupon;
+  bool _couponBusy = false;
+  String? _couponError;
 
   @override
   void initState() {
@@ -39,19 +50,81 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
       ..on(Razorpay.EVENT_PAYMENT_SUCCESS, _onSuccess)
       ..on(Razorpay.EVENT_PAYMENT_ERROR, _onError)
       ..on(Razorpay.EVENT_EXTERNAL_WALLET, (_) {});
+    final pre = widget.preselectCoupon;
+    if (pre != null && pre.trim().isNotEmpty) _couponCtrl.text = pre.trim().toUpperCase();
   }
 
   @override
   void dispose() {
+    _couponCtrl.dispose();
     _razorpay.clear();
     super.dispose();
   }
+
+  // Friendly text for the server's coupon error codes.
+  String _couponMessage(String code) {
+    switch (code) {
+      case 'COUPON_NOT_FOUND':
+        return 'That code doesn\'t exist.';
+      case 'COUPON_INACTIVE':
+        return 'This coupon is no longer active.';
+      case 'COUPON_EXPIRED':
+        return 'This coupon has expired.';
+      case 'COUPON_FOR_PAID_USERS':
+        return 'Only for users who\'ve recharged before.';
+      case 'COUPON_FOR_NEW_USERS':
+        return 'Only for first-time users.';
+      case 'MIN_RECHARGE_NOT_MET':
+        return 'Pick a higher amount to use this coupon.';
+      case 'COUPON_NOT_APPLICABLE_TO_PLAN':
+        return 'Not valid on this amount.';
+      case 'COUPON_USAGE_EXHAUSTED':
+        return 'This coupon has been fully claimed.';
+      case 'COUPON_ALREADY_USED':
+        return 'You\'ve already used this coupon.';
+      default:
+        return 'This coupon can\'t be applied.';
+    }
+  }
+
+  Future<void> _applyCoupon() async {
+    final plan = _selected;
+    final code = _couponCtrl.text.trim().toUpperCase();
+    if (plan == null) {
+      setState(() => _couponError = 'Select an amount first.');
+      return;
+    }
+    if (code.isEmpty) return;
+    setState(() {
+      _couponBusy = true;
+      _couponError = null;
+    });
+    final res = await ref.read(walletServiceProvider).validateCoupon(code, planId: plan.id);
+    if (!mounted) return;
+    setState(() => _couponBusy = false);
+    res.when(
+      success: (v) => setState(() {
+        _coupon = v;
+        _couponError = null;
+      }),
+      failure: (f) => setState(() {
+        _coupon = null;
+        _couponError = _couponMessage(f.message);
+      }),
+    );
+  }
+
+  void _removeCoupon() => setState(() {
+        _coupon = null;
+        _couponError = null;
+        _couponCtrl.clear();
+      });
 
   Future<void> _startRecharge() async {
     final plan = _selected;
     if (plan == null) return;
     setState(() => _processing = true);
-    final res = await ref.read(walletServiceProvider).createOrder(plan.id);
+    final res = await ref.read(walletServiceProvider).createOrder(plan.id, couponId: _coupon?.couponId);
     if (!mounted) return;
     res.when(
       success: (order) {
@@ -83,6 +156,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
           paymentId: r.paymentId ?? '',
           signature: r.signature ?? '',
           planId: plan.id,
+          couponId: _coupon?.couponId,
         );
     if (!mounted) return;
     setState(() => _processing = false);
@@ -112,7 +186,10 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
     if (plan == null) return;
     setState(() => _processing = true);
     try {
-      await ref.read(functionsProvider).httpsCallable('simulateRechargeSelf').call({'planId': plan.id});
+      await ref.read(functionsProvider).httpsCallable('simulateRechargeSelf').call({
+        'planId': plan.id,
+        if (_coupon != null) 'couponId': _coupon!.couponId,
+      });
       if (!mounted) return;
       setState(() => _processing = false);
       ref.read(analyticsProvider).logEvent(AnalyticsEvents.rechargeSuccess, params: {
@@ -131,11 +208,13 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
   }
 
   void _showSuccess(RechargePlan plan) {
+    final couponBonus = _coupon?.discountPaise ?? 0;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => _RechargeCelebration(
         plan: plan,
+        couponBonus: couponBonus,
         onDone: () {
           Navigator.pop(context); // close dialog
           Navigator.of(context).maybePop(); // leave recharge screen
@@ -202,7 +281,9 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                 _appliedPreselect = true;
                 final picked = shown.first;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) setState(() => _selected = picked);
+                  if (!mounted) return;
+                  setState(() => _selected = picked);
+                  if (_couponCtrl.text.trim().isNotEmpty) _applyCoupon();
                 });
               }
               return Column(
@@ -236,6 +317,8 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        _couponBar(),
+                        const SizedBox(height: 12),
                         GoldButton(
                           label: _selected == null
                               ? 'Select an amount'
@@ -262,10 +345,115 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
     );
   }
 
+  Widget _couponBar() {
+    // Applied state: green success chip with a Remove action.
+    if (_coupon != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF7EF),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF66BB8A)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Color(0xFF2E9E5B), size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Coupon applied  •  +${Money.formatPaise(_coupon!.discountPaise)} bonus',
+                style: Ob.option.copyWith(fontWeight: FontWeight.w700, color: const Color(0xFF1F7A47), fontSize: 13.5),
+              ),
+            ),
+            GestureDetector(
+              onTap: _processing ? null : _removeCoupon,
+              child: Text('Remove', style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w600, fontSize: 13)),
+            ),
+          ],
+        ),
+      );
+    }
+    // Entry state: code field + Apply, an optional error, and a link to Offers.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 46,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: Ob.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _couponError != null ? const Color(0xFFD9534F) : Ob.border),
+                ),
+                alignment: Alignment.center,
+                child: TextField(
+                  controller: _couponCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  onChanged: (v) {
+                    final up = v.toUpperCase();
+                    if (up != v) {
+                      _couponCtrl.value = _couponCtrl.value.copyWith(
+                        text: up,
+                        selection: TextSelection.collapsed(offset: up.length),
+                      );
+                    }
+                    if (_couponError != null) setState(() => _couponError = null);
+                  },
+                  decoration: const InputDecoration(
+                    isCollapsed: true,
+                    border: InputBorder.none,
+                    hintText: 'Have a coupon code?',
+                    icon: Icon(Icons.local_offer_outlined, size: 18, color: Ob.purple),
+                  ),
+                  style: Ob.option.copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.5),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              height: 46,
+              child: TextButton(
+                onPressed: (_couponBusy || _processing) ? null : _applyCoupon,
+                style: TextButton.styleFrom(
+                  backgroundColor: Ob.lavenderChip,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                ),
+                child: _couponBusy
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Ob.purple))
+                    : Text('Apply', style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+        if (_couponError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(_couponError!, style: Ob.option.copyWith(color: const Color(0xFFD9534F), fontSize: 12)),
+          ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => context.push('/offers'),
+            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 2), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+            child: Text('View all offers  →', style: Ob.option.copyWith(color: Ob.purple, fontSize: 12.5, fontWeight: FontWeight.w600)),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _tile(RechargePlan plan, double w) {
     final sel = _selected?.id == plan.id;
     return GestureDetector(
-      onTap: () => setState(() => _selected = plan),
+      onTap: () {
+        setState(() => _selected = plan);
+        // Re-validate an entered/applied coupon against the newly chosen amount.
+        if (_couponCtrl.text.trim().isNotEmpty) _applyCoupon();
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 140),
         width: w,
@@ -306,8 +494,9 @@ const _sparkles = <_Spark>[
 /// Celebratory recharge-success popup: the 3D gift pops in with an elastic
 /// bounce, gold sparkles burst around it, and the bonus is called out by name.
 class _RechargeCelebration extends StatefulWidget {
-  const _RechargeCelebration({required this.plan, required this.onDone});
+  const _RechargeCelebration({required this.plan, required this.onDone, this.couponBonus = 0});
   final RechargePlan plan;
+  final int couponBonus; // extra paise bonus from an applied coupon
   final VoidCallback onDone;
 
   @override
@@ -355,7 +544,7 @@ class _RechargeCelebrationState extends State<_RechargeCelebration> with SingleT
   @override
   Widget build(BuildContext context) {
     final plan = widget.plan;
-    final bonus = plan.bonus;
+    final bonus = plan.bonus + widget.couponBonus;
     return Dialog(
       backgroundColor: Ob.bgColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),

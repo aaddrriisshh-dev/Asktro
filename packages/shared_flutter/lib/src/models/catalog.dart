@@ -118,6 +118,67 @@ class PromoBanner extends Equatable {
         bgColor, textColor, displayMode, portraitImage, landingTitle, landingBody, landingBgColor, landingTextColor, createdAtMs];
 }
 
+/// Admin-managed wallet coupon, surfaced on the Offers screen and applied at
+/// recharge. `amount`/`bonus` are paise; the reward is credited server-side.
+class Coupon extends Equatable {
+  const Coupon({
+    required this.id,
+    required this.code,
+    this.title = '',
+    this.description = '',
+    this.amount = 0,
+    this.bonus = 0,
+    this.minimumRecharge = 0,
+    this.audience = 'all',
+    this.image,
+    this.bgColor,
+    this.textColor,
+    this.active = true,
+    this.expiryMs,
+    this.createdAtMs = 0,
+  });
+
+  final String id;
+  final String code;
+  final String title;
+  final String description;
+  final int amount; // paise added to wallet
+  final int bonus; // paise bonus
+  final int minimumRecharge; // paise
+  final String audience; // 'all' | 'paid' | 'unpaid'
+  final String? image;
+  final String? bgColor;
+  final String? textColor;
+  final bool active;
+  final int? expiryMs;
+  final int createdAtMs;
+
+  int get reward => amount + bonus;
+  bool get isExpired =>
+      expiryMs != null && expiryMs! > 0 && expiryMs! < DateTime.now().millisecondsSinceEpoch;
+
+  factory Coupon.fromMap(String id, Map<String, dynamic> m, {int? expiryMs, int createdAtMs = 0}) => Coupon(
+        id: id,
+        code: (m['code'] ?? '') as String? ?? '',
+        title: (m['title'] ?? '') as String? ?? '',
+        description: (m['description'] ?? '') as String? ?? '',
+        amount: (m['amount'] ?? 0) as int? ?? 0,
+        bonus: (m['bonus'] ?? 0) as int? ?? 0,
+        minimumRecharge: (m['minimumRecharge'] ?? 0) as int? ?? 0,
+        audience: (m['audience'] ?? 'all') as String? ?? 'all',
+        image: m['image'] as String?,
+        bgColor: m['bgColor'] as String?,
+        textColor: m['textColor'] as String?,
+        active: (m['active'] ?? true) as bool? ?? true,
+        expiryMs: expiryMs,
+        createdAtMs: createdAtMs,
+      );
+
+  @override
+  List<Object?> get props => [id, code, title, description, amount, bonus, minimumRecharge,
+        audience, image, bgColor, textColor, active, expiryMs, createdAtMs];
+}
+
 /// Immutable wallet ledger row.
 class WalletTransaction extends Equatable {
   const WalletTransaction({

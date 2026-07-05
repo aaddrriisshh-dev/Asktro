@@ -70,7 +70,7 @@ export const devSimulateRecharge = onCall(async (req) => {
  */
 export const simulateRechargeSelf = onCall(async (req) => {
   const userId = assertAuthed(req);
-  const { planId } = (req.data ?? {}) as { planId?: string };
+  const { planId, couponId } = (req.data ?? {}) as { planId?: string; couponId?: string };
   if (!planId) badRequest('planId is required.');
 
   const cfg = await db.collection('config').doc('global').get();
@@ -79,7 +79,10 @@ export const simulateRechargeSelf = onCall(async (req) => {
   }
 
   const ref = `dev_${userId.slice(0, 6)}_${Date.now()}`;
-  const result = await creditRecharge({ userId, paymentId: ref, orderId: ref, planId: planId!, source: 'callable' });
+  const result = await creditRecharge({
+    userId, paymentId: ref, orderId: ref, planId: planId!,
+    couponId: couponId || null, source: 'callable',
+  });
   const resumedConsultationId = await autoResumePausedSession(userId);
   return { ...result, resumedConsultationId };
 });

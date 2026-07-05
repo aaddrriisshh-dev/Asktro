@@ -10,6 +10,7 @@ import '../features/auth/otp_screen.dart';
 import '../features/home/home_gate.dart';
 import '../features/profile_setup/profile_setup_screen.dart';
 import '../features/astrologer/astrologer_profile_screen.dart';
+import '../features/wallet/offers_screen.dart';
 import '../features/wallet/recharge_screen.dart';
 
 /// Whether onboarding has been completed (persisted locally).
@@ -90,9 +91,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/recharge',
-        // Optional ?plan=<id> pre-selects a recharge plan (used by Recharge banners).
-        builder: (_, s) => RechargeScreen(preselectPlanId: s.uri.queryParameters['plan']),
+        // ?plan=<id> pre-selects a plan (Recharge banners); ?coupon=<CODE>
+        // pre-fills + auto-applies a coupon (from the Offers screen).
+        builder: (_, s) => RechargeScreen(
+          preselectPlanId: s.uri.queryParameters['plan'],
+          preselectCoupon: s.uri.queryParameters['coupon'],
+        ),
       ),
+      GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),
     ],
     errorBuilder: (_, __) => const Scaffold(
       body: Center(child: Text('Page not found')),

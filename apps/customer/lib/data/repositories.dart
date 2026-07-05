@@ -163,6 +163,30 @@ class CatalogRepository {
           });
         return list;
       });
+
+  // Active, unexpired coupons for the Offers screen. Equality-only query (no
+  // orderBy / composite index); expiry + sort handled client-side. Audience is
+  // enforced authoritatively at redemption, but hidden here for a cleaner list.
+  Stream<List<Coupon>> watchCoupons() => _db
+      .collection('coupons')
+      .where('active', isEqualTo: true)
+      .limit(50)
+      .snapshots()
+      .map((s) {
+        final list = s.docs.map((d) {
+          final data = d.data();
+          final exp = data['expiry'];
+          final created = data['createdAt'];
+          return Coupon.fromMap(
+            d.id,
+            data,
+            expiryMs: exp is Timestamp ? exp.millisecondsSinceEpoch : null,
+            createdAtMs: created is Timestamp ? created.millisecondsSinceEpoch : 0,
+          );
+        }).where((c) => !c.isExpired).toList()
+          ..sort((a, b) => b.createdAtMs.compareTo(a.createdAtMs));
+        return list;
+      });
 }
 
 class WalletRepository {
