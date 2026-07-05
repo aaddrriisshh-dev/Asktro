@@ -76,22 +76,27 @@ export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video'
 
       <div className="sess-split">
         {/* LEFT — Live */}
-        <div className="card sess-col">
-          <h3 className="celeste" style={{ marginTop: 0 }}>🟢 Live {type} sessions</h3>
-          <p className="muted" style={{ marginTop: 0, fontSize: 12.5 }}>Calls happening right now.</p>
-          {live === null ? <p className="muted">Loading…</p>
-            : live.length === 0 ? <p className="drawer-muted">No live {type} sessions right now.</p>
-              : rows(live, 'Started')}
+        <div className="card sess-col sess-live">
+          <div className="sess-col-head">
+            <h3 className="celeste" style={{ margin: 0 }}>🟢 Live {type} sessions</h3>
+            <span className="udet-total" style={{ background: 'rgba(60,179,113,.14)', color: '#2f9c63' }}>{live?.length ?? 0} live</span>
+          </div>
+          <p className="muted" style={{ marginTop: 6, fontSize: 12.5 }}>Only the calls happening right now.</p>
+          <div className="sess-scroll">
+            {live === null ? <p className="muted">Loading…</p>
+              : live.length === 0 ? <p className="drawer-muted">No live {type} sessions right now.</p>
+                : rows(live, 'Started')}
+          </div>
         </div>
 
         {/* RIGHT — Completed */}
-        <div className="card sess-col">
-          <div className="udet-log-head">
+        <div className="card sess-col sess-done">
+          <div className="sess-col-head">
             <h3 className="celeste" style={{ margin: 0 }}>✅ Completed {type} sessions</h3>
             <span className="udet-total">{done?.length ?? 0} in range</span>
           </div>
           <DrawerFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} />
-          <div style={{ marginTop: 12 }}>
+          <div className="sess-scroll" style={{ marginTop: 10 }}>
             {done === null ? <p className="muted">Loading…</p>
               : done.length === 0 ? <p className="drawer-muted">No completed {type} sessions in this range.</p>
                 : rows(done, 'Ended')}

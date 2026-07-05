@@ -228,10 +228,14 @@ tbody tr:last-child td { border-bottom: none; }
 .pickchip.on { background: linear-gradient(135deg, #7e5bd0, var(--primary-dark)); color: #fff; border-color: transparent; }
 .tktmodal-foot .btn { min-width: 96px; }
 
-/* Phone/Video sessions split: Live (left) | Completed (right) */
-.sess-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; align-items: start; }
+/* Phone/Video sessions split: Live (left) | Completed (right) — two half-screen panels */
+.sess-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; align-items: stretch; }
 @media (max-width: 900px) { .sess-split { grid-template-columns: 1fr; } }
-.sess-col { min-height: 220px; }
+.sess-col { display: flex; flex-direction: column; min-height: 60vh; }
+.sess-col.sess-live { border-top: 3px solid #3cb371; }
+.sess-col.sess-done { border-top: 3px solid var(--primary); }
+.sess-col-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.sess-scroll { flex: 1; overflow-y: auto; margin-top: 8px; }
 
 /* Astrologer view page */
 .aview-grid { display: grid; grid-template-columns: 320px 1fr; gap: 18px; align-items: start; }

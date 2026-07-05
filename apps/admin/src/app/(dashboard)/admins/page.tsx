@@ -20,14 +20,19 @@ export default function AdminsPage() {
   const { user, adminRole } = useAuth();
   const isSuper = adminRole === 'super';
   const [rows, setRows] = useState<AdminRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setError(null);
     try {
       const res = await callFn<{ admins: AdminRow[] }>('listAdmins', {});
-      setRows(res.admins.sort((a, b) => ROLES.indexOf(a.adminRole as AdminRole) - ROLES.indexOf(b.adminRole as AdminRole)));
-    } catch { setRows([]); }
+      setRows((res.admins ?? []).sort((a, b) => ROLES.indexOf(a.adminRole as AdminRole) - ROLES.indexOf(b.adminRole as AdminRole)));
+    } catch (e) {
+      setRows([]);
+      setError(`${(e as { code?: string }).code ?? ''} ${(e as Error).message}`.trim());
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -67,9 +72,16 @@ export default function AdminsPage() {
 
       {showAdd && isSuper && <AddAdmin onDone={() => { setShowAdd(false); load(); }} />}
 
+      {error && (
+        <div className="card" style={{ marginTop: 16, borderLeft: '4px solid var(--error)' }}>
+          <strong style={{ color: 'var(--error)' }}>Couldn’t load the admin team.</strong>
+          <p className="muted" style={{ margin: '4px 0 0', fontSize: 13, fontFamily: 'monospace' }}>{error}</p>
+        </div>
+      )}
+
       <div className="card" style={{ marginTop: 16 }}>
         {rows === null ? <p className="muted">Loading…</p> : rows.length === 0 ? (
-          <p className="muted">No admins yet.</p>
+          <p className="muted">{error ? 'Could not reach the admin list (see the error above).' : 'No admins yet.'}</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table>
