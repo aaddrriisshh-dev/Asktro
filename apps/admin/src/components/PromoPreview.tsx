@@ -81,7 +81,7 @@ export function PromoPreview({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img className="promo-full-img" src={portraitImage} alt="" />
                 ) : th ? (
-                  <ThemeSkin th={th} big />
+                  <ThemeSkin th={th} variant="full" />
                 ) : (
                   <div className="promo-full-placeholder">Upload a 9:16 portrait image</div>
                 )}
@@ -95,7 +95,7 @@ export function PromoPreview({
             ) : (
               <div className="promo-screen promo-screen-dim">
                 <div className="promo-half-sheet" style={{ ...lBgStyle, color: lTx, position: 'relative', overflow: 'hidden' }}>
-                  {th && <ThemeSkin th={th} />}
+                  {th && <ThemeSkin th={th} variant="half" />}
                   <span className="promo-close" style={{ position: 'static', alignSelf: 'flex-end', zIndex: 4 }}>×</span>
                   {portraitImage && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -138,19 +138,27 @@ function themeBgStyle(th: PromoTheme): React.CSSProperties {
   return { background: th.bg };
 }
 
-/** Renders the theme's golden frame + art (right-anchored image or watermark).
- *  When the user has uploaded their own banner image, `hideArt` drops the theme
- *  art so the photo owns the card and nothing clashes. */
-function ThemeSkin({ th, big = false, hideArt = false }: { th: PromoTheme; big?: boolean; hideArt?: boolean }) {
+/** Renders the theme's golden frame + art. Placement adapts per surface so art
+ *  never collides with text:
+ *   - card: gift/mandala right-anchored beside the left-aligned text.
+ *   - full: gift/mandala as a centred hero in the upper area (text sits below).
+ *   - half: split art steps aside entirely (the short centred sheet stays clean).
+ *  The zodiac-wheel watermark sits behind at low opacity, so it's safe everywhere.
+ *  `hideArt` (uploaded photo) drops theme art so the photo owns the card. */
+function ThemeSkin({ th, variant = 'card', hideArt = false }: { th: PromoTheme; variant?: 'card' | 'half' | 'full'; hideArt?: boolean }) {
+  const splitArt = th.layout === 'split' && th.art && th.art !== 'scenery';
   return (
     <>
       <span className="promo-frame" style={{ borderColor: th.edge }} />
-      {!hideArt && th.layout === 'split' && th.art && th.art !== 'scenery' && (
-        <span className="promo-art" style={{ backgroundImage: `url(${ART_SRC[th.art]})` }} />
+      {!hideArt && splitArt && variant === 'card' && (
+        <span className="promo-art" style={{ backgroundImage: `url(${ART_SRC[th.art!]})` }} />
+      )}
+      {!hideArt && splitArt && variant === 'full' && (
+        <span className="promo-art--hero" style={{ backgroundImage: `url(${ART_SRC[th.art!]})` }} />
       )}
       {!hideArt && th.layout === 'wm' && th.art && (
         <span
-          className={big ? 'promo-wm promo-wm--big' : 'promo-wm'}
+          className={variant === 'full' ? 'promo-wm promo-wm--big' : 'promo-wm'}
           style={{ backgroundImage: `url(${ART_SRC[th.art]})`, opacity: th.op ?? 0.3 }}
         />
       )}

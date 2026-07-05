@@ -1248,3 +1248,6 @@ tbody tr:last-child td { border-bottom: none; }
 .pv-modal { position: fixed; inset: 0; z-index: 200; background: rgba(24,16,45,.55); display: grid; place-items: center; padding: 24px; }
 .pv-modal__inner { background: var(--bg, #f7f4fc); border-radius: 18px; padding: 22px; max-height: 92vh; overflow: auto; box-shadow: 0 30px 80px -20px rgba(20,10,50,.6); }
 .pv-modal__close { position: absolute; top: 18px; right: 22px; width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 1px solid var(--line); font-size: 18px; cursor: pointer; }
+
+/* full-screen centered hero art (gift / mandala) — sits above the bottom text */
+.promo-art--hero { position: absolute; top: 11%; left: 0; right: 0; height: 42%; z-index: 1; pointer-events: none; background-repeat: no-repeat; background-position: center; background-size: contain; }

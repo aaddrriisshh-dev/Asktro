@@ -92,9 +92,10 @@ export default function CouponsPage() {
       <h1 style={{ marginBottom: 2 }}>Coupons Management</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>Design a wallet offer, preview it, then Commit &amp; Push to the chosen audience.</p>
 
-      <div className="grid" style={{ gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 18, marginTop: 16 }}>
+      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 18, marginTop: 16, alignItems: 'start' }}>
+        {/* LEFT — what you type */}
         <div className="card">
-          <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <label className="af"><span>Coupon code</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <input className="input" placeholder="ASK-XXXXX" value={f.code} onChange={(e) => set('code', e.target.value)} />
@@ -117,31 +118,36 @@ export default function CouponsPage() {
           <div className="pickrow">
             {AUDIENCES.map((a) => <button key={a.key} type="button" className={`pickchip${f.audience === a.key ? ' on' : ''}`} onClick={() => set('audience', a.key)}>{a.label}</button>)}
           </div>
-
-          <p className="af-label">Theme (pick one — no design needed)</p>
-          <ThemePicker value={theme} onSelect={applyTheme} />
-
-          <p className="af-label">Image (optional — overrides the theme background)</p>
-          <ImageUpload folder="notification_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
-
-          <Collapsible title="Background & text colour" summary="Optional — your theme already sets these">
-            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>
-              <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Background</span><input type="color" value={bg} onChange={(e) => setBg(e.target.value)} /></div>
-              <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Text</span><input type="color" value={fg} onChange={(e) => setFg(e.target.value)} /></div>
-              <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
-            </div>
-          </Collapsible>
-
-          <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
-            cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
-            bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
-
-          <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
 
-        <PromoPreview kind="coupon" theme={theme} title={f.title || 'Your coupon title'} body={previewBody} code={f.code || 'ASK-XXXXX'} image={f.image} imageStyle="banner" bg={bg} fg={fg}
-          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
-          landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
+        {/* RIGHT — look & live preview */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <PromoPreview kind="coupon" theme={theme} title={f.title || 'Your coupon title'} body={previewBody} code={f.code || 'ASK-XXXXX'} image={f.image} imageStyle="banner" bg={bg} fg={fg}
+            displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
+            landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
+
+          <div className="card">
+            <p className="af-label" style={{ marginTop: 0 }}>Theme (pick one — no design needed)</p>
+            <ThemePicker value={theme} onSelect={applyTheme} />
+
+            <p className="af-label">Image (optional — overrides the theme background)</p>
+            <ImageUpload folder="notification_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
+
+            <Collapsible title="Background & text colour" summary="Optional — your theme already sets these">
+              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Background</span><input type="color" value={bg} onChange={(e) => setBg(e.target.value)} /></div>
+                <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Text</span><input type="color" value={fg} onChange={(e) => setFg(e.target.value)} /></div>
+                <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
+              </div>
+            </Collapsible>
+
+            <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
+              cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
+              bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
+
+            <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
+          </div>
+        </div>
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>

@@ -88,7 +88,8 @@ export default function BannersPage() {
       <h1 style={{ marginBottom: 2 }}>Banners Management</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>Design the banner, preview it, then Commit &amp; Push to the chosen area of the app.</p>
 
-      <div className="grid" style={{ gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 18, marginTop: 16 }}>
+      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 18, marginTop: 16, alignItems: 'start' }}>
+        {/* LEFT — what you type */}
         <div className="card">
           <p className="af-label" style={{ marginTop: 0 }}>Banner type</p>
           <div className="pickrow">
@@ -126,9 +127,17 @@ export default function BannersPage() {
             <div className="af" style={{ marginTop: 12 }}><span>On tap — go to</span>
               <DeepLinkSelect value={f.deeplink} onChange={(v) => set('deeplink', v)} /></div>
           )}
+        </div>
 
-          <p className="af-label">Theme (pick one — no design needed)</p>
-          <ThemePicker value={theme} onSelect={applyTheme} />
+        {/* RIGHT — look & live preview */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <PromoPreview kind="banner" theme={theme} title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
+            displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
+            landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
+
+          <div className="card">
+            <p className="af-label" style={{ marginTop: 0 }}>Theme (pick one — no design needed)</p>
+            <ThemePicker value={theme} onSelect={applyTheme} />
 
           <p className="af-label">Image (optional — overrides the theme background)</p>
           <ImageUpload folder="banner_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
@@ -145,12 +154,9 @@ export default function BannersPage() {
             cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
             bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
 
-          <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
+            <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
+          </div>
         </div>
-
-        <PromoPreview kind="banner" theme={theme} title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
-          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
-          landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>
