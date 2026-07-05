@@ -66,6 +66,7 @@ class PromoBanner extends Equatable {
     this.landingBody,
     this.landingBgColor,
     this.landingTextColor,
+    this.theme,
     this.createdAtMs = 0,
   });
 
@@ -77,6 +78,7 @@ class PromoBanner extends Equatable {
   final String? deeplink;
   final String placement;
   final int priority;
+  final String? theme;
   // Small-strip styling.
   final String? bgColor;
   final String? textColor;
@@ -110,12 +112,13 @@ class PromoBanner extends Equatable {
         landingBody: m['landingBody'] as String?,
         landingBgColor: m['landingBgColor'] as String?,
         landingTextColor: m['landingTextColor'] as String?,
+        theme: m['theme'] as String?,
         createdAtMs: createdAtMs,
       );
 
   @override
   List<Object?> get props => [id, image, title, subtitle, cta, deeplink, placement, priority,
-        bgColor, textColor, displayMode, portraitImage, landingTitle, landingBody, landingBgColor, landingTextColor, createdAtMs];
+        bgColor, textColor, displayMode, portraitImage, landingTitle, landingBody, landingBgColor, landingTextColor, theme, createdAtMs];
 }
 
 /// Admin-managed wallet coupon, surfaced on the Offers screen and applied at
@@ -134,6 +137,12 @@ class Coupon extends Equatable {
     this.bgColor,
     this.textColor,
     this.active = true,
+    this.theme,
+    this.displayMode = 'small',
+    this.portraitImage,
+    this.ctaText,
+    this.landingTitle,
+    this.landingBody,
     this.expiryMs,
     this.createdAtMs = 0,
   });
@@ -150,6 +159,14 @@ class Coupon extends Equatable {
   final String? bgColor;
   final String? textColor;
   final bool active;
+  // Celestial theme id (see PromoTheme) + landing behaviour for the app-open
+  // popup: 'small' | 'half' | 'full'.
+  final String? theme;
+  final String displayMode;
+  final String? portraitImage;
+  final String? ctaText;
+  final String? landingTitle;
+  final String? landingBody;
   final int? expiryMs;
   final int createdAtMs;
 
@@ -170,13 +187,20 @@ class Coupon extends Equatable {
         bgColor: m['bgColor'] as String?,
         textColor: m['textColor'] as String?,
         active: (m['active'] ?? true) as bool? ?? true,
+        theme: m['theme'] as String?,
+        displayMode: (m['displayMode'] ?? 'small') as String? ?? 'small',
+        portraitImage: m['portraitImage'] as String?,
+        ctaText: m['ctaText'] as String?,
+        landingTitle: m['landingTitle'] as String?,
+        landingBody: m['landingBody'] as String?,
         expiryMs: expiryMs,
         createdAtMs: createdAtMs,
       );
 
   @override
   List<Object?> get props => [id, code, title, description, amount, bonus, minimumRecharge,
-        audience, image, bgColor, textColor, active, expiryMs, createdAtMs];
+        audience, image, bgColor, textColor, active, theme, displayMode, portraitImage,
+        ctaText, landingTitle, landingBody, expiryMs, createdAtMs];
 }
 
 /// Immutable wallet ledger row.
@@ -222,6 +246,12 @@ class AppNotification extends Equatable {
     this.type = 'system',
     this.deeplink,
     this.read = false,
+    this.theme,
+    this.displayMode = 'small',
+    this.portraitImage,
+    this.ctaText,
+    this.landingTitle,
+    this.landingBody,
     this.createdAtMs,
   });
 
@@ -231,6 +261,12 @@ class AppNotification extends Equatable {
   final String type;
   final String? deeplink;
   final bool read;
+  final String? theme;
+  final String displayMode;
+  final String? portraitImage;
+  final String? ctaText;
+  final String? landingTitle;
+  final String? landingBody;
   final int? createdAtMs;
 
   factory AppNotification.fromMap(String id, Map<String, dynamic> m, {int? createdAtMs}) =>
@@ -241,9 +277,16 @@ class AppNotification extends Equatable {
         type: (m['type'] ?? 'system') as String,
         deeplink: m['deeplink'] as String?,
         read: (m['read'] ?? false) as bool,
+        theme: m['theme'] as String?,
+        displayMode: (m['displayMode'] ?? 'small') as String? ?? 'small',
+        portraitImage: m['portraitImage'] as String?,
+        ctaText: m['ctaText'] as String?,
+        landingTitle: m['landingTitle'] as String?,
+        landingBody: m['landingBody'] as String?,
         createdAtMs: createdAtMs,
       );
 
   @override
-  List<Object?> get props => [id, title, body, type, deeplink, read, createdAtMs];
+  List<Object?> get props => [id, title, body, type, deeplink, read, theme, displayMode,
+        portraitImage, ctaText, landingTitle, landingBody, createdAtMs];
 }

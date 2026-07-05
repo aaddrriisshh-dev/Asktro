@@ -11,6 +11,7 @@ import '../settings/language_sheet.dart';
 import '../profile/support_screen.dart';
 import '../profile_setup/onboarding_style.dart';
 import '../profile_setup/onboarding_widgets.dart';
+import '../wallet/promo_surface.dart';
 
 final _onlineProvider = StreamProvider.autoDispose<List<Astrologer>>(
     (ref) => ref.watch(astrologerRepositoryProvider).watchOnline());
@@ -358,6 +359,36 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
     final bg = _hex(b.bgColor) ?? const Color(0xFF6A47C7);
     final fg = _hex(b.textColor) ?? Colors.white;
     final hasImg = b.image.isNotEmpty;
+
+    // Themed banner: draw the chosen celestial theme (unless a custom photo was
+    // uploaded, which takes over the whole strip).
+    final th = promoThemeById(b.theme);
+    if (th != null && !hasImg) {
+      final isSplit = th.layout == PromoLayout.split;
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: GestureDetector(
+          onTap: () => _openBanner(context, b),
+          child: PromoSurface(
+            theme: th,
+            variant: PromoVariant.card,
+            radius: 24,
+            child: SizedBox.expand(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                child: Row(
+                  children: [
+                    Expanded(flex: isSplit ? 62 : 100, child: _bannerCopy(b, th)),
+                    if (isSplit) const Expanded(flex: 38, child: SizedBox()),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: GestureDetector(
@@ -426,6 +457,38 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
           ),
         ),
       ),
+    );
+  }
+
+  // Themed-banner copy: title + subtitle + CTA using the theme's colours.
+  Widget _bannerCopy(PromoBanner b, PromoTheme th) {
+    final fg = th.tx;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (b.title.isNotEmpty)
+          Text(b.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Ob.title.copyWith(color: fg, fontSize: 22, height: 1.1)),
+        if (b.subtitle.isNotEmpty) ...[
+          const SizedBox(height: 5),
+          Text(b.subtitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Ob.note.copyWith(color: fg.withValues(alpha: 0.92))),
+        ],
+        if ((b.cta ?? '').isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(gradient: promoAccent(th), borderRadius: BorderRadius.circular(13)),
+            child: Text('${b.cta}  →',
+                style: Ob.option.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700, color: th.accentTx ?? Ob.navy)),
+          ),
+        ],
+      ],
     );
   }
 

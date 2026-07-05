@@ -27,6 +27,7 @@ export 'src/models/astrologer.dart';
 export 'src/models/consultation.dart';
 export 'src/models/user_profile.dart';
 export 'src/models/catalog.dart';
+export 'src/models/promo_theme.dart';
 
 // Utils
 export 'src/utils/money.dart';
