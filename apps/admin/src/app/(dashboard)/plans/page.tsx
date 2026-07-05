@@ -85,16 +85,24 @@ export default function PlansPage() {
       </div>
 
       {loading ? <p className="muted">Loading…</p> : (
-        <>
-          <div className="card" style={{ marginBottom: 16 }}>
-            <h3 className="celeste" style={{ marginTop: 0 }}>Regular plans <span className="muted" style={{ fontSize: 13, fontWeight: 400 }}>· shown on the recharge screen</span></h3>
-            {table(regular)}
+        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+          <div className="card sess-col" style={{ borderTop: '3px solid var(--primary)' }}>
+            <div className="sess-col-head">
+              <h3 className="celeste" style={{ margin: 0 }}>Regular plans</h3>
+              <span className="udet-total">{regular.length}</span>
+            </div>
+            <p className="muted" style={{ margin: '4px 0 10px', fontSize: 12 }}>Shown on the app&apos;s recharge screen.</p>
+            <div style={{ overflowX: 'auto' }}>{table(regular)}</div>
           </div>
-          <div className="card">
-            <h3 className="celeste" style={{ marginTop: 0 }}>🎁 Offer plans <span className="muted" style={{ fontSize: 13, fontWeight: 400 }}>· banner-only, hidden from the recharge screen</span></h3>
-            {table(offers)}
+          <div className="card sess-col" style={{ borderTop: '3px solid var(--gold)' }}>
+            <div className="sess-col-head">
+              <h3 className="celeste" style={{ margin: 0 }}>🎁 Offer plans</h3>
+              <span className="udet-total">{offers.length}</span>
+            </div>
+            <p className="muted" style={{ margin: '4px 0 10px', fontSize: 12 }}>Banner-only — hidden from the recharge screen.</p>
+            <div style={{ overflowX: 'auto' }}>{table(offers)}</div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
