@@ -188,20 +188,17 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                   message: 'Please check back shortly.',
                 );
               }
-              // Pre-select the banner's plan once, after the first frame.
+              // When opened from a Recharge banner, lock the screen to that one
+              // plan so the user pays exactly the promoted amount (no switching).
               final wanted = widget.preselectPlanId;
-              if (!_appliedPreselect && wanted != null && wanted.isNotEmpty) {
+              final offerMode = wanted != null && wanted.isNotEmpty && list.any((p) => p.id == wanted);
+              final shown = offerMode ? list.where((p) => p.id == wanted).toList() : list;
+              if (offerMode && !_appliedPreselect) {
                 _appliedPreselect = true;
-                RechargePlan? match;
-                for (final p in list) {
-                  if (p.id == wanted) { match = p; break; }
-                }
-                if (match != null) {
-                  final picked = match;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) setState(() => _selected = picked);
-                  });
-                }
+                final picked = shown.first;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() => _selected = picked);
+                });
               }
               return Column(
                 children: [
@@ -213,17 +210,17 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                           children: [
                             const Icon(Icons.auto_awesome, color: Ob.gold, size: 16),
                             const SizedBox(width: 6),
-                            Text('Choose an amount to add', style: Ob.sectionLabel),
+                            Text(offerMode ? 'Your exclusive offer' : 'Choose an amount to add', style: Ob.sectionLabel),
                           ],
                         ),
                         const SizedBox(height: 16),
                         LayoutBuilder(builder: (context, c) {
                           const spacing = 12.0;
-                          final w = (c.maxWidth - spacing * 2) / 3;
+                          final w = offerMode ? c.maxWidth : (c.maxWidth - spacing * 2) / 3;
                           return Wrap(
                             spacing: spacing,
                             runSpacing: spacing,
-                            children: [for (final p in list) _tile(p, w)],
+                            children: [for (final p in shown) _tile(p, w)],
                           );
                         }),
                       ],
