@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { addDoc, collection, deleteDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useCollection } from '@/lib/hooks';
+import { useCollection, Row } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 import { formatPaise, rupeesToPaise } from '@/lib/format';
 import { ImageUpload } from '@/components/ImageUpload';
@@ -43,6 +43,7 @@ export default function CouponsPage() {
   const [lFg, setLFg] = useState('#ffffff');
   const [busy, setBusy] = useState(false);
   const [theme, setTheme] = useState('');
+  const [preview, setPreview] = useState<Row | null>(null);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
   // Picking a theme drives the preview and stores its id; bg/fg keep solid
@@ -92,10 +93,15 @@ export default function CouponsPage() {
       <h1 style={{ marginBottom: 2 }}>Coupons Management</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>Design a wallet offer, preview it, then Commit &amp; Push to the chosen audience.</p>
 
-      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 18, marginTop: 16, alignItems: 'start' }}>
-        {/* LEFT — what you type */}
+      <div className="grid" style={{ gridTemplateColumns: 'minmax(0,0.82fr) minmax(0,1.18fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
+        {/* LEFT — live preview, pinned so it never overlaps the form */}
+        <PromoPreview kind="coupon" theme={theme} title={f.title || 'Your coupon title'} body={previewBody} code={f.code || 'ASK-XXXXX'} image={f.image} imageStyle="banner" bg={bg} fg={fg}
+          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
+          landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
+
+        {/* RIGHT — everything you edit */}
         <div className="card">
-          <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <label className="af"><span>Coupon code</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <input className="input" placeholder="ASK-XXXXX" value={f.code} onChange={(e) => set('code', e.target.value)} />
@@ -118,35 +124,26 @@ export default function CouponsPage() {
           <div className="pickrow">
             {AUDIENCES.map((a) => <button key={a.key} type="button" className={`pickchip${f.audience === a.key ? ' on' : ''}`} onClick={() => set('audience', a.key)}>{a.label}</button>)}
           </div>
-        </div>
 
-        {/* RIGHT — look & live preview */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <PromoPreview kind="coupon" theme={theme} title={f.title || 'Your coupon title'} body={previewBody} code={f.code || 'ASK-XXXXX'} image={f.image} imageStyle="banner" bg={bg} fg={fg}
-            displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
-            landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
+          <p className="af-label">Theme (pick one — no design needed)</p>
+          <ThemePicker value={theme} onSelect={applyTheme} />
 
-          <div className="card">
-            <p className="af-label" style={{ marginTop: 0 }}>Theme (pick one — no design needed)</p>
-            <ThemePicker value={theme} onSelect={applyTheme} />
+          <p className="af-label">Image (optional — overrides the theme background)</p>
+          <ImageUpload folder="notification_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
 
-            <p className="af-label">Image (optional — overrides the theme background)</p>
-            <ImageUpload folder="notification_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
+          <Collapsible title="Background & text colour" summary="Optional — your theme already sets these">
+            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Background</span><input type="color" value={bg} onChange={(e) => setBg(e.target.value)} /></div>
+              <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Text</span><input type="color" value={fg} onChange={(e) => setFg(e.target.value)} /></div>
+              <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
+            </div>
+          </Collapsible>
 
-            <Collapsible title="Background & text colour" summary="Optional — your theme already sets these">
-              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>
-                <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Background</span><input type="color" value={bg} onChange={(e) => setBg(e.target.value)} /></div>
-                <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Text</span><input type="color" value={fg} onChange={(e) => setFg(e.target.value)} /></div>
-                <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
-              </div>
-            </Collapsible>
+          <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
+            cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
+            bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
 
-            <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
-              cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
-              bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
-
-            <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
-          </div>
+          <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
       </div>
 
@@ -171,7 +168,10 @@ export default function CouponsPage() {
                         <span className="switch-lbl">{c.active ? 'On' : 'Off'}</span>
                       </label>
                     </td>
-                    <td><button className="btn sm danger" onClick={() => { if (confirm('Delete this coupon?')) deleteDoc(doc(db, 'coupons', c.id)); }}>Delete</button></td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button className="btn sm secondary" title="Preview this coupon" onClick={() => setPreview(c)} style={{ marginRight: 6 }}>👁 View</button>
+                      <button className="btn sm danger" onClick={() => { if (confirm('Delete this coupon?')) deleteDoc(doc(db, 'coupons', c.id)); }}>Delete</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -179,6 +179,28 @@ export default function CouponsPage() {
           </div>
         )}
       </div>
+
+      {preview && (
+        <div className="pv-modal" onClick={() => setPreview(null)}>
+          <button type="button" className="pv-modal__close" onClick={() => setPreview(null)}>×</button>
+          <div className="pv-modal__inner" style={{ width: 'min(420px, 92vw)' }} onClick={(e) => e.stopPropagation()}>
+            <PromoPreview kind="coupon"
+              theme={(preview.theme as string) || ''}
+              title={(preview.title as string) || (preview.code as string)}
+              body={(preview.description as string) || ''}
+              code={(preview.code as string) || ''}
+              image={(preview.image as string) || ''}
+              imageStyle="banner"
+              bg={(preview.bgColor as string) || '#6b4bc0'}
+              fg={(preview.textColor as string) || '#ffffff'}
+              displayMode={((preview.displayMode as string) || 'small') as 'small' | 'half' | 'full'}
+              portraitImage={(preview.portraitImage as string) || undefined}
+              ctaText={(preview.ctaText as string) || undefined}
+              landingTitle={(preview.landingTitle as string) || undefined}
+              landingBody={(preview.landingBody as string) || undefined} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

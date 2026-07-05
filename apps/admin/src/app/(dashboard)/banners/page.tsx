@@ -38,6 +38,7 @@ export default function BannersPage() {
   const [lFg, setLFg] = useState('#ffffff');
   const [busy, setBusy] = useState(false);
   const [theme, setTheme] = useState('');
+  const [preview, setPreview] = useState<Row | null>(null);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
   function applyTheme(t: PromoTheme | null) {
@@ -88,8 +89,13 @@ export default function BannersPage() {
       <h1 style={{ marginBottom: 2 }}>Banners Management</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>Design the banner, preview it, then Commit &amp; Push to the chosen area of the app.</p>
 
-      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 18, marginTop: 16, alignItems: 'start' }}>
-        {/* LEFT — what you type */}
+      <div className="grid" style={{ gridTemplateColumns: 'minmax(0,0.82fr) minmax(0,1.18fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
+        {/* LEFT — live preview, pinned so it never overlaps the form */}
+        <PromoPreview kind="banner" theme={theme} title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
+          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
+          landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
+
+        {/* RIGHT — everything you edit */}
         <div className="card">
           <p className="af-label" style={{ marginTop: 0 }}>Banner type</p>
           <div className="pickrow">
@@ -127,17 +133,9 @@ export default function BannersPage() {
             <div className="af" style={{ marginTop: 12 }}><span>On tap — go to</span>
               <DeepLinkSelect value={f.deeplink} onChange={(v) => set('deeplink', v)} /></div>
           )}
-        </div>
 
-        {/* RIGHT — look & live preview */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <PromoPreview kind="banner" theme={theme} title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
-            displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
-            landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
-
-          <div className="card">
-            <p className="af-label" style={{ marginTop: 0 }}>Theme (pick one — no design needed)</p>
-            <ThemePicker value={theme} onSelect={applyTheme} />
+          <p className="af-label">Theme (pick one — no design needed)</p>
+          <ThemePicker value={theme} onSelect={applyTheme} />
 
           <p className="af-label">Image (optional — overrides the theme background)</p>
           <ImageUpload folder="banner_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
@@ -154,8 +152,7 @@ export default function BannersPage() {
             cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
             bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
 
-            <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
-          </div>
+          <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
       </div>
 
@@ -173,7 +170,10 @@ export default function BannersPage() {
                     <td className="muted" style={{ fontSize: 13 }}>{(b.createdByName as string) || '—'}</td>
                     <td className="muted" style={{ fontSize: 13 }}>{b.createdAt?.toMillis ? formatDate(b.createdAt.toMillis()) : '—'}</td>
                     <td><button className={`btn sm ${b.active ? 'secondary' : ''}`} onClick={() => updateDoc(doc(db, 'banners', b.id), { active: !b.active })}>{b.active ? 'On' : 'Off'}</button></td>
-                    <td><button className="btn sm danger" onClick={() => { if (confirm('Delete this banner?')) deleteDoc(doc(db, 'banners', b.id)); }}>Delete</button></td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button className="btn sm secondary" title="Preview this banner" onClick={() => setPreview(b)} style={{ marginRight: 6 }}>👁 View</button>
+                      <button className="btn sm danger" onClick={() => { if (confirm('Delete this banner?')) deleteDoc(doc(db, 'banners', b.id)); }}>Delete</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -181,6 +181,27 @@ export default function BannersPage() {
           </div>
         )}
       </div>
+
+      {preview && (
+        <div className="pv-modal" onClick={() => setPreview(null)}>
+          <button type="button" className="pv-modal__close" onClick={() => setPreview(null)}>×</button>
+          <div className="pv-modal__inner" style={{ width: 'min(420px, 92vw)' }} onClick={(e) => e.stopPropagation()}>
+            <PromoPreview kind="banner"
+              theme={(preview.theme as string) || ''}
+              title={(preview.title as string) || ''}
+              body={(preview.description as string) || ''}
+              image={(preview.image as string) || ''}
+              imageStyle="banner"
+              bg={(preview.bgColor as string) || '#2e2b5f'}
+              fg={(preview.textColor as string) || '#ffffff'}
+              displayMode={((preview.displayMode as string) || 'small') as 'small' | 'half' | 'full'}
+              portraitImage={(preview.portraitImage as string) || undefined}
+              ctaText={(preview.ctaText as string) || undefined}
+              landingTitle={(preview.landingTitle as string) || undefined}
+              landingBody={(preview.landingBody as string) || undefined} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

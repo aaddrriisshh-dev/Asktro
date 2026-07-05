@@ -34,8 +34,10 @@ export function PromoPreview({
   const portrait = imageStyle === 'portrait' && image;
   const landing = displayMode === 'half' || displayMode === 'full';
   const cta = ctaText?.trim();
-  const lTitle = landingTitle?.trim() || 'Your landing headline';
-  const lBody = landingBody?.trim() || 'Your landing description appears here.';
+  // Landing view has its own optional headline/body; when left empty it falls
+  // back to the strip's title/description so what you type up top shows here too.
+  const lTitle = landingTitle?.trim() || title?.trim() || 'Your landing headline';
+  const lBody = landingBody?.trim() || body?.trim() || 'Your landing description appears here.';
 
   const cardBg = th ? themeBgStyle(th) : { background: bg };
   const txCard = th ? th.tx : fg;
