@@ -157,9 +157,9 @@ Future<void> _showHalf(BuildContext context, Coupon c, PromoTheme th) {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(_ttl(c), style: Ob.title.copyWith(color: fg, fontSize: 23), textAlign: TextAlign.center),
-                    const SizedBox(height: 10),
-                    Text(_bodyText(c), style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 14), textAlign: TextAlign.center),
+                    Text(_ttl(c), style: Ob.title.copyWith(color: fg, fontSize: 28, height: 1.15), textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    Text(_bodyText(c), style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 16, height: 1.35), textAlign: TextAlign.center),
                     const SizedBox(height: 18),
                     _codePill(c, fg, fg.withValues(alpha: 0.16)),
                     const SizedBox(height: 16),
@@ -183,37 +183,46 @@ Future<void> _showFull(BuildContext context, Coupon c, PromoTheme th) {
     barrierLabel: 'offer',
     barrierColor: Colors.black54,
     transitionDuration: const Duration(milliseconds: 220),
-    pageBuilder: (ctx, _, __) => Stack(
-      fit: StackFit.expand,
-      children: [
-        PromoSurface(theme: th, variant: PromoVariant.full, radius: 0, showFrame: false, child: const SizedBox.expand()),
-        SafeArea(
-          child: Stack(
-            children: [
-              Positioned(top: 10, right: 16, child: _closeBtn(ctx, fg)),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(26, 24, 26, 32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(_ttl(c), style: Ob.title.copyWith(color: fg, fontSize: 27), textAlign: TextAlign.center),
-                      const SizedBox(height: 10),
-                      Text(_bodyText(c), style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 15), textAlign: TextAlign.center),
-                      const SizedBox(height: 18),
-                      _codePill(c, fg, fg.withValues(alpha: 0.16)),
-                      const SizedBox(height: 14),
-                      _grabCta(ctx, c, th),
-                    ],
+    // Wrapped in a transparent Material so Text doesn't render with Flutter's
+    // yellow debug underline (showGeneralDialog has no Material ancestor).
+    pageBuilder: (ctx, _, __) => Material(
+      type: MaterialType.transparency,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          PromoSurface(theme: th, variant: PromoVariant.full, radius: 0, showFrame: false, child: const SizedBox.expand()),
+          SafeArea(
+            child: Stack(
+              children: [
+                Positioned(top: 10, right: 16, child: _closeBtn(ctx, fg)),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 24, 28, 40),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(_ttl(c),
+                            style: Ob.title.copyWith(color: fg, fontSize: 38, height: 1.1, decoration: TextDecoration.none),
+                            textAlign: TextAlign.center),
+                        const SizedBox(height: 14),
+                        Text(_bodyText(c),
+                            style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 18, height: 1.35, decoration: TextDecoration.none),
+                            textAlign: TextAlign.center),
+                        const SizedBox(height: 26),
+                        _codePill(c, fg, fg.withValues(alpha: 0.16)),
+                        const SizedBox(height: 18),
+                        _grabCta(ctx, c, th),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }

@@ -40,14 +40,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       // Server-fetch (not the cache-first live stream) so a deleted coupon still
       // sitting in Firestore's offline cache can never surface as the popup.
       final coupons = await ref.read(catalogRepositoryProvider).fetchActiveCoupons();
-      debugPrint('OFFER_POPUP: server returned ${coupons.length} active coupon(s)'
-          '${coupons.isNotEmpty ? ' → newest=${coupons.first.code}' : ''}');
       if (!mounted || coupons.isEmpty) return;
       ref.read(offerPopupShownProvider.notifier).state = true;
       await showOfferPopup(context, coupons.first);
-    } catch (e) {
+    } catch (_) {
       // No offers / offline / rules — ignore, home loads normally.
-      debugPrint('OFFER_POPUP: fetch FAILED → $e');
     }
   }
 

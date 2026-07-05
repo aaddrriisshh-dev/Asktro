@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:shared_flutter/shared_flutter.dart';
 
 /// Firestore-backed read repositories. All money/timer writes go through Cloud
@@ -184,17 +183,6 @@ class CatalogRepository {
         .where('active', isEqualTo: true)
         .limit(50)
         .get(const GetOptions(source: Source.server));
-    debugPrint('OFFER_POPUP: raw server docs=${snap.docs.length} (project=${_db.app.options.projectId})');
-    for (final d in snap.docs) {
-      final m = d.data();
-      debugPrint('  • ${m['code']} active=${m['active']} expiry=${m['expiry']}');
-    }
-    // Also count without the active filter, to see everything in the collection.
-    final all = await _db.collection('coupons').limit(50).get(const GetOptions(source: Source.server));
-    debugPrint('OFFER_POPUP: total docs in collection (any active)=${all.docs.length}');
-    for (final d in all.docs) {
-      debugPrint('  • ${d.data()['code']} active=${d.data()['active']}');
-    }
     return _mapCoupons(snap.docs);
   }
 
