@@ -12,51 +12,99 @@
  * This reads the existing IAM policy per service and ADDS the binding
  * (never replaces), so Eventarc/trigger bindings are preserved.
  *
+ * ZERO dependencies — uses only Node's built-in `fetch` and `crypto`, so it
+ * works on any Node version (the google-auth-library/node-fetch path breaks
+ * on Node 26 with "Gunzip / Premature close").
+ *
  * Run from firebase/functions with the service-account key exported:
  *   export GOOGLE_APPLICATION_CREDENTIALS="$PWD/serviceAccountKey.json"
  *   node scripts/grant_public_invoke.mjs
  */
-import { GoogleAuth } from 'google-auth-library';
 import { readFileSync } from 'node:fs';
+import { createSign } from 'node:crypto';
 
 const KEY = process.env.GOOGLE_APPLICATION_CREDENTIALS || `${process.cwd()}/serviceAccountKey.json`;
-const PROJECT = JSON.parse(readFileSync(KEY, 'utf8')).project_id;
+const sa = JSON.parse(readFileSync(KEY, 'utf8'));
+const PROJECT = sa.project_id;
 const LOCATION = 'asia-south1';
 
-const auth = new GoogleAuth({ keyFile: KEY, scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
-const client = await auth.getClient();
-
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const b64url = (buf) =>
+  Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-// Retry transient network failures (dropped connections, premature stream
-// close, 429/5xx) with exponential backoff.
-async function api(url, method = 'GET', data) {
+// --- fetch with retry on transient network / 5xx failures ------------------
+async function fetchRetry(url, opts = {}) {
   let lastErr;
-  for (let attempt = 1; attempt <= 5; attempt++) {
+  for (let attempt = 1; attempt <= 6; attempt++) {
     try {
-      const res = await client.request({ url, method, data });
-      return res.data;
+      const res = await fetch(url, opts);
+      if (res.status === 429 || (res.status >= 500 && res.status <= 599)) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return res;
     } catch (e) {
-      const status = e?.response?.status;
-      const transient =
-        e?.code === 'ERR_STREAM_PREMATURE_CLOSE' ||
-        e?.code === 'ECONNRESET' ||
-        e?.code === 'ETIMEDOUT' ||
-        status === 429 || (status >= 500 && status <= 599);
       lastErr = e;
-      if (!transient || attempt === 5) throw e;
-      const wait = 1000 * 2 ** (attempt - 1); // 1s, 2s, 4s, 8s
-      console.log(`   …network hiccup (${e.code || status}); retrying in ${wait / 1000}s`);
+      if (attempt === 6) throw e;
+      const wait = 1000 * 2 ** (attempt - 1); // 1,2,4,8,16s
+      console.log(`   …network hiccup (${e.message}); retrying in ${wait / 1000}s`);
       await sleep(wait);
     }
   }
   throw lastErr;
 }
 
-const base = `https://run.googleapis.com/v2/projects/${PROJECT}/locations/${LOCATION}/services`;
+// --- mint an OAuth access token from the service-account key ----------------
+async function getAccessToken() {
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  const claims = b64url(
+    JSON.stringify({
+      iss: sa.client_email,
+      scope: 'https://www.googleapis.com/auth/cloud-platform',
+      aud: sa.token_uri,
+      iat: now,
+      exp: now + 3600,
+    }),
+  );
+  const unsigned = `${header}.${claims}`;
+  const signature = b64url(createSign('RSA-SHA256').update(unsigned).sign(sa.private_key));
+  const jwt = `${unsigned}.${signature}`;
 
+  const res = await fetchRetry(sa.token_uri, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
+  });
+  const data = await res.json();
+  if (!data.access_token) throw new Error(`token endpoint returned no access_token: ${JSON.stringify(data)}`);
+  return data.access_token;
+}
+
+// --- authorized Cloud Run REST call ----------------------------------------
+let TOKEN;
+async function api(url, method = 'GET', body) {
+  const res = await fetchRetry(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
+  return text ? JSON.parse(text) : {};
+}
+
+// --- main -------------------------------------------------------------------
+console.log(`Authenticating as ${sa.client_email}…`);
+TOKEN = await getAccessToken();
 console.log(`Granting allUsers → roles/run.invoker on all Cloud Run services in ${PROJECT} (${LOCATION})…\n`);
 
+const base = `https://run.googleapis.com/v2/projects/${PROJECT}/locations/${LOCATION}/services`;
 let services = [];
 let pageToken;
 do {
