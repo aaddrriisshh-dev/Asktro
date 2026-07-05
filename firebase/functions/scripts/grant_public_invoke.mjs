@@ -26,9 +26,31 @@ const LOCATION = 'asia-south1';
 const auth = new GoogleAuth({ keyFile: KEY, scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
 const client = await auth.getClient();
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Retry transient network failures (dropped connections, premature stream
+// close, 429/5xx) with exponential backoff.
 async function api(url, method = 'GET', data) {
-  const res = await client.request({ url, method, data });
-  return res.data;
+  let lastErr;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const res = await client.request({ url, method, data });
+      return res.data;
+    } catch (e) {
+      const status = e?.response?.status;
+      const transient =
+        e?.code === 'ERR_STREAM_PREMATURE_CLOSE' ||
+        e?.code === 'ECONNRESET' ||
+        e?.code === 'ETIMEDOUT' ||
+        status === 429 || (status >= 500 && status <= 599);
+      lastErr = e;
+      if (!transient || attempt === 5) throw e;
+      const wait = 1000 * 2 ** (attempt - 1); // 1s, 2s, 4s, 8s
+      console.log(`   …network hiccup (${e.code || status}); retrying in ${wait / 1000}s`);
+      await sleep(wait);
+    }
+  }
+  throw lastErr;
 }
 
 const base = `https://run.googleapis.com/v2/projects/${PROJECT}/locations/${LOCATION}/services`;
