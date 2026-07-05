@@ -34,7 +34,7 @@ export function ThemePicker({
 
       {open && (
         <div className="tp__body">
-          <div className="theme-slider">
+          <div className="theme-grid">
             <button type="button" className={`theme-sw theme-sw--none${value ? '' : ' on'}`}
               onClick={() => { onSelect(null); }} title="No theme — use your own photo / colours">
               <span>None</span>
@@ -50,7 +50,7 @@ export function ThemePicker({
             ))}
           </div>
           <p className="muted" style={{ margin: '8px 2px 0', fontSize: 12 }}>
-            Slide to browse all 20 · uploading a photo below overrides the theme background.
+            Pick any of the 20 · uploading a photo below overrides the theme background.
           </p>
         </div>
       )}
