@@ -1,11 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { themeById, ART_SRC, PromoTheme } from '@/lib/promoThemes';
 
 /** Live preview of a composed promo (push / banner / coupon). Shows the small
  *  strip (notification / home card) and — when a landing view is chosen — an
- *  exact phone-frame mockup of the half- or full-screen view. When a theme is
- *  picked, the celestial background, golden frame and art are rendered too. */
+ *  exact phone-frame mockup of the half- or full-screen view. A theme adds the
+ *  celestial background, golden frame and art. “Expand” opens it larger. */
 export function PromoPreview({
   title, body, image, imageStyle = 'banner', bg = '#2e2b5f', fg = '#ffffff', kind = 'push',
   displayMode = 'small', portraitImage, ctaText,
@@ -28,6 +29,7 @@ export function PromoPreview({
   code?: string;
   theme?: string;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const th = themeById(theme);
   const portrait = imageStyle === 'portrait' && image;
   const landing = displayMode === 'half' || displayMode === 'full';
@@ -40,8 +42,8 @@ export function PromoPreview({
   const lBgStyle = th ? themeBgStyle(th) : { background: landingBg };
   const lTx = th ? th.tx : landingFg;
 
-  return (
-    <div className="promo-wrap">
+  const inner = (
+    <>
       {/* Small strip — the notification / home card */}
       <span className="promo-kind">{kind === 'push' ? '🔔 Notification' : kind === 'banner' ? '🖼 Home strip' : '🎟 Coupon card'}</span>
       <div className="promo-card" style={{ ...cardBg, color: txCard, position: 'relative', overflow: 'hidden' }}>
@@ -107,6 +109,23 @@ export function PromoPreview({
             )}
           </div>
         </>
+      )}
+    </>
+  );
+
+  return (
+    <div className="promo-wrap">
+      <div className="pv-toolbar">
+        <button type="button" className="pv-expand" onClick={() => setExpanded(true)}>⤢ Expand preview</button>
+      </div>
+      {inner}
+      {expanded && (
+        <div className="pv-modal" onClick={() => setExpanded(false)}>
+          <button type="button" className="pv-modal__close" onClick={() => setExpanded(false)}>×</button>
+          <div className="pv-modal__inner" style={{ width: 'min(420px, 92vw)' }} onClick={(e) => e.stopPropagation()}>
+            {inner}
+          </div>
+        </div>
       )}
     </div>
   );

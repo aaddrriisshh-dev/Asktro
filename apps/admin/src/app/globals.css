@@ -1230,3 +1230,21 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* ---- sticky live preview (stays in the viewport while composing) ---- */
 .promo-wrap { position: sticky; top: 16px; align-self: start; }
+
+/* ---- collapsible accordion panel ---- */
+.cxp { border: 1px solid var(--line); border-radius: 12px; margin-top: 14px; overflow: hidden; }
+.cxp__head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 12px; background: #fff; border: 0; cursor: pointer; text-align: left; }
+.cxp__head:hover { background: #faf7ff; }
+.cxp__title { font-weight: 700; font-size: 13px; color: var(--navy); }
+.cxp__sum { font-size: 12px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cxp__chev { margin-left: auto; color: var(--muted); transition: transform .18s ease; }
+.cxp--open .cxp__chev { transform: rotate(180deg); }
+.cxp__body { padding: 14px; border-top: 1px solid var(--line); background: #fcfaff; }
+
+/* ---- preview expand popup ---- */
+.pv-toolbar { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.pv-expand { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--primary); background: var(--chip, #f1ecfb); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+.pv-expand:hover { background: #ece6fa; }
+.pv-modal { position: fixed; inset: 0; z-index: 200; background: rgba(24,16,45,.55); display: grid; place-items: center; padding: 24px; }
+.pv-modal__inner { background: var(--bg, #f7f4fc); border-radius: 18px; padding: 22px; max-height: 92vh; overflow: auto; box-shadow: 0 30px 80px -20px rgba(20,10,50,.6); }
+.pv-modal__close { position: absolute; top: 18px; right: 22px; width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 1px solid var(--line); font-size: 18px; cursor: pointer; }

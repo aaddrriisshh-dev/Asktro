@@ -7,6 +7,7 @@ import { PromoPreview } from '@/components/PromoPreview';
 import { LandingControls, DisplayMode } from '@/components/LandingControls';
 import { DeepLinkSelect } from '@/components/DeepLinkSelect';
 import { ThemePicker } from '@/components/ThemePicker';
+import { Collapsible } from '@/components/Collapsible';
 import { PromoTheme } from '@/lib/promoThemes';
 
 type Segment = 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers';
@@ -104,12 +105,13 @@ export default function BroadcastPage() {
             </div>
           )}
 
-          <p className="af-label">Background &amp; text colour</p>
-          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Background</span><input type="color" value={bg} onChange={(e) => setBg(e.target.value)} /></div>
-            <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Text</span><input type="color" value={fg} onChange={(e) => setFg(e.target.value)} /></div>
-            <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} title={c} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
-          </div>
+          <Collapsible title="Background & text colour" summary="Optional — your theme already sets these">
+            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Background</span><input type="color" value={bg} onChange={(e) => setBg(e.target.value)} /></div>
+              <div className="color-field"><span className="muted" style={{ fontSize: 12 }}>Text</span><input type="color" value={fg} onChange={(e) => setFg(e.target.value)} /></div>
+              <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} title={c} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
+            </div>
+          </Collapsible>
 
           <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
             cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
