@@ -143,13 +143,26 @@ class CatalogRepository {
         return list;
       });
 
+  // Equality-only query (no orderBy) so banners written by the admin portal —
+  // which don't set a `priority` field — are never excluded, and no composite
+  // index is required. Sorted client-side: priority desc, then newest first.
   Stream<List<PromoBanner>> watchBanners(String placement) => _db
       .collection('banners')
       .where('active', isEqualTo: true)
       .where('placement', isEqualTo: placement)
-      .orderBy('priority', descending: true)
       .snapshots()
-      .map((s) => s.docs.map((d) => PromoBanner.fromMap(d.id, d.data())).toList());
+      .map((s) {
+        final list = s.docs.map((d) {
+          final ts = d.data()['createdAt'];
+          return PromoBanner.fromMap(d.id, d.data(),
+              createdAtMs: ts is Timestamp ? ts.millisecondsSinceEpoch : 0);
+        }).toList()
+          ..sort((a, b) {
+            if (a.priority != b.priority) return b.priority.compareTo(a.priority);
+            return b.createdAtMs.compareTo(a.createdAtMs);
+          });
+        return list;
+      });
 }
 
 class WalletRepository {

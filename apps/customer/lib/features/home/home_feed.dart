@@ -20,6 +20,8 @@ final _topRatedProvider = StreamProvider.autoDispose<List<Astrologer>>(
     (ref) => ref.watch(astrologerRepositoryProvider).watchTopRated());
 final _newestProvider = StreamProvider.autoDispose<List<Astrologer>>(
     (ref) => ref.watch(astrologerRepositoryProvider).watchNewest());
+final _homeBannersProvider = StreamProvider.autoDispose<List<PromoBanner>>(
+    (ref) => ref.watch(catalogRepositoryProvider).watchBanners('home'));
 
 void _comingSoon(BuildContext context, String title) {
   showModalBottomSheet(
@@ -275,13 +277,13 @@ class _ToolTabs extends StatelessWidget {
 }
 
 // -------------------------------------------------------------- banners --
-class _HomeBanners extends StatefulWidget {
+class _HomeBanners extends ConsumerStatefulWidget {
   const _HomeBanners();
   @override
-  State<_HomeBanners> createState() => _HomeBannersState();
+  ConsumerState<_HomeBanners> createState() => _HomeBannersState();
 }
 
-class _HomeBannersState extends State<_HomeBanners> {
+class _HomeBannersState extends ConsumerState<_HomeBanners> {
   final _controller = PageController(viewportFraction: 0.9);
   int _page = 0;
 
@@ -293,7 +295,10 @@ class _HomeBannersState extends State<_HomeBanners> {
 
   @override
   Widget build(BuildContext context) {
-    final banners = [
+    // Live admin-managed banners appear first, then the evergreen defaults.
+    final live = ref.watch(_homeBannersProvider).valueOrNull ?? const <PromoBanner>[];
+    final banners = <Widget>[
+      for (final b in live) _liveBanner(context, b),
       _banner(
         gradient: _grad(const [Color(0xFF9E7BE0), Color(0xFF7E57C2), Color(0xFF5E3FBE)]),
         kicker: '✦ WELCOME GIFT',
@@ -346,6 +351,108 @@ class _HomeBannersState extends State<_HomeBanners> {
         ),
       ],
     );
+  }
+
+  // A live admin-managed banner (image + colours + copy + CTA from the portal).
+  Widget _liveBanner(BuildContext context, PromoBanner b) {
+    final bg = _hex(b.bgColor) ?? const Color(0xFF6A47C7);
+    final fg = _hex(b.textColor) ?? Colors.white;
+    final hasImg = b.image.isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: GestureDetector(
+        onTap: () => _openBanner(context, b),
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: bg,
+            gradient: hasImg ? null : _grad([bg, _darken(bg)]),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: _bshadow,
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (hasImg)
+                Image.network(b.image, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+              if (hasImg)
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Color(0xCC000000), Color(0x22000000)],
+                    ),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (b.title.isNotEmpty)
+                      SizedBox(
+                        width: 210,
+                        child: Text(b.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Ob.title.copyWith(color: fg, fontSize: 22, height: 1.1)),
+                      ),
+                    if (b.subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      SizedBox(
+                        width: 210,
+                        child: Text(b.subtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Ob.note.copyWith(color: fg.withValues(alpha: 0.92))),
+                      ),
+                    ],
+                    if ((b.cta ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(13)),
+                        child: Text('${b.cta}  →',
+                            style: Ob.option.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700, color: bg)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Follow a banner's deeplink. Full/half-screen landing views are handled by
+  // the shared PromoView (wired next); for now a tap follows the deeplink.
+  void _openBanner(BuildContext context, PromoBanner b) {
+    final dl = b.deeplink;
+    if (dl == null || dl.isEmpty) return;
+    if (dl.startsWith('/')) {
+      context.push(dl);
+    } else if (dl.startsWith('asktro://')) {
+      context.push('/${dl.substring('asktro://'.length)}');
+    }
+  }
+
+  Color? _hex(String? s) {
+    if (s == null || s.isEmpty) return null;
+    var h = s.replaceFirst('#', '').trim();
+    if (h.length == 6) h = 'FF$h';
+    if (h.length != 8) return null;
+    final v = int.tryParse(h, radix: 16);
+    return v == null ? null : Color(v);
+  }
+
+  Color _darken(Color c, [double amt = 0.18]) {
+    final h = HSLColor.fromColor(c);
+    return h.withLightness((h.lightness - amt).clamp(0.0, 1.0)).toColor();
   }
 
   LinearGradient _grad(List<Color> c) =>

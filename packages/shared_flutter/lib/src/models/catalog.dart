@@ -53,6 +53,15 @@ class PromoBanner extends Equatable {
     this.deeplink,
     this.placement = 'home',
     this.priority = 0,
+    this.bgColor,
+    this.textColor,
+    this.displayMode = 'small',
+    this.portraitImage,
+    this.landingTitle,
+    this.landingBody,
+    this.landingBgColor,
+    this.landingTextColor,
+    this.createdAtMs = 0,
   });
 
   final String id;
@@ -63,20 +72,45 @@ class PromoBanner extends Equatable {
   final String? deeplink;
   final String placement;
   final int priority;
+  // Small-strip styling.
+  final String? bgColor;
+  final String? textColor;
+  // Landing view opened on tap: 'small' | 'half' | 'full'.
+  final String displayMode;
+  final String? portraitImage;
+  final String? landingTitle;
+  final String? landingBody;
+  final String? landingBgColor;
+  final String? landingTextColor;
+  final int createdAtMs;
 
-  factory PromoBanner.fromMap(String id, Map<String, dynamic> m) => PromoBanner(
+  bool get hasLanding => displayMode == 'half' || displayMode == 'full';
+
+  // Tolerant of the admin composer's field names (description/ctaText) and the
+  // legacy names (subtitle/cta). createdAtMs is supplied by the repository.
+  factory PromoBanner.fromMap(String id, Map<String, dynamic> m, {int createdAtMs = 0}) => PromoBanner(
         id: id,
-        image: (m['image'] ?? '') as String,
-        title: (m['title'] ?? '') as String,
-        subtitle: (m['subtitle'] ?? '') as String,
-        cta: m['cta'] as String?,
+        image: (m['image'] ?? '') as String? ?? '',
+        title: (m['title'] ?? '') as String? ?? '',
+        subtitle: (m['description'] ?? m['subtitle'] ?? '') as String? ?? '',
+        cta: (m['ctaText'] ?? m['cta']) as String?,
         deeplink: m['deeplink'] as String?,
-        placement: (m['placement'] ?? 'home') as String,
-        priority: (m['priority'] ?? 0) as int,
+        placement: (m['placement'] ?? 'home') as String? ?? 'home',
+        priority: (m['priority'] ?? 0) as int? ?? 0,
+        bgColor: m['bgColor'] as String?,
+        textColor: m['textColor'] as String?,
+        displayMode: (m['displayMode'] ?? 'small') as String? ?? 'small',
+        portraitImage: m['portraitImage'] as String?,
+        landingTitle: m['landingTitle'] as String?,
+        landingBody: m['landingBody'] as String?,
+        landingBgColor: m['landingBgColor'] as String?,
+        landingTextColor: m['landingTextColor'] as String?,
+        createdAtMs: createdAtMs,
       );
 
   @override
-  List<Object?> get props => [id, image, title, subtitle, cta, deeplink, placement, priority];
+  List<Object?> get props => [id, image, title, subtitle, cta, deeplink, placement, priority,
+        bgColor, textColor, displayMode, portraitImage, landingTitle, landingBody, landingBgColor, landingTextColor, createdAtMs];
 }
 
 /// Immutable wallet ledger row.
