@@ -14,7 +14,11 @@ final _plansProvider = StreamProvider.autoDispose<List<RechargePlan>>(
 /// "Add Cash" — pick an amount, then pay via Razorpay. The wallet is credited
 /// server-side (Cloud Function) on payment verification.
 class RechargeScreen extends ConsumerStatefulWidget {
-  const RechargeScreen({super.key});
+  const RechargeScreen({super.key, this.preselectPlanId});
+
+  /// When opened from a Recharge banner (/recharge?plan=<id>), the matching
+  /// plan is pre-selected so the user can pay in one tap.
+  final String? preselectPlanId;
 
   @override
   ConsumerState<RechargeScreen> createState() => _RechargeScreenState();
@@ -25,6 +29,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
   RechargePlan? _selected;
   RechargeOrder? _order;
   bool _processing = false;
+  bool _appliedPreselect = false;
 
   @override
   void initState() {
@@ -182,6 +187,21 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                   title: 'No recharge amounts available',
                   message: 'Please check back shortly.',
                 );
+              }
+              // Pre-select the banner's plan once, after the first frame.
+              final wanted = widget.preselectPlanId;
+              if (!_appliedPreselect && wanted != null && wanted.isNotEmpty) {
+                _appliedPreselect = true;
+                RechargePlan? match;
+                for (final p in list) {
+                  if (p.id == wanted) { match = p; break; }
+                }
+                if (match != null) {
+                  final picked = match;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) setState(() => _selected = picked);
+                  });
+                }
               }
               return Column(
                 children: [

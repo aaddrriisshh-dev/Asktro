@@ -88,7 +88,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/astrologer/:id',
         builder: (_, s) => AstrologerProfileScreen(astrologerId: s.pathParameters['id']!),
       ),
-      GoRoute(path: '/recharge', builder: (_, __) => const RechargeScreen()),
+      GoRoute(
+        path: '/recharge',
+        // Optional ?plan=<id> pre-selects a recharge plan (used by Recharge banners).
+        builder: (_, s) => RechargeScreen(preselectPlanId: s.uri.queryParameters['plan']),
+      ),
     ],
     errorBuilder: (_, __) => const Scaffold(
       body: Center(child: Text('Page not found')),

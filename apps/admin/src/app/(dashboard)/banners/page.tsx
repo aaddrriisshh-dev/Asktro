@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useCollection } from '@/lib/hooks';
+import { useCollection, Row } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatPaise } from '@/lib/format';
 import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
 import { LandingControls, DisplayMode } from '@/components/LandingControls';
@@ -15,9 +15,14 @@ const PLACEMENTS = ['home', 'consults', 'wallet', 'alerts', 'profile'] as const;
 const PLACE_LABEL: Record<string, string> = { home: 'Home', consults: 'Consults', wallet: 'Wallet', alerts: 'Alerts', profile: 'Profile' };
 const PRESETS = ['#2e2b5f', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
 
+type BannerType = 'marketing' | 'recharge';
+
 export default function BannersPage() {
   const { rows, loading } = useCollection('banners');
+  const { rows: plans } = useCollection('rechargePlans');
   const { user, adminName } = useAuth();
+  const [bannerType, setBannerType] = useState<BannerType>('marketing');
+  const [planId, setPlanId] = useState('');
   const [f, setF] = useState({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
   const [bg, setBg] = useState('#2e2b5f');
   const [fg, setFg] = useState('#ffffff');
@@ -31,13 +36,24 @@ export default function BannersPage() {
   const [busy, setBusy] = useState(false);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
+  const activePlans = plans.filter((p) => p.active !== false);
+  const planLabel = (p: Row) => {
+    const bonus = (p.bonus as number) ?? 0;
+    return `${formatPaise(p.amount)}${bonus > 0 ? ` → +${formatPaise(p.bonus)} bonus` : ''}`;
+  };
+  const chosenPlan = plans.find((p) => p.id === planId);
+
   async function push() {
     if (!f.title.trim()) return alert('Title is required.');
+    if (bannerType === 'recharge' && !planId) return alert('Pick the recharge plan this banner promotes.');
+    // A recharge banner links straight to its plan's checkout; marketing uses the destination dropdown.
+    const deeplink = bannerType === 'recharge' ? `/recharge?plan=${planId}` : (f.deeplink.trim() || null);
     setBusy(true);
     try {
       await addDoc(collection(db, 'banners'), {
+        bannerType, planId: bannerType === 'recharge' ? planId : null,
         title: f.title.trim(), description: f.description.trim(), image: f.image.trim(),
-        deeplink: f.deeplink.trim() || null, placement: f.placement, bgColor: bg, textColor: fg, active: true,
+        deeplink, placement: f.placement, bgColor: bg, textColor: fg, active: true,
         displayMode,
         portraitImage: displayMode !== 'small' ? (portraitImage.trim() || null) : null,
         ctaText: displayMode !== 'small' ? (ctaText.trim() || null) : null,
@@ -48,6 +64,7 @@ export default function BannersPage() {
         createdBy: user?.uid ?? null, createdByName: adminName || null, createdAt: serverTimestamp(),
       });
       setF({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
+      setBannerType('marketing'); setPlanId('');
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
       setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
@@ -61,6 +78,17 @@ export default function BannersPage() {
 
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 18, marginTop: 16 }}>
         <div className="card">
+          <p className="af-label" style={{ marginTop: 0 }}>Banner type</p>
+          <div className="pickrow">
+            <button type="button" className={`pickchip${bannerType === 'marketing' ? ' on' : ''}`} onClick={() => setBannerType('marketing')}>📣 Marketing</button>
+            <button type="button" className={`pickchip${bannerType === 'recharge' ? ' on' : ''}`} onClick={() => setBannerType('recharge')}>💰 Recharge</button>
+          </div>
+          <p className="muted" style={{ margin: '6px 0 14px', fontSize: 12 }}>
+            {bannerType === 'recharge'
+              ? 'Links straight to a specific recharge plan’s checkout — the offer can never drift from the ad.'
+              : 'A general promo — you choose where the tap goes.'}
+          </p>
+
           <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <label className="af"><span>Title</span><input className="input" value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
             <label className="af"><span>Placement</span>
@@ -71,8 +99,21 @@ export default function BannersPage() {
           </div>
           <label className="af" style={{ marginTop: 12 }}><span>Description</span>
             <textarea className="input" rows={2} value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
-          <div className="af" style={{ marginTop: 12 }}><span>On tap — go to</span>
-            <DeepLinkSelect value={f.deeplink} onChange={(v) => set('deeplink', v)} /></div>
+
+          {bannerType === 'recharge' ? (
+            <div className="af" style={{ marginTop: 12 }}><span>Recharge plan (opens its checkout)</span>
+              <select className="input" value={planId} onChange={(e) => setPlanId(e.target.value)}>
+                <option value="">Select a plan…</option>
+                {activePlans.map((p) => <option key={p.id} value={p.id}>{planLabel(p)}</option>)}
+              </select>
+              {chosenPlan
+                ? <span className="muted" style={{ fontSize: 12, marginTop: 6 }}>Tapping this banner opens checkout pre-set to <b>{planLabel(chosenPlan)}</b>. Keep your title/description consistent with this offer.</span>
+                : activePlans.length === 0 ? <span className="muted" style={{ fontSize: 12, marginTop: 6 }}>No active plans — create one in Recharge Plans first.</span> : null}
+            </div>
+          ) : (
+            <div className="af" style={{ marginTop: 12 }}><span>On tap — go to</span>
+              <DeepLinkSelect value={f.deeplink} onChange={(v) => set('deeplink', v)} /></div>
+          )}
 
           <p className="af-label">Image (upload from your desktop)</p>
           <ImageUpload folder="banner_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
