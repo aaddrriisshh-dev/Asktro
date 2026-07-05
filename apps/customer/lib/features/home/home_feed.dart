@@ -11,6 +11,7 @@ import '../settings/language_sheet.dart';
 import '../profile/support_screen.dart';
 import '../profile_setup/onboarding_style.dart';
 import '../profile_setup/onboarding_widgets.dart';
+import '../wallet/promo_popup.dart';
 import '../wallet/promo_surface.dart';
 
 final _onlineProvider = StreamProvider.autoDispose<List<Astrologer>>(
@@ -463,6 +464,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
   // Themed-banner copy: title + subtitle + CTA using the theme's colours.
   Widget _bannerCopy(PromoBanner b, PromoTheme th) {
     final fg = th.tx;
+    final head = promoHeadline(th); // gold on dark grounds, theme text on light
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -471,7 +473,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
           Text(b.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Ob.title.copyWith(color: fg, fontSize: 22, height: 1.1),),
+              style: Ob.title.copyWith(color: head, fontSize: 22, height: 1.1),),
         if (b.subtitle.isNotEmpty) ...[
           const SizedBox(height: 5),
           Text(b.subtitle,
@@ -492,10 +494,29 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
     );
   }
 
-  // Follow a banner's deeplink. Full/half-screen landing views are handled by
-  // the shared PromoView (wired next); for now a tap follows the deeplink.
+  // Tap a banner. Half/full themed banners open the shared promo popup (its
+  // landing view); the button then follows the deeplink. Small banners (or
+  // un-themed ones) just follow the deeplink straight away.
   void _openBanner(BuildContext context, PromoBanner b) {
-    final dl = b.deeplink;
+    final th = promoThemeById(b.theme);
+    if (th != null && b.hasLanding) {
+      showPromoPopup(
+        context,
+        theme: th,
+        displayMode: b.displayMode,
+        title: (b.landingTitle?.trim().isNotEmpty ?? false) ? b.landingTitle!.trim() : b.title,
+        body: (b.landingBody?.trim().isNotEmpty ?? false) ? b.landingBody!.trim() : b.subtitle,
+        ctaLabel: (b.cta?.trim().isNotEmpty ?? false) ? b.cta!.trim() : 'View offer',
+        heroKicker: '✦  JUST FOR YOU',
+        heroTagline: null,
+        onAction: () => _followDeeplink(context, b.deeplink),
+      );
+      return;
+    }
+    _followDeeplink(context, b.deeplink);
+  }
+
+  void _followDeeplink(BuildContext context, String? dl) {
     if (dl == null || dl.isEmpty) return;
     if (dl.startsWith('/')) {
       context.push(dl);

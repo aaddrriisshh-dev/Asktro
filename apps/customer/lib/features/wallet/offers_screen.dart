@@ -6,6 +6,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 import '../profile_setup/onboarding_style.dart';
+import 'promo_popup.dart';
 import 'promo_surface.dart';
 
 final _couponsProvider = StreamProvider.autoDispose<List<Coupon>>(
@@ -29,244 +30,26 @@ String _bodyText(Coupon c) => c.description.isNotEmpty
     ? c.description
     : 'Get ${Money.formatPaise(c.amount)}${c.bonus > 0 ? ' + ${Money.formatPaise(c.bonus)} bonus' : ''} on your next recharge';
 
-Widget _codePill(Coupon c, Color fg, Color chipBg) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-      decoration: BoxDecoration(color: chipBg, borderRadius: BorderRadius.circular(12)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.confirmation_number_outlined, color: fg, size: 18),
-          const SizedBox(width: 8),
-          Text(c.code, style: Ob.option.copyWith(color: fg, fontWeight: FontWeight.w800, letterSpacing: 1.5, fontSize: 15)),
-        ],
-      ),
-    );
-
-Widget _grabCta(BuildContext ctx, Coupon c, PromoTheme? th) {
-  final grad = th != null ? promoAccent(th) : const LinearGradient(colors: kPromoGoldAccent);
-  final txt = th?.accentTx ?? Ob.navy;
-  // Use the admin's call-to-action text when set; fall back to a sensible default.
-  final label = (c.ctaText?.trim().isNotEmpty ?? false) ? c.ctaText!.trim() : 'Grab this offer';
-  return SizedBox(
-    width: double.infinity,
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () {
-          Navigator.of(ctx).pop();
-          ctx.push('/recharge?coupon=${Uri.encodeComponent(c.code)}${c.amount > 0 ? '&lock=${c.amount}' : ''}');
-        },
-        child: Ink(
-          decoration: BoxDecoration(gradient: grad, borderRadius: BorderRadius.circular(14)),
-          child: Container(
-            height: 50,
-            alignment: Alignment.center,
-            child: Text(label, style: Ob.option.copyWith(color: txt, fontWeight: FontWeight.w800, fontSize: 15)),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-Widget _closeBtn(BuildContext ctx, Color fg) => GestureDetector(
-      onTap: () => Navigator.of(ctx).pop(),
-      child: Container(
-        width: 32,
-        height: 32,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.22), shape: BoxShape.circle),
-        child: Icon(Icons.close_rounded, color: fg, size: 19),
-      ),
-    );
-
-// ---- app-open popup: follows the coupon's Small / Half / Full mode -----------
+// ---- app-open popup ---------------------------------------------------------
 
 /// Shown when the app opens (and reused as a preview). Renders the newest active
-/// coupon in the theme + display-mode the admin picked: full-screen takeover,
-/// half-sheet, or a centre card.
+/// coupon through the shared promo popup, in the theme + display-mode the admin
+/// picked. Tapping the button carries the code (and its locked amount) into
+/// recharge.
 Future<void> showOfferPopup(BuildContext context, Coupon coupon) {
   final th = promoThemeById(coupon.theme);
-  final mode = coupon.displayMode;
-  if (th != null && mode == 'full') return _showFull(context, coupon, th);
-  if (th != null && mode == 'half') return _showHalf(context, coupon, th);
-  return _showCenter(context, coupon, th);
-}
-
-Future<void> _showCenter(BuildContext context, Coupon c, PromoTheme? th) {
-  return showDialog(
-    context: context,
-    barrierDismissible: true,
-    builder: (ctx) {
-      final fg = th?.tx ?? Ob.navy;
-      final head = th != null ? promoHeadline(th) : fg;
-      final content = Padding(
-        padding: const EdgeInsets.fromLTRB(22, 24, 22, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: const BoxDecoration(gradient: Ob.goldGradient, shape: BoxShape.circle),
-              child: Text(th?.medal ?? '🎁', style: const TextStyle(fontSize: 30)),
-            ),
-            const SizedBox(height: 14),
-            Text(_ttl(c), style: Ob.title.copyWith(fontSize: 22, color: head), textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            Text(_bodyText(c), style: Ob.subtitle.copyWith(fontSize: 14, color: fg.withValues(alpha: 0.9)), textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            _codePill(c, fg, th != null ? fg.withValues(alpha: 0.16) : _hex(c.bgColor, Ob.purple)),
-            const SizedBox(height: 18),
-            _grabCta(ctx, c, th),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('Maybe later', style: Ob.option.copyWith(color: fg.withValues(alpha: 0.8), fontWeight: FontWeight.w600)),
-            ),
-          ],
-        ),
-      );
-      return Dialog(
-        backgroundColor: th == null ? Ob.bgColor : Colors.transparent,
-        elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 30),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-        child: th == null
-            ? ClipRRect(borderRadius: BorderRadius.circular(26), child: content)
-            : PromoSurface(theme: th, variant: PromoVariant.card, radius: 26, child: content),
-      );
-    },
-  );
-}
-
-Future<void> _showHalf(BuildContext context, Coupon c, PromoTheme th) {
-  final fg = th.tx;
-  final head = promoHeadline(th);
-  return showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
-    builder: (ctx) => ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-      child: SizedBox(
-        height: MediaQuery.of(ctx).size.height * 0.56,
-        child: Stack(
-          children: [
-            PromoSurface(theme: th, variant: PromoVariant.half, radius: 0, showFrame: false, child: const SizedBox.expand()),
-            Positioned(top: 12, right: 16, child: _closeBtn(ctx, fg)),
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(26, 20, 26, 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_ttl(c), style: Ob.title.copyWith(color: head, fontSize: 28, height: 1.15), textAlign: TextAlign.center),
-                    const SizedBox(height: 12),
-                    Text(_bodyText(c), style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 16, height: 1.35), textAlign: TextAlign.center),
-                    const SizedBox(height: 18),
-                    _codePill(c, fg, fg.withValues(alpha: 0.16)),
-                    const SizedBox(height: 16),
-                    _grabCta(ctx, c, th),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-Future<void> _showFull(BuildContext context, Coupon c, PromoTheme th) {
-  final fg = th.tx;
-  final head = promoHeadline(th); // gold on dark grounds, theme text on light
-  return showGeneralDialog(
-    context: context,
-    barrierDismissible: true,
-    barrierLabel: 'offer',
-    barrierColor: Colors.black54,
-    transitionDuration: const Duration(milliseconds: 220),
-    // Wrapped in a transparent Material so Text doesn't render with Flutter's
-    // yellow debug underline (showGeneralDialog has no Material ancestor).
-    pageBuilder: (ctx, _, __) => Material(
-      type: MaterialType.transparency,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          PromoSurface(theme: th, variant: PromoVariant.full, radius: 0, showFrame: false, child: const SizedBox.expand()),
-          SafeArea(
-            child: Stack(
-              children: [
-                Positioned(top: 10, right: 16, child: _closeBtn(ctx, fg)),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 40, 28, 40),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Hero zone — fills the upper half so the takeover never feels blank.
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('✦  A GIFT FOR YOU',
-                              style: Ob.option.copyWith(color: head, fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 2, decoration: TextDecoration.none),
-                              textAlign: TextAlign.center),
-                          const SizedBox(height: 22),
-                          SizedBox(
-                            height: 150,
-                            width: 150,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: RadialGradient(
-                                      colors: [Ob.gold.withValues(alpha: 0.34), Ob.gold.withValues(alpha: 0.0)],
-                                      stops: const [0.15, 1.0],
-                                    ),
-                                  ),
-                                  child: const SizedBox.expand(),
-                                ),
-                                Image.asset(Ob.gift, height: 118),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text('Everyone loves a gift, right?',
-                              style: Ob.title.copyWith(color: head, fontSize: 20, fontStyle: FontStyle.italic, decoration: TextDecoration.none),
-                              textAlign: TextAlign.center),
-                        ],
-                      ),
-                      // Offer zone — anchored to the bottom.
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(_ttl(c),
-                              style: Ob.title.copyWith(color: head, fontSize: 32, height: 1.12, decoration: TextDecoration.none),
-                              textAlign: TextAlign.center),
-                          const SizedBox(height: 12),
-                          Text(_bodyText(c),
-                              style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 16, height: 1.35, decoration: TextDecoration.none),
-                              textAlign: TextAlign.center),
-                          const SizedBox(height: 22),
-                          _codePill(c, fg, fg.withValues(alpha: 0.16)),
-                          const SizedBox(height: 18),
-                          _grabCta(ctx, c, th),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
+  final ctaLabel = (coupon.ctaText?.trim().isNotEmpty ?? false) ? coupon.ctaText!.trim() : 'Grab this offer';
+  return showPromoPopup(
+    context,
+    theme: th,
+    displayMode: coupon.displayMode,
+    title: _ttl(coupon),
+    body: _bodyText(coupon),
+    code: coupon.code,
+    ctaLabel: ctaLabel,
+    medal: th?.medal ?? '🎁',
+    onAction: () => context.push(
+        '/recharge?coupon=${Uri.encodeComponent(coupon.code)}${coupon.amount > 0 ? '&lock=${coupon.amount}' : ''}'),
   );
 }
 
