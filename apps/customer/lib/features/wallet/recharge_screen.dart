@@ -106,38 +106,13 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
   void _showSuccess(RechargePlan plan) {
     showDialog(
       context: context,
-      builder: (_) => Dialog(
-        backgroundColor: Ob.bgColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(gradient: Ob.goldCircle, shape: BoxShape.circle),
-                child: const Icon(Icons.check_rounded, color: Colors.white, size: 34),
-              ),
-              const SizedBox(height: 16),
-              Text('Recharge successful', style: Ob.title),
-              const SizedBox(height: 6),
-              Text('${Money.formatPaise(plan.totalCredit)} added to your wallet.',
-                  style: Ob.subtitle, textAlign: TextAlign.center),
-              const SizedBox(height: 20),
-              GoldButton(
-                label: 'Done',
-                icon: null,
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.of(context).maybePop();
-                },
-              ),
-            ],
-          ),
-        ),
+      barrierDismissible: false,
+      builder: (_) => _RechargeCelebration(
+        plan: plan,
+        onDone: () {
+          Navigator.pop(context); // close dialog
+          Navigator.of(context).maybePop(); // leave recharge screen
+        },
       ),
     );
   }
@@ -263,6 +238,143 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
           boxShadow: sel ? null : Ob.softShadow,
         ),
         child: Text(Money.formatPaise(plan.amount), style: Ob.title.copyWith(fontSize: 20)),
+      ),
+    );
+  }
+}
+
+/// A sparkle burst point around the gift.
+class _Spark {
+  const _Spark(this.dx, this.dy, this.size, this.delay, this.gold);
+  final double dx;
+  final double dy;
+  final double size;
+  final double delay;
+  final bool gold;
+}
+
+const _sparkles = <_Spark>[
+  _Spark(-70, -40, 18, 0.30, true),
+  _Spark(64, -30, 14, 0.38, true),
+  _Spark(-58, 40, 13, 0.44, false),
+  _Spark(72, 44, 16, 0.34, true),
+  _Spark(0, -68, 15, 0.48, true),
+  _Spark(-30, 60, 11, 0.52, false),
+  _Spark(40, -60, 12, 0.42, false),
+];
+
+/// Celebratory recharge-success popup: the 3D gift pops in with an elastic
+/// bounce, gold sparkles burst around it, and the bonus is called out by name.
+class _RechargeCelebration extends StatefulWidget {
+  const _RechargeCelebration({required this.plan, required this.onDone});
+  final RechargePlan plan;
+  final VoidCallback onDone;
+
+  @override
+  State<_RechargeCelebration> createState() => _RechargeCelebrationState();
+}
+
+class _RechargeCelebrationState extends State<_RechargeCelebration> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  double _elastic(double v, double start, double end) {
+    if (v <= start) return 0;
+    final t = ((v - start) / (end - start)).clamp(0.0, 1.0);
+    return Curves.elasticOut.transform(t);
+  }
+
+  Widget _sparkle(_Spark s) {
+    final t = ((_c.value - s.delay) / 0.5).clamp(0.0, 1.0);
+    final appear = Curves.easeOut.transform(t);
+    return Positioned(
+      left: 100 + s.dx,
+      top: 85 + s.dy,
+      child: Opacity(
+        opacity: appear,
+        child: Transform.scale(
+          scale: 0.4 + appear * 0.9,
+          child: Icon(Icons.auto_awesome,
+              size: s.size, color: s.gold ? const Color(0xFFF3D97C) : Colors.white),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final plan = widget.plan;
+    final bonus = plan.bonus;
+    return Dialog(
+      backgroundColor: Ob.bgColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 172,
+              width: 200,
+              child: AnimatedBuilder(
+                animation: _c,
+                builder: (context, _) {
+                  final giftScale = _elastic(_c.value, 0.0, 0.65);
+                  return Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Opacity(
+                        opacity: (_c.value * 1.4).clamp(0.0, 1.0),
+                        child: Container(
+                          width: 170,
+                          height: 170,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [Color(0x66EAD079), Color(0x1FEAD079), Color(0x00EAD079)],
+                              stops: [0.0, 0.55, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+                      for (final s in _sparkles) _sparkle(s),
+                      Transform.scale(scale: giftScale, child: Image.asset(Ob.gift, height: 120)),
+                    ],
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text('Congratulations! 🎉', style: Ob.title.copyWith(fontSize: 26), textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text('${Money.formatPaise(plan.walletCredit)} added to your wallet',
+                style: Ob.subtitle, textAlign: TextAlign.center),
+            if (bonus > 0) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(999)),
+                child: Text('🎁  +${Money.formatPaise(bonus)} bonus unlocked!',
+                    style: Ob.option.copyWith(color: Ob.navy, fontWeight: FontWeight.w700, fontSize: 13.5)),
+              ),
+            ],
+            const SizedBox(height: 22),
+            GoldButton(label: 'Awesome!', icon: null, onPressed: widget.onDone),
+          ],
+        ),
       ),
     );
   }
