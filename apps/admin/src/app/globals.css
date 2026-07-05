@@ -260,12 +260,19 @@ tbody tr:last-child td { border-bottom: none; }
 .promo-full-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .promo-full-placeholder { position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
   padding: 24px; font-size: 12.5px; opacity: .7; }
-.promo-full-overlay { position: relative; margin-top: auto; padding: 22px 18px 26px;
-  background: linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0)); z-index: 2; }
-.promo-full-title { display: block; font-size: 19px; font-weight: 800; line-height: 1.2; }
+.promo-full-overlay { position: relative; margin-top: auto; padding: 18px 18px 26px;
+  text-align: center; z-index: 2; }
+.promo-full-title { display: block; font-size: 22px; font-weight: 800; line-height: 1.15; }
 .promo-full-text { margin: 6px 0 0; font-size: 13px; line-height: 1.4; opacity: .92; }
-.promo-cta { display: inline-block; margin-top: 14px; padding: 9px 18px; border-radius: 999px;
-  background: #fff; color: #2e2b5f; font-weight: 800; font-size: 13px; }
+.promo-cta { display: inline-block; margin-top: 14px; padding: 10px 22px; border-radius: 999px;
+  background: linear-gradient(180deg,#f4dd94,#cf9f3f); color: #2a1e05; font-weight: 800; font-size: 13px; }
+/* full-screen hero — mirrors the app's showPromoPopup (kicker + single gift + tagline) */
+.promo-hero { position: relative; z-index: 4; display: flex; flex-direction: column; align-items: center;
+  gap: 10px; padding: 32px 18px 0; text-align: center; }
+.promo-kicker { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-weight: 700; }
+.promo-hero-gift { width: 92px; height: 92px; background-repeat: no-repeat; background-position: center;
+  background-size: contain; filter: drop-shadow(0 8px 12px rgba(0,0,0,.32)); }
+.promo-hero-tag { font-size: 12px; font-style: italic; line-height: 1.3; }
 .promo-close { position: absolute; top: 12px; right: 14px; z-index: 3; font-size: 22px; line-height: 1;
   color: #fff; opacity: .85; width: 26px; height: 26px; border-radius: 50%; background: rgba(0,0,0,.32);
   display: grid; place-items: center; }

@@ -56,3 +56,19 @@ export const PROMO_THEMES: PromoTheme[] = [
 
 export const themeById = (id?: string | null): PromoTheme | undefined =>
   id ? PROMO_THEMES.find((t) => t.id === id) : undefined;
+
+// Relative luminance of a #rrggbb colour (0 = black, 1 = white).
+function luminance(hex: string): number {
+  const h = hex.replace('#', '');
+  if (h.length < 6) return 1;
+  const c = [0, 2, 4].map((i) => {
+    const v = parseInt(h.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+
+// Mirrors the app's promoHeadline(): gold on dark grounds (reads richly), the
+// theme's own text colour on light grounds (where gold would wash out).
+export const headlineColor = (t: PromoTheme): string =>
+  luminance(t.base) < 0.45 ? '#F3D97C' : t.tx;

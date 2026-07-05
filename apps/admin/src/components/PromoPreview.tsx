@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { themeById, ART_SRC, PromoTheme } from '@/lib/promoThemes';
+import { themeById, ART_SRC, PromoTheme, headlineColor } from '@/lib/promoThemes';
 
 /** Live preview of a composed promo (push / banner / coupon). Shows the small
  *  strip (notification / home card) and — when a landing view is chosen — an
@@ -43,6 +43,10 @@ export function PromoPreview({
   const txCard = th ? th.tx : fg;
   const lBgStyle = th ? themeBgStyle(th) : { background: landingBg };
   const lTx = th ? th.tx : landingFg;
+  // Adaptive gold headline + hero copy, matching the app's showPromoPopup.
+  const head = th ? headlineColor(th) : lTx;
+  const heroKicker = kind === 'coupon' ? '✦  A GIFT FOR YOU' : '✦  JUST FOR YOU';
+  const heroTag = kind === 'coupon' ? 'Everyone loves a gift, right?' : null;
 
   const inner = (
     <>
@@ -79,16 +83,23 @@ export function PromoPreview({
             <div className="promo-notch" />
             {displayMode === 'full' ? (
               <div className="promo-screen" style={{ ...lBgStyle, color: lTx, position: 'relative', overflow: 'hidden' }}>
-                {portraitImage ? (
+                {th ? (
+                  <ThemeSkin th={th} variant="full" />
+                ) : portraitImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img className="promo-full-img" src={portraitImage} alt="" />
-                ) : th ? (
-                  <ThemeSkin th={th} variant="full" />
                 ) : (
-                  <div className="promo-full-placeholder">Upload a 9:16 portrait image</div>
+                  <div className="promo-full-placeholder">Pick a theme (or upload a 9:16 portrait)</div>
+                )}
+                {th && (
+                  <div className="promo-hero">
+                    <span className="promo-kicker" style={{ color: head }}>{heroKicker}</span>
+                    <span className="promo-hero-gift" style={{ backgroundImage: `url(${ART_SRC.gift})` }} />
+                    {heroTag && <span className="promo-hero-tag" style={{ color: head }}>{heroTag}</span>}
+                  </div>
                 )}
                 <div className="promo-full-overlay" style={{ position: 'relative', zIndex: 4 }}>
-                  <strong className="promo-full-title" style={{ color: lTx }}>{lTitle}</strong>
+                  <strong className="promo-full-title" style={{ color: head }}>{lTitle}</strong>
                   <p className="promo-full-text" style={{ color: lTx }}>{lBody}</p>
                   {cta && <span className="promo-cta">{cta}</span>}
                 </div>
@@ -103,7 +114,7 @@ export function PromoPreview({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img className="promo-half-img" src={portraitImage} alt="" style={{ position: 'relative', zIndex: 4 }} />
                   )}
-                  <strong className="promo-full-title" style={{ color: lTx, textAlign: 'center', position: 'relative', zIndex: 4 }}>{lTitle}</strong>
+                  <strong className="promo-full-title" style={{ color: head, textAlign: 'center', position: 'relative', zIndex: 4 }}>{lTitle}</strong>
                   <p className="promo-full-text" style={{ color: lTx, textAlign: 'center', position: 'relative', zIndex: 4 }}>{lBody}</p>
                   {cta && <span className="promo-cta" style={{ alignSelf: 'stretch', textAlign: 'center', position: 'relative', zIndex: 4 }}>{cta}</span>}
                 </div>
@@ -155,9 +166,8 @@ function ThemeSkin({ th, variant = 'card', hideArt = false }: { th: PromoTheme; 
       {!hideArt && splitArt && variant === 'card' && (
         <span className="promo-art" style={{ backgroundImage: `url(${ART_SRC[th.art!]})` }} />
       )}
-      {!hideArt && splitArt && variant === 'full' && (
-        <span className="promo-art--hero" style={{ backgroundImage: `url(${ART_SRC[th.art!]})` }} />
-      )}
+      {/* full-screen split art is intentionally omitted: the popup draws its own
+          gift hero, so rendering the theme's would stack two gifts. */}
       {!hideArt && th.layout === 'wm' && th.art && (
         <span
           className={variant === 'full' ? 'promo-wm promo-wm--big' : 'promo-wm'}
