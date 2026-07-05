@@ -54,7 +54,7 @@ Widget _grabCta(BuildContext ctx, Coupon c, PromoTheme? th) {
         borderRadius: BorderRadius.circular(14),
         onTap: () {
           Navigator.of(ctx).pop();
-          ctx.push('/recharge?coupon=${Uri.encodeComponent(c.code)}');
+          ctx.push('/recharge?coupon=${Uri.encodeComponent(c.code)}${c.amount > 0 ? '&lock=${c.amount}' : ''}');
         },
         child: Ink(
           decoration: BoxDecoration(gradient: grad, borderRadius: BorderRadius.circular(14)),
@@ -266,7 +266,8 @@ class _OfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final th = promoThemeById(coupon.theme);
-    Future<Object?> onTap() => context.push('/recharge?coupon=${Uri.encodeComponent(coupon.code)}');
+    Future<Object?> onTap() => context.push(
+        '/recharge?coupon=${Uri.encodeComponent(coupon.code)}${coupon.amount > 0 ? '&lock=${coupon.amount}' : ''}',);
     if (th != null) return _themed(context, th, onTap);
 
     // Fallback (no theme): the original solid-colour ticket.

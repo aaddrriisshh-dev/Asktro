@@ -16,7 +16,7 @@ final _plansProvider = StreamProvider.autoDispose<List<RechargePlan>>(
 /// "Add Cash" — pick an amount, then pay via Razorpay. The wallet is credited
 /// server-side (Cloud Function) on payment verification.
 class RechargeScreen extends ConsumerStatefulWidget {
-  const RechargeScreen({super.key, this.preselectPlanId, this.preselectCoupon});
+  const RechargeScreen({super.key, this.preselectPlanId, this.preselectCoupon, this.lockAmountPaise});
 
   /// When opened from a Recharge banner (/recharge?plan=<id>), the matching
   /// plan is pre-selected so the user can pay in one tap.
@@ -25,6 +25,11 @@ class RechargeScreen extends ConsumerStatefulWidget {
   /// When opened from the Offers screen (/recharge?coupon=<CODE>), the coupon
   /// field is pre-filled and auto-applied once a plan is selected.
   final String? preselectCoupon;
+
+  /// When opened from a promo (/recharge?lock=<paise>), the screen locks to that
+  /// single amount: the matching tile is auto-selected and every other amount is
+  /// frozen. This is how coupon/banner/push offers force “recharge exactly ₹X”.
+  final int? lockAmountPaise;
 
   @override
   ConsumerState<RechargeScreen> createState() => _RechargeScreenState();
@@ -277,9 +282,14 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
               final shown = offerMode
                   ? list.where((p) => p.id == wanted).toList()
                   : list.where((p) => !p.isOffer).toList();
-              if (offerMode && !_appliedPreselect) {
+              // Promo amount-lock: a coupon/banner/push says “recharge exactly ₹X”.
+              // Every tile is shown, but only the tile matching that amount stays
+              // tappable — the rest are frozen. Offers are never self-serve.
+              final lock = widget.lockAmountPaise;
+              final lockMode = !offerMode && lock != null && lock > 0 && shown.any((p) => p.amount == lock);
+              if ((offerMode || lockMode) && !_appliedPreselect) {
                 _appliedPreselect = true;
-                final picked = shown.first;
+                final picked = offerMode ? shown.first : shown.firstWhere((p) => p.amount == lock);
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (!mounted) return;
                   setState(() => _selected = picked);
@@ -292,7 +302,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                       children: [
-                        if (!offerMode) ...[
+                        if (!offerMode && !lockMode) ...[
                           _offersBanner(),
                           const SizedBox(height: 20),
                         ],
@@ -300,9 +310,14 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                           children: [
                             const Icon(Icons.auto_awesome, color: Ob.gold, size: 16),
                             const SizedBox(width: 6),
-                            Text(offerMode ? 'Your exclusive offer' : 'Choose an amount to add', style: Ob.sectionLabel),
+                            Text((offerMode || lockMode) ? 'Your exclusive offer' : 'Choose an amount to add', style: Ob.sectionLabel),
                           ],
                         ),
+                        if (lockMode) ...[
+                          const SizedBox(height: 6),
+                          Text('This offer applies only to ${Money.formatPaise(lock!)}. Other amounts are locked.',
+                              style: Ob.option.copyWith(color: Ob.navy.withValues(alpha: 0.6), fontSize: 12),),
+                        ],
                         const SizedBox(height: 16),
                         LayoutBuilder(builder: (context, c) {
                           const spacing = 12.0;
@@ -310,7 +325,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                           return Wrap(
                             spacing: spacing,
                             runSpacing: spacing,
-                            children: [for (final p in shown) _tile(p, w)],
+                            children: [for (final p in shown) _tile(p, w, frozen: lockMode && p.amount != lock)],
                           );
                         },),
                       ],
@@ -480,8 +495,34 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
         ),
       );
 
-  Widget _tile(RechargePlan plan, double w) {
+  Widget _tile(RechargePlan plan, double w, {bool frozen = false}) {
     final sel = _selected?.id == plan.id;
+    // Frozen tiles belong to a promo that locks a different amount: shown so the
+    // user sees the full menu, but greyed and un-tappable.
+    if (frozen) {
+      return Opacity(
+        opacity: 0.45,
+        child: Container(
+          width: w,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Ob.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Ob.border),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock_outline_rounded, size: 14, color: Ob.navy),
+              const SizedBox(width: 5),
+              Text(Money.formatPaise(plan.amount), style: Ob.title.copyWith(fontSize: 20)),
+            ],
+          ),
+        ),
+      );
+    }
     return GestureDetector(
       onTap: () {
         setState(() => _selected = plan);

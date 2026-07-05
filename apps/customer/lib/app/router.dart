@@ -92,10 +92,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/recharge',
         // ?plan=<id> pre-selects a plan (Recharge banners); ?coupon=<CODE>
-        // pre-fills + auto-applies a coupon (from the Offers screen).
+        // pre-fills + auto-applies a coupon (from the Offers screen);
+        // ?lock=<paise> freezes the screen to that single amount (promo offers).
         builder: (_, s) => RechargeScreen(
           preselectPlanId: s.uri.queryParameters['plan'],
           preselectCoupon: s.uri.queryParameters['coupon'],
+          lockAmountPaise: int.tryParse(s.uri.queryParameters['lock'] ?? ''),
         ),
       ),
       GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),
