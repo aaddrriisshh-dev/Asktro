@@ -116,7 +116,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
       if (!mounted) return;
       setState(() => _processing = false);
       ref.read(analyticsProvider).logEvent(AnalyticsEvents.rechargeSuccess, params: {
-        'planId': plan.id, 'amount': plan.amount, 'simulated': true,
+        'planId': plan.id, 'amount': plan.amount, 'simulated': 1,
       });
       _showSuccess(plan);
     } catch (e) {
