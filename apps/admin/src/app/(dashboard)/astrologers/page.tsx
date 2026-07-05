@@ -8,23 +8,71 @@ import { useAuth } from '@/lib/auth-context';
 import { ImageUpload } from '@/components/ImageUpload';
 
 const PAGE_OPTIONS = [10, 100, 500, 1000];
-function RowsFoot({ shown, total, limit, setLimit }: { shown: number; total: number; limit: number; setLimit: (n: number) => void }) {
-  return (
-    <div className="custfoot">
-      <span className="muted">Showing {shown} of {total}</span>
-      <label className="muted">Rows
-        <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
-          {PAGE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
-        </select>
-      </label>
-    </div>
-  );
-}
 
 const STATUS_COLORS: Record<string, string> = {
   approved: 'green', pending: 'amber', suspended: 'red', rejected: 'red', disabled: 'red',
 };
 const rupees = (paise: unknown) => (typeof paise === 'number' ? paise / 100 : null);
+
+type BoxAction = 'view' | 'edit' | 'approve';
+
+function AstroBox({
+  title, icon, accent, list, isSuper, busy, actions, showLiveDot, onStatus, onEditRate,
+}: {
+  title: string; icon: string; accent: string; list: Row[];
+  isSuper: boolean; busy: string | null; actions: BoxAction[]; showLiveDot?: boolean;
+  onStatus: (id: string, status: string, name?: string) => void; onEditRate: (a: Row) => void;
+}) {
+  const [limit, setLimit] = useState(10);
+  const shown = list.slice(0, limit);
+  return (
+    <div className="card custcard" style={{ borderTop: `3px solid ${accent}` }}>
+      <div className="sess-col-head">
+        <h3 className="celeste" style={{ margin: 0, fontSize: 16 }}>{icon} {title}</h3>
+        <span className="udet-total">{list.length}</span>
+      </div>
+      <div className="custlist">
+        {shown.length === 0 ? <p className="drawer-muted" style={{ margin: '10px 0' }}>Nothing here yet.</p> : shown.map((a) => {
+          const rate = rupees(a.ratePerMinutePaise);
+          const st = (a.accountStatus ?? 'pending') as string;
+          return (
+            <div key={a.id} className="custrow">
+              <div style={{ minWidth: 0 }}>
+                <span className="nm">
+                  {showLiveDot && a.onlineStatus ? <span className="live-dot" style={{ marginRight: 6 }} /> : null}
+                  {a.name || 'Unnamed'}
+                  {a.verified ? ' ✓' : ''}
+                  {a.isAI ? <span className="badge purple" style={{ marginLeft: 6, fontSize: 10 }}>AI</span> : null}
+                </span>
+                <span className="ph">
+                  {rate != null ? `₹${rate}/min` : 'default rate'} · <span className={`badge ${STATUS_COLORS[st] ?? ''}`} style={{ fontSize: 10 }}>{st}</span>
+                </span>
+              </div>
+              <div className="custrow-right" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {actions.includes('view') && <Link href={`/astrologers/${a.id}`} className="btn sm secondary">View</Link>}
+                {actions.includes('edit') && <button className="btn sm secondary" disabled={busy === a.id} onClick={() => onEditRate(a)}>₹</button>}
+                {actions.includes('approve') && isSuper && (
+                  <>
+                    <button className="btn sm" disabled={busy === a.id} onClick={() => onStatus(a.id, 'approved')}>✓</button>
+                    <button className="btn sm danger" disabled={busy === a.id} onClick={() => { if (confirm(`Reject ${a.name}?`)) onStatus(a.id, 'rejected'); }}>✕</button>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="custfoot">
+        <span className="muted">Showing {Math.min(limit, list.length)} of {list.length}</span>
+        <label className="muted">Rows
+          <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
+            {PAGE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </label>
+      </div>
+    </div>
+  );
+}
 
 const EXPERTISE = ['Vedic Astrology', 'Numerology', 'Tarot', 'Vastu Shastra', 'KP Astrology',
   'Nadi Astrology', 'Palmistry', 'Face Reading', 'Prashna', 'Muhurtha'];
@@ -36,8 +84,6 @@ export default function AstrologersPage() {
   const isSuper = adminRole === 'super';
   const [showAdd, setShowAdd] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [pendingLimit, setPendingLimit] = useState(10);
-  const [allLimit, setAllLimit] = useState(10);
 
   async function setStatus(id: string, status: string) {
     setBusy(id);
@@ -61,92 +107,28 @@ export default function AstrologersPage() {
     finally { setBusy(null); }
   }
 
+  const live = rows.filter((a: Row) => a.onlineStatus === true);
   const pending = rows.filter((a: Row) => (a.accountStatus ?? 'pending') === 'pending');
-
-  function astroTable(list: Row[]) {
-    if (list.length === 0) return <p className="drawer-muted">Nothing here yet.</p>;
-    return (
-      <div style={{ overflowX: 'auto' }}>
-        <table>
-          <thead>
-            <tr><th>Astrologer</th><th>Rate</th><th>Commission</th><th>Online</th><th>Status</th><th>Attribution</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            {list.map((a: Row) => {
-              const rate = rupees(a.ratePerMinutePaise);
-              const st = a.accountStatus ?? 'pending';
-              return (
-                <tr key={a.id}>
-                  <td>
-                    <Link href={`/astrologers/${a.id}`} style={{ fontWeight: 700 }}>{a.name || 'Unnamed'}</Link>
-                    {a.verified ? ' ✓' : ''}
-                    {a.isAI ? <span className="badge purple" style={{ marginLeft: 6, fontSize: 11 }}>AI</span> : ''}
-                  </td>
-                  <td>{rate != null ? `₹${rate}/min` : <span className="muted">default</span>}</td>
-                  <td>{typeof a.commissionPercent === 'number' ? `${a.commissionPercent}%` : <span className="muted">default</span>}</td>
-                  <td>{a.onlineStatus ? '🟢' : '⚪'}</td>
-                  <td><span className={`badge ${STATUS_COLORS[st] ?? ''}`}>{st}</span></td>
-                  <td className="muted" style={{ fontSize: 12 }}>
-                    {a.addedByName ? <>Added by <b>{a.addedByName as string}</b></> : <span>—</span>}
-                    {a.approvedByName ? <><br />Approved by <b>{a.approvedByName as string}</b></> : null}
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <Link href={`/astrologers/${a.id}`} className="btn sm secondary">View</Link>
-                      <button className="btn sm secondary" disabled={busy === a.id} onClick={() => editRates(a)}>Edit rate</button>
-                      {st !== 'approved' && isSuper && (
-                        <button className="btn sm" disabled={busy === a.id} onClick={() => setStatus(a.id, 'approved')}>Approve</button>
-                      )}
-                      {st === 'pending' && isSuper && (
-                        <button className="btn sm danger" disabled={busy === a.id} onClick={() => { if (confirm(`Reject ${a.name}?`)) setStatus(a.id, 'rejected'); }}>Reject</button>
-                      )}
-                      {st === 'approved' && (
-                        <button className="btn sm secondary" disabled={busy === a.id} onClick={() => setStatus(a.id, 'suspended')}>Suspend</button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
 
   return (
     <div>
       <div className="uat-head">
         <div>
           <h1 style={{ marginBottom: 2 }}>Astrologer Management</h1>
-          <p className="muted" style={{ margin: 0, fontSize: 13 }}>Onboard, approve and manage real &amp; AI astrologers.</p>
+          <p className="muted" style={{ margin: 0, fontSize: 13 }}>Live, all, and pending — onboard, approve and manage real &amp; AI astrologers.</p>
         </div>
         <button className="btn" onClick={() => setShowAdd(true)}>+ Add New Astrologer</button>
       </div>
 
       {loading ? <p className="muted" style={{ marginTop: 16 }}>Loading…</p> : (
-        <>
-          {/* SECTION — Pending Approval */}
-          <div className="card sess-col" style={{ marginTop: 16, borderTop: '3px solid var(--gold)' }}>
-            <div className="sess-col-head">
-              <h3 className="celeste" style={{ margin: 0 }}>🕐 Pending Approval</h3>
-              <span className="udet-total">{pending.length} waiting</span>
-            </div>
-            <p className="muted" style={{ marginTop: 6, fontSize: 12.5 }}>{isSuper ? 'Approve or reject each request.' : 'A Super Admin approves or rejects these.'}</p>
-            <div className="sess-scroll">{astroTable(pending.slice(0, pendingLimit))}</div>
-            <RowsFoot shown={Math.min(pendingLimit, pending.length)} total={pending.length} limit={pendingLimit} setLimit={setPendingLimit} />
-          </div>
-
-          {/* SECTION — View All */}
-          <div className="card sess-col" style={{ marginTop: 16, borderTop: '3px solid var(--primary)' }}>
-            <div className="sess-col-head">
-              <h3 className="celeste" style={{ margin: 0 }}>📋 View All Astrologers</h3>
-              <span className="udet-total">{rows.length} total</span>
-            </div>
-            <div className="sess-scroll">{astroTable(rows.slice(0, allLimit))}</div>
-            <RowsFoot shown={Math.min(allLimit, rows.length)} total={rows.length} limit={allLimit} setLimit={setAllLimit} />
-          </div>
-        </>
+        <div className="cust3">
+          <AstroBox title="Live Astrologers" icon="🟢" accent="#3cb371" list={live} showLiveDot
+            isSuper={isSuper} busy={busy} actions={['view', 'edit']} onStatus={setStatus} onEditRate={editRates} />
+          <AstroBox title="All Astrologers" icon="📋" accent="var(--primary)" list={rows}
+            isSuper={isSuper} busy={busy} actions={['view', 'edit']} onStatus={setStatus} onEditRate={editRates} />
+          <AstroBox title="Pending Approvals" icon="🕐" accent="var(--gold)" list={pending}
+            isSuper={isSuper} busy={busy} actions={['view', 'approve']} onStatus={setStatus} onEditRate={editRates} />
+        </div>
       )}
 
       {showAdd && createPortal(<AddAstrologerModal isSuper={isSuper} onClose={() => setShowAdd(false)} />, document.body)}

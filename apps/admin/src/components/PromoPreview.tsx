@@ -1,22 +1,32 @@
 'use client';
 
-/** Live preview of a composed promo (push / banner / coupon): image + title +
- *  body on a chosen background — the exact look the app will render. */
+/** Live preview of a composed promo (push / banner / coupon). Shows the small
+ *  strip (notification / home card) and — when a landing view is chosen — an
+ *  exact phone-frame mockup of the half- or full-screen view the user lands on
+ *  after tapping. This is the same look the Flutter app renders. */
 export function PromoPreview({
-  title, body, image, imageStyle = 'banner', bg = '#2e2b5f', fg = '#ffffff', kind = 'push',
+  title, body, image, portraitImage, imageStyle = 'banner',
+  bg = '#2e2b5f', fg = '#ffffff', kind = 'push', displayMode = 'small', ctaText,
 }: {
   title?: string;
   body?: string;
   image?: string;
+  portraitImage?: string;
   imageStyle?: 'banner' | 'portrait';
   bg?: string;
   fg?: string;
   kind?: 'push' | 'banner' | 'coupon';
+  displayMode?: 'small' | 'half' | 'full';
+  ctaText?: string;
 }) {
   const portrait = imageStyle === 'portrait' && image;
+  const landing = displayMode === 'half' || displayMode === 'full';
+  const cta = ctaText?.trim();
+
   return (
     <div className="promo-wrap">
-      <span className="promo-kind">{kind === 'push' ? '🔔 Notification preview' : kind === 'banner' ? '🖼 Banner preview' : '🎟 Coupon preview'}</span>
+      {/* Small strip — the notification / home card */}
+      <span className="promo-kind">{kind === 'push' ? '🔔 Notification' : kind === 'banner' ? '🖼 Home strip' : '🎟 Coupon card'}</span>
       <div className="promo-card" style={{ background: bg, color: fg }}>
         {image && imageStyle === 'banner' && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -33,6 +43,47 @@ export function PromoPreview({
           </div>
         </div>
       </div>
+
+      {/* Landing view — phone-frame mockup of what opens on tap */}
+      {landing && (
+        <>
+          <span className="promo-kind" style={{ marginTop: 16 }}>
+            📱 {displayMode === 'full' ? 'Full-screen' : 'Half-screen'} view on tap
+          </span>
+          <div className="promo-phone">
+            <div className="promo-notch" />
+            {displayMode === 'full' ? (
+              <div className="promo-screen" style={{ background: bg, color: fg }}>
+                {portraitImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="promo-full-img" src={portraitImage} alt="" />
+                ) : (
+                  <div className="promo-full-placeholder">Upload a 9:16 portrait image</div>
+                )}
+                <div className="promo-full-overlay">
+                  <strong className="promo-full-title" style={{ color: fg }}>{title || 'Your headline'}</strong>
+                  <p className="promo-full-text" style={{ color: fg }}>{body || 'Your message appears here.'}</p>
+                  {cta && <span className="promo-cta">{cta}</span>}
+                </div>
+                <span className="promo-close">×</span>
+              </div>
+            ) : (
+              <div className="promo-screen promo-screen-dim">
+                <div className="promo-half-sheet" style={{ background: bg, color: fg }}>
+                  <span className="promo-close" style={{ position: 'static', alignSelf: 'flex-end' }}>×</span>
+                  {portraitImage && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="promo-half-img" src={portraitImage} alt="" />
+                  )}
+                  <strong className="promo-full-title" style={{ color: fg, textAlign: 'center' }}>{title || 'Your headline'}</strong>
+                  <p className="promo-full-text" style={{ color: fg, textAlign: 'center' }}>{body || 'Your message appears here.'}</p>
+                  {cta && <span className="promo-cta" style={{ alignSelf: 'stretch', textAlign: 'center' }}>{cta}</span>}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

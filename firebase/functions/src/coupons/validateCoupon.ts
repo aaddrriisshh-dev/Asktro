@@ -29,6 +29,15 @@ export const validateCoupon = onCall(async (req) => {
     failedPrecondition('COUPON_EXPIRED');
   }
 
+  // Audience targeting: 'all' (default) | 'paid' | 'unpaid'.
+  const audience = (cp.audience ?? 'all') as string;
+  if (audience === 'paid' || audience === 'unpaid') {
+    const uSnap = await db.collection(Collections.users).doc(userId).get();
+    const isPaidUser = ((uSnap.data()?.totalRecharge ?? 0) as number) > 0;
+    if (audience === 'paid' && !isPaidUser) failedPrecondition('COUPON_FOR_PAID_USERS');
+    if (audience === 'unpaid' && isPaidUser) failedPrecondition('COUPON_FOR_NEW_USERS');
+  }
+
   const planSnap = await db.collection(Collections.rechargePlans).doc(planId!).get();
   if (!planSnap.exists) notFound('PLAN_NOT_FOUND');
   const plan = planSnap.data()!;
@@ -57,13 +66,15 @@ export const validateCoupon = onCall(async (req) => {
     if (!redeemed.empty) failedPrecondition('COUPON_ALREADY_USED');
   }
 
+  // Flat coupons credit amount + bonus together; percentage credits a capped
+  // share of the recharge. Must match creditRecharge's computation exactly.
   const discount =
     cp.type === 'percentage'
       ? Math.min(
           Math.round((rechargeAmount * (cp.percentage ?? 0)) / 100),
           cp.maxDiscount ?? Number.MAX_SAFE_INTEGER,
         )
-      : cp.amount ?? 0;
+      : (cp.amount ?? 0) + (cp.bonus ?? 0);
 
   return {
     valid: true,

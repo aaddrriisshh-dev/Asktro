@@ -13,20 +13,32 @@ import { writeLedger } from '../wallet/ledger';
 const REFERRER_REWARD_PAISE = 5000; // ₹50
 const REFERRED_REWARD_PAISE = 2500; // ₹25
 
-export async function maybeCreditReferral(
+/** What the write phase needs, resolved during the transaction's read phase. */
+export interface ReferralCredit {
+  referrerId: string;
+  referrerRef: FirebaseFirestore.DocumentReference;
+  referralRef: FirebaseFirestore.DocumentReference;
+}
+
+/**
+ * READ phase — resolve the referrer and decide if a credit is due. Must run
+ * before any transaction writes (Firestore requires all reads first). Returns
+ * null when nothing should be credited.
+ */
+export async function readReferralCredit(
   tx: Transaction,
-  params: { referredUserId: string; referrerCode: string; paymentId: string },
-): Promise<void> {
-  const { referredUserId, referrerCode, paymentId } = params;
+  params: { referredUserId: string; referrerCode: string },
+): Promise<ReferralCredit | null> {
+  const { referredUserId, referrerCode } = params;
 
   // Resolve the referrer by their referral code.
   const referrerQ = await tx.get(
     db.collection(Collections.users).where('referralCode', '==', referrerCode).limit(1),
   );
-  if (referrerQ.empty) return;
+  if (referrerQ.empty) return null;
   const referrerRef = referrerQ.docs[0].ref;
   const referrerId = referrerQ.docs[0].id;
-  if (referrerId === referredUserId) return; // no self-referral
+  if (referrerId === referredUserId) return null; // no self-referral
 
   // Guard against a second credit for this pair.
   const existing = await tx.get(
@@ -36,7 +48,20 @@ export async function maybeCreditReferral(
       .where('referredId', '==', referredUserId)
       .limit(1),
   );
-  if (!existing.empty && existing.docs[0].data().status === 'credited') return;
+  if (!existing.empty && existing.docs[0].data().status === 'credited') return null;
+
+  const referralRef = existing.empty ? db.collection(Collections.referrals).doc() : existing.docs[0].ref;
+  return { referrerId, referrerRef, referralRef };
+}
+
+/** WRITE phase — apply the referral credit resolved by readReferralCredit. */
+export function applyReferralCredit(
+  tx: Transaction,
+  credit: ReferralCredit,
+  params: { referredUserId: string; paymentId: string },
+): void {
+  const { referredUserId, paymentId } = params;
+  const { referrerId, referrerRef, referralRef } = credit;
 
   // Credit both wallets (as bonus balance).
   tx.update(referrerRef, {
@@ -67,7 +92,6 @@ export async function maybeCreditReferral(
     note: 'Referral welcome bonus',
   });
 
-  const referralRef = existing.empty ? db.collection(Collections.referrals).doc() : existing.docs[0].ref;
   tx.set(referralRef, {
     referrerId,
     referredId: referredUserId,

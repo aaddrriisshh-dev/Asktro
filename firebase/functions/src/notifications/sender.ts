@@ -36,6 +36,11 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
       deeplink: String(n.deeplink ?? ''),
       image: String(n.image ?? ''),
       imageStyle: String(n.imageStyle ?? ''),
+      displayMode: String(n.displayMode ?? 'small'),
+      portraitImage: String(n.portraitImage ?? ''),
+      ctaText: String(n.ctaText ?? ''),
+      bgColor: String(n.bgColor ?? ''),
+      textColor: String(n.textColor ?? ''),
       notificationId: snap.id,
     },
   });
@@ -59,7 +64,7 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
 
 export const sendBroadcast = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
-  const { title, body, type, deeplink, image, imageStyle, bgColor, textColor, segment, uids } = (req.data ?? {}) as {
+  const { title, body, type, deeplink, image, imageStyle, bgColor, textColor, displayMode, portraitImage, ctaText, segment, uids } = (req.data ?? {}) as {
     title?: string;
     body?: string;
     type?: string;
@@ -68,6 +73,9 @@ export const sendBroadcast = onCall(async (req) => {
     imageStyle?: 'banner' | 'portrait';
     bgColor?: string;
     textColor?: string;
+    displayMode?: 'small' | 'half' | 'full';
+    portraitImage?: string;
+    ctaText?: string;
     segment?: 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers' | 'list';
     uids?: string[];
   };
@@ -104,6 +112,9 @@ export const sendBroadcast = onCall(async (req) => {
       imageStyle: imageStyle ?? null,
       bgColor: bgColor ?? null,
       textColor: textColor ?? null,
+      displayMode: displayMode ?? 'small',
+      portraitImage: portraitImage ?? null,
+      ctaText: ctaText ?? null,
       read: false,
       createdAt: FieldValue.serverTimestamp(),
     });

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { callFn } from '@/lib/hooks';
 import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
+import { LandingControls, DisplayMode } from '@/components/LandingControls';
 
 type Segment = 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers';
 const AUDIENCE: { key: Segment; label: string }[] = [
@@ -20,6 +21,9 @@ export default function BroadcastPage() {
   const [imageStyle, setImageStyle] = useState<'banner' | 'portrait'>('banner');
   const [bg, setBg] = useState('#2e2b5f');
   const [fg, setFg] = useState('#ffffff');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('small');
+  const [portraitImage, setPortraitImage] = useState('');
+  const [ctaText, setCtaText] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
@@ -36,9 +40,13 @@ export default function BroadcastPage() {
         image: f.image.trim() || undefined,
         imageStyle: f.image.trim() ? imageStyle : undefined,
         bgColor: bg, textColor: fg,
+        displayMode,
+        portraitImage: displayMode !== 'small' ? (portraitImage.trim() || undefined) : undefined,
+        ctaText: displayMode !== 'small' ? (ctaText.trim() || undefined) : undefined,
       });
       setResult(`✓ Pushed to ${res.delivered} ${label}.`);
       setF({ title: '', body: '', deeplink: '', image: '' });
+      setPortraitImage(''); setCtaText(''); setDisplayMode('small');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(false); }
   }
@@ -79,6 +87,8 @@ export default function BroadcastPage() {
             <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} title={c} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
           </div>
 
+          <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage} cta={ctaText} setCta={setCtaText} />
+
           <div style={{ marginTop: 18 }}>
             <button className="btn" disabled={busy} onClick={send}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button>
             {result && <span style={{ marginLeft: 12, color: 'var(--success)', fontWeight: 600 }}>{result}</span>}
@@ -86,7 +96,8 @@ export default function BroadcastPage() {
         </div>
 
         {/* Live preview */}
-        <PromoPreview kind="push" title={f.title} body={f.body} image={f.image} imageStyle={imageStyle} bg={bg} fg={fg} />
+        <PromoPreview kind="push" title={f.title} body={f.body} image={f.image} imageStyle={imageStyle} bg={bg} fg={fg}
+          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText} />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatPaise, rupeesToPaise } from '@/lib/format';
 import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
+import { LandingControls, DisplayMode } from '@/components/LandingControls';
 
 const AUDIENCES = [
   { key: 'all', label: 'All Users' },
@@ -30,6 +31,9 @@ export default function CouponsPage() {
   const [f, setF] = useState({ code: '', amount: '', bonus: '', minRecharge: '', usageLimit: '', audience: 'all', image: '', expiry: '' });
   const [bg, setBg] = useState('#6b4bc0');
   const [fg, setFg] = useState('#ffffff');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('small');
+  const [portraitImage, setPortraitImage] = useState('');
+  const [ctaText, setCtaText] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
@@ -46,10 +50,14 @@ export default function CouponsPage() {
         minimumRecharge: rupeesToPaise(Number(f.minRecharge) || 0), maxDiscount: 0,
         usageLimit: Number(f.usageLimit) || 0, usedCount: 0, perUserOnce: true,
         audience: f.audience, image: f.image.trim() || null, bgColor: bg, textColor: fg,
+        displayMode,
+        portraitImage: displayMode !== 'small' ? (portraitImage.trim() || null) : null,
+        ctaText: displayMode !== 'small' ? (ctaText.trim() || null) : null,
         expiry: f.expiry ? Timestamp.fromDate(new Date(f.expiry)) : null, active: true,
         createdBy: user?.uid ?? null, createdByName: adminName || null, createdAt: Timestamp.now(),
       });
       setF({ code: '', amount: '', bonus: '', minRecharge: '', usageLimit: '', audience: 'all', image: '', expiry: '' });
+      setPortraitImage(''); setCtaText(''); setDisplayMode('small');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(false); }
   }
@@ -90,10 +98,13 @@ export default function CouponsPage() {
             <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
           </div>
 
+          <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage} cta={ctaText} setCta={setCtaText} />
+
           <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
 
-        <PromoPreview kind="coupon" title={f.code || 'ASK-XXXXX'} body={previewBody} image={f.image} imageStyle="banner" bg={bg} fg={fg} />
+        <PromoPreview kind="coupon" title={f.code || 'ASK-XXXXX'} body={previewBody} image={f.image} imageStyle="banner" bg={bg} fg={fg}
+          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText} />
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>

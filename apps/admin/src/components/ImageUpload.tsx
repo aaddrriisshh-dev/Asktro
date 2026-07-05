@@ -13,7 +13,7 @@ export function ImageUpload({
   onChange: (url: string) => void;
   folder: string; // storage path prefix, e.g. 'astrologer_photos'
   label?: string;
-  shape?: 'square' | 'wide';
+  shape?: 'square' | 'wide' | 'portrait';
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);

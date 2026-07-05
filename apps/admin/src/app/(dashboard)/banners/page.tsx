@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatDate } from '@/lib/format';
 import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
+import { LandingControls, DisplayMode } from '@/components/LandingControls';
 
 const PLACEMENTS = ['home', 'consults', 'wallet', 'alerts', 'profile'] as const;
 const PLACE_LABEL: Record<string, string> = { home: 'Home', consults: 'Consults', wallet: 'Wallet', alerts: 'Alerts', profile: 'Profile' };
@@ -19,6 +20,9 @@ export default function BannersPage() {
   const [f, setF] = useState({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
   const [bg, setBg] = useState('#2e2b5f');
   const [fg, setFg] = useState('#ffffff');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('small');
+  const [portraitImage, setPortraitImage] = useState('');
+  const [ctaText, setCtaText] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
@@ -29,9 +33,13 @@ export default function BannersPage() {
       await addDoc(collection(db, 'banners'), {
         title: f.title.trim(), description: f.description.trim(), image: f.image.trim(),
         deeplink: f.deeplink.trim() || null, placement: f.placement, bgColor: bg, textColor: fg, active: true,
+        displayMode,
+        portraitImage: displayMode !== 'small' ? (portraitImage.trim() || null) : null,
+        ctaText: displayMode !== 'small' ? (ctaText.trim() || null) : null,
         createdBy: user?.uid ?? null, createdByName: adminName || null, createdAt: serverTimestamp(),
       });
       setF({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
+      setPortraitImage(''); setCtaText(''); setDisplayMode('small');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(false); }
   }
@@ -66,10 +74,13 @@ export default function BannersPage() {
             <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
           </div>
 
+          <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage} cta={ctaText} setCta={setCtaText} />
+
           <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
 
-        <PromoPreview kind="banner" title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg} />
+        <PromoPreview kind="banner" title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
+          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText} />
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>

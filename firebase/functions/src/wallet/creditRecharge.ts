@@ -8,7 +8,7 @@
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { writeLedger } from './ledger';
-import { maybeCreditReferral } from '../referrals/referral';
+import { readReferralCredit, applyReferralCredit } from '../referrals/referral';
 
 export interface CreditResult {
   credited: boolean;
@@ -29,7 +29,7 @@ export async function creditRecharge(params: {
   const { userId, paymentId, orderId, planId, couponId, source } = params;
 
   return db.runTransaction(async (tx) => {
-    // Idempotency guard.
+    // ---- READ PHASE (Firestore requires all reads before any writes) ----
     const dedupeRef = db.collection(Collections.processedPayments).doc(paymentId);
     const dedupeSnap = await tx.get(dedupeRef);
     if (dedupeSnap.exists) {
@@ -48,39 +48,55 @@ export async function creditRecharge(params: {
     const plan = planSnap.data()!;
     if (plan.active === false) throw new Error('PLAN_INACTIVE');
 
-    const walletCredit: number = plan.walletCredit ?? plan.amount ?? 0;
-    let bonus: number = plan.bonus ?? 0;
-
-    // Optional coupon: adds extra bonus credit (validated separately at apply-time).
-    let couponBonus = 0;
-    if (couponId) {
-      const couponSnap = await tx.get(db.collection(Collections.coupons).doc(couponId));
-      if (couponSnap.exists) {
-        const cp = couponSnap.data()!;
-        if (cp.active !== false) {
-          couponBonus =
-            cp.type === 'percentage'
-              ? Math.min(Math.round((walletCredit * (cp.percentage ?? 0)) / 100), cp.maxDiscount ?? Number.MAX_SAFE_INTEGER)
-              : cp.amount ?? 0;
-          tx.update(couponSnap.ref, { usedCount: FieldValue.increment(1) });
-          tx.set(db.collection(Collections.couponRedemptions).doc(), {
-            couponId,
-            userId,
-            paymentId,
-            createdAt: FieldValue.serverTimestamp(),
-          });
-        }
-      }
-    }
-    bonus += couponBonus;
-
     const userRef = db.collection(Collections.users).doc(userId);
     const userSnap = await tx.get(userRef);
     if (!userSnap.exists) throw new Error('USER_NOT_FOUND');
     const user = userSnap.data()!;
 
-    const balanceBefore = (user.walletBalance ?? 0) + (user.bonusBalance ?? 0);
+    const couponRef = couponId ? db.collection(Collections.coupons).doc(couponId) : null;
+    const couponSnap = couponRef ? await tx.get(couponRef) : null;
+
     const isFirstRecharge = (user.totalRecharge ?? 0) === 0;
+    const referralCredit = isFirstRecharge && user.referredBy
+      ? await readReferralCredit(tx, { referredUserId: userId, referrerCode: user.referredBy })
+      : null;
+
+    // ---- COMPUTE ----
+    const walletCredit: number = plan.walletCredit ?? plan.amount ?? 0;
+    let bonus: number = plan.bonus ?? 0;
+    const isPaidUser = (user.totalRecharge ?? 0) > 0;
+
+    // Optional coupon: adds extra bonus credit. Re-checks active + audience so
+    // the money path is authoritative even if the client skipped validateCoupon.
+    let couponBonus = 0;
+    let couponApplies = false;
+    if (couponSnap && couponSnap.exists) {
+      const cp = couponSnap.data()!;
+      const aud = (cp.audience ?? 'all') as string;
+      const audienceOk = aud === 'all' || (aud === 'paid' && isPaidUser) || (aud === 'unpaid' && !isPaidUser);
+      if (cp.active !== false && audienceOk) {
+        couponApplies = true;
+        couponBonus =
+          cp.type === 'percentage'
+            ? Math.min(Math.round((walletCredit * (cp.percentage ?? 0)) / 100), cp.maxDiscount ?? Number.MAX_SAFE_INTEGER)
+            : (cp.amount ?? 0) + (cp.bonus ?? 0);
+      }
+    }
+    bonus += couponBonus;
+
+    const balanceBefore = (user.walletBalance ?? 0) + (user.bonusBalance ?? 0);
+    const balanceAfter = balanceBefore + walletCredit + bonus;
+
+    // ---- WRITE PHASE ----
+    if (couponApplies && couponSnap) {
+      tx.update(couponSnap.ref, { usedCount: FieldValue.increment(1) });
+      tx.set(db.collection(Collections.couponRedemptions).doc(), {
+        couponId,
+        userId,
+        paymentId,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
 
     tx.update(userRef, {
       walletBalance: FieldValue.increment(walletCredit),
@@ -90,8 +106,6 @@ export async function creditRecharge(params: {
       ...(isFirstRecharge ? { firstRechargeAt: FieldValue.serverTimestamp() } : {}),
       updatedAt: FieldValue.serverTimestamp(),
     });
-
-    const balanceAfter = balanceBefore + walletCredit + bonus;
 
     writeLedger(tx, {
       userId,
@@ -114,9 +128,9 @@ export async function creditRecharge(params: {
       });
     }
 
-    // Referral reward on first successful recharge.
-    if (isFirstRecharge && user.referredBy) {
-      await maybeCreditReferral(tx, { referredUserId: userId, referrerCode: user.referredBy, paymentId });
+    // Referral reward on first successful recharge (resolved in read phase).
+    if (referralCredit) {
+      applyReferralCredit(tx, referralCredit, { referredUserId: userId, paymentId });
     }
 
     // Record idempotency key.
