@@ -24,6 +24,10 @@ export default function BroadcastPage() {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('small');
   const [portraitImage, setPortraitImage] = useState('');
   const [ctaText, setCtaText] = useState('');
+  const [lTitle, setLTitle] = useState('');
+  const [lBody, setLBody] = useState('');
+  const [lBg, setLBg] = useState('#2e2b5f');
+  const [lFg, setLFg] = useState('#ffffff');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
@@ -43,10 +47,15 @@ export default function BroadcastPage() {
         displayMode,
         portraitImage: displayMode !== 'small' ? (portraitImage.trim() || undefined) : undefined,
         ctaText: displayMode !== 'small' ? (ctaText.trim() || undefined) : undefined,
+        landingTitle: displayMode !== 'small' ? (lTitle.trim() || undefined) : undefined,
+        landingBody: displayMode !== 'small' ? (lBody.trim() || undefined) : undefined,
+        landingBgColor: displayMode !== 'small' ? lBg : undefined,
+        landingTextColor: displayMode !== 'small' ? lFg : undefined,
       });
       setResult(`✓ Pushed to ${res.delivered} ${label}.`);
       setF({ title: '', body: '', deeplink: '', image: '' });
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
+      setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(false); }
   }
@@ -87,7 +96,9 @@ export default function BroadcastPage() {
             <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} title={c} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
           </div>
 
-          <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage} cta={ctaText} setCta={setCtaText} />
+          <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
+            cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
+            bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
 
           <div style={{ marginTop: 18 }}>
             <button className="btn" disabled={busy} onClick={send}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button>
@@ -97,7 +108,8 @@ export default function BroadcastPage() {
 
         {/* Live preview */}
         <PromoPreview kind="push" title={f.title} body={f.body} image={f.image} imageStyle={imageStyle} bg={bg} fg={fg}
-          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText} />
+          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
+          landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
       </div>
     </div>
   );

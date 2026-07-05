@@ -23,6 +23,10 @@ export default function BannersPage() {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('small');
   const [portraitImage, setPortraitImage] = useState('');
   const [ctaText, setCtaText] = useState('');
+  const [lTitle, setLTitle] = useState('');
+  const [lBody, setLBody] = useState('');
+  const [lBg, setLBg] = useState('#2e2b5f');
+  const [lFg, setLFg] = useState('#ffffff');
   const [busy, setBusy] = useState(false);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
@@ -36,10 +40,15 @@ export default function BannersPage() {
         displayMode,
         portraitImage: displayMode !== 'small' ? (portraitImage.trim() || null) : null,
         ctaText: displayMode !== 'small' ? (ctaText.trim() || null) : null,
+        landingTitle: displayMode !== 'small' ? (lTitle.trim() || null) : null,
+        landingBody: displayMode !== 'small' ? (lBody.trim() || null) : null,
+        landingBgColor: displayMode !== 'small' ? lBg : null,
+        landingTextColor: displayMode !== 'small' ? lFg : null,
         createdBy: user?.uid ?? null, createdByName: adminName || null, createdAt: serverTimestamp(),
       });
       setF({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
+      setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(false); }
   }
@@ -74,13 +83,16 @@ export default function BannersPage() {
             <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
           </div>
 
-          <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage} cta={ctaText} setCta={setCtaText} />
+          <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
+            cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
+            bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
 
           <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
 
         <PromoPreview kind="banner" title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
-          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText} />
+          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
+          landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>

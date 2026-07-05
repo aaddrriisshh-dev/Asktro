@@ -64,7 +64,7 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
 
 export const sendBroadcast = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
-  const { title, body, type, deeplink, image, imageStyle, bgColor, textColor, displayMode, portraitImage, ctaText, segment, uids } = (req.data ?? {}) as {
+  const { title, body, type, deeplink, image, imageStyle, bgColor, textColor, displayMode, portraitImage, ctaText, landingTitle, landingBody, landingBgColor, landingTextColor, segment, uids } = (req.data ?? {}) as {
     title?: string;
     body?: string;
     type?: string;
@@ -76,6 +76,10 @@ export const sendBroadcast = onCall(async (req) => {
     displayMode?: 'small' | 'half' | 'full';
     portraitImage?: string;
     ctaText?: string;
+    landingTitle?: string;
+    landingBody?: string;
+    landingBgColor?: string;
+    landingTextColor?: string;
     segment?: 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers' | 'list';
     uids?: string[];
   };
@@ -115,6 +119,10 @@ export const sendBroadcast = onCall(async (req) => {
       displayMode: displayMode ?? 'small',
       portraitImage: portraitImage ?? null,
       ctaText: ctaText ?? null,
+      landingTitle: landingTitle ?? null,
+      landingBody: landingBody ?? null,
+      landingBgColor: landingBgColor ?? null,
+      landingTextColor: landingTextColor ?? null,
       read: false,
       createdAt: FieldValue.serverTimestamp(),
     });

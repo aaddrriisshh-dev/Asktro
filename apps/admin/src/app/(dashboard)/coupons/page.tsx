@@ -28,16 +28,21 @@ function genCode() {
 export default function CouponsPage() {
   const { rows, loading } = useCollection('coupons');
   const { user, adminName } = useAuth();
-  const [f, setF] = useState({ code: '', amount: '', bonus: '', minRecharge: '', usageLimit: '', audience: 'all', image: '', expiry: '' });
+  const [f, setF] = useState({ code: '', title: '', description: '', amount: '', bonus: '', minRecharge: '', usageLimit: '', audience: 'all', image: '', expiry: '' });
   const [bg, setBg] = useState('#6b4bc0');
   const [fg, setFg] = useState('#ffffff');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('small');
   const [portraitImage, setPortraitImage] = useState('');
   const [ctaText, setCtaText] = useState('');
+  const [lTitle, setLTitle] = useState('');
+  const [lBody, setLBody] = useState('');
+  const [lBg, setLBg] = useState('#6b4bc0');
+  const [lFg, setLFg] = useState('#ffffff');
   const [busy, setBusy] = useState(false);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
-  const previewBody = `Get ${f.amount ? `₹${f.amount}` : '₹—'}${f.bonus ? ` + ₹${f.bonus} bonus` : ''} in your wallet`;
+  const autoBody = `Get ${f.amount ? `₹${f.amount}` : '₹—'}${f.bonus ? ` + ₹${f.bonus} bonus` : ''} in your wallet`;
+  const previewBody = f.description.trim() || autoBody;
 
   async function push() {
     if (!f.code.trim()) return alert('A coupon code is required (use Generate).');
@@ -46,6 +51,7 @@ export default function CouponsPage() {
     try {
       await addDoc(collection(db, 'coupons'), {
         code: f.code.trim().toUpperCase(), type: 'flat',
+        title: f.title.trim() || null, description: f.description.trim() || null,
         amount: rupeesToPaise(Number(f.amount) || 0), bonus: rupeesToPaise(Number(f.bonus) || 0), percentage: 0,
         minimumRecharge: rupeesToPaise(Number(f.minRecharge) || 0), maxDiscount: 0,
         usageLimit: Number(f.usageLimit) || 0, usedCount: 0, perUserOnce: true,
@@ -53,11 +59,16 @@ export default function CouponsPage() {
         displayMode,
         portraitImage: displayMode !== 'small' ? (portraitImage.trim() || null) : null,
         ctaText: displayMode !== 'small' ? (ctaText.trim() || null) : null,
+        landingTitle: displayMode !== 'small' ? (lTitle.trim() || null) : null,
+        landingBody: displayMode !== 'small' ? (lBody.trim() || null) : null,
+        landingBgColor: displayMode !== 'small' ? lBg : null,
+        landingTextColor: displayMode !== 'small' ? lFg : null,
         expiry: f.expiry ? Timestamp.fromDate(new Date(f.expiry)) : null, active: true,
         createdBy: user?.uid ?? null, createdByName: adminName || null, createdAt: Timestamp.now(),
       });
-      setF({ code: '', amount: '', bonus: '', minRecharge: '', usageLimit: '', audience: 'all', image: '', expiry: '' });
+      setF({ code: '', title: '', description: '', amount: '', bonus: '', minRecharge: '', usageLimit: '', audience: 'all', image: '', expiry: '' });
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
+      setLTitle(''); setLBody(''); setLBg('#6b4bc0'); setLFg('#ffffff');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(false); }
   }
@@ -83,6 +94,11 @@ export default function CouponsPage() {
             <label className="af"><span>Expiry date</span><input className="input" type="date" value={f.expiry} onChange={(e) => set('expiry', e.target.value)} /></label>
           </div>
 
+          <label className="af" style={{ marginTop: 12 }}><span>Title (shown on the card)</span>
+            <input className="input" placeholder="Diwali Dhamaka ✨" value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
+          <label className="af" style={{ marginTop: 12 }}><span>Description</span>
+            <textarea className="input" rows={2} placeholder="Recharge now and get extra in your wallet…" value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
+
           <p className="af-label">Placement / audience</p>
           <div className="pickrow">
             {AUDIENCES.map((a) => <button key={a.key} type="button" className={`pickchip${f.audience === a.key ? ' on' : ''}`} onClick={() => set('audience', a.key)}>{a.label}</button>)}
@@ -98,13 +114,16 @@ export default function CouponsPage() {
             <div className="pickrow">{PRESETS.map((c) => <button key={c} type="button" onClick={() => setBg(c)} style={{ width: 24, height: 24, borderRadius: 7, border: '1px solid var(--line)', background: c, cursor: 'pointer' }} />)}</div>
           </div>
 
-          <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage} cta={ctaText} setCta={setCtaText} />
+          <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
+            cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
+            bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
 
           <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
 
-        <PromoPreview kind="coupon" title={f.code || 'ASK-XXXXX'} body={previewBody} image={f.image} imageStyle="banner" bg={bg} fg={fg}
-          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText} />
+        <PromoPreview kind="coupon" title={f.title || 'Your coupon title'} body={previewBody} code={f.code || 'ASK-XXXXX'} image={f.image} imageStyle="banner" bg={bg} fg={fg}
+          displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
+          landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>
