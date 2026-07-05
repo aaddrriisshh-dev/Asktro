@@ -292,6 +292,10 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                       children: [
+                        if (!offerMode) ...[
+                          _offersBanner(),
+                          const SizedBox(height: 20),
+                        ],
                         Row(
                           children: [
                             const Icon(Icons.auto_awesome, color: Ob.gold, size: 16),
@@ -434,17 +438,47 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(_couponError!, style: Ob.option.copyWith(color: const Color(0xFFD9534F), fontSize: 12)),
           ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => context.push('/offers'),
-            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 2), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-            child: Text('View all offers  →', style: Ob.option.copyWith(color: Ob.purple, fontSize: 12.5, fontWeight: FontWeight.w600)),
-          ),
-        ),
       ],
     );
   }
+
+  // Prominent, full-width entry to the Offers screen — placed at the top of the
+  // amount list so every user sees it the moment they open Add Cash.
+  Widget _offersBanner() => GestureDetector(
+        onTap: () => context.push('/offers'),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            gradient: Ob.goldGradient,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: Ob.softShadow,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.35), shape: BoxShape.circle),
+                child: const Text('🎁', style: TextStyle(fontSize: 20)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('View all offers', style: Ob.title.copyWith(color: Ob.navy, fontSize: 16)),
+                    const SizedBox(height: 2),
+                    Text('Coupons & extra-bonus deals on your recharge',
+                        style: Ob.option.copyWith(color: Ob.navy.withOpacity(0.8), fontSize: 12)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Ob.navy),
+            ],
+          ),
+        ),
+      );
 
   Widget _tile(RechargePlan plan, double w) {
     final sel = _selected?.id == plan.id;

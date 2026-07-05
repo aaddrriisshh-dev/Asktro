@@ -106,9 +106,10 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     match /coupons/{couponId} {
-      // validity is checked in a function; the raw catalog is admin-only to
-      // avoid leaking unpublished/limited codes.
-      allow read: if isAdmin();
+      // Signed-in users may browse ACTIVE coupons (Offers screen + app-open
+      // popup). Full validity/audience/usage is still enforced server-side at
+      // redemption; inactive/unpublished codes stay hidden. Admins read all.
+      allow read: if isAdmin() || (isSignedIn() && resource.data.active == true);
       allow write: if isAdmin();
     }
     match /couponRedemptions/{id} {

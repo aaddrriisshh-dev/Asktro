@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import 'home_feed.dart';
 import '../consultations/consultations_tab.dart';
 import '../wallet/wallet_tab.dart';
+import '../wallet/offers_screen.dart';
 import '../notifications/notifications_tab.dart';
 import '../profile/profile_tab.dart';
 
@@ -24,6 +25,26 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     NotificationsTab(),
     ProfileTab(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowOfferPopup());
+  }
+
+  // On app open, surface the newest active coupon once per launch. Silent if
+  // there are no offers or the fetch fails — never blocks the home screen.
+  Future<void> _maybeShowOfferPopup() async {
+    if (ref.read(offerPopupShownProvider)) return;
+    try {
+      final coupons = await ref.read(catalogRepositoryProvider).watchCoupons().first;
+      if (!mounted || coupons.isEmpty) return;
+      ref.read(offerPopupShownProvider.notifier).state = true;
+      await showOfferPopup(context, coupons.first);
+    } catch (_) {
+      // No offers / offline / rules — ignore, home loads normally.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
