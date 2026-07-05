@@ -45,7 +45,7 @@ export function PromoPreview({
       {/* Small strip — the notification / home card */}
       <span className="promo-kind">{kind === 'push' ? '🔔 Notification' : kind === 'banner' ? '🖼 Home strip' : '🎟 Coupon card'}</span>
       <div className="promo-card" style={{ ...cardBg, color: txCard, position: 'relative', overflow: 'hidden' }}>
-        {th && <ThemeSkin th={th} />}
+        {th && <ThemeSkin th={th} hideArt={!!(image && imageStyle === 'banner')} />}
         {image && imageStyle === 'banner' && (
           // eslint-disable-next-line @next/next/no-img-element
           <img className="promo-img-banner" src={image} alt="" style={{ position: 'relative', zIndex: 2 }} />
@@ -119,15 +119,17 @@ function themeBgStyle(th: PromoTheme): React.CSSProperties {
   return { background: th.bg };
 }
 
-/** Renders the theme's golden frame + art (right-anchored image or watermark). */
-function ThemeSkin({ th, big = false }: { th: PromoTheme; big?: boolean }) {
+/** Renders the theme's golden frame + art (right-anchored image or watermark).
+ *  When the user has uploaded their own banner image, `hideArt` drops the theme
+ *  art so the photo owns the card and nothing clashes. */
+function ThemeSkin({ th, big = false, hideArt = false }: { th: PromoTheme; big?: boolean; hideArt?: boolean }) {
   return (
     <>
       <span className="promo-frame" style={{ borderColor: th.edge }} />
-      {th.layout === 'split' && th.art && th.art !== 'scenery' && (
+      {!hideArt && th.layout === 'split' && th.art && th.art !== 'scenery' && (
         <span className="promo-art" style={{ backgroundImage: `url(${ART_SRC[th.art]})` }} />
       )}
-      {th.layout === 'wm' && th.art && (
+      {!hideArt && th.layout === 'wm' && th.art && (
         <span
           className={big ? 'promo-wm promo-wm--big' : 'promo-wm'}
           style={{ backgroundImage: `url(${ART_SRC[th.art]})`, opacity: th.op ?? 0.3 }}
