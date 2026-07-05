@@ -9,6 +9,7 @@ import { formatDate } from '@/lib/format';
 import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
 import { LandingControls, DisplayMode } from '@/components/LandingControls';
+import { DeepLinkSelect } from '@/components/DeepLinkSelect';
 
 const PLACEMENTS = ['home', 'consults', 'wallet', 'alerts', 'profile'] as const;
 const PLACE_LABEL: Record<string, string> = { home: 'Home', consults: 'Consults', wallet: 'Wallet', alerts: 'Alerts', profile: 'Profile' };
@@ -70,8 +71,8 @@ export default function BannersPage() {
           </div>
           <label className="af" style={{ marginTop: 12 }}><span>Description</span>
             <textarea className="input" rows={2} value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
-          <label className="af" style={{ marginTop: 12 }}><span>Deep link (optional)</span>
-            <input className="input" placeholder="asktro://…" value={f.deeplink} onChange={(e) => set('deeplink', e.target.value)} /></label>
+          <div className="af" style={{ marginTop: 12 }}><span>On tap — go to</span>
+            <DeepLinkSelect value={f.deeplink} onChange={(v) => set('deeplink', v)} /></div>
 
           <p className="af-label">Image (upload from your desktop)</p>
           <ImageUpload folder="banner_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />

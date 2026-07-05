@@ -5,6 +5,7 @@ import { callFn } from '@/lib/hooks';
 import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
 import { LandingControls, DisplayMode } from '@/components/LandingControls';
+import { DeepLinkSelect } from '@/components/DeepLinkSelect';
 
 type Segment = 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers';
 const AUDIENCE: { key: Segment; label: string }[] = [
@@ -77,8 +78,8 @@ export default function BroadcastPage() {
             <input className="input" placeholder="✨ Your stars align today" value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
           <label className="af" style={{ marginTop: 12 }}><span>Description</span>
             <textarea className="input" rows={3} placeholder="Consult a top astrologer now…" value={f.body} onChange={(e) => set('body', e.target.value)} /></label>
-          <label className="af" style={{ marginTop: 12 }}><span>Deep link (optional)</span>
-            <input className="input" placeholder="asktro://astrologers  or  /recharge" value={f.deeplink} onChange={(e) => set('deeplink', e.target.value)} /></label>
+          <div className="af" style={{ marginTop: 12 }}><span>On tap — go to</span>
+            <DeepLinkSelect value={f.deeplink} onChange={(v) => set('deeplink', v)} /></div>
 
           <p className="af-label">Image (upload from your desktop)</p>
           <ImageUpload folder="notification_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
