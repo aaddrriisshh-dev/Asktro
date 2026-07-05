@@ -6,7 +6,6 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 import '../profile_setup/onboarding_style.dart';
-import '../profile_setup/onboarding_widgets.dart';
 import 'promo_surface.dart';
 
 final _couponsProvider = StreamProvider.autoDispose<List<Coupon>>(
@@ -267,7 +266,7 @@ class _OfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final th = promoThemeById(coupon.theme);
-    final onTap = () => context.push('/recharge?coupon=${Uri.encodeComponent(coupon.code)}');
+    void onTap() => context.push('/recharge?coupon=${Uri.encodeComponent(coupon.code)}');
     if (th != null) return _themed(context, th, onTap);
 
     // Fallback (no theme): the original solid-colour ticket.
