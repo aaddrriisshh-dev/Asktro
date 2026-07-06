@@ -47,3 +47,44 @@ class CelestialBackground extends StatelessWidget {
     );
   }
 }
+
+/// A whisper-quiet celestial dot grid behind content — evenly spaced, faintly
+/// purple dots that read as gentle "paper" texture without competing with the
+/// foreground. Used behind the chat thread.
+class DotGridBackground extends StatelessWidget {
+  const DotGridBackground({super.key, required this.child, this.color});
+
+  final Widget child;
+
+  /// Base fill behind the dots (defaults to the app background).
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: color ?? AppColors.background),
+      child: CustomPaint(
+        painter: _DotGridPainter(),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _DotGridPainter extends CustomPainter {
+  static const double _gap = 20;
+  static const double _radius = 1.3;
+  final Paint _dot = Paint()..color = const Color(0x1A7E57C2); // ~10% purple
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (double y = _gap / 2; y < size.height; y += _gap) {
+      for (double x = _gap / 2; x < size.width; x += _gap) {
+        canvas.drawCircle(Offset(x, y), _radius, _dot);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DotGridPainter oldDelegate) => false;
+}

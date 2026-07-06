@@ -102,7 +102,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
           ],
         ),
       ),
-      body: CelestialBackground(
+      body: DotGridBackground(
         child: messages.isEmpty
             ? const EmptyState(
                 icon: Icons.history_rounded,
@@ -324,7 +324,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       backgroundColor: AppColors.background,
       // Back just leaves the chat; the session keeps running and is resumable
       // from the Consultations tab. Ending is an explicit choice (the End button).
-      body: CelestialBackground(
+      body: DotGridBackground(
         child: Column(
           children: [
             async.when(

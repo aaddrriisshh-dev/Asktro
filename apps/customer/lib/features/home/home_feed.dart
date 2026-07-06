@@ -107,21 +107,29 @@ class HomeFeed extends ConsumerWidget {
       ),
       child: Stack(
         children: [
-          // Faint zodiac-wheel watermark drifting off the top-right corner.
+          // Bold zodiac-wheel motif — a large wheel off the top-right corner
+          // plus a smaller one bottom-left, both clearly readable.
           Positioned(
-            right: -46,
-            top: topPad - 12,
+            right: -40,
+            top: topPad - 20,
             child: IgnorePointer(
-              child: Opacity(opacity: 0.13, child: Image.asset(Ob.zodiacWheel, width: 208)),
+              child: Opacity(opacity: 0.17, child: Image.asset(Ob.zodiacWheel, width: 232)),
+            ),
+          ),
+          Positioned(
+            left: -34,
+            bottom: -30,
+            child: IgnorePointer(
+              child: Opacity(opacity: 0.11, child: Image.asset(Ob.zodiacWheel, width: 150)),
             ),
           ),
           // A couple of soft gold sparkles for a celestial shimmer.
           Positioned(
               left: 26, top: topPad + 6,
-              child: const IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x55D4AF37), size: 12)),),
+              child: const IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x66D4AF37), size: 12)),),
           Positioned(
               right: 128, top: topPad + 2,
-              child: const IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x3DD4AF37), size: 9)),),
+              child: const IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x4DD4AF37), size: 9)),),
           Column(
             children: [
               SizedBox(height: topPad + 12),
