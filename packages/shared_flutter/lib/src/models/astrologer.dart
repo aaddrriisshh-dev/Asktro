@@ -21,6 +21,7 @@ class Astrologer extends Equatable {
     this.available = false,
     this.verified = false,
     this.featured = false,
+    this.risingStar = false,
     this.status = AstrologerStatus.pending,
     this.earnings = 0,
     this.pendingPayout = 0,
@@ -46,6 +47,7 @@ class Astrologer extends Equatable {
   final bool available;
   final bool verified;
   final bool featured;
+  final bool risingStar; // admin-curated "Rising Stars" home rail
   final AstrologerStatus status;
   final int earnings; // paise, lifetime gross (astrologer-side display)
   final int pendingPayout; // paise, accrued net earnings not yet paid out
@@ -84,6 +86,7 @@ class Astrologer extends Equatable {
       available: (m['available'] ?? false) as bool,
       verified: (m['verified'] ?? false) as bool,
       featured: (m['featured'] ?? false) as bool,
+      risingStar: (m['risingStar'] ?? false) as bool,
       status: AstrologerStatus.fromString(m['accountStatus'] as String?),
       earnings: (m['earnings'] ?? 0) as int,
       pendingPayout: (m['pendingPayout'] ?? 0) as int,
@@ -98,7 +101,7 @@ class Astrologer extends Equatable {
   List<Object?> get props => [
         id, name, profilePhoto, about, experience, languages, expertise, rating,
         totalReviews, totalConsultations, followers, responseTimeSec,
-        onlineStatus, available, verified, featured, status, earnings,
+        onlineStatus, available, verified, featured, risingStar, status, earnings,
         pendingPayout, ratePerMinutePaise, isAI, quickReplies, availability,
       ];
 }

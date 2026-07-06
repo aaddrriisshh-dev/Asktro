@@ -13,8 +13,8 @@ import '../profile_setup/onboarding_widgets.dart';
 import '../wallet/promo_popup.dart';
 import '../wallet/promo_surface.dart';
 
-final _onlineProvider = StreamProvider.autoDispose<List<Astrologer>>(
-    (ref) => ref.watch(astrologerRepositoryProvider).watchOnline(),);
+final _risingStarsProvider = StreamProvider.autoDispose<List<Astrologer>>(
+    (ref) => ref.watch(astrologerRepositoryProvider).watchRisingStars(),);
 final _topRatedProvider = StreamProvider.autoDispose<List<Astrologer>>(
     (ref) => ref.watch(astrologerRepositoryProvider).watchTopRated(),);
 final _homeBannersProvider = StreamProvider.autoDispose<List<PromoBanner>>(
@@ -68,7 +68,7 @@ class HomeFeed extends ConsumerWidget {
         child: RefreshIndicator(
           color: Ob.purple,
           onRefresh: () async {
-            ref.invalidate(_onlineProvider);
+            ref.invalidate(_risingStarsProvider);
             ref.invalidate(_topRatedProvider);
           },
           child: ListView(
@@ -81,7 +81,10 @@ class HomeFeed extends ConsumerWidget {
               const _HomeBanners(),
               const SizedBox(height: 6),
               _AstroCarousel(title: 'Top Astrologers', provider: _topRatedProvider),
-              _AstroCarousel(title: 'Rising Stars', provider: _onlineProvider),
+              _AstroCarousel(
+                  title: 'Rising Stars',
+                  provider: _risingStarsProvider,
+                  onlyRisingStars: true,),
               const SizedBox(height: 24),
             ],
           ),
@@ -709,9 +712,16 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
 /// A horizontal, gently auto-advancing rail of celestial astrologer cards
 /// (~2 visible). A "View all" opens the full astrologer directory.
 class _AstroCarousel extends ConsumerStatefulWidget {
-  const _AstroCarousel({required this.title, required this.provider});
+  const _AstroCarousel({
+    required this.title,
+    required this.provider,
+    this.onlyRisingStars = false,
+  });
   final String title;
   final AutoDisposeStreamProvider<List<Astrologer>> provider;
+  // "View all" from Rising Stars opens the tagged-only directory; from Top
+  // Astrologers it opens the full directory.
+  final bool onlyRisingStars;
 
   @override
   ConsumerState<_AstroCarousel> createState() => _AstroCarouselState();
@@ -728,8 +738,12 @@ class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
     super.dispose();
   }
 
-  void _viewAll() =>
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen()));
+  void _viewAll() => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => SearchScreen(
+          title: widget.onlyRisingStars ? 'Rising Stars' : 'All Astrologers',
+          onlyRisingStars: widget.onlyRisingStars,
+        ),
+      ));
 
   @override
   Widget build(BuildContext context) {

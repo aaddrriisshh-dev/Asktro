@@ -18,6 +18,7 @@ export default function AstrologerViewPage() {
   const [missing, setMissing] = useState(false);
   const [cons, setCons] = useState<Any[]>([]);
   const [tab, setTab] = useState<'voice' | 'video' | 'all'>('all');
+  const [rsBusy, setRsBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -41,6 +42,17 @@ export default function AstrologerViewPage() {
     } catch (e) { alert('Failed: ' + (e as Error).message); }
   }
 
+  async function toggleRisingStar() {
+    if (!a || rsBusy) return;
+    const next = !(a.risingStar as boolean);
+    setRsBusy(true);
+    try {
+      await callFn('updateAstrologer', { astrologerId: id, risingStar: next });
+      setA({ ...a, risingStar: next });
+    } catch (e) { alert('Failed: ' + (e as Error).message); }
+    finally { setRsBusy(false); }
+  }
+
   if (missing) return <div><Link href="/astrologers" className="btn secondary sm">← Back</Link><p className="muted" style={{ marginTop: 20 }}>Astrologer not found.</p></div>;
   if (!a) return <p className="muted">Loading…</p>;
 
@@ -59,13 +71,24 @@ export default function AstrologerViewPage() {
             <h1 style={{ margin: 0 }}>{(a.name as string) || 'Unnamed'}
               <span className={`badge ${status === 'approved' ? 'green' : status === 'pending' ? 'amber' : 'red'}`} style={{ marginLeft: 10, verticalAlign: 'middle' }}>{status}</span>
               {a.isAI ? <span className="badge purple" style={{ marginLeft: 6 }}>AI</span> : null}
+              {a.risingStar ? <span className="badge amber" style={{ marginLeft: 6 }}>★ Rising Star</span> : null}
             </h1>
             <p className="muted" style={{ margin: '2px 0 0', fontSize: 12.5, fontFamily: 'monospace' }}>
               ID {id.slice(0, 8)} · added {ms(a, 'addedAt') ? formatDate(ms(a, 'addedAt')) : (ms(a, 'createdAt') ? formatDate(ms(a, 'createdAt')) : '—')}
             </p>
           </div>
         </div>
-        <button className="btn sm" onClick={editProfile}>✎ Edit Profile</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className={`btn sm ${a.risingStar ? 'secondary' : ''}`}
+            onClick={toggleRisingStar}
+            disabled={rsBusy}
+            title="Show this astrologer in the app's Rising Stars rail"
+          >
+            {rsBusy ? '…' : a.risingStar ? '★ Remove Rising Star' : '☆ Mark Rising Star'}
+          </button>
+          <button className="btn sm" onClick={editProfile}>✎ Edit Profile</button>
+        </div>
       </div>
 
       <div className="aview-grid">

@@ -121,7 +121,7 @@ export const updateAstrologer = onCall(async (req) => {
   const { astrologerId, ...rest } = (req.data ?? {}) as { astrologerId?: string } & Record<string, unknown>;
   if (!astrologerId) badRequest('astrologerId is required.');
 
-  const allowed = ['name', 'phone', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'commissionPercent', 'profilePhoto', 'isAI', 'featured'];
+  const allowed = ['name', 'phone', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'commissionPercent', 'profilePhoto', 'isAI', 'featured', 'risingStar'];
   const patch: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
   for (const k of allowed) if (k in rest) patch[k] = rest[k];
 

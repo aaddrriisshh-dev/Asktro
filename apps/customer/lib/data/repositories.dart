@@ -46,14 +46,33 @@ class AstrologerRepository {
         return list.take(limit).toList();
       });
 
-  Stream<List<Astrologer>> watchTopRated({int limit = 10}) => _col
-      .where('active', isEqualTo: true)
+  Stream<List<Astrologer>> watchTopRated({int limit = 12}) => _col
       .limit(100)
       .snapshots()
       .map((s) {
-        final list = s.docs.map(_map).toList()
+        // Tolerate docs missing the `active` field (seeded personas don't set
+        // it) — _isActive defaults to true, so they're included.
+        final list = s.docs.where(_isActive).map(_map).toList()
           ..sort((a, b) => b.rating.compareTo(a.rating));
         return list.take(limit).toList();
+      });
+
+  /// Admin-curated "Rising Stars". Shows astrologers tagged `risingStar: true`
+  /// from the portal; before any are tagged, falls back to the newest joiners
+  /// so the rail is never empty.
+  Stream<List<Astrologer>> watchRisingStars({int limit = 12}) => _col
+      .limit(100)
+      .snapshots()
+      .map((s) {
+        final docs = s.docs.where(_isActive).toList();
+        final tagged = docs
+            .where((d) => (d.data()?['risingStar'] ?? false) == true)
+            .map(_map)
+            .toList()
+          ..sort((a, b) => b.rating.compareTo(a.rating));
+        if (tagged.isNotEmpty) return tagged.take(limit).toList();
+        docs.sort((a, b) => _createdMs(b).compareTo(_createdMs(a)));
+        return docs.take(limit).map(_map).toList();
       });
 
   Stream<List<Astrologer>> watchNewest({int limit = 10}) => _col
@@ -71,10 +90,15 @@ class AstrologerRepository {
 
   /// Client-side name/expertise search over the active directory. For large
   /// scale this would be backed by a search index; kept simple and correct here.
-  Future<List<Astrologer>> search(String query) async {
+  Future<List<Astrologer>> search(String query, {bool risingOnly = false}) async {
     final q = query.trim().toLowerCase();
-    final snap = await _col.where('active', isEqualTo: true).limit(200).get();
-    final all = snap.docs.map(_map).toList();
+    // No Firestore `active` filter: seeded personas don't set the field, and a
+    // where-clause on a missing field silently drops them. Filter tolerantly
+    // client-side (default active) so the full directory shows.
+    final snap = await _col.limit(500).get();
+    var all = snap.docs.where(_isActive).map(_map).toList()
+      ..sort((a, b) => b.rating.compareTo(a.rating));
+    if (risingOnly) all = all.where((a) => a.risingStar).toList();
     if (q.isEmpty) return all;
     return all
         .where((a) =>

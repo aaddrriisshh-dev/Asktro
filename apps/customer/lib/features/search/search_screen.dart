@@ -6,7 +6,14 @@ import '../../app/providers.dart';
 import '../astrologer/astrologer_card.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.title, this.onlyRisingStars = false});
+
+  /// Optional directory label (e.g. "All Astrologers", "Rising Stars"). Shown
+  /// in the search hint so the user knows which set they're browsing.
+  final String? title;
+
+  /// When true, the directory is limited to admin-tagged Rising Stars.
+  final bool onlyRisingStars;
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -20,7 +27,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Future<void> _run(String q) async {
     setState(() => _loading = true);
-    final results = await ref.read(astrologerRepositoryProvider).search(q);
+    final results = await ref
+        .read(astrologerRepositoryProvider)
+        .search(q, risingOnly: widget.onlyRisingStars);
     if (!mounted) return;
     setState(() {
       _results = results;
@@ -53,8 +62,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           onChanged: (v) {
             if (v.isEmpty) _run('');
           },
-          decoration: const InputDecoration(
-            hintText: 'Search astrologers...',
+          decoration: InputDecoration(
+            hintText: 'Search ${widget.title ?? 'astrologers'}...',
             border: InputBorder.none,
             filled: false,
           ),
