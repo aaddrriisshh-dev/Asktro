@@ -1,46 +1,39 @@
-// GENERATED-STYLE PLACEHOLDER — replace by running `flutterfire configure`
-// once the Firebase project exists (see docs/SETUP_CHECKLIST.md §1).
-import 'package:firebase_core/firebase_core.dart';
+// Generated for the Asktro Astrologer app from the project's
+// google-services.json (project: asktro-tech-provate-limited). Android is the
+// active target; other platforms throw until a matching app is registered.
+// ignore_for_file: type=lint
+import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
-    if (kIsWeb) return web;
+    if (kIsWeb) {
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web.',
+      );
+    }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        return ios;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for iOS — '
+          'register an iOS app (com.example.asktroAstrologer) in the Firebase '
+          'console and add its values here.',
+        );
       default:
-        throw UnsupportedError('Unsupported platform. Run flutterfire configure.');
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not configured for this platform.',
+        );
     }
   }
 
-  // Owner: replace placeholders via `flutterfire configure` (astrologer app).
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'REPLACE_WEB_API_KEY',
-    appId: 'REPLACE_WEB_APP_ID',
-    messagingSenderId: 'REPLACE_SENDER_ID',
-    projectId: 'REPLACE_PROJECT_ID',
-    authDomain: 'REPLACE_PROJECT.firebaseapp.com',
-    storageBucket: 'REPLACE_PROJECT.appspot.com',
-  );
-
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'REPLACE_ANDROID_API_KEY',
-    appId: 'REPLACE_ANDROID_APP_ID',
-    messagingSenderId: 'REPLACE_SENDER_ID',
-    projectId: 'REPLACE_PROJECT_ID',
-    storageBucket: 'REPLACE_PROJECT.appspot.com',
-  );
-
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'REPLACE_IOS_API_KEY',
-    appId: 'REPLACE_IOS_APP_ID',
-    messagingSenderId: 'REPLACE_SENDER_ID',
-    projectId: 'REPLACE_PROJECT_ID',
-    storageBucket: 'REPLACE_PROJECT.appspot.com',
-    iosBundleId: 'com.asktro.astrologer',
+    apiKey: 'AIzaSyDTgJRhfYDXivkNOzPkSBi6ysW9osb4f0A',
+    appId: '1:234450497443:android:db9b7956f99ffc88ef3416',
+    messagingSenderId: '234450497443',
+    projectId: 'asktro-tech-provate-limited',
+    storageBucket: 'asktro-tech-provate-limited.firebasestorage.app',
   );
 }
