@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -270,7 +268,9 @@ class _ToolTabs extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(label,
                     textAlign: TextAlign.center,
-                    style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600, height: 1.2),),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Ob.note.copyWith(color: Ob.navy, fontWeight: FontWeight.w600, height: 1.2, fontSize: 11.5),),
               ],
             ),
           ),
@@ -718,24 +718,12 @@ class _AstroCarousel extends ConsumerStatefulWidget {
 }
 
 class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
-  final _pc = PageController(viewportFraction: 0.52);
-  Timer? _timer;
-  int _count = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
-      if (!_pc.hasClients || _count <= 1) return;
-      final cur = (_pc.page ?? 0).round();
-      final next = cur + 1 >= _count ? 0 : cur + 1;
-      _pc.animateToPage(next, duration: const Duration(milliseconds: 600), curve: Curves.easeInOut);
-    });
-  }
+  // viewportFraction < 0.5 peeks the next card so it reads as swipeable; the
+  // user scrolls at their own pace (no auto-advance).
+  final _pc = PageController(viewportFraction: 0.46);
 
   @override
   void dispose() {
-    _timer?.cancel();
     _pc.dispose();
     super.dispose();
   }
@@ -783,7 +771,6 @@ class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
                 child: Text('No astrologers here yet.', style: Ob.note),
               );
             }
-            _count = list.length;
             return SizedBox(
               height: 214,
               child: PageView.builder(

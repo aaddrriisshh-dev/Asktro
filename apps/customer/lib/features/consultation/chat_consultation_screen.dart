@@ -109,7 +109,10 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
             )
           : ListView.builder(
               reverse: true,
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              // Bottom-safe so the newest bubble clears the phone's gesture bar
+              // instead of sliding under it.
+              padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg,
+                  AppSpacing.lg + MediaQuery.of(context).padding.bottom),
               itemCount: messages.length,
               itemBuilder: (_, i) {
                 final m = messages[i];
