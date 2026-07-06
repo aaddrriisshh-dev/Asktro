@@ -6,8 +6,6 @@ import { useCollection, callFn, Row } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 import { AstrologerFormModal } from '@/components/AstrologerFormModal';
 
-const PAGE_OPTIONS = [10, 100, 500, 1000];
-
 const STATUS_COLORS: Record<string, string> = {
   approved: 'green', pending: 'amber', suspended: 'red', rejected: 'red', disabled: 'red',
 };
@@ -23,15 +21,34 @@ function AstroBox({
   onStatus: (id: string, status: string, name?: string) => void; onEditRate: (a: Row) => void;
 }) {
   const [limit, setLimit] = useState(10);
-  const shown = list.slice(0, limit);
+  const [q, setQ] = useState('');
+  const filtered = q.trim()
+    ? list.filter((a) => {
+        const t = q.trim().toLowerCase();
+        return String(a.name ?? '').toLowerCase().includes(t)
+          || (Array.isArray(a.expertise) && (a.expertise as string[]).some((e) => e.toLowerCase().includes(t)));
+      })
+    : list;
+  const expanded = limit >= filtered.length;
+  const shown = filtered.slice(0, limit);
   return (
     <div className="card custcard" style={{ borderTop: `3px solid ${accent}` }}>
       <div className="sess-col-head">
         <h3 className="celeste" style={{ margin: 0, fontSize: 16 }}>{icon} {title}</h3>
         <span className="udet-total">{list.length}</span>
       </div>
+      <div style={{ position: 'relative', margin: '4px 0 10px' }}>
+        <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', opacity: 0.45, fontSize: 13, pointerEvents: 'none' }}>🔍</span>
+        <input
+          className="input"
+          style={{ paddingLeft: 32, height: 36, fontSize: 13, width: '100%' }}
+          placeholder={`Search ${title.toLowerCase()} by name…`}
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setLimit(10); }}
+        />
+      </div>
       <div className="custlist">
-        {shown.length === 0 ? <p className="drawer-muted" style={{ margin: '10px 0' }}>Nothing here yet.</p> : shown.map((a) => {
+        {shown.length === 0 ? <p className="drawer-muted" style={{ margin: '10px 0' }}>{q.trim() ? 'No matches.' : 'Nothing here yet.'}</p> : shown.map((a) => {
           const rate = rupees(a.ratePerMinutePaise);
           const st = (a.accountStatus ?? 'pending') as string;
           return (
@@ -62,12 +79,12 @@ function AstroBox({
         })}
       </div>
       <div className="custfoot">
-        <span className="muted">Showing {Math.min(limit, list.length)} of {list.length}</span>
-        <label className="muted">Rows
-          <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
-            {PAGE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </label>
+        <span className="muted">Showing {shown.length} of {filtered.length}</span>
+        {filtered.length > 10 && (
+          <button className="btn sm secondary" onClick={() => setLimit(expanded ? 10 : filtered.length)}>
+            {expanded ? 'Show less' : `View all (${filtered.length})`}
+          </button>
+        )}
       </div>
     </div>
   );
