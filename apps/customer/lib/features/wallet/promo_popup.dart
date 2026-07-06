@@ -28,15 +28,17 @@ Future<void> showPromoPopup(
   bool showMaybeLater = true,
   String heroKicker = '✦  A GIFT FOR YOU',
   String? heroTagline = 'Everyone loves a gift, right?',
+  String? imageUrl,
+  String imageStyle = 'banner',
 }) {
   final th = theme;
   if (th != null && displayMode == 'full') {
-    return _full(context, th, title, body, onAction, ctaLabel, code, heroKicker, heroTagline);
+    return _full(context, th, title, body, onAction, ctaLabel, code, heroKicker, heroTagline, imageUrl, imageStyle);
   }
   if (th != null && displayMode == 'half') {
-    return _half(context, th, title, body, onAction, ctaLabel, code);
+    return _half(context, th, title, body, onAction, ctaLabel, code, imageUrl, imageStyle);
   }
-  return _center(context, th, title, body, onAction, ctaLabel, code, medal, showMaybeLater);
+  return _center(context, th, title, body, onAction, ctaLabel, code, medal, showMaybeLater, imageUrl, imageStyle);
 }
 
 // ---- shared building blocks -------------------------------------------------
@@ -65,6 +67,47 @@ Widget _closeBtn(BuildContext ctx, Color fg) => GestureDetector(
         child: Icon(Icons.close_rounded, color: fg, size: 19),
       ),
     );
+
+// A gift illustration inside a soft gold glow — the fallback hero when no
+// image was uploaded, so a popup never feels blank.
+Widget _giftHero(double size) => SizedBox(
+      height: size,
+      width: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [Ob.gold.withValues(alpha: 0.34), Ob.gold.withValues(alpha: 0.0)],
+                stops: const [0.15, 1.0],
+              ),
+            ),
+            child: const SizedBox.expand(),
+          ),
+          Image.asset(Ob.gift, height: size * 0.8),
+        ],
+      ),
+    );
+
+// Hero for any popup: the admin's uploaded image when present (banner = wide,
+// portrait = tall), otherwise the gift illustration. Falls back to the gift if
+// the network image can't load.
+Widget _hero(String? imageUrl, String imageStyle, {double giftSize = 130}) {
+  if (imageUrl == null || imageUrl.isEmpty) return _giftHero(giftSize);
+  final portrait = imageStyle == 'portrait';
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(18),
+    child: Image.network(
+      imageUrl,
+      height: portrait ? 220 : 150,
+      width: portrait ? 168 : double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _giftHero(giftSize),
+    ),
+  );
+}
 
 Widget _actionCta(BuildContext ctx, PromoTheme? th, String label, VoidCallback onAction) {
   final grad = th != null ? promoAccent(th) : const LinearGradient(colors: kPromoGoldAccent);
@@ -95,23 +138,37 @@ Widget _actionCta(BuildContext ctx, PromoTheme? th, String label, VoidCallback o
 // ---- centre card (small) ----------------------------------------------------
 
 Future<void> _center(BuildContext context, PromoTheme? th, String title, String body,
-    VoidCallback onAction, String ctaLabel, String? code, String medal, bool showMaybeLater) {
+    VoidCallback onAction, String ctaLabel, String? code, String medal, bool showMaybeLater,
+    String? imageUrl, String imageStyle) {
   return showDialog(
     context: context,
     barrierDismissible: true,
     builder: (ctx) {
       final fg = th?.tx ?? Ob.navy;
       final head = th != null ? promoHeadline(th) : fg;
+      final hasImage = imageUrl != null && imageUrl.isNotEmpty;
       final content = Padding(
         padding: const EdgeInsets.fromLTRB(22, 24, 22, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: const BoxDecoration(gradient: Ob.goldGradient, shape: BoxShape.circle),
-              child: Text(medal, style: const TextStyle(fontSize: 30)),
-            ),
+            if (hasImage)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(
+                  imageUrl!,
+                  height: imageStyle == 'portrait' ? 168 : 118,
+                  width: imageStyle == 'portrait' ? 132 : double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: const BoxDecoration(gradient: Ob.goldGradient, shape: BoxShape.circle),
+                child: Text(medal, style: const TextStyle(fontSize: 30)),
+              ),
             const SizedBox(height: 14),
             Text(title, style: Ob.title.copyWith(fontSize: 22, color: head), textAlign: TextAlign.center),
             const SizedBox(height: 8),
@@ -146,51 +203,55 @@ Future<void> _center(BuildContext context, PromoTheme? th, String title, String 
 // ---- half sheet -------------------------------------------------------------
 
 Future<void> _half(BuildContext context, PromoTheme th, String title, String body,
-    VoidCallback onAction, String ctaLabel, String? code) {
+    VoidCallback onAction, String ctaLabel, String? code, String? imageUrl, String imageStyle) {
   final fg = th.tx;
   final head = promoHeadline(th);
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (ctx) => ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-      child: SizedBox(
-        height: MediaQuery.of(ctx).size.height * 0.56,
-        child: Stack(
-          children: [
-            PromoSurface(theme: th, variant: PromoVariant.half, radius: 0, showFrame: false, child: const SizedBox.expand()),
-            Positioned(top: 12, right: 16, child: _closeBtn(ctx, fg)),
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(26, 20, 26, 24),
+    builder: (ctx) {
+      // Bottom-safe so the CTA always clears the phone's gesture bar.
+      final bottom = MediaQuery.of(ctx).padding.bottom;
+      return ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        child: SizedBox(
+          height: MediaQuery.of(ctx).size.height * 0.58,
+          child: Stack(
+            children: [
+              PromoSurface(theme: th, variant: PromoVariant.half, radius: 0, showFrame: false, child: const SizedBox.expand()),
+              Positioned(top: 12, right: 16, child: _closeBtn(ctx, fg)),
+              SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(26, 46, 26, 22 + bottom),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(title, style: Ob.title.copyWith(color: head, fontSize: 28, height: 1.15), textAlign: TextAlign.center),
-                    const SizedBox(height: 12),
-                    Text(body, style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 16, height: 1.35), textAlign: TextAlign.center),
+                    _hero(imageUrl, imageStyle, giftSize: 118),
+                    const SizedBox(height: 18),
+                    Text(title, style: Ob.title.copyWith(color: head, fontSize: 26, height: 1.15), textAlign: TextAlign.center),
+                    const SizedBox(height: 10),
+                    Text(body, style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 15.5, height: 1.35), textAlign: TextAlign.center),
                     if (code != null) ...[
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 16),
                       _pill(code, fg, fg.withValues(alpha: 0.16)),
                     ],
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     _actionCta(ctx, th, ctaLabel, onAction),
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    ),
+      );
+    },
   );
 }
 
 // ---- full-screen takeover ---------------------------------------------------
 
 Future<void> _full(BuildContext context, PromoTheme th, String title, String body,
-    VoidCallback onAction, String ctaLabel, String? code, String kicker, String? tagline) {
+    VoidCallback onAction, String ctaLabel, String? code, String kicker, String? tagline,
+    String? imageUrl, String imageStyle) {
   final fg = th.tx;
   final head = promoHeadline(th);
   return showGeneralDialog(
@@ -225,26 +286,7 @@ Future<void> _full(BuildContext context, PromoTheme th, String title, String bod
                               style: Ob.option.copyWith(color: head, fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 2, decoration: TextDecoration.none),
                               textAlign: TextAlign.center),
                           const SizedBox(height: 22),
-                          SizedBox(
-                            height: 150,
-                            width: 150,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: RadialGradient(
-                                      colors: [Ob.gold.withValues(alpha: 0.34), Ob.gold.withValues(alpha: 0.0)],
-                                      stops: const [0.15, 1.0],
-                                    ),
-                                  ),
-                                  child: const SizedBox.expand(),
-                                ),
-                                Image.asset(Ob.gift, height: 118),
-                              ],
-                            ),
-                          ),
+                          _hero(imageUrl, imageStyle, giftSize: 150),
                           if (tagline != null) ...[
                             const SizedBox(height: 14),
                             Text(tagline,

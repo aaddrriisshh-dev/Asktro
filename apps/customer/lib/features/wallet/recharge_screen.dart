@@ -331,7 +331,8 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                    // Bottom-safe so the Proceed button clears the gesture bar.
+                    padding: EdgeInsets.fromLTRB(20, 4, 20, 16 + MediaQuery.of(context).padding.bottom),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [

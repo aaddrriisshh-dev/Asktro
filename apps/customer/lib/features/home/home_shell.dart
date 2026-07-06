@@ -82,9 +82,18 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final theme = promoThemeById(data['theme'] as String?);
     final mode = (data['displayMode'] as String?) ?? 'small';
     final deeplink = (data['deeplink'] as String?) ?? '';
+    final imageStyle = (data['imageStyle'] as String?) ?? 'banner';
+    // Prefer the portrait upload when the admin picked the portrait style.
+    final portrait = data['portraitImage'] as String?;
+    final banner = data['image'] as String?;
+    final imageUrl = (imageStyle == 'portrait' && portrait != null && portrait.isNotEmpty) ? portrait : banner;
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
     String pick(String? landing, String? fallback) =>
         (landing != null && landing.isNotEmpty) ? landing : (fallback ?? '');
-    if (theme != null && (mode == 'half' || mode == 'full')) {
+    // Any themed or image-bearing push opens the shared popup — small renders a
+    // centre card, half a bottom sheet, full a takeover. Only a plain push
+    // (no theme, no image) falls straight through to its deeplink.
+    if (theme != null || hasImage) {
       showPromoPopup(
         context,
         theme: theme,
@@ -94,6 +103,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ctaLabel: (data['ctaText'] as String?)?.isNotEmpty ?? false ? data['ctaText'] as String : 'View offer',
         heroKicker: '✦  JUST FOR YOU',
         heroTagline: null,
+        imageUrl: imageUrl,
+        imageStyle: imageStyle,
         onAction: () => _followDeeplink(deeplink),
       );
     } else if (deeplink.isNotEmpty) {
