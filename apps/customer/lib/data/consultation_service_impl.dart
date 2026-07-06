@@ -15,7 +15,11 @@ class ConsultationServiceImpl implements ConsultationService {
     T Function(Map<String, dynamic>) parse,
   ) async {
     try {
-      final res = await _fn.httpsCallable(name).call<Map<String, dynamic>>(data);
+      // A generous timeout so the call survives a slow token fetch on
+      // emulators / weak networks (real devices resolve tokens instantly).
+      final res = await _fn
+          .httpsCallable(name, options: HttpsCallableOptions(timeout: const Duration(seconds: 120)))
+          .call<Map<String, dynamic>>(data);
       return Success(parse(Map<String, dynamic>.from(res.data)));
     } on FirebaseFunctionsException catch (e) {
       if (e.message == 'INSUFFICIENT_BALANCE') return ResultFailure(Failure.insufficientBalance());

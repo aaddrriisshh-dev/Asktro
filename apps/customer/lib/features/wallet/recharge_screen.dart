@@ -202,13 +202,12 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
       },);
       _showSuccess(plan);
     } catch (e) {
-      // Backend not deployed/enabled yet — still preview the celebration UI so
-      // the flow can be verified. (Wallet is only credited when the function
-      // is live.) Debug-only affordance.
+      // Be honest when the test top-up doesn't actually reach the server — a
+      // fake "success" here masks a failed call and a wallet that never moved.
       if (!mounted) return;
       setState(() => _processing = false);
-      debugPrint('simulateRechargeSelf failed, showing preview: $e');
-      _showSuccess(plan);
+      debugPrint('simulateRechargeSelf failed: $e');
+      _snack('Test top-up couldn\'t reach the server — wallet not credited.');
     }
   }
 
