@@ -1,10 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
-import '../astrologer/astrologer_card.dart';
 import '../search/search_screen.dart';
 import '../tools/horoscope_screen.dart';
 import '../settings/language_sheet.dart';
@@ -16,12 +17,8 @@ import '../wallet/promo_surface.dart';
 
 final _onlineProvider = StreamProvider.autoDispose<List<Astrologer>>(
     (ref) => ref.watch(astrologerRepositoryProvider).watchOnline(),);
-final _featuredProvider = StreamProvider.autoDispose<List<Astrologer>>(
-    (ref) => ref.watch(astrologerRepositoryProvider).watchFeatured(),);
 final _topRatedProvider = StreamProvider.autoDispose<List<Astrologer>>(
     (ref) => ref.watch(astrologerRepositoryProvider).watchTopRated(),);
-final _newestProvider = StreamProvider.autoDispose<List<Astrologer>>(
-    (ref) => ref.watch(astrologerRepositoryProvider).watchNewest(),);
 final _homeBannersProvider = StreamProvider.autoDispose<List<PromoBanner>>(
     (ref) => ref.watch(catalogRepositoryProvider).watchBanners('home'),);
 
@@ -87,10 +84,8 @@ class HomeFeed extends ConsumerWidget {
               const SizedBox(height: 20),
               const _HomeBanners(),
               const SizedBox(height: 6),
-              _Rail(title: 'Online Now', provider: _onlineProvider),
-              _Rail(title: 'Featured', provider: _featuredProvider),
-              _Rail(title: 'Top Rated', provider: _topRatedProvider),
-              _Rail(title: 'Recently Joined', provider: _newestProvider),
+              _AstroCarousel(title: 'Top Astrologers', provider: _topRatedProvider),
+              _AstroCarousel(title: 'Rising Stars', provider: _onlineProvider),
               const SizedBox(height: 24),
             ],
           ),
@@ -257,14 +252,23 @@ class _ToolTabs extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFFFDF6), Colors.white],
+              ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Ob.border, width: 1),
+              border: Border.all(color: const Color(0xFFE7B84B).withValues(alpha: 0.55), width: 1.2),
               boxShadow: Ob.softShadow,
             ),
             child: Column(
               children: [
-                Image.asset(asset, width: 46, height: 46),
+                // fit: contain keeps every icon the same visual size (a
+                // non-square asset was stretching without it).
+                SizedBox(
+                  height: 44,
+                  child: Image.asset(asset, width: 44, height: 44, fit: BoxFit.contain),
+                ),
                 const SizedBox(height: 8),
                 Text(label,
                     textAlign: TextAlign.center,
@@ -703,29 +707,76 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
 }
 
 // ---------------------------------------------------------------- rails --
-class _Rail extends ConsumerWidget {
-  const _Rail({required this.title, required this.provider});
+// -------------------------------------------- astrologer carousel (2-up) --
+/// A horizontal, gently auto-advancing rail of celestial astrologer cards
+/// (~2 visible). A "View all" opens the full astrologer directory.
+class _AstroCarousel extends ConsumerStatefulWidget {
+  const _AstroCarousel({required this.title, required this.provider});
   final String title;
   final AutoDisposeStreamProvider<List<Astrologer>> provider;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(provider);
+  ConsumerState<_AstroCarousel> createState() => _AstroCarouselState();
+}
+
+class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
+  final _pc = PageController(viewportFraction: 0.52);
+  Timer? _timer;
+  int _count = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!_pc.hasClients || _count <= 1) return;
+      final cur = (_pc.page ?? 0).round();
+      final next = cur + 1 >= _count ? 0 : cur + 1;
+      _pc.animateToPage(next, duration: const Duration(milliseconds: 600), curve: Curves.easeInOut);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pc.dispose();
+    super.dispose();
+  }
+
+  void _viewAll() =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen()));
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(widget.provider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
-          child: Text(title, style: Ob.title.copyWith(fontSize: 23)),
+          padding: const EdgeInsets.fromLTRB(20, 22, 12, 10),
+          child: Row(
+            children: [
+              const Icon(Icons.auto_awesome, size: 17, color: Ob.gold),
+              const SizedBox(width: 7),
+              Expanded(child: Text(widget.title, style: Ob.title.copyWith(fontSize: 20))),
+              GestureDetector(
+                onTap: _viewAll,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text('View all  →',
+                      style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700, fontSize: 13)),
+                ),
+              ),
+            ],
+          ),
         ),
         async.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: AstrologerCardSkeleton(),
+          loading: () => const SizedBox(
+            height: 214,
+            child: Center(child: CircularProgressIndicator(color: Ob.purple)),
           ),
           error: (_, __) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text('Could not load $title', style: Ob.note),
+            child: Text('Could not load ${widget.title}', style: Ob.note),
           ),
           data: (list) {
             if (list.isEmpty) {
@@ -734,18 +785,141 @@ class _Rail extends ConsumerWidget {
                 child: Text('No astrologers here yet.', style: Ob.note),
               );
             }
-            return Column(
-              children: [
-                for (final a in list)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                    child: AstrologerCard(astrologer: a),
-                  ),
-              ],
+            _count = list.length;
+            return SizedBox(
+              height: 214,
+              child: PageView.builder(
+                controller: _pc,
+                padEnds: false,
+                itemCount: list.length,
+                itemBuilder: (_, i) => Padding(
+                  padding: EdgeInsets.only(left: i == 0 ? 16 : 6, right: 6, bottom: 6),
+                  child: _CelestialAstroCard(a: list[i]),
+                ),
+              ),
             );
           },
         ),
       ],
+    );
+  }
+}
+
+/// Celestial directory card — flowing colour banner, gold-ringed portrait, and
+/// the key stats. Tapping opens the full profile.
+class _CelestialAstroCard extends StatelessWidget {
+  const _CelestialAstroCard({required this.a});
+  final Astrologer a;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/astrologer/${a.id}'),
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE7B84B).withValues(alpha: 0.5), width: 1.1),
+          boxShadow: Ob.softShadow,
+        ),
+        child: Column(
+          children: [
+            // Flowing celestial banner with the portrait straddling its edge.
+            SizedBox(
+              height: 82,
+              child: Stack(
+                alignment: Alignment.topCenter,
+                children: [
+                  Container(
+                    height: 50,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF8A63D2), Color(0xFFB56B9A), Color(0xFFE8A24C)],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 22,
+                    child: Container(
+                      padding: const EdgeInsets.all(2.5),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(colors: [Color(0xFFEAD079), Color(0xFFD4AF37)]),
+                      ),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          AppAvatar(name: a.name, photoUrl: a.profilePhoto, size: 54),
+                          if (a.onlineStatus)
+                            Positioned(
+                              right: 1,
+                              bottom: 1,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: AppColors.online,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(a.name,
+                        style: Ob.title.copyWith(fontSize: 14.5),
+                        overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,),
+                  ),
+                  if (a.verified) ...[const SizedBox(width: 3), const VerifiedBadge(size: 13)],
+                ],
+              ),
+            ),
+            const SizedBox(height: 2),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text(a.expertise.take(2).join(' • '),
+                  style: Ob.note.copyWith(color: Ob.navy.withValues(alpha: 0.7), fontSize: 11.5),
+                  maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.star_rounded, size: 14, color: Ob.gold),
+                const SizedBox(width: 2),
+                Text(a.rating.toStringAsFixed(1),
+                    style: Ob.option.copyWith(fontSize: 12, fontWeight: FontWeight.w700)),
+                const SizedBox(width: 7),
+                Text('${a.experience}y exp',
+                    style: Ob.note.copyWith(fontSize: 11.5, color: Ob.navy.withValues(alpha: 0.6))),
+              ],
+            ),
+            const Spacer(),
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
+              decoration: BoxDecoration(color: Ob.lavenderChip, borderRadius: BorderRadius.circular(999)),
+              child: Text(a.rateLabel,
+                  style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w800, fontSize: 12.5)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
