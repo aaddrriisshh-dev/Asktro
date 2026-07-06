@@ -98,6 +98,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       );
     } else if (deeplink.isNotEmpty) {
       _followDeeplink(deeplink);
+    } else {
+      // Nothing themed or deep-linked to open — take them to their notifications
+      // so the tap always lands somewhere, instead of dumping them on Home.
+      ref.read(homeTabProvider.notifier).state = 3;
     }
   }
 

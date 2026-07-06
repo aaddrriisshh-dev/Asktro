@@ -45,9 +45,18 @@ final _messagesProvider =
 });
 
 class ChatConsultationScreen extends ConsumerStatefulWidget {
-  const ChatConsultationScreen({super.key, required this.consultationId, required this.astrologer});
+  const ChatConsultationScreen({
+    super.key,
+    required this.consultationId,
+    required this.astrologer,
+    this.readOnly = false,
+  });
   final String consultationId;
   final Astrologer astrologer;
+
+  /// Opened from history for a finished consultation: show the transcript only
+  /// (no activation, no billing, no composer).
+  final bool readOnly;
 
   @override
   ConsumerState<ChatConsultationScreen> createState() => _ChatConsultationScreenState();
@@ -63,10 +72,56 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   @override
   void initState() {
     super.initState();
+    if (widget.readOnly) return; // history view — never (re)activate/bill.
     // Activate the session once the screen is ready (chat connects instantly).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(consultationControllerProvider(_id).notifier).activate();
     });
+  }
+
+  // Read-only transcript for a finished consultation (opened from history).
+  Widget _readOnlyView() {
+    final uid = ref.watch(currentUidProvider);
+    final messages = ref.watch(_messagesProvider(_id)).valueOrNull ?? const [];
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.card,
+        foregroundColor: AppColors.textDark,
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            AppAvatar(name: widget.astrologer.name, photoUrl: widget.astrologer.profilePhoto, size: 32),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(widget.astrologer.name,
+                  style: AppTypography.body.copyWith(fontWeight: FontWeight.w700),
+                  overflow: TextOverflow.ellipsis,),
+            ),
+          ],
+        ),
+      ),
+      body: messages.isEmpty
+          ? const EmptyState(
+              icon: Icons.history_rounded,
+              title: 'No messages',
+              message: 'This consultation has no saved messages.',
+            )
+          : ListView.builder(
+              reverse: true,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              itemCount: messages.length,
+              itemBuilder: (_, i) {
+                final m = messages[i];
+                return _Bubble(
+                  text: (m['text'] ?? '') as String,
+                  imageUrl: m['image'] as String?,
+                  mine: m['senderId'] == uid,
+                  seen: m['seen'] == true,
+                );
+              },
+            ),
+    );
   }
 
   @override
@@ -242,6 +297,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.readOnly) return _readOnlyView();
     final async = ref.watch(consultationControllerProvider(_id));
     ref.listen(consultationControllerProvider(_id), (_, next) {
       final s = next.valueOrNull;
@@ -258,13 +314,11 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) => _markSeen(messages));
     }
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _end();
-      },
-      child: Scaffold(
-        body: Column(
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      // Back just leaves the chat; the session keeps running and is resumable
+      // from the Consultations tab. Ending is an explicit choice (the End button).
+      body: Column(
           children: [
             async.when(
               loading: () => const SizedBox(height: 90),
@@ -276,6 +330,8 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 remainingSec: s.displayRemainingSec,
                 warnLevel: s.warnLevel,
                 onRecharge: _goRecharge,
+                onBack: () => Navigator.of(context).maybePop(),
+                onEnd: _end,
               ),
             ),
             Expanded(
@@ -318,8 +374,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -368,7 +423,8 @@ class _Bubble extends StatelessWidget {
               Padding(
                 padding: EdgeInsets.only(top: hasImage ? 6 : 0, left: hasImage ? 6 : 0, right: hasImage ? 6 : 0),
                 child: Text(text,
-                    style: AppTypography.body.copyWith(color: mine ? Colors.white : AppColors.textDark),),
+                    style: AppTypography.body.copyWith(
+                        color: mine ? Colors.white : AppColors.textDark, fontSize: 14.5, height: 1.3),),
               ),
             if (mine)
               Padding(
@@ -398,12 +454,18 @@ class _Composer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.card,
+      decoration: const BoxDecoration(
+        color: AppColors.card,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      // Scaffold.resizeToAvoidBottomInset lifts this above the keyboard; the
+      // extra padding.bottom keeps it clear of the phone's gesture/nav bar so it
+      // never hides under the viewport.
       padding: EdgeInsets.only(
         left: AppSpacing.sm,
         right: AppSpacing.sm,
         top: AppSpacing.sm,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.sm,
+        bottom: AppSpacing.sm + MediaQuery.of(context).padding.bottom,
       ),
       child: Row(
         children: [
