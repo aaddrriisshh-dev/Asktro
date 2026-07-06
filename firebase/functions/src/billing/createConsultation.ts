@@ -61,7 +61,9 @@ export const createConsultation = onCall(async (req) => {
     if (astrologer.onlineStatus !== true) {
       failedPrecondition('This astrologer is offline.');
     }
-    if (astrologer.available !== true) {
+    // AI personas are never "busy" — they handle many sessions at once, so the
+    // per-astrologer available flag only gates human astrologers.
+    if (astrologer.isAI !== true && astrologer.available !== true) {
       failedPrecondition('This astrologer is currently in another consultation.');
     }
 
@@ -129,8 +131,11 @@ export const createConsultation = onCall(async (req) => {
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Reserve the astrologer so they can't take a second call.
-    tx.update(astrologerRef, { available: false, updatedAt: FieldValue.serverTimestamp() });
+    // Reserve a human astrologer so they can't take a second call. AI personas
+    // stay available (they serve many customers concurrently).
+    if (astrologer.isAI !== true) {
+      tx.update(astrologerRef, { available: false, updatedAt: FieldValue.serverTimestamp() });
+    }
 
     // Notify the astrologer of the incoming request.
     const notifRef = db.collection(Collections.notifications).doc();

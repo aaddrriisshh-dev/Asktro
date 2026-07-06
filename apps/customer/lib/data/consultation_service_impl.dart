@@ -21,7 +21,12 @@ class ConsultationServiceImpl implements ConsultationService {
       if (e.message == 'INSUFFICIENT_BALANCE') return ResultFailure(Failure.insufficientBalance());
       return ResultFailure(Failure(message: e.message ?? 'Request failed', code: e.code));
     } catch (e) {
-      return ResultFailure(Failure.unknown(e));
+      // Transport/SDK failure (e.g. a token fetch timing out on a fresh
+      // emulator) — surface a friendly message, not a raw platform exception.
+      return ResultFailure(Failure(
+        message: 'Couldn\'t reach the server. Check your connection and try again.',
+        code: 'transport',
+      ));
     }
   }
 
