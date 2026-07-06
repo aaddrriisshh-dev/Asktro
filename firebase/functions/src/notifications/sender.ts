@@ -138,8 +138,27 @@ export const sendBroadcast = onCall(async (req) => {
   }
   if (count % 400 !== 0) await batch.commit();
 
+  const actorName = await adminName(actor);
+
+  // One compact summary per send, so the portal can list broadcast history
+  // (the per-user notification docs above are the actual delivered messages).
+  await db.collection('broadcasts').add({
+    title,
+    body,
+    segment: segment ?? 'all_users',
+    type: type ?? 'announcement',
+    theme: theme ?? null,
+    displayMode: displayMode ?? 'small',
+    image: image ?? null,
+    deeplink: deeplink ?? null,
+    delivered: targetIds.length,
+    sentBy: actor,
+    sentByName: actorName,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
   await db.collection(Collections.auditLogs).add({
-    actorUid: actor, actorRole: 'admin', actorName: await adminName(actor),
+    actorUid: actor, actorRole: 'admin', actorName,
     action: 'sendBroadcast', targetType: 'segment', targetId: segment ?? 'all_users',
     after: { title, delivered: targetIds.length }, createdAt: FieldValue.serverTimestamp(),
   });

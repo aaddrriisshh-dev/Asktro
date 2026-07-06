@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { callFn } from '@/lib/hooks';
+import { callFn, useCollection } from '@/lib/hooks';
 import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
 import { LandingControls, DisplayMode } from '@/components/LandingControls';
@@ -19,7 +19,16 @@ const AUDIENCE: { key: Segment; label: string }[] = [
 ];
 const PRESETS = ['#2e2b5f', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
 
+function fmtWhen(ts: unknown): string {
+  const secs = (ts as { seconds?: number; _seconds?: number } | null)?.seconds
+    ?? (ts as { _seconds?: number } | null)?._seconds;
+  if (!secs) return '—';
+  return new Date(secs * 1000).toLocaleString('en-IN',
+    { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
 export default function BroadcastPage() {
+  const { rows: sent, loading: sentLoading } = useCollection('broadcasts');
   const [segment, setSegment] = useState<Segment>('all_users');
   const [f, setF] = useState({ title: '', body: '', deeplink: '', image: '' });
   const [imageStyle, setImageStyle] = useState<'banner' | 'portrait'>('banner');
@@ -127,6 +136,31 @@ export default function BroadcastPage() {
             {result && <span style={{ marginLeft: 12, color: 'var(--success)', fontWeight: 600 }}>{result}</span>}
           </div>
         </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 18 }}>
+        <h3 className="celeste" style={{ marginTop: 0 }}>Recent broadcasts</h3>
+        {sentLoading ? <p className="muted">Loading…</p> : sent.length === 0 ? <p className="muted">No broadcasts sent yet.</p> : (
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead><tr><th>Title</th><th>Audience</th><th>Reached</th><th>Style</th><th>Sent by</th><th>When</th></tr></thead>
+              <tbody>
+                {[...sent]
+                  .sort((a, b) => ((b.createdAt as { seconds?: number })?.seconds ?? 0) - ((a.createdAt as { seconds?: number })?.seconds ?? 0))
+                  .map((b) => (
+                    <tr key={b.id}>
+                      <td><b>{(b.title as string) || '—'}</b></td>
+                      <td><span className="badge amber">{AUDIENCE.find((a) => a.key === (b.segment as Segment))?.label ?? 'All Users'}</span></td>
+                      <td>{(b.delivered as number) ?? 0}</td>
+                      <td className="muted" style={{ fontSize: 13 }}>{(b.theme as string) || 'plain'} · {(b.displayMode as string) || 'small'}</td>
+                      <td className="muted" style={{ fontSize: 13 }}>{(b.sentByName as string) || '—'}</td>
+                      <td className="muted" style={{ fontSize: 13 }}>{fmtWhen(b.createdAt)}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

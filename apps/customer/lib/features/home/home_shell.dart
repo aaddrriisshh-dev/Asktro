@@ -32,6 +32,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   ];
 
   StreamSubscription<RemoteMessage>? _openedSub;
+  StreamSubscription<RemoteMessage>? _foregroundSub;
 
   @override
   void initState() {
@@ -45,6 +46,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   void dispose() {
     _openedSub?.cancel();
+    _foregroundSub?.cancel();
     super.dispose();
   }
 
@@ -57,6 +59,21 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       if (m != null) _handlePushTap(m);
     });
     _openedSub = FirebaseMessaging.onMessageOpenedApp.listen(_handlePushTap);
+    // Foreground: Android shows no system notification while the app is open,
+    // so surface an in-app banner with a View action that opens the landing.
+    _foregroundSub = FirebaseMessaging.onMessage.listen(_handleForeground);
+  }
+
+  void _handleForeground(RemoteMessage m) {
+    if (!mounted) return;
+    final title = m.notification?.title ?? (m.data['landingTitle'] as String?) ?? 'New notification';
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(label: 'View', onPressed: () => _handlePushTap(m)),
+      ));
   }
 
   void _handlePushTap(RemoteMessage m) {
