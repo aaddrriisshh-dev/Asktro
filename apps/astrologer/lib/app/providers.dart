@@ -29,6 +29,34 @@ final selfProvider = StreamProvider<Astrologer?>((ref) {
   return ref.watch(astrologerRepositoryProvider).watchSelf(uid);
 });
 
+/// A customer's public profile (name, photo, gender, birth details) by id.
+final customerProvider = StreamProvider.autoDispose.family<UserProfile?, String>((ref, customerId) {
+  if (customerId.isEmpty) return const Stream.empty();
+  return ref.watch(astrologerRepositoryProvider).watchCustomer(customerId);
+});
+
+/// This astrologer's notifications (new requests, payouts, reviews, alerts).
+final notificationsProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return const Stream.empty();
+  return ref.watch(astrologerRepositoryProvider).watchNotifications(uid);
+});
+
+/// This astrologer's payout requests (wallet transaction history).
+final payoutsProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return const Stream.empty();
+  return ref.watch(astrologerRepositoryProvider).watchPayouts(uid);
+});
+
+/// All of this astrologer's recent sessions (any status), each with its created
+/// time — the source for the Consultations tabs and the dashboard aggregates.
+final sessionRowsProvider = StreamProvider.autoDispose<List<SessionRow>>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return const Stream.empty();
+  return ref.watch(astrologerRepositoryProvider).watchSessionRows(uid);
+});
+
 /// Registers this device's FCM token so the astrologer receives consultation
 /// requests and payout/rating alerts (Part 5/7). Watch from the dashboard.
 final pushRegistrationProvider = Provider<void>((ref) {

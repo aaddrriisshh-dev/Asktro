@@ -3,48 +3,49 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../ui/celestial.dart';
 
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
 
-  Future<void> _editAbout(BuildContext context, WidgetRef ref, Astrologer self) async {
-    final controller = TextEditingController(text: self.about);
+  Future<void> _editText(BuildContext context, WidgetRef ref, Astrologer self,
+      {required String title, required String field, required String initial, String? hint, int maxLines = 5}) async {
+    final c = TextEditingController(text: initial);
     final result = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Edit about'),
-        content: TextField(controller: controller, maxLines: 5, decoration: const InputDecoration(hintText: 'Tell customers about yourself')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Save')),
-        ],
-      ),
-    );
-    if (result != null) {
-      await ref.read(astrologerRepositoryProvider).updateProfile(self.id, {'about': result.trim()});
-    }
-  }
-
-  Future<void> _editQuickReplies(BuildContext context, WidgetRef ref, Astrologer self) async {
-    final controller = TextEditingController(text: self.quickReplies.join('\n'));
-    final result = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Quick replies'),
+        backgroundColor: Sky.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: Sky.h2),
         content: TextField(
-          controller: controller,
-          maxLines: 8,
-          decoration: const InputDecoration(hintText: 'One reply per line'),
+          controller: c,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor: Sky.surface,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Save')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: Sky.label)),
+          TextButton(
+              onPressed: () => Navigator.pop(context, c.text),
+              child: Text('Save', style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w800))),
         ],
       ),
     );
     if (result != null) {
-      final list = result.split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-      await ref.read(astrologerRepositoryProvider).updateProfile(self.id, {'quickReplies': list});
+      Map<String, dynamic> patch;
+      if (field == 'quickReplies') {
+        patch = {'quickReplies': result.split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList()};
+      } else if (field == 'payoutUpi') {
+        // Kept inside the availability map so it round-trips through self.availability.
+        patch = {'availability': {...self.availability, 'payoutUpi': result.trim()}};
+      } else {
+        patch = {field: result.trim()};
+      }
+      await ref.read(astrologerRepositoryProvider).updateProfile(self.id, patch);
     }
   }
 
@@ -54,17 +55,22 @@ class ProfileTab extends ConsumerWidget {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Availability'),
+          backgroundColor: Sky.card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('Availability', style: Sky.h2),
           content: SwitchListTile(
             value: holiday,
-            activeColor: AppColors.primary,
-            title: const Text('Holiday mode'),
-            subtitle: const Text('Automatically go offline and stop receiving requests.'),
+            activeColor: Sky.purple,
+            contentPadding: EdgeInsets.zero,
+            title: Text('Holiday mode', style: Sky.body),
+            subtitle: Text('Go offline and stop receiving requests.', style: Sky.label.copyWith(fontSize: 12)),
             onChanged: (v) => setState(() => holiday = v),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(context, holiday), child: const Text('Save')),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: Sky.label)),
+            TextButton(
+                onPressed: () => Navigator.pop(context, holiday),
+                child: Text('Save', style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w800))),
           ],
         ),
       ),
@@ -80,102 +86,162 @@ class ProfileTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final self = ref.watch(selfProvider).valueOrNull;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: self == null
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : ListView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+    if (self == null) {
+      return const SkyScaffold(child: Center(child: CircularProgressIndicator(color: Sky.purple)));
+    }
+    final holiday = self.availability['holiday'] == true;
+    final upi = (self.availability['payoutUpi'] as String?)?.trim();
+
+    return SkyScaffold(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          _header(context, self),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 34),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(child: AppAvatar(name: self.name, photoUrl: self.profilePhoto, size: 96)),
-                const SizedBox(height: AppSpacing.md),
-                Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(self.name, style: AppTypography.title),
-                      if (self.verified) ...[const SizedBox(width: 6), const VerifiedBadge(size: 18)],
-                    ],
-                  ),
-                ),
-                Center(child: Text('${self.experience}y experience', style: AppTypography.caption)),
-                const SizedBox(height: AppSpacing.xl),
-                AppCard(
-                  onTap: () => _editAbout(context, ref, self),
+                // About
+                SkyCard(
+                  onTap: () => _editText(context, ref, self,
+                      title: 'About you', field: 'about', initial: self.about, hint: 'Tell customers about yourself'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('About', style: AppTypography.subtitle),
-                          const Icon(Icons.edit_outlined, size: 18, color: AppColors.primary),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
+                      Row(children: [
+                        Text('About', style: Sky.h2.copyWith(fontSize: 15)),
+                        const Spacer(),
+                        const Icon(Icons.edit_rounded, size: 16, color: Sky.purple),
+                      ]),
+                      const SizedBox(height: 8),
                       Text(self.about.isEmpty ? 'Tap to add an introduction.' : self.about,
-                          style: AppTypography.body.copyWith(color: AppColors.textSecondary)),
+                          style: Sky.body.copyWith(fontSize: 13.5, color: self.about.isEmpty ? Sky.ink3 : Sky.ink2)),
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.lg),
                 if (self.languages.isNotEmpty) ...[
-                  Text('Languages', style: AppTypography.subtitle),
-                  const SizedBox(height: AppSpacing.sm),
-                  Wrap(spacing: 6, runSpacing: 6, children: self.languages.map((l) => TagChip(l)).toList()),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: 18),
+                  Text('Languages', style: Sky.h2.copyWith(fontSize: 15)),
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 7, runSpacing: 7, children: [for (final l in self.languages) Pill(l, color: Sky.purple)]),
                 ],
                 if (self.expertise.isNotEmpty) ...[
-                  Text('Expertise', style: AppTypography.subtitle),
-                  const SizedBox(height: AppSpacing.sm),
-                  Wrap(spacing: 6, runSpacing: 6, children: self.expertise.map((e) => TagChip(e)).toList()),
-                  const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: 18),
+                  Text('Specializations', style: Sky.h2.copyWith(fontSize: 15)),
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 7, runSpacing: 7, children: [for (final e in self.expertise) Pill(e, color: Sky.gold)]),
                 ],
-                AppCard(
-                  onTap: () => _editQuickReplies(context, ref, self),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.quickreply_outlined, color: AppColors.primary),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Quick replies', style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
-                            Text('${self.quickReplies.length} saved', style: AppTypography.caption),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                AppCard(
-                  onTap: () => _editAvailability(context, ref, self),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.schedule_outlined, color: AppColors.primary),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Text('Availability', style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
-                      ),
-                      Text(
-                        (self.availability['holiday'] == true) ? 'Holiday mode' : 'Active',
-                        style: AppTypography.caption.copyWith(
-                            color: self.availability['holiday'] == true ? AppColors.warning : AppColors.success),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                SecondaryButton(
+                const SizedBox(height: 22),
+                _tile(Icons.quickreply_rounded, 'Quick replies', '${self.quickReplies.length} saved',
+                    onTap: () => _editText(context, ref, self,
+                        title: 'Quick replies',
+                        field: 'quickReplies',
+                        initial: self.quickReplies.join('\n'),
+                        hint: 'One reply per line',
+                        maxLines: 8)),
+                _tile(Icons.schedule_rounded, 'Availability', holiday ? 'Holiday mode' : 'Active',
+                    valueColor: holiday ? Sky.amber : Sky.green,
+                    onTap: () => _editAvailability(context, ref, self)),
+                _tile(Icons.account_balance_rounded, 'Bank / UPI details', (upi == null || upi.isEmpty) ? 'Add UPI' : upi,
+                    onTap: () => _editText(context, ref, self,
+                        title: 'Payout UPI',
+                        field: 'payoutUpi',
+                        initial: upi ?? '',
+                        hint: 'name@bank',
+                        maxLines: 1)),
+                _tile(Icons.verified_user_rounded, 'Verification',
+                    self.verified ? 'Verified' : self.status.name,
+                    valueColor: self.verified ? Sky.green : Sky.amber),
+                _tile(Icons.settings_rounded, 'Settings', ''),
+                const SizedBox(height: 20),
+                GhostButton(
                   label: 'Log out',
                   icon: Icons.logout_rounded,
+                  color: Sky.red,
                   onPressed: () => ref.read(firebaseAuthProvider).signOut(),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _header(BuildContext context, Astrologer self) {
+    final topPad = MediaQuery.of(context).padding.top;
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        gradient: Sky.heroGrad,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+      ),
+      child: Stack(
+        children: [
+          const Positioned.fill(child: CelestialWash()),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, topPad + 18, 20, 24),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(shape: BoxShape.circle, gradient: Sky.goldGrad),
+                  child: AppAvatar(name: self.name, photoUrl: self.profilePhoto, size: 88),
+                ),
+                const SizedBox(height: 12),
+                if (self.verified)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(gradient: Sky.goldGrad, borderRadius: BorderRadius.circular(999)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.verified_rounded, size: 13, color: Sky.purpleDeep),
+                        const SizedBox(width: 5),
+                        Text('ASKTRO VERIFIED',
+                            style: Sky.label.copyWith(color: Sky.purpleDeep, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 10),
+                Text(self.name, style: Sky.h1.copyWith(color: Colors.white, fontSize: 22)),
+                const SizedBox(height: 4),
+                Text('${self.experience}y experience  ·  ${self.rating.toStringAsFixed(1)}★  ·  ${self.totalConsultations} sessions',
+                    style: Sky.label.copyWith(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tile(IconData icon, String title, String value, {VoidCallback? onTap, Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: SkyCard(
+        onTap: onTap,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(color: Sky.purple.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(11)),
+              child: Icon(icon, size: 18, color: Sky.purple),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(title, style: Sky.h2.copyWith(fontSize: 14.5))),
+            if (value.isNotEmpty)
+              Text(value,
+                  style: Sky.label.copyWith(fontSize: 12.5, color: valueColor ?? Sky.ink2, fontWeight: FontWeight.w700),
+                  overflow: TextOverflow.ellipsis),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right_rounded, size: 18, color: Sky.ink3),
+          ],
+        ),
+      ),
     );
   }
 }

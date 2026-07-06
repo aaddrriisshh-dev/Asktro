@@ -38,6 +38,89 @@ class AstrologerRepository {
           (s) => s.docs.map((d) => Consultation.fromMap(d.id, d.data())).toList(),
         );
   }
+
+  /// Every recent session with its created time preserved — powers the
+  /// dashboard's today-aggregates and the Consultations tabs. (The shared
+  /// Consultation model doesn't carry createdAt, so we keep it alongside.)
+  Stream<List<SessionRow>> watchSessionRows(String uid) => _db
+      .collection('consultations')
+      .where('astrologerId', isEqualTo: uid)
+      .orderBy('createdAt', descending: true)
+      .limit(80)
+      .snapshots()
+      .map((s) => s.docs.map((d) {
+            final data = d.data();
+            final ca = data['createdAt'];
+            final ms = ca is Timestamp ? ca.millisecondsSinceEpoch : null;
+            return SessionRow(Consultation.fromMap(d.id, data), ms);
+          }).toList());
+
+  /// The customer's public profile (name, photo, gender, birth details, etc.).
+  /// The astrologer never sees wallet/money fields — only what helps them read
+  /// the chart and personalise the consultation.
+  Stream<UserProfile?> watchCustomer(String customerId) => _db
+      .collection('users')
+      .doc(customerId)
+      .snapshots()
+      .map((d) => d.exists ? UserProfile.fromMap(d.id, d.data() ?? const {}) : null);
+
+  /// Every prior session between this astrologer and this customer (for the
+  /// "previous consultations" timeline on the details screen).
+  Stream<List<Consultation>> watchHistoryWith(String astrologerId, String customerId) => _db
+      .collection('consultations')
+      .where('astrologerId', isEqualTo: astrologerId)
+      .where('customerId', isEqualTo: customerId)
+      .orderBy('createdAt', descending: true)
+      .limit(50)
+      .snapshots()
+      .map((s) => s.docs.map((d) => Consultation.fromMap(d.id, d.data())).toList());
+
+  DocumentReference<Map<String, dynamic>> _noteRef(String astrologerId, String customerId) =>
+      _db.collection('astrologers').doc(astrologerId).collection('notes').doc(customerId);
+
+  /// Private note the astrologer keeps on a customer (never visible to the
+  /// customer). Stored under the astrologer's own document.
+  Stream<String> watchPrivateNote(String astrologerId, String customerId) =>
+      _noteRef(astrologerId, customerId).snapshots().map((d) => (d.data()?['text'] ?? '') as String);
+
+  Future<void> savePrivateNote(String astrologerId, String customerId, String text) => _noteRef(
+        astrologerId,
+        customerId,
+      ).set({'text': text, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+
+  /// Astrologer-facing notifications (payouts, reviews, announcements).
+  Stream<List<Map<String, dynamic>>> watchNotifications(String uid) => _db
+      .collection('notifications')
+      .where('userId', isEqualTo: uid)
+      .orderBy('createdAt', descending: true)
+      .limit(80)
+      .snapshots()
+      .map((s) => s.docs.map((d) => {'id': d.id, ...d.data()}).toList());
+
+  /// Payout requests raised by this astrologer (wallet transaction history).
+  Stream<List<Map<String, dynamic>>> watchPayouts(String uid) => _db
+      .collection('payouts')
+      .where('astrologerId', isEqualTo: uid)
+      .orderBy('createdAt', descending: true)
+      .limit(50)
+      .snapshots()
+      .map((s) => s.docs.map((d) => {'id': d.id, ...d.data()}).toList());
+}
+
+/// A consultation paired with its Firestore createdAt (in ms), which the shared
+/// Consultation model doesn't expose.
+class SessionRow {
+  const SessionRow(this.c, this.createdAtMs);
+  final Consultation c;
+  final int? createdAtMs;
+
+  bool get isToday {
+    final ms = createdAtMs;
+    if (ms == null) return false;
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    return ms >= start;
+  }
 }
 
 /// Astrologer-side consultation actions over Cloud Functions.
