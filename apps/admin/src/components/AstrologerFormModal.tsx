@@ -41,6 +41,7 @@ export function AstrologerFormModal({
     commissionPercent: a.commissionPercent != null ? String(a.commissionPercent) : '',
     about: str(a.about),
     profilePhoto: str(a.profilePhoto),
+    password: '',
   });
   const [expertise, setExpertise] = useState<string[]>(arr(a.expertise));
   const [languages, setLanguages] = useState<string[]>(arr(a.languages));
@@ -56,20 +57,28 @@ export function AstrologerFormModal({
   async function save() {
     if (!f.name.trim()) return alert('Name is required.');
     if (mode === 'create' && !f.email.trim()) return alert('Name and email are required.');
+    if (mode === 'create' && f.password.trim() && f.password.trim().length < 6) {
+      return alert('Password must be at least 6 characters (or leave it blank to auto-generate one).');
+    }
     setBusy(true);
     try {
       const rate = f.ratePerMinute ? Math.round(Number(f.ratePerMinute) * 100) : undefined;
       const comm = f.commissionPercent ? Number(f.commissionPercent) : undefined;
       if (mode === 'create') {
+        const chosen = f.password.trim();
         const res = await callFn<{ tempPassword?: string | null }>('createAstrologer', {
           name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim() || undefined,
           experience: Number(f.experience) || 0,
           ratePerMinutePaise: rate, commissionPercent: comm,
           about: f.about.trim(), profilePhoto: f.profilePhoto.trim() || undefined,
           expertise, languages, isAI, risingStar,
+          ...(chosen ? { password: chosen } : {}),
         });
         const where = isSuper ? 'approved and live.' : 'created and is pending a Super Admin’s approval.';
-        alert(`Astrologer ${where}` + (res?.tempPassword ? `\n\nLogin: ${f.email.trim()}\nTemp password: ${res.tempPassword}` : ''));
+        // Show whatever password will actually work: the one you set, or the
+        // auto-generated temp password the function returned.
+        const pwd = chosen || res?.tempPassword;
+        alert(`Astrologer ${where}` + (pwd ? `\n\nLogin: ${f.email.trim()}\nPassword: ${pwd}` : ''));
       } else {
         const patch: Record<string, unknown> = {
           astrologerId: a.id,
@@ -118,6 +127,14 @@ export function AstrologerFormModal({
             <label className="af"><span>Price per minute (₹){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="15" value={f.ratePerMinute} onChange={(e) => set('ratePerMinute', e.target.value)} /></label>
             <label className="af"><span>Commission (%){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="40" value={f.commissionPercent} onChange={(e) => set('commissionPercent', e.target.value)} /></label>
           </div>
+
+          {mode === 'create' && (
+            <label className="af" style={{ marginTop: 12 }}>
+              <span>Password (login) — leave blank to auto-generate</span>
+              <input className="input" type="text" placeholder="Set a password (min 6 chars), or leave blank"
+                value={f.password} onChange={(e) => set('password', e.target.value)} />
+            </label>
+          )}
 
           <label className="af" style={{ marginTop: 12 }}><span>Bio</span>
             <textarea className="input" rows={3} placeholder="Experienced Vedic astrologer with deep knowledge of…" value={f.about} onChange={(e) => set('about', e.target.value)} />
