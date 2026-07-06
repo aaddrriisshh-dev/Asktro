@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Asktro Astrologer — the premium celestial design system.
 ///
@@ -161,8 +164,20 @@ class StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SkyCard(
+    // A warm white→cream gradient with a faint gold hairline — the "golden
+    // touch" that lifts the metric tiles above flat white.
+    return Container(
       padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.white, Color(0xFFFFFCF4)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEAD79A).withValues(alpha: 0.5)),
+        boxShadow: Sky.soft,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -184,6 +199,118 @@ class StatTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A compact, tactile online/offline toggle with a light haptic tap — smaller
+/// and more characterful than a stock Switch. Glows green + shows a bolt when
+/// live; a dim power icon when off.
+class OnlineToggle extends StatelessWidget {
+  const OnlineToggle({super.key, required this.value, required this.onChanged});
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onChanged == null
+          ? null
+          : () {
+              HapticFeedback.mediumImpact();
+              onChanged!(!value);
+            },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOut,
+        width: 54,
+        height: 30,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: value ? Sky.green : const Color(0xFFCEC8DC),
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: value
+              ? [BoxShadow(color: Sky.green.withValues(alpha: 0.45), blurRadius: 12, offset: const Offset(0, 3))]
+              : null,
+        ),
+        child: AnimatedAlign(
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutBack,
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 24,
+            height: 24,
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: Sky.soft),
+            child: Icon(value ? Icons.bolt_rounded : Icons.power_settings_new_rounded,
+                size: 14, color: value ? Sky.green : const Color(0xFF9A93AD)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A minimal filled sparkline (line + soft gradient fill + endpoint dot).
+class Sparkline extends StatelessWidget {
+  const Sparkline({super.key, required this.points, this.color = Sky.purple, this.height = 40});
+  final List<double> points;
+  final Color color;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: CustomPaint(painter: _SparkPainter(points, color)),
+    );
+  }
+}
+
+class _SparkPainter extends CustomPainter {
+  _SparkPainter(this.pts, this.color);
+  final List<double> pts;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (pts.length < 2) return;
+    final maxV = pts.reduce(math.max);
+    final minV = pts.reduce(math.min);
+    final range = (maxV - minV).abs() < 0.001 ? 1.0 : (maxV - minV);
+    Offset at(int i) => Offset(
+          size.width * i / (pts.length - 1),
+          size.height - ((pts[i] - minV) / range) * (size.height - 6) - 3,
+        );
+    final line = Path()..moveTo(at(0).dx, at(0).dy);
+    for (var i = 1; i < pts.length; i++) {
+      line.lineTo(at(i).dx, at(i).dy);
+    }
+    final fill = Path.from(line)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(
+      fill,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [color.withValues(alpha: 0.22), color.withValues(alpha: 0)],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawPath(
+      line,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.4
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+    canvas.drawCircle(at(pts.length - 1), 3.2, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 /// A small rounded pill/label.
@@ -296,36 +423,39 @@ class GhostButton extends StatelessWidget {
 
 /// Faint zodiac-wheel + sparkle wash for celestial headers (drawn, no assets).
 class CelestialWash extends StatelessWidget {
-  const CelestialWash({super.key, this.opacity = 1});
+  const CelestialWash({super.key, this.opacity = 1, this.tint = Colors.white});
   final double opacity;
+  final Color tint;
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
       child: Opacity(
         opacity: opacity,
-        child: CustomPaint(painter: _WashPainter(), size: Size.infinite),
+        child: CustomPaint(painter: _WashPainter(tint), size: Size.infinite),
       ),
     );
   }
 }
 
 class _WashPainter extends CustomPainter {
+  _WashPainter(this.tint);
+  final Color tint;
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
-      ..color = Colors.white.withValues(alpha: 0.10);
+      ..color = tint.withValues(alpha: 0.12);
     final c = Offset(size.width - 40, 30);
     for (final r in [26.0, 44.0, 62.0]) {
       canvas.drawCircle(c, r, p);
     }
-    final dot = Paint()..color = Colors.white.withValues(alpha: 0.5);
+    final dot = Paint()..color = tint.withValues(alpha: 0.5);
     for (final o in [const Offset(28, 26), Offset(size.width * 0.5, 18), const Offset(60, 70)]) {
       canvas.drawCircle(o, 1.4, dot);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _WashPainter oldDelegate) => false;
 }

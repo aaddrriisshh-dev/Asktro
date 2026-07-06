@@ -92,6 +92,8 @@ class HomeTab extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 14),
+                  _weeklyTrend(rows),
                   if (active.isNotEmpty) ...[
                     const SizedBox(height: 22),
                     const SectionTitle('Active now'),
@@ -130,29 +132,98 @@ class HomeTab extends ConsumerWidget {
     final topPad = MediaQuery.of(context).padding.top;
     final name = (self?.name ?? 'Astrologer').split(' ').first;
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: const BoxDecoration(
-        gradient: Sky.lavGrad,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFEDE6FF), Color(0xFFF1EBFF), Color(0xFFF5F3FB)],
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
       ),
-      padding: EdgeInsets.fromLTRB(18, topPad + 14, 18, 8),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: const BoxDecoration(shape: BoxShape.circle, gradient: Sky.goldGrad),
-            child: AppAvatar(name: self?.name ?? 'You', photoUrl: self?.profilePhoto, size: 46),
+          const Positioned.fill(child: CelestialWash(tint: Sky.purple, opacity: 0.6)),
+          Positioned(
+            right: 18,
+            top: topPad + 8,
+            child: const IgnorePointer(child: Icon(Icons.auto_awesome, size: 15, color: Color(0x66C9A227))),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: EdgeInsets.fromLTRB(18, topPad + 16, 18, 18),
+            child: Row(
               children: [
-                Text('Namaste,', style: Sky.label.copyWith(fontSize: 12.5)),
-                Text(name, style: Sky.h1.copyWith(fontSize: 20)),
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(shape: BoxShape.circle, gradient: Sky.goldGrad),
+                  child: AppAvatar(name: self?.name ?? 'You', photoUrl: self?.profilePhoto, size: 48),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Namaste,', style: Sky.label.copyWith(fontSize: 12.5)),
+                      Text(name, style: Sky.h1.copyWith(fontSize: 22)),
+                      Text('Always trust your intuition ✦',
+                          style: Sky.label.copyWith(fontSize: 11.5, color: Sky.gold, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+                if (self?.verified ?? false) const Pill('Verified', color: Sky.gold, icon: Icons.verified_rounded),
               ],
             ),
           ),
-          if (self?.verified ?? false) const Pill('✦ Verified', color: Sky.gold),
+        ],
+      ),
+    );
+  }
+
+  // A slim weekly-earnings trend with a sparkline — the "graph going with the
+  // flow" from the reference. Uses real last-7-day earnings; falls back to a
+  // gentle curve when there's no data yet.
+  Widget _weeklyTrend(List<SessionRow> rows) {
+    final now = DateTime.now();
+    final pts = <double>[];
+    for (var i = 6; i >= 0; i--) {
+      final day = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
+      final start = day.millisecondsSinceEpoch;
+      final end = start + 86400000;
+      var sum = 0;
+      for (final r in rows) {
+        final ms = r.createdAtMs;
+        if (r.c.status.isTerminal && ms != null && ms >= start && ms < end) sum += r.c.totalCharged;
+      }
+      pts.add(sum.toDouble());
+    }
+    final total = pts.fold<double>(0, (a, b) => a + b);
+    final hasData = pts.any((p) => p > 0);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Sky.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Sky.line),
+        boxShadow: Sky.soft,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.trending_up_rounded, size: 16, color: Sky.purple),
+              const SizedBox(width: 7),
+              Text('This week', style: Sky.h2.copyWith(fontSize: 14)),
+              const Spacer(),
+              Text(Money.formatPaise(total.round()), style: Sky.h2.copyWith(fontSize: 15, color: Sky.purple)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Sparkline(
+            points: hasData ? pts : const [1, 2.4, 1.8, 3.2, 2.6, 4, 3.4],
+            color: Sky.purple,
+            height: 46,
+          ),
         ],
       ),
     );
@@ -183,13 +254,9 @@ class HomeTab extends ConsumerWidget {
               ],
             ),
           ),
-          Switch(
+          OnlineToggle(
             value: online,
-            activeColor: Colors.white,
-            activeTrackColor: Sky.green,
-            onChanged: uid == null
-                ? null
-                : (v) => ref.read(astrologerRepositoryProvider).setOnline(uid, v),
+            onChanged: uid == null ? null : (v) => ref.read(astrologerRepositoryProvider).setOnline(uid, v),
           ),
         ],
       ),
