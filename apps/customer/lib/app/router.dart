@@ -32,7 +32,7 @@ Future<void> setSetupDone() async {
 
 /// Holds the router on the splash long enough for the launch animation to play.
 final splashGateProvider = FutureProvider<void>((ref) async {
-  await Future<void>.delayed(const Duration(milliseconds: 2500));
+  await Future<void>.delayed(const Duration(milliseconds: 3000));
 });
 
 Future<bool> readOnboardingDone() async {
