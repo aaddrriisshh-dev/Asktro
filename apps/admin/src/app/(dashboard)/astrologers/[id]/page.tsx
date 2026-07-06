@@ -5,7 +5,9 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { callFn } from '@/lib/hooks';
+import { callFn, Row } from '@/lib/hooks';
+import { useAuth } from '@/lib/auth-context';
+import { AstrologerFormModal } from '@/components/AstrologerFormModal';
 import { formatPaise, formatDate } from '@/lib/format';
 
 type Any = Record<string, unknown>;
@@ -19,6 +21,8 @@ export default function AstrologerViewPage() {
   const [cons, setCons] = useState<Any[]>([]);
   const [tab, setTab] = useState<'voice' | 'video' | 'all'>('all');
   const [rsBusy, setRsBusy] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const { adminRole } = useAuth();
 
   useEffect(() => {
     (async () => {
@@ -29,18 +33,6 @@ export default function AstrologerViewPage() {
       setCons(cs.docs.map((d) => ({ id: d.id, ...d.data() })).sort((x, y) => ms(y, 'createdAt') - ms(x, 'createdAt')));
     })().catch(() => setMissing(true));
   }, [id]);
-
-  async function editProfile() {
-    if (!a) return;
-    const rateStr = prompt('Price per minute (₹):', String(((a.ratePerMinutePaise as number) ?? 900) / 100));
-    if (rateStr === null) return;
-    const commStr = prompt('Commission (%):', String((a.commissionPercent as number) ?? ''));
-    if (commStr === null) return;
-    try {
-      await callFn('updateAstrologer', { astrologerId: id, ratePerMinutePaise: Math.round((Number(rateStr) || 0) * 100), commissionPercent: Number(commStr) || 0 });
-      setA({ ...a, ratePerMinutePaise: Math.round((Number(rateStr) || 0) * 100), commissionPercent: Number(commStr) || 0 });
-    } catch (e) { alert('Failed: ' + (e as Error).message); }
-  }
 
   async function toggleRisingStar() {
     if (!a || rsBusy) return;
@@ -87,9 +79,19 @@ export default function AstrologerViewPage() {
           >
             {rsBusy ? '…' : a.risingStar ? '★ Remove Rising Star' : '☆ Mark Rising Star'}
           </button>
-          <button className="btn sm" onClick={editProfile}>✎ Edit Profile</button>
+          <button className="btn sm" onClick={() => setShowEdit(true)}>✎ Edit Profile</button>
         </div>
       </div>
+
+      {showEdit && (
+        <AstrologerFormModal
+          mode="edit"
+          isSuper={adminRole === 'super'}
+          astrologer={a as unknown as Row}
+          onClose={() => setShowEdit(false)}
+          onSaved={(patch) => setA({ ...a, ...patch })}
+        />
+      )}
 
       <div className="aview-grid">
         <div className="card" style={{ textAlign: 'center' }}>

@@ -37,7 +37,7 @@ export const createAstrologer = onCall(async (req) => {
     name?: string; email?: string; phone?: string; password?: string;
     experience?: number; languages?: string[]; expertise?: string[];
     about?: string; ratePerMinutePaise?: number; commissionPercent?: number;
-    profilePhoto?: string; isAI?: boolean;
+    profilePhoto?: string; isAI?: boolean; risingStar?: boolean;
   };
   if (!d.name || !d.email) badRequest('name and email are required.');
 
@@ -80,6 +80,7 @@ export const createAstrologer = onCall(async (req) => {
       ...(typeof d.commissionPercent === 'number' ? { commissionPercent: d.commissionPercent } : {}),
       ...(d.profilePhoto ? { profilePhoto: d.profilePhoto } : {}),
       isAI: d.isAI === true,
+      risingStar: d.risingStar === true,
       rating: 0,
       totalReviews: 0,
       totalConsultations: 0,
