@@ -86,7 +86,7 @@ export const createAstrologer = onCall(async (req) => {
       earnings: 0,
       pendingPayout: 0,
       onlineStatus: false,
-      available: false,
+      available: true, // free to consult once they go online (busy flag flips during a session)
       verified: isSuper,
       featured: false,
       accountStatus: isSuper ? 'approved' : 'pending',

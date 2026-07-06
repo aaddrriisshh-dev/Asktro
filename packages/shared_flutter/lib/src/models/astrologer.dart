@@ -54,7 +54,10 @@ class Astrologer extends Equatable {
   final List<String> quickReplies;
   final Map<String, dynamic> availability;
 
-  bool get isConsultable => onlineStatus && available && status == AstrologerStatus.approved;
+  // `available` is a busy flag toggled by the session lifecycle; AI personas are
+  // never "busy", so they're consultable whenever online + approved.
+  bool get isConsultable =>
+      onlineStatus && (available || isAI) && status == AstrologerStatus.approved;
 
   /// Display label for the per-minute price, e.g. "₹9/min" or "₹12.50/min".
   String get rateLabel {
