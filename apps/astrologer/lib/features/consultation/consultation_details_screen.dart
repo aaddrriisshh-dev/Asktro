@@ -8,11 +8,11 @@ import '../../ui/customer_insight.dart';
 import 'consultations_tab.dart' show relTime;
 import 'history_chat_view.dart';
 
-final _historyProvider =
-    StreamProvider.autoDispose.family<List<Consultation>, String>((ref, customerId) {
-  final uid = ref.watch(currentUidProvider);
-  if (uid == null) return const Stream.empty();
-  return ref.watch(astrologerRepositoryProvider).watchHistoryWith(uid, customerId);
+// Derived from the already-loaded session list (no extra Firestore query, so no
+// composite index needed) — every prior session with this customer.
+final _historyProvider = Provider.autoDispose.family<List<Consultation>, String>((ref, customerId) {
+  final rows = ref.watch(sessionRowsProvider).valueOrNull ?? const [];
+  return rows.where((r) => r.c.customerId == customerId).map((r) => r.c).toList();
 });
 
 final _noteProvider = StreamProvider.autoDispose.family<String, String>((ref, customerId) {
@@ -61,7 +61,7 @@ class _ConsultationDetailsScreenState extends ConsumerState<ConsultationDetailsS
   Widget build(BuildContext context) {
     final cust = ref.watch(customerProvider(_customerId)).valueOrNull;
     final insight = CustomerInsight(cust);
-    final history = ref.watch(_historyProvider(_customerId)).valueOrNull ?? const <Consultation>[];
+    final history = ref.watch(_historyProvider(_customerId));
     final noteAsync = ref.watch(_noteProvider(_customerId));
     // Seed the editor once from the server value.
     noteAsync.whenData((v) {

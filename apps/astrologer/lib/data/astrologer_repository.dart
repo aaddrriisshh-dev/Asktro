@@ -45,15 +45,20 @@ class AstrologerRepository {
   Stream<List<SessionRow>> watchSessionRows(String uid) => _db
       .collection('consultations')
       .where('astrologerId', isEqualTo: uid)
-      .orderBy('createdAt', descending: true)
-      .limit(80)
+      .limit(200)
       .snapshots()
-      .map((s) => s.docs.map((d) {
-            final data = d.data();
-            final ca = data['createdAt'];
-            final ms = ca is Timestamp ? ca.millisecondsSinceEpoch : null;
-            return SessionRow(Consultation.fromMap(d.id, data), ms);
-          }).toList());
+      .map((s) {
+        // No orderBy — a single-field equality needs no composite index. Sort
+        // newest-first on the device instead.
+        final rows = s.docs.map((d) {
+          final data = d.data();
+          final ca = data['createdAt'];
+          final ms = ca is Timestamp ? ca.millisecondsSinceEpoch : null;
+          return SessionRow(Consultation.fromMap(d.id, data), ms);
+        }).toList();
+        rows.sort((a, b) => (b.createdAtMs ?? 0).compareTo(a.createdAtMs ?? 0));
+        return rows;
+      });
 
   /// The customer's public profile (name, photo, gender, birth details, etc.).
   /// The astrologer never sees wallet/money fields — only what helps them read
@@ -101,10 +106,18 @@ class AstrologerRepository {
   Stream<List<Map<String, dynamic>>> watchPayouts(String uid) => _db
       .collection('payouts')
       .where('astrologerId', isEqualTo: uid)
-      .orderBy('createdAt', descending: true)
       .limit(50)
       .snapshots()
-      .map((s) => s.docs.map((d) => {'id': d.id, ...d.data()}).toList());
+      .map((s) {
+        final list = s.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+        list.sort((a, b) {
+          final am = a['createdAt'], bm = b['createdAt'];
+          final ax = am is Timestamp ? am.millisecondsSinceEpoch : 0;
+          final bx = bm is Timestamp ? bm.millisecondsSinceEpoch : 0;
+          return bx.compareTo(ax);
+        });
+        return list;
+      });
 }
 
 /// A consultation paired with its Firestore createdAt (in ms), which the shared
