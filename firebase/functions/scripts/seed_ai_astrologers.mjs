@@ -92,14 +92,14 @@ async function seed() {
   let batch = db.batch();
   let n = 0;
   people.forEach((p, idx) => {
-    const online = chance(0.8);
     const rating = Math.round((4.3 + Math.random() * 0.7) * 10) / 10; // 4.3 – 5.0
-    const photoN = rand(99);
     const doc = db.collection('astrologers').doc(`ai_astro_${idx + 1}`);
     batch.set(doc, {
       name: p.full,
       isAI: true,
-      profilePhoto: `https://randomuser.me/api/portraits/${p.isMale ? 'men' : 'women'}/${photoN}.jpg`,
+      // Placeholder faces — swap for real Indian portraits hosted on Firebase
+      // Storage before launch (a batch update on isAI==true docs).
+      profilePhoto: `https://randomuser.me/api/portraits/${p.isMale ? 'men' : 'women'}/${idx % 99}.jpg`,
       about: `${p.first} ${pick(ABOUT)}`,
       experience: 3 + rand(25),
       languages: sample(LANGS, 2 + rand(3)),
@@ -113,8 +113,8 @@ async function seed() {
       commissionPercent: AI_COMMISSION,  // 35% platform commission
       earnings: 0,
       pendingPayout: 0,
-      onlineStatus: online,
-      available: online,
+      onlineStatus: true, // AI personas are always available to consult
+      available: true,
       verified: true,
       featured: chance(0.2),
       accountStatus: 'approved',
