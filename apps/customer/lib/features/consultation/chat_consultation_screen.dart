@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../app/celestial_background.dart';
 import '../../data/messaging_service.dart';
 import 'consultation_controller.dart';
 import 'consultation_header.dart';
@@ -101,29 +102,31 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
           ],
         ),
       ),
-      body: messages.isEmpty
-          ? const EmptyState(
-              icon: Icons.history_rounded,
-              title: 'No messages',
-              message: 'This consultation has no saved messages.',
-            )
-          : ListView.builder(
-              reverse: true,
-              // Bottom-safe so the newest bubble clears the phone's gesture bar
-              // instead of sliding under it.
-              padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg,
-                  AppSpacing.lg + MediaQuery.of(context).padding.bottom),
-              itemCount: messages.length,
-              itemBuilder: (_, i) {
-                final m = messages[i];
-                return _Bubble(
-                  text: (m['text'] ?? '') as String,
-                  imageUrl: m['image'] as String?,
-                  mine: m['senderId'] == uid,
-                  seen: m['seen'] == true,
-                );
-              },
-            ),
+      body: CelestialBackground(
+        child: messages.isEmpty
+            ? const EmptyState(
+                icon: Icons.history_rounded,
+                title: 'No messages',
+                message: 'This consultation has no saved messages.',
+              )
+            : ListView.builder(
+                reverse: true,
+                // Bottom-safe so the newest bubble clears the phone's gesture bar
+                // instead of sliding under it.
+                padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg,
+                    AppSpacing.lg + MediaQuery.of(context).padding.bottom),
+                itemCount: messages.length,
+                itemBuilder: (_, i) {
+                  final m = messages[i];
+                  return _Bubble(
+                    text: (m['text'] ?? '') as String,
+                    imageUrl: m['image'] as String?,
+                    mine: m['senderId'] == uid,
+                    seen: m['seen'] == true,
+                  );
+                },
+              ),
+      ),
     );
   }
 
@@ -321,7 +324,8 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       backgroundColor: AppColors.background,
       // Back just leaves the chat; the session keeps running and is resumable
       // from the Consultations tab. Ending is an explicit choice (the End button).
-      body: Column(
+      body: CelestialBackground(
+        child: Column(
           children: [
             async.when(
               loading: () => const SizedBox(height: 90),
@@ -377,7 +381,8 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
             ),
           ],
         ),
-      );
+      ),
+    );
   }
 }
 

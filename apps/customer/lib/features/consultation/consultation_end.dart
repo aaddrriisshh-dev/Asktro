@@ -41,14 +41,24 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
       return;
     }
     setState(() => _submitting = true);
-    await ref
-        .read(consultationControllerProvider(widget.consultation.id).notifier)
-        .rate(_rating.toDouble(), review: _review.text.trim().isEmpty ? null : _review.text.trim());
-    ref.read(analyticsProvider).logEvent(AnalyticsEvents.ratingSubmitted, params: {
-      'rating': _rating,
-      'astrologerId': widget.astrologer.id,
-    },);
-    _close();
+    // Rating is best-effort: the session already ended and billing is settled.
+    // Cap the wait so a slow network can't strand the user on a spinner (the
+    // callable's own timeout is 120s), and always return home afterwards. The
+    // rating may still land server-side even if we stop waiting.
+    try {
+      await ref
+          .read(consultationControllerProvider(widget.consultation.id).notifier)
+          .rate(_rating.toDouble(), review: _review.text.trim().isEmpty ? null : _review.text.trim())
+          .timeout(const Duration(seconds: 10));
+      ref.read(analyticsProvider).logEvent(AnalyticsEvents.ratingSubmitted, params: {
+        'rating': _rating,
+        'astrologerId': widget.astrologer.id,
+      },);
+    } catch (_) {
+      // Swallow timeouts/errors — never block the user from leaving.
+    } finally {
+      _close();
+    }
   }
 
   void _close() {

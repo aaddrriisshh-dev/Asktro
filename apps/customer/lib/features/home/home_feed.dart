@@ -112,7 +112,7 @@ class HomeFeed extends ConsumerWidget {
             right: -46,
             top: topPad - 12,
             child: IgnorePointer(
-              child: Opacity(opacity: 0.06, child: Image.asset(Ob.zodiacWheel, width: 196)),
+              child: Opacity(opacity: 0.13, child: Image.asset(Ob.zodiacWheel, width: 208)),
             ),
           ),
           // A couple of soft gold sparkles for a celestial shimmer.
