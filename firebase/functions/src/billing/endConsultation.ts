@@ -47,6 +47,34 @@ export const endConsultation = onCall(async (req) => {
       };
     }
 
+    // A session ended while still `waiting` never started — the astrologer
+    // declined, or the customer left before acceptance. Treat it as a
+    // cancellation: free the astrologer, but don't bill, don't credit earnings,
+    // and don't count it as a completed consultation for either party.
+    if (c.status === 'waiting') {
+      tx.update(ref, {
+        status: 'cancelled',
+        paymentStatus: 'settled',
+        endTime: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      tx.set(
+        db.collection(Collections.astrologers).doc(c.astrologerId),
+        { available: true, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      return {
+        alreadyEnded: false,
+        cancelled: true,
+        duration: 0,
+        totalCharged: 0,
+        astrologerNet: 0,
+        receiptNo: null,
+        type: c.type,
+        astrologerId: c.astrologerId,
+      };
+    }
+
     // Final billing tick (only bills if still active).
     if (c.status === 'active') {
       await applyTick(tx, consultationId!, config, nowMs);

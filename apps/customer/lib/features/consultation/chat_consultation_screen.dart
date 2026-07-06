@@ -74,7 +74,11 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   void initState() {
     super.initState();
     if (widget.readOnly) return; // history view — never (re)activate/bill.
-    // Activate the session once the screen is ready (chat connects instantly).
+    // AI personas have no human to accept, so the customer activates instantly.
+    // For a HUMAN astrologer we must NOT auto-activate: the session has to stay
+    // `waiting` so it appears in the astrologer's request queue and THEY accept
+    // it (activating here would flip it to `active` and steal it from them).
+    if (!widget.astrologer.isAI) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(consultationControllerProvider(_id).notifier).activate();
     });

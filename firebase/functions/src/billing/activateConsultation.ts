@@ -20,9 +20,18 @@ export const activateConsultation = onCall(async (req) => {
     if (!snap.exists) notFound('Consultation not found.');
     const c = snap.data()!;
 
-    const isParticipant = uid === c.astrologerId || uid === c.customerId;
-    if (!isParticipant && req.auth?.token?.role !== 'admin') {
-      failedPrecondition('Not a participant of this consultation.');
+    // A human consultation may only be activated by the astrologer (the Accept
+    // handshake) or an admin. The customer may self-activate ONLY an AI persona,
+    // which has no human on the other side to accept. Letting the customer
+    // activate a human session would flip it out of the astrologer's request
+    // queue before they ever see it.
+    const astroSnap = await tx.get(db.collection(Collections.astrologers).doc(c.astrologerId));
+    const isAI = astroSnap.data()?.isAI === true;
+    const isAstrologer = uid === c.astrologerId;
+    const isAdmin = req.auth?.token?.role === 'admin';
+    const isAiCustomer = uid === c.customerId && isAI;
+    if (!isAstrologer && !isAdmin && !isAiCustomer) {
+      failedPrecondition('Only the astrologer can accept this consultation.');
     }
     if (c.status !== 'waiting') {
       failedPrecondition(`Cannot activate a ${c.status} consultation.`);
