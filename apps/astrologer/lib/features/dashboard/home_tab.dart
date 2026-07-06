@@ -38,34 +38,29 @@ class HomeTab extends ConsumerWidget {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            _header(context, self),
+            _header(context, ref, self, uid, online, todayEarn, self?.pendingPayout ?? 0),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _onlineCard(context, ref, self, uid, online),
-                  const SizedBox(height: 14),
-                  _earningsHero(todayEarn, todayDone.length),
-                  const SizedBox(height: 14),
                   Row(
                     children: [
-                      Expanded(
-                        child: StatTile(
-                          label: 'Wallet balance',
-                          value: Money.formatPaise(self?.pendingPayout ?? 0),
-                          icon: Icons.account_balance_wallet_rounded,
-                          accent: Sky.purple,
-                          sub: 'Available',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Expanded(
                         child: StatTile(
                           label: "Today's sessions",
                           value: '${todayDone.length}',
                           icon: Icons.event_available_rounded,
-                          accent: Sky.gold,
+                          accent: Sky.purple,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: StatTile(
+                          label: 'Your rating',
+                          value: '${(self?.rating ?? 0).toStringAsFixed(1)}★',
+                          icon: Icons.star_rounded,
+                          accent: Sky.amber,
                         ),
                       ),
                     ],
@@ -75,19 +70,19 @@ class HomeTab extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: StatTile(
-                          label: 'Your rating',
-                          value: '${(self?.rating ?? 0).toStringAsFixed(1)}★',
-                          icon: Icons.star_rounded,
-                          accent: Sky.amber,
+                          label: 'Avg response',
+                          value: _resp(self?.responseTimeSec ?? 0),
+                          icon: Icons.bolt_rounded,
+                          accent: Sky.green,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: StatTile(
-                          label: 'Avg response',
-                          value: _resp(self?.responseTimeSec ?? 0),
-                          icon: Icons.bolt_rounded,
-                          accent: Sky.green,
+                          label: 'Total sessions',
+                          value: '${self?.totalConsultations ?? 0}',
+                          icon: Icons.forum_rounded,
+                          accent: Sky.purple,
                         ),
                       ),
                     ],
@@ -128,52 +123,109 @@ class HomeTab extends ConsumerWidget {
     return '${(sec / 60).toStringAsFixed(sec % 60 == 0 ? 0 : 1)}m';
   }
 
-  Widget _header(BuildContext context, Astrologer? self) {
+  // Celestial header that carries the money up top (banking-app style): greeting
+  // + online toggle, then Today's earnings and Wallet as two glass blocks.
+  Widget _header(BuildContext context, WidgetRef ref, Astrologer? self, String? uid, bool online, int todayEarn, int wallet) {
     final topPad = MediaQuery.of(context).padding.top;
     final name = (self?.name ?? 'Astrologer').split(' ').first;
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFEDE6FF), Color(0xFFF1EBFF), Color(0xFFF5F3FB)],
-        ),
+        gradient: Sky.heroGrad,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
       ),
       child: Stack(
         children: [
-          const Positioned.fill(child: CelestialWash(tint: Sky.purple, opacity: 0.6)),
-          Positioned(
-            right: 18,
-            top: topPad + 8,
-            child: const IgnorePointer(child: Icon(Icons.auto_awesome, size: 15, color: Color(0x66C9A227))),
-          ),
+          const Positioned.fill(child: CelestialWash()),
           Padding(
-            padding: EdgeInsets.fromLTRB(18, topPad + 16, 18, 18),
-            child: Row(
+            padding: EdgeInsets.fromLTRB(18, topPad + 14, 18, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: const BoxDecoration(shape: BoxShape.circle, gradient: Sky.goldGrad),
-                  child: AppAvatar(name: self?.name ?? 'You', photoUrl: self?.profilePhoto, size: 48),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(shape: BoxShape.circle, gradient: Sky.goldGrad),
+                      child: AppAvatar(name: self?.name ?? 'You', photoUrl: self?.profilePhoto, size: 46),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Namaste,', style: Sky.label.copyWith(fontSize: 12, color: Colors.white70)),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(name,
+                                    style: Sky.h1.copyWith(fontSize: 21, color: Colors.white),
+                                    overflow: TextOverflow.ellipsis),
+                              ),
+                              if (self?.verified ?? false) ...[
+                                const SizedBox(width: 6),
+                                const Icon(Icons.verified_rounded, size: 16, color: Sky.goldSoft),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      children: [
+                        OnlineToggle(
+                          value: online,
+                          onChanged: uid == null ? null : (v) => ref.read(astrologerRepositoryProvider).setOnline(uid, v),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(online ? 'Online' : 'Offline',
+                            style: Sky.label.copyWith(
+                                fontSize: 10, fontWeight: FontWeight.w800, color: online ? Sky.goldSoft : Colors.white54)),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Namaste,', style: Sky.label.copyWith(fontSize: 12.5)),
-                      Text(name, style: Sky.h1.copyWith(fontSize: 22)),
-                      Text('Always trust your intuition ✦',
-                          style: Sky.label.copyWith(fontSize: 11.5, color: Sky.gold, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(child: _glassStat("Today's earnings", Money.formatPaise(todayEarn), Icons.trending_up_rounded)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _glassStat('Wallet balance', Money.formatPaise(wallet), Icons.account_balance_wallet_rounded)),
+                  ],
                 ),
-                if (self?.verified ?? false) const Pill('Verified', color: Sky.gold, icon: Icons.verified_rounded),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _glassStat(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.13),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 13, color: Sky.goldSoft),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(label.toUpperCase(),
+                    style: Sky.label.copyWith(
+                        fontSize: 9.5, color: Colors.white70, letterSpacing: 0.4, fontWeight: FontWeight.w700),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(value, style: Sky.figure.copyWith(fontSize: 21, color: Colors.white)),
         ],
       ),
     );
@@ -223,71 +275,6 @@ class HomeTab extends ConsumerWidget {
             points: hasData ? pts : const [1, 2.4, 1.8, 3.2, 2.6, 4, 3.4],
             color: Sky.purple,
             height: 46,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _onlineCard(BuildContext context, WidgetRef ref, Astrologer? self, String? uid, bool online) {
-    return SkyCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: online ? Sky.green : Sky.ink3,
-              shape: BoxShape.circle,
-              boxShadow: online ? [BoxShadow(color: Sky.green.withValues(alpha: 0.5), blurRadius: 8)] : null,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(online ? "You're online" : "You're offline", style: Sky.h2.copyWith(fontSize: 15.5)),
-                Text(online ? 'Receiving consultation requests' : 'Go online to take consultations',
-                    style: Sky.label.copyWith(fontSize: 12)),
-              ],
-            ),
-          ),
-          OnlineToggle(
-            value: online,
-            onChanged: uid == null ? null : (v) => ref.read(astrologerRepositoryProvider).setOnline(uid, v),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _earningsHero(int paise, int count) {
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        gradient: Sky.heroGrad,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: Sky.lift,
-      ),
-      child: Stack(
-        children: [
-          const Positioned.fill(child: CelestialWash()),
-          Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("TODAY'S EARNINGS", style: Sky.kicker.copyWith(color: Sky.goldSoft)),
-                const SizedBox(height: 8),
-                Text(Money.formatPaise(paise),
-                    style: Sky.display.copyWith(color: Colors.white, fontSize: 34)),
-                const SizedBox(height: 6),
-                Text('$count ${count == 1 ? 'consultation' : 'consultations'} completed today',
-                    style: Sky.label.copyWith(color: Colors.white.withValues(alpha: 0.82), fontSize: 12.5)),
-              ],
-            ),
           ),
         ],
       ),

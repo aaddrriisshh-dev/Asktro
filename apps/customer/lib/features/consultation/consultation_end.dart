@@ -62,7 +62,16 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
   }
 
   void _close() {
-    if (mounted) context.go('/home');
+    if (!mounted) return;
+    // This screen (and the chat/profile beneath it) were pushed imperatively,
+    // so pop the whole stack back to the shell — go('/home') alone doesn't
+    // reliably remove pushed routes, which left the user stuck on the spinner.
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.popUntil((route) => route.isFirst);
+    } else {
+      context.go('/home');
+    }
   }
 
   @override
