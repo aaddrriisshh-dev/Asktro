@@ -39,6 +39,8 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
       displayMode: String(n.displayMode ?? 'small'),
       portraitImage: String(n.portraitImage ?? ''),
       ctaText: String(n.ctaText ?? ''),
+      landingTitle: String(n.landingTitle ?? ''),
+      landingBody: String(n.landingBody ?? ''),
       bgColor: String(n.bgColor ?? ''),
       textColor: String(n.textColor ?? ''),
       theme: String(n.theme ?? ''),

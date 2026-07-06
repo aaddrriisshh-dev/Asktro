@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
@@ -7,6 +11,7 @@ import 'home_feed.dart';
 import '../consultations/consultations_tab.dart';
 import '../wallet/wallet_tab.dart';
 import '../wallet/offers_screen.dart';
+import '../wallet/promo_popup.dart';
 import '../notifications/notifications_tab.dart';
 import '../profile/profile_tab.dart';
 
@@ -26,10 +31,66 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ProfileTab(),
   ];
 
+  StreamSubscription<RemoteMessage>? _openedSub;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowOfferPopup());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeShowOfferPopup();
+      _setupPushTapHandlers();
+    });
+  }
+
+  @override
+  void dispose() {
+    _openedSub?.cancel();
+    super.dispose();
+  }
+
+  // Handle a tapped push notification: a themed half/full promo opens the shared
+  // landing popup; anything else just follows its deeplink. Covers both a
+  // cold-start tap (getInitialMessage) and a tap while backgrounded
+  // (onMessageOpenedApp).
+  void _setupPushTapHandlers() {
+    FirebaseMessaging.instance.getInitialMessage().then((m) {
+      if (m != null) _handlePushTap(m);
+    });
+    _openedSub = FirebaseMessaging.onMessageOpenedApp.listen(_handlePushTap);
+  }
+
+  void _handlePushTap(RemoteMessage m) {
+    if (!mounted) return;
+    final data = m.data;
+    final theme = promoThemeById(data['theme'] as String?);
+    final mode = (data['displayMode'] as String?) ?? 'small';
+    final deeplink = (data['deeplink'] as String?) ?? '';
+    String pick(String? landing, String? fallback) =>
+        (landing != null && landing.isNotEmpty) ? landing : (fallback ?? '');
+    if (theme != null && (mode == 'half' || mode == 'full')) {
+      showPromoPopup(
+        context,
+        theme: theme,
+        displayMode: mode,
+        title: pick(data['landingTitle'] as String?, m.notification?.title),
+        body: pick(data['landingBody'] as String?, m.notification?.body),
+        ctaLabel: (data['ctaText'] as String?)?.isNotEmpty ?? false ? data['ctaText'] as String : 'View offer',
+        heroKicker: '✦  JUST FOR YOU',
+        heroTagline: null,
+        onAction: () => _followDeeplink(deeplink),
+      );
+    } else if (deeplink.isNotEmpty) {
+      _followDeeplink(deeplink);
+    }
+  }
+
+  void _followDeeplink(String dl) {
+    if (dl.isEmpty || !mounted) return;
+    if (dl.startsWith('/')) {
+      context.push(dl);
+    } else if (dl.startsWith('asktro://')) {
+      context.push('/${dl.substring('asktro://'.length)}');
+    }
   }
 
   // On app open, surface the newest active coupon once per launch. Silent if
