@@ -10,16 +10,16 @@ class Sky {
   Sky._();
 
   // ---- palette ----
-  static const Color bg = Color(0xFFFBFAFF); // soft white
-  static const Color surface = Color(0xFFF5F1FF); // lavender wash
+  static const Color bg = Color(0xFFF5F3FB); // soft lavender-white ground
+  static const Color surface = Color(0xFFF1EEFA); // faint lavender wash
   static const Color card = Color(0xFFFFFFFF);
-  static const Color line = Color(0xFFEDE8F8);
+  static const Color line = Color(0xFFEDEAF6);
 
-  static const Color ink = Color(0xFF241B3A); // deep aubergine-navy text
-  static const Color ink2 = Color(0xFF8A82A6); // muted
-  static const Color ink3 = Color(0xFFB7B0CC); // faint
+  static const Color ink = Color(0xFF2A2740); // deep navy text
+  static const Color ink2 = Color(0xFF8B889E); // muted grey
+  static const Color ink3 = Color(0xFFB7B4C8); // faint
 
-  static const Color purple = Color(0xFF6B4BC0);
+  static const Color purple = Color(0xFF6E4BE6); // vibrant brand purple
   static const Color purpleDeep = Color(0xFF3A2A6E);
 
   static const Color gold = Color(0xFFC9A227);
@@ -227,24 +227,28 @@ class GoldButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onPressed != null && !loading;
     return Opacity(
-      opacity: enabled ? 1 : 0.6,
+      opacity: enabled ? 1 : 0.5,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(15),
           onTap: enabled ? onPressed : null,
           child: Ink(
-            decoration: BoxDecoration(gradient: Sky.goldGrad, borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(
+              color: Sky.purple,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [BoxShadow(color: Sky.purple.withValues(alpha: 0.28), blurRadius: 16, offset: const Offset(0, 8))],
+            ),
             child: Container(
               height: 52,
               alignment: Alignment.center,
               child: loading
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Sky.purpleDeep))
+                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
                   : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (icon != null) ...[Icon(icon, size: 18, color: Sky.purpleDeep), const SizedBox(width: 8)],
-                        Text(label, style: Sky.body.copyWith(color: Sky.purpleDeep, fontWeight: FontWeight.w800, fontSize: 15)),
+                        if (icon != null) ...[Icon(icon, size: 18, color: Colors.white), const SizedBox(width: 8)],
+                        Text(label, style: Sky.body.copyWith(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
                       ],
                     ),
             ),
