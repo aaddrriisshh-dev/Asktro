@@ -63,35 +63,113 @@ class HomeFeed extends ConsumerWidget {
     final profile = ref.watch(myProfileProvider).valueOrNull;
     return Container(
       color: Ob.bgColor,
-      child: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          color: Ob.purple,
-          onRefresh: () async {
-            ref.invalidate(_risingStarsProvider);
-            ref.invalidate(_topRatedProvider);
-          },
-          child: ListView(
-            padding: const EdgeInsets.only(top: 10, bottom: 32),
-            children: [
-              _topBar(context, ref, profile),
-              const SizedBox(height: 20),
-              _ToolTabs(),
-              const SizedBox(height: 20),
-              const _HomeBanners(),
-              const SizedBox(height: 6),
-              _AstroCarousel(title: 'Top Astrologers', provider: _topRatedProvider),
-              _AstroCarousel(
-                  title: 'Rising Stars',
-                  provider: _risingStarsProvider,
-                  onlyRisingStars: true,),
-              const SizedBox(height: 24),
-            ],
-          ),
+      child: RefreshIndicator(
+        color: Ob.purple,
+        onRefresh: () async {
+          ref.invalidate(_risingStarsProvider);
+          ref.invalidate(_topRatedProvider);
+        },
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 32),
+          children: [
+            _celestialTop(context, ref, profile),
+            const SizedBox(height: 18),
+            const _HomeBanners(),
+            const SizedBox(height: 6),
+            _AstroCarousel(title: 'Top Astrologers', provider: _topRatedProvider),
+            _AstroCarousel(
+                title: 'Rising Stars',
+                provider: _risingStarsProvider,
+                onlyRisingStars: true,),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );
   }
+
+  // The home "cockpit": greeting + wallet + the four tool tiles sit on a soft
+  // celestial ground (faint zodiac watermark, gold sparkles) that reaches
+  // behind the status bar and is closed by a gold sparkle divider — a clear
+  // visual break from the astrologer directory below.
+  Widget _celestialTop(BuildContext context, WidgetRef ref, UserProfile? profile) {
+    final topPad = MediaQuery.of(context).padding.top;
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFEDE6FF), Color(0xFFF4EEFF), Color(0xFFFBF7EE)],
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+        boxShadow: [BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, 8))],
+      ),
+      child: Stack(
+        children: [
+          // Faint zodiac-wheel watermark drifting off the top-right corner.
+          Positioned(
+            right: -46,
+            top: topPad - 12,
+            child: IgnorePointer(
+              child: Opacity(opacity: 0.06, child: Image.asset(Ob.zodiacWheel, width: 196)),
+            ),
+          ),
+          // A couple of soft gold sparkles for a celestial shimmer.
+          Positioned(
+              left: 26, top: topPad + 6,
+              child: const IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x55D4AF37), size: 12)),),
+          Positioned(
+              right: 128, top: topPad + 2,
+              child: const IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x3DD4AF37), size: 9)),),
+          Column(
+            children: [
+              SizedBox(height: topPad + 12),
+              _topBar(context, ref, profile),
+              const SizedBox(height: 22),
+              _ToolTabs(),
+              const SizedBox(height: 18),
+              _goldDivider(),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Gold, sparkle-centred divider that marks the end of the tools zone.
+  Widget _goldDivider() => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Ob.gold.withValues(alpha: 0), Ob.gold.withValues(alpha: 0.5)],
+                  ),
+                ),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 9),
+              child: Icon(Icons.auto_awesome, color: Ob.gold, size: 13),
+            ),
+            Expanded(
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Ob.gold.withValues(alpha: 0.5), Ob.gold.withValues(alpha: 0)],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _topBar(BuildContext context, WidgetRef ref, UserProfile? profile) {
     final name = (profile?.name ?? '').trim();
