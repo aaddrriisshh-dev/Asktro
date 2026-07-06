@@ -71,9 +71,7 @@ class HomeFeed extends ConsumerWidget {
           color: Ob.purple,
           onRefresh: () async {
             ref.invalidate(_onlineProvider);
-            ref.invalidate(_featuredProvider);
             ref.invalidate(_topRatedProvider);
-            ref.invalidate(_newestProvider);
           },
           child: ListView(
             padding: const EdgeInsets.only(top: 10, bottom: 32),
