@@ -287,7 +287,9 @@ class HomeTab extends ConsumerWidget {
   }
 
   Widget _emptyRequests(bool online) {
-    return SkyCard(
+    return SizedBox(
+      width: double.infinity,
+      child: SkyCard(
       child: Column(
         children: [
           const SizedBox(height: 6),
@@ -299,6 +301,7 @@ class HomeTab extends ConsumerWidget {
               style: Sky.label.copyWith(fontSize: 12.5), textAlign: TextAlign.center),
           const SizedBox(height: 6),
         ],
+      ),
       ),
     );
   }

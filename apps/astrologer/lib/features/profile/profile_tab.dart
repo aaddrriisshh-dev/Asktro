@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
@@ -83,6 +84,57 @@ class ProfileTab extends ConsumerWidget {
     }
   }
 
+  Future<void> _raiseTicket(BuildContext context, WidgetRef ref, Astrologer self) async {
+    final c = TextEditingController();
+    final msg = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Sky.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Help & Support', style: Sky.h2),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Describe your issue and the Asktro team will get back to you.',
+                style: Sky.label.copyWith(fontSize: 12.5)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: c,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Your message…',
+                filled: true,
+                fillColor: Sky.surface,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: Sky.label)),
+          TextButton(
+              onPressed: () => Navigator.pop(context, c.text.trim()),
+              child: Text('Send', style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w800))),
+        ],
+      ),
+    );
+    if (msg == null || msg.isEmpty) return;
+    await ref.read(firestoreProvider).collection('supportTickets').add({
+      'astrologerId': self.id,
+      'raisedByName': self.name,
+      'subject': 'Astrologer support',
+      'lastMessage': msg,
+      'status': 'open',
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Ticket raised — we'll get back to you soon.")));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final self = ref.watch(selfProvider).valueOrNull;
@@ -153,7 +205,11 @@ class ProfileTab extends ConsumerWidget {
                 _tile(Icons.verified_user_rounded, 'Verification',
                     self.verified ? 'Verified' : self.status.name,
                     valueColor: self.verified ? Sky.green : Sky.amber),
-                _tile(Icons.settings_rounded, 'Settings', ''),
+                _tile(Icons.account_balance_wallet_rounded, 'Payouts & earnings', 'In Wallet',
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Open the Wallet tab to see earnings and request a withdrawal.')))),
+                _tile(Icons.headset_mic_rounded, 'Help & Support', 'Raise a ticket',
+                    onTap: () => _raiseTicket(context, ref, self)),
                 const SizedBox(height: 20),
                 GhostButton(
                   label: 'Log out',
@@ -182,7 +238,11 @@ class ProfileTab extends ConsumerWidget {
           const Positioned.fill(child: CelestialWash()),
           Padding(
             padding: EdgeInsets.fromLTRB(20, topPad + 18, 20, 24),
-            child: Column(
+            // Full width so the centered column actually centres across the
+            // whole banner instead of hugging its widest child on the left.
+            child: SizedBox(
+              width: double.infinity,
+              child: Column(
               children: [
                 Container(
                   padding: const EdgeInsets.all(3),
@@ -210,6 +270,7 @@ class ProfileTab extends ConsumerWidget {
                 Text('${self.experience}y experience  ·  ${self.rating.toStringAsFixed(1)}★  ·  ${self.totalConsultations} sessions',
                     style: Sky.label.copyWith(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5)),
               ],
+              ),
             ),
           ),
         ],
