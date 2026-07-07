@@ -5,7 +5,7 @@
  * coupon discount credit, and first-recharge referral rewards, then auto-
  * resumes a paused session if any. See docs/BILLING_ENGINE.md.
  */
-import { db, FieldValue } from '../common/admin';
+import { db, FieldValue, Timestamp } from '../common/admin';
 import { Collections } from '../common/collections';
 import { writeLedger } from './ledger';
 import { readReferralCredit, applyReferralCredit } from '../referrals/referral';
@@ -56,6 +56,19 @@ export async function creditRecharge(params: {
     const couponRef = couponId ? db.collection(Collections.coupons).doc(couponId) : null;
     const couponSnap = couponRef ? await tx.get(couponRef) : null;
 
+    // Per-user-once check needs a read, so it happens here in the read phase.
+    let couponAlreadyUsed = false;
+    if (couponId && couponSnap?.exists && couponSnap.data()!.perUserOnce === true) {
+      const redeemed = await tx.get(
+        db
+          .collection(Collections.couponRedemptions)
+          .where('couponId', '==', couponId)
+          .where('userId', '==', userId)
+          .limit(1),
+      );
+      couponAlreadyUsed = !redeemed.empty;
+    }
+
     const isFirstRecharge = (user.totalRecharge ?? 0) === 0;
     const referralCredit = isFirstRecharge && user.referredBy
       ? await readReferralCredit(tx, { referredUserId: userId, referrerCode: user.referredBy })
@@ -66,19 +79,32 @@ export async function creditRecharge(params: {
     let bonus: number = plan.bonus ?? 0;
     const isPaidUser = (user.totalRecharge ?? 0) > 0;
 
-    // Optional coupon: adds extra bonus credit. Re-checks active + audience so
-    // the money path is authoritative even if the client skipped validateCoupon.
+    // Optional coupon: adds extra bonus credit. The money path re-runs the FULL
+    // validity set (active, audience, expiry, min-recharge, applicable-plans,
+    // global usage limit, per-user-once) so it is authoritative even if the
+    // client skipped or spoofed validateCoupon. The percentage base uses the
+    // same `rechargeAmount` as validateCoupon so preview == credited.
     let couponBonus = 0;
     let couponApplies = false;
     if (couponSnap && couponSnap.exists) {
       const cp = couponSnap.data()!;
       const aud = (cp.audience ?? 'all') as string;
       const audienceOk = aud === 'all' || (aud === 'paid' && isPaidUser) || (aud === 'unpaid' && !isPaidUser);
-      if (cp.active !== false && audienceOk) {
+      const notExpired =
+        !cp.expiry || (cp.expiry as Timestamp).toMillis() >= Timestamp.now().toMillis();
+      const rechargeAmount: number = plan.amount ?? plan.walletCredit ?? 0;
+      const minOk = !cp.minimumRecharge || rechargeAmount >= cp.minimumRecharge;
+      const planOk =
+        !Array.isArray(cp.applicablePlans) ||
+        cp.applicablePlans.length === 0 ||
+        cp.applicablePlans.includes(planId);
+      const usageOk = !cp.usageLimit || (cp.usedCount ?? 0) < cp.usageLimit;
+      const perUserOk = cp.perUserOnce !== true || !couponAlreadyUsed;
+      if (cp.active !== false && audienceOk && notExpired && minOk && planOk && usageOk && perUserOk) {
         couponApplies = true;
         couponBonus =
           cp.type === 'percentage'
-            ? Math.min(Math.round((walletCredit * (cp.percentage ?? 0)) / 100), cp.maxDiscount ?? Number.MAX_SAFE_INTEGER)
+            ? Math.min(Math.round((rechargeAmount * (cp.percentage ?? 0)) / 100), cp.maxDiscount ?? Number.MAX_SAFE_INTEGER)
             : (cp.amount ?? 0) + (cp.bonus ?? 0);
       }
     }
