@@ -24,9 +24,15 @@ class AstrologerConsultationScreen extends ConsumerStatefulWidget {
   ConsumerState<AstrologerConsultationScreen> createState() => _State();
 }
 
+/// The free window granted at the start of a session (mirrors the customer's
+/// welcome free minutes and the on-screen countdown they see).
+const int _kFreeSeconds = 180;
+
 class _State extends ConsumerState<AstrologerConsultationScreen> {
   final _input = TextEditingController();
   Timer? _heartbeat;
+  Timer? _uiTick;
+  DateTime? _activeSince;
   bool _accepting = false;
 
   String get _id => widget.consultationId;
@@ -34,6 +40,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   @override
   void dispose() {
     _heartbeat?.cancel();
+    _uiTick?.cancel();
     _input.dispose();
     super.dispose();
   }
@@ -42,10 +49,27 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
     if (status == ConsultationStatus.active) {
       _heartbeat ??= Timer.periodic(
           const Duration(seconds: 10), (_) => ref.read(consultationServiceProvider).tick(_id));
+      // Local stopwatch drives a smooth 1-second countdown/timer in the header,
+      // independent of the coarse (~10s) server billing ticks.
+      _activeSince ??= DateTime.now();
+      _uiTick ??= Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
     } else {
       _heartbeat?.cancel();
       _heartbeat = null;
+      _uiTick?.cancel();
+      _uiTick = null;
     }
+  }
+
+  /// Seconds since the session went active on this screen (0 if not started).
+  int get _elapsedSeconds =>
+      _activeSince == null ? 0 : DateTime.now().difference(_activeSince!).inSeconds;
+
+  static String _mmss(int seconds) {
+    final s = seconds < 0 ? 0 : seconds;
+    return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
   }
 
   Future<void> _accept() async {
@@ -344,8 +368,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
               children: [
                 Text(cust?.name ?? 'Customer',
                     style: Sky.h2.copyWith(fontSize: 14.5, color: fg), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text('${Money.formatDuration(c.billedSeconds)}  ·  earned ${Money.formatPaise(c.totalCharged)}',
-                    style: Sky.label.copyWith(fontSize: 11.5, color: dark ? Colors.white70 : Sky.ink2)),
+                _headerTimerLine(c, dark),
               ],
             ),
           ),
@@ -359,6 +382,29 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Header status line: a gold "free time" countdown for the first 3 minutes,
+  /// then a live session timer with running earnings.
+  Widget _headerTimerLine(Consultation c, bool dark) {
+    final freeLeft = _kFreeSeconds - _elapsedSeconds;
+    if (freeLeft > 0) {
+      return Row(
+        children: [
+          Icon(Icons.timer_outlined, size: 12.5, color: dark ? Sky.goldSoft : Sky.gold),
+          const SizedBox(width: 4),
+          Text('Free time  ${_mmss(freeLeft)}',
+              style: Sky.label.copyWith(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  color: dark ? Sky.goldSoft : Sky.gold)),
+        ],
+      );
+    }
+    return Text(
+      '${_mmss(_elapsedSeconds)}  ·  earned ${Money.formatPaise(c.totalCharged)}',
+      style: Sky.label.copyWith(fontSize: 11.5, color: dark ? Colors.white70 : Sky.ink2),
     );
   }
 
@@ -396,9 +442,13 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   }
 
   Widget _composer() {
+    final mq = MediaQuery.of(context);
+    // When the keyboard is up, sit above it; when it's down, sit above the
+    // Android gesture/navigation bar (the safe zone) — never under either.
+    final bottomInset = mq.viewInsets.bottom > mq.padding.bottom ? mq.viewInsets.bottom : mq.padding.bottom;
     return Container(
       color: Sky.card,
-      padding: EdgeInsets.only(left: 12, right: 8, top: 8, bottom: MediaQuery.of(context).viewInsets.bottom + 10),
+      padding: EdgeInsets.only(left: 12, right: 8, top: 8, bottom: bottomInset + 10),
       child: Row(
         children: [
           IconButton(onPressed: _sendImage, icon: const Icon(Icons.image_outlined, color: Sky.ink2)),
