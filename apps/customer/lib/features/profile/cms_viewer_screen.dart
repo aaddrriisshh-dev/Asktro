@@ -31,7 +31,8 @@ class CmsViewerScreen extends ConsumerWidget {
                 message: 'This page has not been published.',
               )
             : SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.xl),
+                padding: EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl, AppSpacing.xl,
+                    AppSpacing.xl + MediaQuery.of(context).padding.bottom),
                 child: Text(content, style: AppTypography.body),
               ),
       ),

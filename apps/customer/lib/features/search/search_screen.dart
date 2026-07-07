@@ -71,7 +71,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ),
       body: _loading
           ? ListView.builder(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg,
+                  AppSpacing.lg + MediaQuery.of(context).padding.bottom),
               itemCount: 5,
               itemBuilder: (_, __) => const Padding(
                 padding: EdgeInsets.only(bottom: AppSpacing.md),
@@ -85,7 +86,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   message: 'Try a different name, language, or specialization.',
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg,
+                  AppSpacing.lg + MediaQuery.of(context).padding.bottom),
                   itemCount: _results.length,
                   itemBuilder: (_, i) => Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.md),

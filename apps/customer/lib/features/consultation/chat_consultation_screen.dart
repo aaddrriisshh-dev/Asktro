@@ -421,38 +421,47 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 showCountdown: (ref.watch(myProfileProvider).valueOrNull?.walletBalance ?? 0) <= 0,
               ),
             ),
+            // Messages + the typing indicator live TOGETHER in the flexible
+            // region, so the typing row can never steal fixed height from the
+            // composer and overflow the column when the keyboard opens.
             Expanded(
-              child: messages.isEmpty
-                  ? const EmptyState(
-                      icon: Icons.waving_hand_rounded,
-                      title: 'Say hello 👋',
-                      message: 'Share your birth details to begin your consultation.',
-                    )
-                  : ListView.builder(
-                      reverse: true,
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      itemCount: messages.length,
-                      itemBuilder: (_, i) {
-                        final m = messages[i];
-                        final mine = m['senderId'] == uid;
-                        return _Bubble(
-                          text: (m['text'] ?? '') as String,
-                          imageUrl: m['image'] as String?,
-                          mine: mine,
-                          seen: m['seen'] == true,
-                        );
-                      },
+              child: Column(
+                children: [
+                  Expanded(
+                    child: messages.isEmpty
+                        ? const EmptyState(
+                            icon: Icons.waving_hand_rounded,
+                            title: 'Say hello 👋',
+                            message: 'Share your birth details to begin your consultation.',
+                          )
+                        : ListView.builder(
+                            reverse: true,
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            itemCount: messages.length,
+                            itemBuilder: (_, i) {
+                              final m = messages[i];
+                              final mine = m['senderId'] == uid;
+                              return _Bubble(
+                                text: (m['text'] ?? '') as String,
+                                imageUrl: m['image'] as String?,
+                                mine: mine,
+                                seen: m['seen'] == true,
+                              );
+                            },
+                          ),
+                  ),
+                  if (peerTyping)
+                    Padding(
+                      padding: const EdgeInsets.only(left: AppSpacing.xl, bottom: AppSpacing.xs),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('${widget.astrologer.name} is typing…',
+                            style: AppTypography.caption.copyWith(fontStyle: FontStyle.italic),),
+                      ),
                     ),
-            ),
-            if (peerTyping)
-              Padding(
-                padding: const EdgeInsets.only(left: AppSpacing.xl, bottom: AppSpacing.xs),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('${widget.astrologer.name} is typing…',
-                      style: AppTypography.caption.copyWith(fontStyle: FontStyle.italic),),
-                ),
+                ],
               ),
+            ),
             _Composer(
               controller: _input,
               onSend: _send,

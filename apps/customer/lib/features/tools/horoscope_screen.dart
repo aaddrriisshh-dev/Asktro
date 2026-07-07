@@ -62,7 +62,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 fontSize: 24, fontWeight: FontWeight.w700, color: Ob.navy,),),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        padding: EdgeInsets.fromLTRB(20, 8, 20, 32 + MediaQuery.of(context).padding.bottom),
         children: [
           _hero(),
           const SizedBox(height: 20),

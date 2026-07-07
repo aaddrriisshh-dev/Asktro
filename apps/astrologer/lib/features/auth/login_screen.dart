@@ -155,7 +155,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 26, 20, 30),
+            padding: EdgeInsets.fromLTRB(20, 26, 20, 30 + MediaQuery.of(context).padding.bottom),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

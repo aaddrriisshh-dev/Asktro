@@ -423,13 +423,13 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   }
 
   Widget _composer() {
+    // The Scaffold resizes above the keyboard, so we only need the gesture-bar
+    // inset here (adding viewInsets on top would double-count and leave a big
+    // gap above the keyboard). padding.bottom collapses to 0 while typing.
     final mq = MediaQuery.of(context);
-    // When the keyboard is up, sit above it; when it's down, sit above the
-    // Android gesture/navigation bar (the safe zone) — never under either.
-    final bottomInset = mq.viewInsets.bottom > mq.padding.bottom ? mq.viewInsets.bottom : mq.padding.bottom;
     return Container(
       color: Sky.card,
-      padding: EdgeInsets.only(left: 12, right: 8, top: 8, bottom: bottomInset + 10),
+      padding: EdgeInsets.only(left: 12, right: 8, top: 8, bottom: mq.padding.bottom + 10),
       child: Row(
         children: [
           IconButton(onPressed: _sendImage, icon: const Icon(Icons.image_outlined, color: Sky.ink2)),

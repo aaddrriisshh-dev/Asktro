@@ -54,7 +54,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Help & Support')),
       body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg,
+            AppSpacing.lg + MediaQuery.of(context).padding.bottom),
         children: [
           Text('Raise a ticket', style: AppTypography.subtitle),
           const SizedBox(height: AppSpacing.md),

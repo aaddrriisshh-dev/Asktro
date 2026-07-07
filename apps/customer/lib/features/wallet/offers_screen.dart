@@ -83,7 +83,7 @@ class OffersScreen extends ConsumerWidget {
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
             itemCount: list.length,
             separatorBuilder: (_, __) => const SizedBox(height: 14),
             itemBuilder: (_, i) => _OfferCard(coupon: list[i]),

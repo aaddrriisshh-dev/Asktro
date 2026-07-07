@@ -139,7 +139,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       body: profile == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 40 + MediaQuery.of(context).padding.bottom),
               children: [
                 _label('IDENTITY'),
                 _text('Name', _name, hint: 'Your full name', icon: Icons.person_outline_rounded),

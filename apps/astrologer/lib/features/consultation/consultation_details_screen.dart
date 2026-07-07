@@ -78,7 +78,7 @@ class _ConsultationDetailsScreenState extends ConsumerState<ConsultationDetailsS
         slivers: [
           SliverToBoxAdapter(child: _header(context, cust, insight, repeat, past.length)),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 40 + MediaQuery.of(context).padding.bottom),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 _customerInfo(insight, cust),
