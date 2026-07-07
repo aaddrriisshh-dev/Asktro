@@ -254,7 +254,10 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
           _liveHeader(c, cust, dark: false),
           _quickAccess(c),
           Expanded(
-            child: ListView.builder(
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
                     reverse: true,
                     padding: const EdgeInsets.all(16),
                     // +1 for the customer-details card, pinned as the oldest item
@@ -301,32 +304,35 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                       );
                     },
                   ),
-          ),
-          if (widget.self.quickReplies.isNotEmpty)
-            SizedBox(
-              height: 42,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: [
-                  for (final q in widget.self.quickReplies)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
-                      child: GestureDetector(
-                        onTap: () {
-                          _input.text = q;
-                          _input.selection = TextSelection.collapsed(offset: q.length);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(color: Sky.surface, borderRadius: BorderRadius.circular(999)),
-                          child: Text(q, style: Sky.label.copyWith(fontSize: 12.5, color: Sky.purple)),
-                        ),
-                      ),
+                ),
+                if (widget.self.quickReplies.isNotEmpty)
+                  SizedBox(
+                    height: 42,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      children: [
+                        for (final q in widget.self.quickReplies)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
+                            child: GestureDetector(
+                              onTap: () {
+                                _input.text = q;
+                                _input.selection = TextSelection.collapsed(offset: q.length);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(color: Sky.surface, borderRadius: BorderRadius.circular(999)),
+                                child: Text(q, style: Sky.label.copyWith(fontSize: 12.5, color: Sky.purple)),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
+          ),
           _composer(),
         ],
       ),
