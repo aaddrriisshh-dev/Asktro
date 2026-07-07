@@ -16,7 +16,7 @@
  * Run from firebase/functions (needs serviceAccountKey.json).
  */
 import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { readFileSync } from 'node:fs';
 
@@ -85,9 +85,20 @@ async function run() {
     process.exit(0);
   }
 
-  // consultations where this user is the customer (+ their subcollections)
+  // consultations where this user is the customer (+ their subcollections).
+  // Free any astrologer still reserved by an open session we're about to delete,
+  // otherwise their `available: false` flag is orphaned.
   const cons = await db.collection('consultations').where('customerId', '==', uid).get();
+  const freed = new Set();
   for (const c of cons.docs) {
+    const data = c.data();
+    if (['waiting', 'active', 'paused'].includes(data.status) && data.astrologerId) {
+      await db.collection('astrologers').doc(data.astrologerId).set(
+        { available: true, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      freed.add(data.astrologerId);
+    }
     await deleteQuery(c.ref.collection('messages'));
     await deleteQuery(c.ref.collection('typing'));
     await c.ref.delete();
@@ -103,6 +114,7 @@ async function run() {
 
   console.log(`\n✓ Deleted account ${uid}`);
   console.log(`  consultations: ${cons.size}   walletTransactions: ${txns}   notifications: ${notifs}`);
+  console.log(`  astrologers freed (available→true): ${freed.size}`);
   console.log(`  Auth + profile removed. Sign up fresh in the app to get the welcome free minutes.\n`);
   process.exit(0);
 }

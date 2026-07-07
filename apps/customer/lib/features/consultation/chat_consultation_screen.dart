@@ -67,6 +67,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   final _input = TextEditingController();
   bool _lowBalanceShown = false;
   bool _graceShown = false;
+  bool _leftForTerminal = false;
 
   String get _id => widget.consultationId;
 
@@ -210,6 +211,25 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     }
   }
 
+  /// Close the screen if the session ends without the customer having started
+  /// it: the request expired unaccepted, or the astrologer declined. These never
+  /// billed, so we just inform and return them. (A session that actually ran is
+  /// handled by the explicit End flow / summary, not here.)
+  void _maybeHandleTerminal(ConsultationState s) {
+    if (_leftForTerminal || !mounted) return;
+    final c = s.consultation;
+    final everStarted = c.billedSeconds > 0 || c.duration > 0;
+    final unaccepted = c.status == ConsultationStatus.expired ||
+        c.status == ConsultationStatus.cancelled;
+    if (unaccepted && !everStarted) {
+      _leftForTerminal = true;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("The astrologer couldn't take your request right now — you haven't been charged."),
+      ));
+      Navigator.of(context).maybePop();
+    }
+  }
+
   Future<void> _handleWarn(ConsultationState s) async {
     // Grace minute — a one-time gift when the balance ran out. Celebrate it and
     // suppress the low-balance nudge for this cycle so they don't stack.
@@ -311,7 +331,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     final async = ref.watch(consultationControllerProvider(_id));
     ref.listen(consultationControllerProvider(_id), (_, next) {
       final s = next.valueOrNull;
-      if (s != null) _handleWarn(s);
+      if (s == null) return;
+      _handleWarn(s);
+      _maybeHandleTerminal(s);
     });
 
     final uid = ref.watch(currentUidProvider);

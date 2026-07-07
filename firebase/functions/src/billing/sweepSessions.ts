@@ -1,8 +1,15 @@
 /**
- * sweepStaleSessions — scheduled safety net (every 1 min). Two jobs:
+ * sweepStaleSessions — scheduled safety net (every 1 min). Four jobs:
  *  1. Bill any `active` session whose client heartbeat is late (covers app
  *     kills / lost connections so we never lose or over-charge time).
  *  2. Auto-end `paused` sessions that have exceeded the session timeout.
+ *  3. Expire `waiting` requests never accepted within requestTimeoutSec, and
+ *     FREE the reserved astrologer. Without this, an abandoned request (customer
+ *     closes the app before the astrologer accepts) strands the astrologer as
+ *     `available: false` forever — permanently unable to take new consultations.
+ *  4. Reconcile orphaned availability: any human astrologer marked
+ *     `available: false` with no open session is freed. Self-heals flags left
+ *     stuck by crashes, out-of-band deletes, or partial failures.
  * Uses the same transactional `applyTick` as the client heartbeat.
  */
 import { onSchedule } from 'firebase-functions/v2/scheduler';
@@ -11,6 +18,8 @@ import { Collections } from '../common/collections';
 import { getGlobalConfig } from '../common/config';
 import { applyTick } from './tickConsultation';
 import { astrologerNetEarning } from './engine';
+
+const OPEN_STATUSES = ['waiting', 'active', 'paused'];
 
 export const sweepStaleSessions = onSchedule('every 1 minutes', async () => {
   const config = await getGlobalConfig();
@@ -67,5 +76,62 @@ export const sweepStaleSessions = onSchedule('every 1 minutes', async () => {
         { merge: true },
       );
     });
+  }
+
+  // --- 3. Waiting requests never accepted → expire and free the astrologer ---
+  // The session never started, so there is NO billing, NO earnings credit, and
+  // it does NOT count as a completed consultation for either party.
+  const waitingCutoff = Timestamp.fromMillis(nowMs - config.requestTimeoutSec * 1000);
+  const staleWaiting = await db
+    .collection(Collections.consultations)
+    .where('status', '==', 'waiting')
+    .where('createdAt', '<=', waitingCutoff)
+    .limit(200)
+    .get();
+
+  for (const doc of staleWaiting.docs) {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(doc.ref);
+      if (!snap.exists) return;
+      const c = snap.data()!;
+      if (c.status !== 'waiting') return; // may have just been accepted
+
+      tx.update(doc.ref, {
+        status: 'expired',
+        paymentStatus: 'settled',
+        endTime: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      tx.set(
+        db.collection(Collections.astrologers).doc(c.astrologerId),
+        { available: true, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+    });
+  }
+
+  // --- 4. Reconcile orphaned availability flags ---
+  // A human astrologer marked busy (available == false) with no open session is
+  // a stuck flag (crash / out-of-band delete / partial failure). Free them so
+  // they can receive consultations again. AI personas never use this flag.
+  const busy = await db
+    .collection(Collections.astrologers)
+    .where('available', '==', false)
+    .limit(300)
+    .get();
+
+  for (const astro of busy.docs) {
+    if (astro.data().isAI === true) continue;
+    const open = await db
+      .collection(Collections.consultations)
+      .where('astrologerId', '==', astro.id)
+      .where('status', 'in', OPEN_STATUSES)
+      .limit(1)
+      .get();
+    if (!open.empty) continue; // genuinely in a session — leave reserved
+    await astro.ref.set(
+      { available: true, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
   }
 });

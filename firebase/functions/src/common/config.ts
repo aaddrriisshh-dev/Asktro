@@ -10,7 +10,7 @@ export const DEFAULT_CONFIG: GlobalConfig = {
   warnLevel2Sec: 20,
   reconnectTimeoutSec: 45,
   sessionTimeoutSec: 300,
-  requestTimeoutSec: 30,
+  requestTimeoutSec: 90, // a waiting request auto-expires if unaccepted this long
   commissionPercent: 20,
   freeChatMinutes: 3, // welcome free chat minutes for new customers
   graceMinutes: 1, // one free grace minute when balance runs out mid-session
