@@ -10,7 +10,7 @@ import { db, FieldValue, Timestamp } from '../common/admin';
 import { Collections } from '../common/collections';
 import { getGlobalConfig } from '../common/config';
 import { assertAuthed, badRequest, failedPrecondition, notFound } from '../common/errors';
-import { applyTick } from './tickConsultation';
+import { applyTick, TickOutcome } from './tickConsultation';
 import { astrologerNetEarning } from './engine';
 
 function receiptNumber(consultationId: string, nowMs: number): string {
@@ -78,20 +78,22 @@ export const endConsultation = onCall(async (req) => {
       };
     }
 
-    // Final billing tick (only bills if still active).
+    // Final billing tick (only bills if still active). applyTick performs its
+    // own reads BEFORE any writes; endConsultation must NOT read again after
+    // this point — Firestore forbids reads after writes in a transaction. So we
+    // compute the final cumulative figures from the pre-tick snapshot (`c`) plus
+    // the delta the tick reports, rather than re-reading the document.
+    let tick: TickOutcome | null = null;
     if (c.status === 'active') {
-      await applyTick(tx, consultationId!, config, nowMs);
+      tick = await applyTick(tx, consultationId!, config, nowMs);
     }
 
-    // Re-read post-tick figures.
-    const finalSnap = await tx.get(ref);
-    const fc = finalSnap.data()!;
-
-    const grossEarned = fc.totalCharged ?? 0;
+    const finalBilledSeconds = (c.billedSeconds ?? 0) + (tick?.billedSeconds ?? 0);
+    const grossEarned = (c.totalCharged ?? 0) + (tick?.chargedPaise ?? 0);
     // Use the per-astrologer commission snapshotted at session start; fall back
     // to the global config for legacy sessions created before this field existed.
     const commissionPercent =
-      typeof fc.commissionPercent === 'number' ? fc.commissionPercent : config.commissionPercent;
+      typeof c.commissionPercent === 'number' ? c.commissionPercent : config.commissionPercent;
     const net = astrologerNetEarning(grossEarned, commissionPercent);
     const receiptNo = receiptNumber(consultationId!, nowMs);
 
@@ -99,7 +101,7 @@ export const endConsultation = onCall(async (req) => {
       status: 'completed',
       paymentStatus: 'settled',
       endTime: FieldValue.serverTimestamp(),
-      duration: fc.billedSeconds ?? 0,
+      duration: finalBilledSeconds,
       receiptNo,
       warnLevel: 0,
       updatedAt: FieldValue.serverTimestamp(),
@@ -107,19 +109,19 @@ export const endConsultation = onCall(async (req) => {
 
     // Credit net earning + bump counts (both chat and call). Release the
     // exclusive lock ONLY for a call — a chat never held it.
-    const astrologerRef = db.collection(Collections.astrologers).doc(fc.astrologerId);
+    const astrologerRef = db.collection(Collections.astrologers).doc(c.astrologerId);
     const astrologerUpdate: Record<string, unknown> = {
       earnings: FieldValue.increment(net),
       pendingPayout: FieldValue.increment(net),
       totalConsultations: FieldValue.increment(1),
       updatedAt: FieldValue.serverTimestamp(),
     };
-    if (fc.type === 'voice' || fc.type === 'video') {
+    if (c.type === 'voice' || c.type === 'video') {
       astrologerUpdate.available = true;
     }
     tx.set(astrologerRef, astrologerUpdate, { merge: true });
 
-    const customerRef = db.collection(Collections.users).doc(fc.customerId);
+    const customerRef = db.collection(Collections.users).doc(c.customerId);
     tx.set(
       customerRef,
       { totalConsultations: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() },
@@ -128,12 +130,12 @@ export const endConsultation = onCall(async (req) => {
 
     return {
       alreadyEnded: false,
-      duration: fc.billedSeconds ?? 0,
+      duration: finalBilledSeconds,
       totalCharged: grossEarned,
       astrologerNet: net,
       receiptNo,
-      type: fc.type,
-      astrologerId: fc.astrologerId,
+      type: c.type,
+      astrologerId: c.astrologerId,
     };
   });
 

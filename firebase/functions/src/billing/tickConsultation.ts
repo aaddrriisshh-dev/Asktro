@@ -24,6 +24,9 @@ export interface TickOutcome {
   walletBalance: number;
   bonusBalance: number;
   billedSeconds: number;
+  /** Paise charged on this tick (lets callers compute the new cumulative total
+   *  without a second read — Firestore forbids reads after writes in a txn). */
+  chargedPaise: number;
   /** True on the single tick where a one-time grace minute was granted. */
   graceGranted?: boolean;
 }
@@ -133,6 +136,7 @@ export async function applyTick(
     walletBalance: finalWallet,
     bonusBalance: finalBonus,
     billedSeconds: result.billedSeconds,
+    chargedPaise: result.chargedPaise,
     graceGranted: grantGrace,
   };
 }
