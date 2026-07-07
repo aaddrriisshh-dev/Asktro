@@ -357,6 +357,36 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     );
   }
 
+  /// Slim astrologer name-card just under the header: experience, consultations,
+  /// rating. Kept to one compact line — a banner, not a full profile card.
+  Widget _astroBanner() {
+    final a = widget.astrologer;
+    final parts = <String>[
+      if (a.experience > 0) '${a.experience} yrs exp',
+      '${a.totalConsultations} consultations',
+      if (a.rating > 0) '★ ${a.rating.toStringAsFixed(1)}',
+    ];
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: AppColors.card,
+        border: Border(bottom: BorderSide(color: Color(0x11000000))),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.workspace_premium_rounded, size: 14, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(parts.join('   ·   '),
+                style: AppTypography.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.readOnly) return _readOnlyView();
@@ -421,6 +451,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 showCountdown: (ref.watch(myProfileProvider).valueOrNull?.walletBalance ?? 0) <= 0,
               ),
             ),
+            _astroBanner(),
             // Messages + the typing indicator live TOGETHER in the flexible
             // region, so the typing row can never steal fixed height from the
             // composer and overflow the column when the keyboard opens.
