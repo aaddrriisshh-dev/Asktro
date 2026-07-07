@@ -391,7 +391,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
       children: [
         Icon(Icons.timer_outlined, size: 12.5, color: dark ? Colors.white70 : Sky.ink2),
         const SizedBox(width: 4),
-        Text('${_mmss(_elapsedSeconds)}  ·  earned ${Money.formatPaise(c.totalCharged)}',
+        Text('${_mmss(_elapsedSeconds)}  ·  earned ${Money.formatPaise(widget.self.netOf(c.totalCharged))}',
             style: Sky.label.copyWith(fontSize: 11.5, color: dark ? Colors.white70 : Sky.ink2)),
       ],
     );
@@ -494,7 +494,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                 Text('${video ? 'Video' : 'Voice'} · ${Money.formatDuration(c.billedSeconds)}',
                     style: Sky.body.copyWith(color: Colors.white70)),
                 const SizedBox(height: 6),
-                Text('Earned ${Money.formatPaise(c.totalCharged)}',
+                Text('Earned ${Money.formatPaise(widget.self.netOf(c.totalCharged))}',
                     style: Sky.label.copyWith(color: Sky.goldSoft, fontWeight: FontWeight.w700)),
                 const Spacer(),
                 Row(
@@ -573,7 +573,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                 child: Column(children: [
                   _row('Duration', Money.formatDurationLong(c.duration)),
                   _row('Type', c.type.name),
-                  _row('Earned', Money.formatPaise(c.totalCharged)),
+                  _row('Earned', Money.formatPaise(widget.self.netOf(c.totalCharged))),
                   if (c.receiptNo != null) _row('Receipt', c.receiptNo!),
                 ]),
               ),

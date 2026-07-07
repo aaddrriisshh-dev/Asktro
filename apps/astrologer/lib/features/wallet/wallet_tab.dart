@@ -82,9 +82,11 @@ class _WalletTabState extends ConsumerState<WalletTab> {
     );
   }
 
-  int _sumSince(List<SessionRow> rows, int sinceMs) => rows
+  // NET (after commission) so period cards match the withdrawable/lifetime
+  // figures, which the backend already stores net.
+  int _sumSince(List<SessionRow> rows, int sinceMs, Astrologer? self) => rows
       .where((r) => r.c.status.isTerminal && (r.createdAtMs ?? 0) >= sinceMs)
-      .fold<int>(0, (a, r) => a + r.c.totalCharged);
+      .fold<int>(0, (a, r) => a + (self?.netOf(r.c.totalCharged) ?? r.c.totalCharged));
 
   @override
   Widget build(BuildContext context) {
@@ -138,22 +140,22 @@ class _WalletTabState extends ConsumerState<WalletTab> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _earnCard('Today', _sumSince(rows, today))),
+              Expanded(child: _earnCard('Today', _sumSince(rows, today, self))),
               const SizedBox(width: 12),
-              Expanded(child: _earnCard('This week', _sumSince(rows, week))),
+              Expanded(child: _earnCard('This week', _sumSince(rows, week, self))),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _earnCard('This month', _sumSince(rows, month))),
+              Expanded(child: _earnCard('This month', _sumSince(rows, month, self))),
               const SizedBox(width: 12),
               Expanded(child: _earnCard('Lifetime', self?.earnings ?? 0, accent: Sky.gold)),
             ],
           ),
           const SizedBox(height: 22),
           const SectionTitle('Last 7 days'),
-          _WeekChart(rows: rows),
+          _WeekChart(rows: rows, self: self),
           const SizedBox(height: 22),
           const SectionTitle('Transactions'),
           if (payouts.isEmpty)
@@ -234,8 +236,9 @@ class _WalletTabState extends ConsumerState<WalletTab> {
 }
 
 class _WeekChart extends StatelessWidget {
-  const _WeekChart({required this.rows});
+  const _WeekChart({required this.rows, this.self});
   final List<SessionRow> rows;
+  final Astrologer? self;
 
   @override
   Widget build(BuildContext context) {
@@ -249,7 +252,7 @@ class _WeekChart extends StatelessWidget {
       for (final r in rows) {
         final ms = r.createdAtMs;
         if (r.c.status.isTerminal && ms != null && ms >= start && ms < end) {
-          totals[i] += r.c.totalCharged;
+          totals[i] += self?.netOf(r.c.totalCharged) ?? r.c.totalCharged;
         }
       }
     }

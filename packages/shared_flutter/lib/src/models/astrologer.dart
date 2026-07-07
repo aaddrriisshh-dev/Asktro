@@ -26,6 +26,7 @@ class Astrologer extends Equatable {
     this.earnings = 0,
     this.pendingPayout = 0,
     this.ratePerMinutePaise = 900,
+    this.commissionPercent = 20,
     this.isAI = false,
     this.quickReplies = const [],
     this.availability = const {},
@@ -52,9 +53,15 @@ class Astrologer extends Equatable {
   final int earnings; // paise, lifetime gross (astrologer-side display)
   final int pendingPayout; // paise, accrued net earnings not yet paid out
   final int ratePerMinutePaise; // this astrologer's price per minute
+  final num commissionPercent; // platform cut %; astrologer keeps (100 - this)%
   final bool isAI; // AI persona vs a human astrologer
   final List<String> quickReplies;
   final Map<String, dynamic> availability;
+
+  /// Astrologer's NET take-home for a gross (customer-charged) paise amount,
+  /// after the platform commission. Use this for any earnings the astrologer
+  /// sees, so period aggregates match the net payout figures.
+  int netOf(int grossPaise) => (grossPaise * (100 - commissionPercent) / 100).round();
 
   // `available` is a busy flag toggled by the session lifecycle; AI personas are
   // never "busy", so they're consultable whenever online + approved.
@@ -91,6 +98,7 @@ class Astrologer extends Equatable {
       earnings: (m['earnings'] ?? 0) as int,
       pendingPayout: (m['pendingPayout'] ?? 0) as int,
       ratePerMinutePaise: (m['ratePerMinutePaise'] ?? 900) as int,
+      commissionPercent: (m['commissionPercent'] ?? 20) as num,
       isAI: (m['isAI'] ?? false) as bool,
       quickReplies: List<String>.from(m['quickReplies'] ?? const []),
       availability: Map<String, dynamic>.from(m['availability'] ?? const {}),
@@ -102,6 +110,6 @@ class Astrologer extends Equatable {
         id, name, profilePhoto, about, experience, languages, expertise, rating,
         totalReviews, totalConsultations, followers, responseTimeSec,
         onlineStatus, available, verified, featured, risingStar, status, earnings,
-        pendingPayout, ratePerMinutePaise, isAI, quickReplies, availability,
+        pendingPayout, ratePerMinutePaise, commissionPercent, isAI, quickReplies, availability,
       ];
 }

@@ -27,7 +27,10 @@ class HomeTab extends ConsumerWidget {
         .where((r) => r.c.status == ConsultationStatus.active || r.c.status == ConsultationStatus.paused)
         .toList();
     final todayDone = rows.where((r) => r.isToday && r.c.status.isTerminal).toList();
-    final todayEarn = todayDone.fold<int>(0, (a, r) => a + r.c.totalCharged);
+    // NET (after commission) so it matches the withdrawable/pending payout the
+    // astrologer is actually paid — not the gross customer charge.
+    final todayEarn =
+        todayDone.fold<int>(0, (a, r) => a + (self?.netOf(r.c.totalCharged) ?? r.c.totalCharged));
 
     final online = self?.onlineStatus ?? false;
 
@@ -88,7 +91,7 @@ class HomeTab extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _weeklyTrend(rows),
+                  _weeklyTrend(rows, self),
                   if (active.isNotEmpty) ...[
                     const SizedBox(height: 22),
                     const SectionTitle('Active now'),
@@ -234,7 +237,7 @@ class HomeTab extends ConsumerWidget {
   // A slim weekly-earnings trend with a sparkline — the "graph going with the
   // flow" from the reference. Uses real last-7-day earnings; falls back to a
   // gentle curve when there's no data yet.
-  Widget _weeklyTrend(List<SessionRow> rows) {
+  Widget _weeklyTrend(List<SessionRow> rows, Astrologer? self) {
     final now = DateTime.now();
     final pts = <double>[];
     for (var i = 6; i >= 0; i--) {
@@ -244,7 +247,9 @@ class HomeTab extends ConsumerWidget {
       var sum = 0;
       for (final r in rows) {
         final ms = r.createdAtMs;
-        if (r.c.status.isTerminal && ms != null && ms >= start && ms < end) sum += r.c.totalCharged;
+        if (r.c.status.isTerminal && ms != null && ms >= start && ms < end) {
+          sum += self?.netOf(r.c.totalCharged) ?? r.c.totalCharged; // net, after commission
+        }
       }
       pts.add(sum.toDouble());
     }
