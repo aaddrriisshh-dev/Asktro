@@ -8,7 +8,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 import '../../ui/celestial.dart';
-import '../../ui/customer_insight.dart';
+import '../../ui/customer_details_card.dart';
 import 'consultation_details_screen.dart';
 
 /// The astrologer's live consultation screen. Accepts a waiting request
@@ -211,39 +211,32 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   }
 
   // ---- waiting / incoming ----
+  // Shows the customer's COMPLETE details (identity, birth details, kundli) up
+  // front so the astrologer reads the person before accepting.
   Widget _waitingView(Consultation c) {
     final cust = ref.watch(customerProvider(c.customerId)).valueOrNull;
-    final insight = CustomerInsight(cust);
     return SkyScaffold(
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(shape: BoxShape.circle, gradient: Sky.goldGrad),
-                child: AppAvatar(name: cust?.name ?? 'Customer', photoUrl: cust?.profilePhoto, size: 96),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Pill('Incoming ${c.type.name} request', color: Sky.gold, icon: typeIconLocal(c.type)),
               ),
-              const SizedBox(height: 16),
-              Text(cust?.name ?? 'New customer', style: Sky.h1),
-              const SizedBox(height: 6),
-              Text(
-                [
-                  if (insight.age != null) '${insight.age} yrs',
-                  if (insight.genderLabel != '—') insight.genderLabel,
-                  if (insight.birthPlace != 'Not provided') insight.birthPlace,
-                ].join('  ·  '),
-                style: Sky.label.copyWith(fontSize: 13),
+              const SizedBox(height: 12),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: CustomerDetailsCard(profile: cust),
+                ),
               ),
-              const SizedBox(height: 14),
-              Pill('Incoming ${c.type.name} request', color: Sky.gold, icon: typeIconLocal(c.type)),
-              const Spacer(),
+              const SizedBox(height: 12),
               GoldButton(label: 'Accept consultation', icon: Icons.check_rounded, loading: _accepting, onPressed: _accepting ? null : _accept),
               const SizedBox(height: 10),
               GhostButton(label: 'Decline', color: Sky.ink2, onPressed: _decline),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
             ],
           ),
         ),
@@ -261,21 +254,20 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
           _liveHeader(c, cust, dark: false),
           _quickAccess(c),
           Expanded(
-            child: messages.isEmpty
-                ? Center(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.auto_awesome_rounded, size: 40, color: Sky.ink3),
-                      const SizedBox(height: 10),
-                      Text('Consultation started', style: Sky.h2.copyWith(fontSize: 15)),
-                      const SizedBox(height: 4),
-                      Text('Send a message to begin.', style: Sky.label),
-                    ]),
-                  )
-                : ListView.builder(
+            child: ListView.builder(
                     reverse: true,
                     padding: const EdgeInsets.all(16),
-                    itemCount: messages.length,
+                    // +1 for the customer-details card, pinned as the oldest item
+                    // (the "first message") so the astrologer always sees who
+                    // they're consulting and their birth details/kundli.
+                    itemCount: messages.length + 1,
                     itemBuilder: (_, i) {
+                      if (i == messages.length) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 12),
+                          child: CustomerDetailsCard(profile: cust),
+                        );
+                      }
                       final m = messages[i];
                       final mine = m['senderId'] == widget.self.id;
                       final image = m['image'] as String?;
