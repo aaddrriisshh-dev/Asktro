@@ -68,6 +68,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   bool _lowBalanceShown = false;
   bool _graceShown = false;
   bool _leftForTerminal = false;
+  bool _pausedShown = false;
 
   String get _id => widget.consultationId;
 
@@ -80,8 +81,19 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     // `waiting` so it appears in the astrologer's request queue and THEY accept
     // it (activating here would flip it to `active` and steal it from them).
     if (!widget.astrologer.isAI) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(consultationControllerProvider(_id).notifier).activate();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // AI has no human to accept, so the customer activates instantly. Surface
+      // failure instead of leaving the chat silently stuck in `waiting`.
+      final r = await ref.read(consultationControllerProvider(_id).notifier).activate();
+      if (!mounted) return;
+      r.when(
+        success: (_) {},
+        failure: (f) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text("Couldn't start the session: ${f.message}")));
+          Navigator.of(context).maybePop();
+        },
+      );
     });
   }
 
@@ -211,18 +223,30 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     }
   }
 
-  /// Close the screen if the session ends without the customer having started
-  /// it: the request expired unaccepted, or the astrologer declined. These never
-  /// billed, so we just inform and return them. (A session that actually ran is
-  /// handled by the explicit End flow / summary, not here.)
+  /// Handle the session reaching any terminal state from the server side — the
+  /// astrologer ended it, the request expired unaccepted, or the timeout sweep
+  /// closed a paused session. Without this the customer is stranded on a frozen
+  /// chat (and could keep "sending" into a dead session). The customer-initiated
+  /// End owns its own navigation and sets [_leftForTerminal] first, so it is not
+  /// double-handled here.
   void _maybeHandleTerminal(ConsultationState s) {
     if (_leftForTerminal || !mounted) return;
     final c = s.consultation;
+    if (!c.status.isTerminal) return;
+    _leftForTerminal = true;
+    // Dismiss the non-dismissible "paused" sheet if it's up (e.g. the sweep just
+    // expired a paused session while it was showing).
+    if (_pausedShown) {
+      Navigator.of(context).maybePop();
+      _pausedShown = false;
+    }
     final everStarted = c.billedSeconds > 0 || c.duration > 0;
-    final unaccepted = c.status == ConsultationStatus.expired ||
-        c.status == ConsultationStatus.cancelled;
-    if (unaccepted && !everStarted) {
-      _leftForTerminal = true;
+    if (everStarted) {
+      // It ran, then ended by the astrologer or the timeout sweep — show the
+      // same completion + rating flow as a self-initiated end.
+      showConsultationEnd(context, ref, consultation: c, astrologer: widget.astrologer);
+    } else {
+      // Never started (expired unaccepted / declined) — nothing was billed.
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("The astrologer couldn't take your request right now — you haven't been charged."),
       ));
@@ -248,13 +272,14 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     }
     if (s.warnLevel < 1) _lowBalanceShown = false;
 
-    // Level 3 — paused; block until recharge or end.
-    if (s.status == ConsultationStatus.paused && mounted) {
+    // Level 3 — paused; block until recharge or end. Guard against stacking.
+    if (s.status == ConsultationStatus.paused && !_pausedShown && mounted) {
       await _showPaused();
     }
   }
 
   Future<void> _showPaused() async {
+    _pausedShown = true;
     await showModalBottomSheet<void>(
       context: context,
       isDismissible: false,
@@ -290,6 +315,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
         ),
       ),
     );
+    _pausedShown = false;
   }
 
   Future<void> _goRecharge() async {
@@ -311,6 +337,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       ),
     );
     if (confirm != true) return;
+    // We own the summary navigation; suppress the stream terminal handler so the
+    // completion screen isn't shown twice.
+    _leftForTerminal = true;
     final r = await ref.read(consultationControllerProvider(_id).notifier).end();
     if (!mounted) return;
     r.when(
@@ -321,7 +350,10 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
         },);
         showConsultationEnd(context, ref, consultation: c, astrologer: widget.astrologer);
       },
-      failure: (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))),
+      failure: (f) {
+        _leftForTerminal = false; // end failed; stay in the session
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message)));
+      },
     );
   }
 
@@ -355,7 +387,25 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
           children: [
             async.when(
               loading: () => const SizedBox(height: 90),
-              error: (_, __) => const SizedBox(height: 90),
+              // A stream error must still offer a way out (never a dead header).
+              error: (_, __) => SafeArea(
+                bottom: false,
+                child: Container(
+                  color: AppColors.card,
+                  padding: const EdgeInsets.fromLTRB(4, 8, 12, 10),
+                  child: Row(children: [
+                    IconButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textDark),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text('Connection lost. Please go back and try again.',
+                          style: AppTypography.caption.copyWith(color: AppColors.error)),
+                    ),
+                  ]),
+                ),
+              ),
               data: (s) => ConsultationHeader(
                 astrologerName: widget.astrologer.name,
                 photoUrl: widget.astrologer.profilePhoto,
