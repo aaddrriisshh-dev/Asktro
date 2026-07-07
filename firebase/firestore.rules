@@ -24,7 +24,10 @@ service cloud.firestore {
 
     // ================= users =================
     match /users/{userId} {
-      allow read: if isSelf(userId) || isAdmin();
+      // Astrologers need to read the customer's profile (name, birth details,
+      // chart) for their consultations. Longer term this should be scoped to
+      // customers they actually consult, or denormalised onto the session.
+      allow read: if isSelf(userId) || isAdmin() || isAstrologer();
       allow create: if isSelf(userId)
         // a new profile must start with zeroed, function-owned money fields
         && request.resource.data.walletBalance == 0
