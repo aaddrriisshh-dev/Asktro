@@ -80,6 +80,17 @@ export const processPayout = onCall(async (req) => {
       failedPrecondition(`Cannot ${decision} a ${p.status} payout.`);
     }
 
+    // Guard against paying out more than the astrologer has actually accrued
+    // (amount is client-set at request time). Read must precede any write.
+    const astroRef = db.collection(Collections.astrologers).doc(p.astrologerId);
+    if (decision === 'processed') {
+      const astroSnap = await tx.get(astroRef);
+      const pending = (astroSnap.data()?.pendingPayout ?? 0) as number;
+      if ((p.amount ?? 0) > pending) {
+        failedPrecondition('PAYOUT_EXCEEDS_PENDING');
+      }
+    }
+
     tx.update(ref, {
       status: decision,
       processedBy: actor,
@@ -89,7 +100,7 @@ export const processPayout = onCall(async (req) => {
     // On final processing, clear the astrologer's pending payout by that amount.
     if (decision === 'processed') {
       tx.set(
-        db.collection(Collections.astrologers).doc(p.astrologerId),
+        astroRef,
         { pendingPayout: FieldValue.increment(-(p.amount ?? 0)), updatedAt: FieldValue.serverTimestamp() },
         { merge: true },
       );
