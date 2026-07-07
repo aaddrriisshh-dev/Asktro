@@ -37,7 +37,7 @@ service cloud.firestore {
       allow update: if isSelf(userId) && notChanging([
         'walletBalance','bonusBalance','lockedBalance','totalRecharge',
         'totalSpent','pendingRefund','totalConsultations','referralCode',
-        'referredBy','accountStatus'
+        'referredBy','accountStatus','signupBonusGranted','firstRechargeAt'
       ]);
       allow delete: if false; // deletion only via Cloud Function
     }
@@ -47,12 +47,20 @@ service cloud.firestore {
       // public directory is readable by any signed-in user
       allow read: if isSignedIn();
       allow create: if isAdmin();
-      // astrologer may toggle their own presence/profile, never money/verify/status
+      // astrologer may toggle their own presence/profile, never money/verify/
+      // status/rate/commission/availability-lock (all function- or admin-owned).
       allow update: if isAdmin() || (isSelf(astrologerId) && notChanging([
         'rating','totalReviews','totalConsultations','followers','earnings',
-        'pendingPayout','verified','featured','accountStatus'
+        'pendingPayout','verified','featured','accountStatus',
+        'commissionPercent','ratePerMinutePaise','available'
       ]));
       allow delete: if isAdmin();
+
+      // Private notes an astrologer keeps on a customer — only the owner. Rules
+      // do not cascade into subcollections, so this needs its own match.
+      match /notes/{noteId} {
+        allow read, write: if isSelf(astrologerId);
+      }
     }
 
     // ================= consultations =================
