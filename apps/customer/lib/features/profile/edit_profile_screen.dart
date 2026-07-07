@@ -1,14 +1,19 @@
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../data/place_search_service.dart';
 import '../profile_setup/onboarding_style.dart';
 
-/// Full account / astrology profile — identity (name, email, phone) plus the
-/// birth details used for the chart. Everything the astrologer needs is stored
-/// here so it can travel with a consultation request. Phone is read-only (login
-/// identity).
+/// Full account / astrology profile — identity (name, email, phone) plus birth
+/// details for the chart. Uses keypad-free wheel pickers for date & time and a
+/// live city search (same OpenStreetMap service as onboarding) for the place, so
+/// there's nothing awkward to type. Everything is stored so it travels with a
+/// consultation request. Phone is read-only (login identity).
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -19,6 +24,9 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 const _kLanguages = [
   'Hindi', 'English', 'Bengali', 'Tamil', 'Telugu', 'Kannada',
   'Marathi', 'Punjabi', 'Gujarati', 'Malayalam', 'Odia', 'Urdu',
+];
+const _kMonths = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
@@ -33,6 +41,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   String? _relationship;
   final Set<String> _languages = {};
 
+  final _placeService = PlaceSearchService();
+  Timer? _placeDebounce;
+  List<PlaceResult> _placeResults = const [];
+  bool _placeLoading = false;
+
   bool _prefilled = false;
   bool _saving = false;
 
@@ -41,6 +54,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _name.dispose();
     _email.dispose();
     _place.dispose();
+    _placeDebounce?.cancel();
     super.dispose();
   }
 
@@ -102,22 +116,103 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
+  // ---- wheel pickers (no keypad) ----
   Future<void> _pickDate() async {
     final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _birthDate ?? DateTime(now.year - 25),
-      firstDate: DateTime(1920),
-      lastDate: now,
+    var temp = _birthDate ?? DateTime(1995, 6, 15);
+    if (temp.isAfter(now)) temp = now;
+    await _wheelSheet(
+      'Date of birth',
+      CupertinoDatePicker(
+        mode: CupertinoDatePickerMode.date,
+        initialDateTime: temp,
+        minimumYear: 1920,
+        maximumDate: now,
+        onDateTimeChanged: (d) => temp = d,
+      ),
+      () => setState(() => _birthDate = temp),
     );
-    if (picked != null) setState(() => _birthDate = picked);
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _birthTime ?? const TimeOfDay(hour: 9, minute: 0));
-    if (picked != null) setState(() {
-      _birthTime = picked;
-      _timeKnown = true;
+    var temp = DateTime(2020, 1, 1, _birthTime?.hour ?? 9, _birthTime?.minute ?? 0);
+    await _wheelSheet(
+      'Time of birth',
+      CupertinoDatePicker(
+        mode: CupertinoDatePickerMode.time,
+        use24hFormat: false,
+        initialDateTime: temp,
+        onDateTimeChanged: (d) => temp = d,
+      ),
+      () => setState(() {
+        _birthTime = TimeOfDay(hour: temp.hour, minute: temp.minute);
+        _timeKnown = true;
+      }),
+    );
+  }
+
+  Future<void> _wheelSheet(String title, Widget picker, VoidCallback onDone) {
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 320,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: Ob.border))),
+                child: Row(
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                    Expanded(
+                      child: Text(title,
+                          textAlign: TextAlign.center,
+                          style: Ob.option.copyWith(fontWeight: FontWeight.w700)),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        onDone();
+                        Navigator.pop(ctx);
+                      },
+                      child: Text('Done',
+                          style: TextStyle(color: Ob.purple, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(child: picker),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---- live city search ----
+  void _onPlaceChanged(String v) {
+    _placeDebounce?.cancel();
+    final q = v.trim();
+    if (q.length < 2) {
+      setState(() {
+        _placeResults = const [];
+        _placeLoading = false;
+      });
+      return;
+    }
+    setState(() => _placeLoading = true);
+    _placeDebounce = Timer(const Duration(milliseconds: 450), () async {
+      final r = await _placeService.search(q);
+      if (!mounted || q != _place.text.trim()) return;
+      setState(() {
+        _placeResults = r;
+        _placeLoading = false;
+      });
     });
   }
 
@@ -156,17 +251,23 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 _chips('Gender', const {'male': 'Male', 'female': 'Female'}, _gender,
                     (v) => setState(() => _gender = v)),
                 const SizedBox(height: 14),
-                _pickerRow('Date of birth',
-                    _birthDate == null
-                        ? 'Select date'
-                        : '${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}',
-                    Icons.cake_outlined, _pickDate),
+                _pickerRow(
+                  'Date of birth',
+                  _birthDate == null
+                      ? 'Tap to choose'
+                      : '${_kMonths[_birthDate!.month - 1]} ${_birthDate!.day}, ${_birthDate!.year}',
+                  Icons.cake_outlined,
+                  _pickDate,
+                ),
                 const SizedBox(height: 14),
-                _pickerRow('Time of birth',
-                    !_timeKnown
-                        ? "Don't know"
-                        : (_birthTime == null ? 'Select time' : _birthTime!.format(context)),
-                    Icons.schedule_rounded, _pickTime),
+                _pickerRow(
+                  'Time of birth',
+                  !_timeKnown
+                      ? "Don't know"
+                      : (_birthTime == null ? 'Tap to choose' : _birthTime!.format(context)),
+                  Icons.schedule_rounded,
+                  _pickTime,
+                ),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton(
@@ -175,8 +276,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         style: Ob.note.copyWith(color: Ob.purple)),
                   ),
                 ),
-                _text('Birth place', _place,
-                    hint: 'City, Country', icon: Icons.place_outlined),
+                _placeField(),
                 const SizedBox(height: 24),
                 _label('ABOUT YOU'),
                 _chips(
@@ -191,7 +291,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   runSpacing: 8,
                   children: [
                     for (final lang in _kLanguages)
-                      _langChip(lang, _languages.contains(lang), () => setState(() {
+                      _chip(lang, _languages.contains(lang), () => setState(() {
                             if (_languages.contains(lang)) {
                               _languages.remove(lang);
                             } else {
@@ -283,11 +383,70 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           Icon(icon, color: Ob.purple, size: 20),
           const SizedBox(width: 12),
           Text('$label:  ', style: Ob.note),
-          Text(value, style: Ob.option),
-          const Spacer(),
+          Expanded(child: Text(value, style: Ob.option, overflow: TextOverflow.ellipsis)),
           const Icon(Icons.chevron_right_rounded, color: Color(0xFFB9B3C9)),
         ]),
       ),
+    );
+  }
+
+  Widget _placeField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _place,
+          onChanged: _onPlaceChanged,
+          style: Ob.option,
+          decoration: InputDecoration(
+            labelText: 'Place of birth',
+            hintText: 'Start typing your city…',
+            prefixIcon: const Icon(Icons.place_outlined, color: Ob.purple, size: 20),
+            suffixIcon: _placeLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)))
+                : null,
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Ob.border)),
+            enabledBorder:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Ob.border)),
+            focusedBorder:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Ob.purple)),
+          ),
+        ),
+        if (_placeResults.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Ob.border),
+            ),
+            child: Column(
+              children: [
+                for (final r in _placeResults)
+                  InkWell(
+                    onTap: () {
+                      _place.text = r.label;
+                      _place.selection = TextSelection.collapsed(offset: r.label.length);
+                      setState(() => _placeResults = const []);
+                      FocusScope.of(context).unfocus();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      child: Row(children: [
+                        const Icon(Icons.place_outlined, size: 17, color: Ob.purple),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(r.label, style: Ob.note.copyWith(fontSize: 13.5))),
+                      ]),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
@@ -300,14 +459,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final e in options.entries) _langChip(e.value, selected == e.key, () => onSelect(e.key)),
+            for (final e in options.entries) _chip(e.value, selected == e.key, () => onSelect(e.key)),
           ],
         ),
       ],
     );
   }
 
-  Widget _langChip(String text, bool on, VoidCallback onTap) {
+  Widget _chip(String text, bool on, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
