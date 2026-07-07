@@ -61,10 +61,31 @@ export const createConsultation = onCall(async (req) => {
     if (astrologer.onlineStatus !== true) {
       failedPrecondition('This astrologer is offline.');
     }
-    // AI personas are never "busy" — they handle many sessions at once, so the
-    // per-astrologer available flag only gates human astrologers.
-    if (astrologer.isAI !== true && astrologer.available !== true) {
-      failedPrecondition('This astrologer is currently in another consultation.');
+    // Concurrency model for human astrologers:
+    //   - CHATS are unlimited & concurrent — an astrologer can run many at once.
+    //   - VOICE/VIDEO calls are EXCLUSIVE — one at a time, and no chats during a
+    //     call (you can't talk to two people at once).
+    // `available === false` means "on or awaiting a call" (the exclusive lock);
+    // chats never touch it. AI personas are never gated.
+    const isCall = type === 'voice' || type === 'video';
+    if (astrologer.isAI !== true) {
+      // A call in progress (or awaiting accept) blocks everything, chat or call.
+      if (astrologer.available !== true) {
+        failedPrecondition('This astrologer is on a call right now. Please try again shortly.');
+      }
+      if (isCall) {
+        // Starting a call needs the astrologer fully free — no open chats either.
+        const openSnap = await tx.get(
+          db
+            .collection(Collections.consultations)
+            .where('astrologerId', '==', astrologerId!)
+            .where('status', 'in', ['waiting', 'active', 'paused'])
+            .limit(20),
+        );
+        if (openSnap.docs.some((d) => d.data().type === 'chat')) {
+          failedPrecondition('This astrologer is busy in chats right now. Please try again shortly.');
+        }
+      }
     }
 
     const spendable = (customer.walletBalance ?? 0) + (customer.bonusBalance ?? 0);
@@ -131,9 +152,9 @@ export const createConsultation = onCall(async (req) => {
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Reserve a human astrologer so they can't take a second call. AI personas
-    // stay available (they serve many customers concurrently).
-    if (astrologer.isAI !== true) {
+    // Reserve the astrologer ONLY for a call (the exclusive lock). Chats never
+    // reserve — many can run at once. AI personas are never reserved.
+    if (astrologer.isAI !== true && isCall) {
       tx.update(astrologerRef, { available: false, updatedAt: FieldValue.serverTimestamp() });
     }
 

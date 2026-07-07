@@ -64,17 +64,15 @@ export const sweepStaleSessions = onSchedule('every 1 minutes', async () => {
         duration: c.billedSeconds ?? 0,
         updatedAt: FieldValue.serverTimestamp(),
       });
-      tx.set(
-        db.collection(Collections.astrologers).doc(c.astrologerId),
-        {
-          available: true,
-          earnings: FieldValue.increment(net),
-          pendingPayout: FieldValue.increment(net),
-          totalConsultations: FieldValue.increment(1),
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+      const update: Record<string, unknown> = {
+        earnings: FieldValue.increment(net),
+        pendingPayout: FieldValue.increment(net),
+        totalConsultations: FieldValue.increment(1),
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+      // Release the exclusive lock only for a call — chats never held it.
+      if (c.type === 'voice' || c.type === 'video') update.available = true;
+      tx.set(db.collection(Collections.astrologers).doc(c.astrologerId), update, { merge: true });
     });
   }
 
@@ -102,18 +100,22 @@ export const sweepStaleSessions = onSchedule('every 1 minutes', async () => {
         endTime: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
-      tx.set(
-        db.collection(Collections.astrologers).doc(c.astrologerId),
-        { available: true, updatedAt: FieldValue.serverTimestamp() },
-        { merge: true },
-      );
+      // Only an unaccepted call held the exclusive lock; a chat never did.
+      if (c.type === 'voice' || c.type === 'video') {
+        tx.set(
+          db.collection(Collections.astrologers).doc(c.astrologerId),
+          { available: true, updatedAt: FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+      }
     });
   }
 
   // --- 4. Reconcile orphaned availability flags ---
-  // A human astrologer marked busy (available == false) with no open session is
-  // a stuck flag (crash / out-of-band delete / partial failure). Free them so
-  // they can receive consultations again. AI personas never use this flag.
+  // `available == false` should mean "on or awaiting a voice/video call" (the
+  // exclusive lock). Any human astrologer marked busy with no open CALL is a
+  // stuck flag (crash / out-of-band delete / partial failure, or legacy data
+  // from when chats also reserved) — free them. AI personas never use this flag.
   const busy = await db
     .collection(Collections.astrologers)
     .where('available', '==', false)
@@ -126,9 +128,13 @@ export const sweepStaleSessions = onSchedule('every 1 minutes', async () => {
       .collection(Collections.consultations)
       .where('astrologerId', '==', astro.id)
       .where('status', 'in', OPEN_STATUSES)
-      .limit(1)
+      .limit(20)
       .get();
-    if (!open.empty) continue; // genuinely in a session — leave reserved
+    const onCall = open.docs.some((d) => {
+      const t = d.data().type;
+      return t === 'voice' || t === 'video';
+    });
+    if (onCall) continue; // genuinely on a call — leave reserved
     await astro.ref.set(
       { available: true, updatedAt: FieldValue.serverTimestamp() },
       { merge: true },

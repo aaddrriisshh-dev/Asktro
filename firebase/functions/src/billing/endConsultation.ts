@@ -58,11 +58,14 @@ export const endConsultation = onCall(async (req) => {
         endTime: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
-      tx.set(
-        db.collection(Collections.astrologers).doc(c.astrologerId),
-        { available: true, updatedAt: FieldValue.serverTimestamp() },
-        { merge: true },
-      );
+      // Only a call held the exclusive lock; a cancelled chat never did.
+      if (c.type === 'voice' || c.type === 'video') {
+        tx.set(
+          db.collection(Collections.astrologers).doc(c.astrologerId),
+          { available: true, updatedAt: FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+      }
       return {
         alreadyEnded: false,
         cancelled: true,
@@ -102,19 +105,19 @@ export const endConsultation = onCall(async (req) => {
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Free the astrologer, credit net earning, bump counts.
+    // Credit net earning + bump counts (both chat and call). Release the
+    // exclusive lock ONLY for a call — a chat never held it.
     const astrologerRef = db.collection(Collections.astrologers).doc(fc.astrologerId);
-    tx.set(
-      astrologerRef,
-      {
-        available: true,
-        earnings: FieldValue.increment(net),
-        pendingPayout: FieldValue.increment(net),
-        totalConsultations: FieldValue.increment(1),
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
+    const astrologerUpdate: Record<string, unknown> = {
+      earnings: FieldValue.increment(net),
+      pendingPayout: FieldValue.increment(net),
+      totalConsultations: FieldValue.increment(1),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    if (fc.type === 'voice' || fc.type === 'video') {
+      astrologerUpdate.available = true;
+    }
+    tx.set(astrologerRef, astrologerUpdate, { merge: true });
 
     const customerRef = db.collection(Collections.users).doc(fc.customerId);
     tx.set(
