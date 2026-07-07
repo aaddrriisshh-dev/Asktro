@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -28,6 +30,30 @@ Future<bool> readSetupDone() async {
 Future<void> setSetupDone() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool('setup_done', true);
+}
+
+/// Onboarding details collected before login are buffered on disk (not just in
+/// memory) so they survive an app kill/restart during the login/OTP step and
+/// still reach the profile once the user signs in.
+Future<void> writePendingProfile(Map<String, dynamic> data) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('pending_profile', jsonEncode(data));
+}
+
+Future<Map<String, dynamic>?> readPendingProfile() async {
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getString('pending_profile');
+  if (raw == null || raw.isEmpty) return null;
+  try {
+    return (jsonDecode(raw) as Map).cast<String, dynamic>();
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<void> clearPendingProfile() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('pending_profile');
 }
 
 /// Holds the router on the splash long enough for the launch animation to play.

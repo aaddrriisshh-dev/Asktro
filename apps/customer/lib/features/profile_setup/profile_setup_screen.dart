@@ -126,7 +126,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         return;
       }
     } else {
+      // No uid yet (setup runs before login). Buffer in memory AND on disk so
+      // the details survive an app restart during the login/OTP step.
       ref.read(pendingProfileProvider.notifier).state = data;
+      await writePendingProfile(data);
     }
     await setSetupDone();
     ref.read(setupDoneProvider.notifier).state = true;

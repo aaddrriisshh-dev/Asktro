@@ -5,6 +5,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../app/router.dart';
 import '../../data/messaging_service.dart';
 
 /// Auth actions: phone OTP, Google, Apple. On success we ensure a `users/{uid}`
@@ -101,12 +102,19 @@ class AuthController {
   Future<void> _ensureProfile(UserCredential cred, {required String phone, String? name, String? email}) async {
     final uid = cred.user?.uid;
     if (uid == null) return;
+    // Onboarding details collected before login (buffered in memory, and on disk
+    // so they survive an app restart during the OTP step). Written together with
+    // the profile in a single create — no separate flush, no race.
+    final pending = _ref.read(pendingProfileProvider) ?? await readPendingProfile();
     await _ref.read(userRepositoryProvider).ensureProfile(
           uid,
           phone: phone,
           name: name ?? cred.user?.displayName,
           email: email ?? cred.user?.email,
+          profile: pending,
         );
+    _ref.read(pendingProfileProvider.notifier).state = null;
+    await clearPendingProfile();
     _ref.read(analyticsProvider).logEvent(AnalyticsEvents.login);
   }
 

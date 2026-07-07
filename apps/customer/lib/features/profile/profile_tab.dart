@@ -8,6 +8,7 @@ import '../auth/auth_controller.dart';
 import '../search/search_screen.dart';
 import '../profile_setup/onboarding_style.dart';
 import 'cms_viewer_screen.dart';
+import 'edit_profile_screen.dart';
 import 'support_screen.dart';
 
 class ProfileTab extends ConsumerWidget {
@@ -142,7 +143,15 @@ class ProfileTab extends ConsumerWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.edit_outlined, color: Colors.white, size: 20),
+              GestureDetector(
+                onTap: () => Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+                behavior: HitTestBehavior.opaque,
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.edit_outlined, color: Colors.white, size: 20),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),

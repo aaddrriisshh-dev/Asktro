@@ -119,16 +119,28 @@ class UserRepository {
         (d) => d.exists ? UserProfile.fromMap(d.id, d.data() ?? const {}) : null,
       );
 
-  Future<void> ensureProfile(String uid, {required String phone, String? name, String? email}) async {
+  /// Create the profile doc exactly once, in a SINGLE write that also includes
+  /// the onboarding details collected before login ([profile]: name, gender,
+  /// birth details, languages). Doing it in one create avoids the old race where
+  /// a separate "flush" write competed with this one and could wipe the name to
+  /// 'Guest' or be denied by the create rule. Money fields MUST start at zero
+  /// (enforced by security rules); onCustomerSignup backfills the referral code.
+  Future<void> ensureProfile(
+    String uid, {
+    required String phone,
+    String? name,
+    String? email,
+    Map<String, dynamic>? profile,
+  }) async {
     final ref = _doc(uid);
     final snap = await ref.get();
     if (snap.exists) return;
-    // Money fields MUST start at zero (enforced by security rules); the
-    // onCustomerSignup function backfills the referral code + defaults.
+    final resolvedName = (name ?? profile?['name'] as String?)?.trim();
     await ref.set({
-      'name': name ?? 'Guest',
+      ...?profile, // birth details, gender, languages, onboardingComplete, etc.
+      'name': (resolvedName != null && resolvedName.isNotEmpty) ? resolvedName : 'Guest',
       'phone': phone,
-      if (email != null) 'email': email,
+      if (email != null && email.isNotEmpty) 'email': email,
       'walletBalance': 0,
       'bonusBalance': 0,
       'lockedBalance': 0,

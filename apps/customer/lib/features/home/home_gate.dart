@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../app/router.dart';
 import 'home_shell.dart';
 
 /// What a signed-in user sees at `/home`. Profile setup now runs BEFORE login,
@@ -23,17 +24,26 @@ class _HomeGateState extends ConsumerState<HomeGate> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _flushPendingProfile());
   }
 
+  /// Backstop self-heal: `ensureProfile` already writes the onboarding details
+  /// in one create at sign-in. But if the profile doc was created some other way
+  /// first (e.g. the server onAuthUserCreate trigger, or an earlier partial
+  /// signup) so `ensureProfile` saw it exists and skipped, the buffered
+  /// onboarding could be missing. Apply it here as an idempotent update. Only
+  /// clear the buffer once the write actually lands, so a failure is retried.
   Future<void> _flushPendingProfile() async {
-    final pending = ref.read(pendingProfileProvider);
     final uid = ref.read(currentUidProvider);
-    if (pending == null || uid == null) return;
+    if (uid == null) return;
+    final pending = ref.read(pendingProfileProvider) ?? await readPendingProfile();
+    if (pending == null) return;
     try {
       await ref.read(userRepositoryProvider).updateProfile(uid, pending);
       ref.read(analyticsProvider).logEvent('profile_setup_complete');
+      ref.read(pendingProfileProvider.notifier).state = null;
+      await clearPendingProfile();
     } catch (_) {
-      // Best effort — the user can update details later from Profile.
+      // Doc may not exist yet (ensureProfile create in flight) — keep the buffer
+      // for a later retry; ensureProfile itself already includes these fields.
     }
-    ref.read(pendingProfileProvider.notifier).state = null;
   }
 
   @override
