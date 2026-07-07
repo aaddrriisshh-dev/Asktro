@@ -36,4 +36,35 @@ asktro-tech-provate-limited-firebase-adminsdk-fbsvc-100e163e63.json
 
 ---
 
+### 2. Critical files & secrets to back up and keep safe
+
+These are NOT in git (correctly gitignored), so they exist ONLY on Adrish's
+Mac. If the laptop dies or is lost, these are gone. Back every one of them up
+to a secure vault / password manager NOW, and keep them off `Downloads`.
+
+| File / secret | Where it is now | Why it matters | Recoverable? |
+|---|---|---|---|
+| **Firebase deploy key** `asktro-tech-provate-limited-firebase-adminsdk-fbsvc-100e163e63.json` | `~/Downloads/` | Admin deploy access to backend | Yes — regenerate in Cloud Console (then delete old) |
+| **google-services.json** (customer app) | `apps/customer/android/app/` (local only, gitignored) | Firebase config + OAuth clients for the app | Yes — re-download from Firebase console |
+| **google-services.json** (astrologer app) | astrologer android dir (local only) | Same, for astrologer app | Yes — re-download from Firebase console |
+| **Android RELEASE keystore (.jks)** | ⚠️ DOES NOT EXIST YET — app is signing with the *debug* key | Signs the Play Store app. LOSE IT = you can NEVER update the app again | ❌ NO — irreplaceable once created (unless enrolled in Play App Signing) |
+| **key.properties** (keystore passwords) | ⚠️ not created yet (comes with the keystore) | Passwords for the release keystore | ❌ No — keep with the keystore |
+| **Razorpay keys** (KEY_ID, KEY_SECRET, WEBHOOK_SECRET) | Secret Manager + Razorpay dashboard | Real money — payments/refunds | Yes — Razorpay dashboard |
+| **Agora keys** (APP_ID, APP_CERTIFICATE) | Secret Manager + Agora dashboard | Voice/video calls | Yes — Agora dashboard |
+| **Admin portal env** `apps/admin/.env.local` | local only (gitignored) | Admin portal secrets | Depends what's in it — back up |
+| **iOS signing** (certs + provisioning profiles) | ⚠️ only if/when iOS is built | Signs the iOS app | Recreatable via Apple Developer, but painful |
+
+**Action before launch:**
+1. Copy every "exists now" file above into a secure vault / password manager
+   (1Password, Bitwarden, etc.) — NOT `Downloads`, NOT plain iCloud.
+2. **Create the Android release keystore** (it does not exist yet) and back it
+   up in TWO safe places. This is the #1 irreplaceable file. Strongly recommend
+   also enrolling in **Google Play App Signing** so Google holds a copy — that
+   is the safety net if the keystore is ever lost.
+3. Wire the release keystore into `apps/customer/android/app/build.gradle.kts`
+   (currently line ~32 uses `signingConfigs.getByName("debug")` — must switch to
+   a real `release` signing config before publishing).
+
+---
+
 ## Add new pre-launch items below as they come up.
