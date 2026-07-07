@@ -27,6 +27,7 @@ export { rateConsultation } from './ratings/rateConsultation';
 export { generateAgoraToken } from './agora/token';
 
 // ---- Auth / account lifecycle ----
+export { onAuthUserCreate } from './auth/onAuthUserCreate';
 export { onCustomerSignup } from './auth/onUserCreate';
 export { setUserRole, deleteAccount } from './auth/adminAndDeletion';
 
