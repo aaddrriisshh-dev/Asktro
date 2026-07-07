@@ -9,7 +9,7 @@
  */
 import { onCall } from 'firebase-functions/v2/https';
 import { onRequest } from 'firebase-functions/v2/https';
-import { db } from '../common/admin';
+import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertAuthed, badRequest, failedPrecondition, notFound } from '../common/errors';
 import {
@@ -41,6 +41,17 @@ export const createRechargeOrder = onCall(
       { userId, planId, couponId: couponId ?? '' },
     );
 
+    // Persist the authoritative order→plan binding. verifyRecharge reads THIS,
+    // never the client's planId, so a paid ₹X order can't be redeemed as a
+    // larger plan. (The webhook uses the order's own notes for the same reason.)
+    await db.collection('rechargeOrders').doc(order.id).set({
+      userId,
+      planId,
+      couponId: couponId ?? null,
+      amountPaise,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
     return {
       orderId: order.id,
       amount: order.amount,
@@ -55,26 +66,32 @@ export const verifyRecharge = onCall(
   { secrets: [RAZORPAY_KEY_SECRET] },
   async (req) => {
     const userId = assertAuthed(req);
-    const { orderId, paymentId, signature, planId, couponId } = (req.data ?? {}) as {
+    // planId/couponId from the client are IGNORED — the authoritative plan is the
+    // one recorded server-side against this order at creation time.
+    const { orderId, paymentId, signature } = (req.data ?? {}) as {
       orderId?: string;
       paymentId?: string;
       signature?: string;
-      planId?: string;
-      couponId?: string;
     };
-    if (!orderId || !paymentId || !signature || !planId) {
-      badRequest('orderId, paymentId, signature, planId are required.');
+    if (!orderId || !paymentId || !signature) {
+      badRequest('orderId, paymentId, signature are required.');
     }
 
     const ok = verifyPaymentSignature(orderId!, paymentId!, signature!, RAZORPAY_KEY_SECRET.value());
     if (!ok) failedPrecondition('PAYMENT_SIGNATURE_INVALID');
 
+    // Look up what was ACTUALLY ordered and paid for; never trust the client.
+    const orderSnap = await db.collection('rechargeOrders').doc(orderId!).get();
+    if (!orderSnap.exists) failedPrecondition('ORDER_NOT_FOUND');
+    const orderRec = orderSnap.data()!;
+    if (orderRec.userId !== userId) failedPrecondition('ORDER_OWNER_MISMATCH');
+
     const result = await creditRecharge({
       userId,
       paymentId: paymentId!,
       orderId: orderId!,
-      planId: planId!,
-      couponId: couponId ?? null,
+      planId: orderRec.planId as string,
+      couponId: (orderRec.couponId as string | null) ?? null,
       source: 'callable',
     });
 
