@@ -343,6 +343,10 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 onRecharge: _goRecharge,
                 onBack: () => Navigator.of(context).maybePop(),
                 onEnd: _end,
+                // A paid user (real wallet balance) sees no countdown — only the
+                // 1-minute-before-exhaustion warning. A fresh free user, running
+                // on their 3 free minutes, sees the countdown tick down.
+                showCountdown: (ref.watch(myProfileProvider).valueOrNull?.walletBalance ?? 0) <= 0,
               ),
             ),
             Expanded(

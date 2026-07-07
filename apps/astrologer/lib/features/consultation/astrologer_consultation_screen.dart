@@ -24,10 +24,6 @@ class AstrologerConsultationScreen extends ConsumerStatefulWidget {
   ConsumerState<AstrologerConsultationScreen> createState() => _State();
 }
 
-/// The free window granted at the start of a session (mirrors the customer's
-/// welcome free minutes and the on-screen countdown they see).
-const int _kFreeSeconds = 180;
-
 class _State extends ConsumerState<AstrologerConsultationScreen> {
   final _input = TextEditingController();
   Timer? _heartbeat;
@@ -385,26 +381,19 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
     );
   }
 
-  /// Header status line: a gold "free time" countdown for the first 3 minutes,
-  /// then a live session timer with running earnings.
+  /// Header status line: a live session timer (counting up from when the
+  /// session went active) with running earnings. The astrologer can't see the
+  /// customer's wallet, so we never show a "free time" countdown here — that's a
+  /// customer-side concept tied to their balance. Elapsed + earned is always
+  /// accurate for the astrologer.
   Widget _headerTimerLine(Consultation c, bool dark) {
-    final freeLeft = _kFreeSeconds - _elapsedSeconds;
-    if (freeLeft > 0) {
-      return Row(
-        children: [
-          Icon(Icons.timer_outlined, size: 12.5, color: dark ? Sky.goldSoft : Sky.gold),
-          const SizedBox(width: 4),
-          Text('Free time  ${_mmss(freeLeft)}',
-              style: Sky.label.copyWith(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  color: dark ? Sky.goldSoft : Sky.gold)),
-        ],
-      );
-    }
-    return Text(
-      '${_mmss(_elapsedSeconds)}  ·  earned ${Money.formatPaise(c.totalCharged)}',
-      style: Sky.label.copyWith(fontSize: 11.5, color: dark ? Colors.white70 : Sky.ink2),
+    return Row(
+      children: [
+        Icon(Icons.timer_outlined, size: 12.5, color: dark ? Colors.white70 : Sky.ink2),
+        const SizedBox(width: 4),
+        Text('${_mmss(_elapsedSeconds)}  ·  earned ${Money.formatPaise(c.totalCharged)}',
+            style: Sky.label.copyWith(fontSize: 11.5, color: dark ? Colors.white70 : Sky.ink2)),
+      ],
     );
   }
 
