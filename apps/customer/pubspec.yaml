@@ -53,6 +53,9 @@ dependencies:
   shared_preferences: ^2.3.2
   connectivity_plus: ^6.0.5
 
+  # Native share sheet (referral invite -> WhatsApp / anywhere)
+  share_plus: ^10.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

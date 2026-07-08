@@ -17,6 +17,9 @@
 
 ### Content
 - [ ] **About ASKTRO** text (you said you'd send it) — goes into `cms/about`
+- [ ] **App download / Play Store URL** for the referral "Share invite" — set
+      `_kAppDownloadLink` in `apps/customer/lib/features/profile/profile_tab.dart`
+      (placeholder `https://asktro.app` for now).
 
 ### Run on your Mac (native/regeneration steps Claude can't do here)
 - [ ] `dart run flutter_launcher_icons` in `apps/customer` — regenerates the

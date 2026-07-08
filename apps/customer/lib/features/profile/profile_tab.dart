@@ -3,7 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_flutter/shared_flutter.dart';
+
+/// Where "Share invite" points people. Replace with the live Play Store URL
+/// once the app is published (tracked in docs/PRE_LAUNCH.md).
+const _kAppDownloadLink = 'https://asktro.app';
 
 import '../../app/providers.dart';
 import '../auth/auth_controller.dart';
@@ -261,10 +266,10 @@ class ProfileTab extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
+      builder: (ctx) => Container(
         decoration: const BoxDecoration(
             color: Ob.bgColor, borderRadius: BorderRadius.vertical(top: Radius.circular(28)),),
-        padding: const EdgeInsets.fromLTRB(24, 22, 24, 34),
+        padding: EdgeInsets.fromLTRB(24, 22, 24, 34 + MediaQuery.of(ctx).padding.bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -287,15 +292,15 @@ class ProfileTab extends ConsumerWidget {
 
   void _referral(BuildContext context, String code) {
     final shareText = code.isEmpty
-        ? 'Join me on ASKTRO — talk to expert astrologers. Download the app!'
-        : 'Join me on ASKTRO — talk to expert astrologers! Use my code $code when you sign up, and we BOTH get ₹20 wallet credit after your first recharge. Download the app!';
+        ? 'Join me on ASKTRO — talk to expert astrologers. Download: $_kAppDownloadLink'
+        : 'Join me on ASKTRO — talk to expert astrologers! Use my code $code when you sign up, and we BOTH get ₹20 wallet credit after your first recharge.\n\nDownload: $_kAppDownloadLink';
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
+      builder: (ctx) => Container(
         decoration: const BoxDecoration(
             color: Ob.bgColor, borderRadius: BorderRadius.vertical(top: Radius.circular(28)),),
-        padding: const EdgeInsets.fromLTRB(24, 22, 24, 34),
+        padding: EdgeInsets.fromLTRB(24, 22, 24, 34 + MediaQuery.of(ctx).padding.bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -340,11 +345,7 @@ class ProfileTab extends ConsumerWidget {
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
                     backgroundColor: Ob.purple, padding: const EdgeInsets.symmetric(vertical: 14)),
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: shareText));
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Invite message copied — paste it into WhatsApp or anywhere')),);
-                },
+                onPressed: () => Share.share(shareText, subject: 'Join me on ASKTRO'),
                 icon: const Icon(Icons.share_rounded, size: 18),
                 label: const Text('Share invite'),
               ),
@@ -359,10 +360,10 @@ class ProfileTab extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
+      builder: (ctx) => Container(
         decoration: const BoxDecoration(
             color: Ob.bgColor, borderRadius: BorderRadius.vertical(top: Radius.circular(28)),),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 34),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 34 + MediaQuery.of(ctx).padding.bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
