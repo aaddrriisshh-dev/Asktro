@@ -152,7 +152,7 @@ class _NavItem extends StatelessWidget {
                       decoration: BoxDecoration(gradient: Sky.goldGrad, borderRadius: BorderRadius.circular(999)),
                       child: Text('${badge > 9 ? '9+' : badge}',
                           textAlign: TextAlign.center,
-                          style: Sky.label.copyWith(fontSize: 9.5, color: Sky.purpleDeep, fontWeight: FontWeight.w800)),
+                          style: Sky.label.copyWith(fontSize: 9.5, color: Sky.purpleDeep, fontWeight: FontWeight.w800),),
                     ),
                   ),
               ],

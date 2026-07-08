@@ -24,12 +24,12 @@ class NotificationsTab extends ConsumerWidget {
               padding: const EdgeInsets.only(top: 80),
               child: Column(
                 children: [
-                  Icon(Icons.notifications_none_rounded, size: 46, color: Sky.ink3),
+                  const Icon(Icons.notifications_none_rounded, size: 46, color: Sky.ink3),
                   const SizedBox(height: 12),
                   Text('No notifications yet', style: Sky.h2.copyWith(fontSize: 15)),
                   const SizedBox(height: 4),
                   Text('Requests, payments and reviews will appear here.',
-                      style: Sky.label.copyWith(fontSize: 12.5), textAlign: TextAlign.center),
+                      style: Sky.label.copyWith(fontSize: 12.5), textAlign: TextAlign.center,),
                 ],
               ),
             )

@@ -44,7 +44,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   void _ensureHeartbeat(ConsultationStatus status) {
     if (status == ConsultationStatus.active) {
       _heartbeat ??= Timer.periodic(
-          const Duration(seconds: 10), (_) => ref.read(consultationServiceProvider).tick(_id));
+          const Duration(seconds: 10), (_) => ref.read(consultationServiceProvider).tick(_id),);
       // Local stopwatch drives a smooth 1-second countdown/timer in the header,
       // independent of the coarse (~10s) server billing ticks.
       _activeSince ??= DateTime.now();
@@ -96,7 +96,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel', style: Sky.label)),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: Text('End', style: Sky.label.copyWith(color: Sky.red, fontWeight: FontWeight.w800))),
+              child: Text('End', style: Sky.label.copyWith(color: Sky.red, fontWeight: FontWeight.w800)),),
         ],
       ),
     );
@@ -140,7 +140,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   void _openDetails(Consultation c) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ConsultationDetailsScreen(consultation: c, self: widget.self),
-    ));
+    ),);
   }
 
   Future<void> _quickNote(Consultation c) async {
@@ -154,7 +154,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(
-            left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+            left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,7 +165,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
               Text('Private note', style: Sky.h2),
               const Spacer(),
               Text('Only you', style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
-            ]),
+            ],),
             const SizedBox(height: 12),
             TextField(
               controller: ctrl,
@@ -206,7 +206,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(
-            left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+            left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +217,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
               Text('Suggest a remedy', style: Sky.h2),
               const Spacer(),
               Text('Sent to customer', style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
-            ]),
+            ],),
             const SizedBox(height: 12),
             TextField(
               controller: titleCtrl,
@@ -378,10 +378,10 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
                                   child: Image.network(image, fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined)),
+                                      errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),),
                                 )
                               : Text((m['text'] ?? '') as String,
-                                  style: Sky.body.copyWith(fontSize: 14.5, color: mine ? Colors.white : Sky.ink)),
+                                  style: Sky.body.copyWith(fontSize: 14.5, color: mine ? Colors.white : Sky.ink),),
                         ),
                       );
                     },
@@ -443,7 +443,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(cust?.name ?? 'Customer',
-                    style: Sky.h2.copyWith(fontSize: 14.5, color: fg), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    style: Sky.h2.copyWith(fontSize: 14.5, color: fg), maxLines: 1, overflow: TextOverflow.ellipsis,),
                 _headerTimerLine(c, dark),
               ],
             ),
@@ -472,7 +472,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
         Icon(Icons.timer_outlined, size: 12.5, color: dark ? Colors.white70 : Sky.ink2),
         const SizedBox(width: 4),
         Text('${_mmss(_elapsedSeconds)}  ·  earned ${Money.formatPaise(widget.self.netOf(c.totalCharged))}',
-            style: Sky.label.copyWith(fontSize: 11.5, color: dark ? Colors.white70 : Sky.ink2)),
+            style: Sky.label.copyWith(fontSize: 11.5, color: dark ? Colors.white70 : Sky.ink2),),
       ],
     );
   }
@@ -572,10 +572,10 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                 Text(cust?.name ?? 'Customer', style: Sky.h1.copyWith(color: Colors.white, fontSize: 24)),
                 const SizedBox(height: 8),
                 Text('${video ? 'Video' : 'Voice'} · ${Money.formatDuration(c.billedSeconds)}',
-                    style: Sky.body.copyWith(color: Colors.white70)),
+                    style: Sky.body.copyWith(color: Colors.white70),),
                 const SizedBox(height: 6),
                 Text('Earned ${Money.formatPaise(widget.self.netOf(c.totalCharged))}',
-                    style: Sky.label.copyWith(color: Sky.goldSoft, fontWeight: FontWeight.w700)),
+                    style: Sky.label.copyWith(color: Sky.goldSoft, fontWeight: FontWeight.w700),),
                 const Spacer(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -616,9 +616,9 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
               Icon(icon, color: Sky.goldSoft, size: 18),
               const SizedBox(width: 7),
               Text(label, style: Sky.label.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
-            ]),
+            ],),
           ),
-        ]),
+        ],),
       );
 
   Widget _callBtn(IconData icon, Color bg, VoidCallback onTap) => GestureDetector(
@@ -655,7 +655,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                   _row('Type', c.type.name),
                   _row('Earned', Money.formatPaise(widget.self.netOf(c.totalCharged))),
                   if (c.receiptNo != null) _row('Receipt', c.receiptNo!),
-                ]),
+                ],),
               ),
               const SizedBox(height: 22),
               GoldButton(label: 'Done', onPressed: () => Navigator.of(context).pop()),

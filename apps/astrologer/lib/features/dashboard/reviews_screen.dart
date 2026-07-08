@@ -4,6 +4,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 import '../../ui/celestial.dart';
+import '../../data/astrologer_repository.dart';
 
 /// The astrologer's own reviews — every rated consultation, newest first.
 /// Derived from the already-loaded session rows (no extra query / index).
@@ -34,7 +35,7 @@ class ReviewsScreen extends ConsumerWidget {
                   const Spacer(),
                   if (self != null && self.rating > 0)
                     Text('${self.rating.toStringAsFixed(1)}★ · ${self.totalReviews}',
-                        style: Sky.label.copyWith(color: Sky.gold, fontWeight: FontWeight.w800)),
+                        style: Sky.label.copyWith(color: Sky.gold, fontWeight: FontWeight.w800),),
                 ],
               ),
             ),
@@ -51,7 +52,7 @@ class ReviewsScreen extends ConsumerWidget {
                             Text('No reviews yet', style: Sky.h2),
                             const SizedBox(height: 4),
                             Text('Ratings from your consultations will appear here.',
-                                style: Sky.label.copyWith(fontSize: 12.5), textAlign: TextAlign.center),
+                                style: Sky.label.copyWith(fontSize: 12.5), textAlign: TextAlign.center,),
                           ],
                         ),
                       ),
@@ -91,14 +92,14 @@ class _ReviewCard extends ConsumerWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(cust?.name ?? 'Customer',
-                    style: Sky.h2.copyWith(fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    style: Sky.h2.copyWith(fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis,),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: List.generate(
                   5,
                   (s) => Icon(s < stars ? Icons.star_rounded : Icons.star_border_rounded,
-                      size: 15, color: Sky.gold),
+                      size: 15, color: Sky.gold,),
                 ),
               ),
             ],

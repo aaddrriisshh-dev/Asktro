@@ -69,11 +69,11 @@ class _ConsultationsTabState extends ConsumerState<ConsultationsTab> {
                           if (c.status.isTerminal) {
                             Navigator.of(context).push(MaterialPageRoute(
                               builder: (_) => ConsultationDetailsScreen(consultation: c, self: self),
-                            ));
+                            ),);
                           } else {
                             Navigator.of(context).push(MaterialPageRoute(
                               builder: (_) => AstrologerConsultationScreen(consultationId: c.id, self: self),
-                            ));
+                            ),);
                           }
                         },
                       ),
@@ -113,17 +113,17 @@ class _ConsultationsTabState extends ConsumerState<ConsultationsTab> {
                           style: Sky.label.copyWith(
                               fontSize: 13,
                               color: _tab == i ? Sky.ink : Sky.ink2,
-                              fontWeight: _tab == i ? FontWeight.w800 : FontWeight.w600)),
+                              fontWeight: _tab == i ? FontWeight.w800 : FontWeight.w600,),),
                       if (counts[i] > 0) ...[
                         const SizedBox(width: 5),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                           decoration: BoxDecoration(
                               color: (i == 0 ? Sky.gold : Sky.purple).withValues(alpha: _tab == i ? 0.16 : 0.10),
-                              borderRadius: BorderRadius.circular(999)),
+                              borderRadius: BorderRadius.circular(999),),
                           child: Text('${counts[i]}',
                               style: Sky.label.copyWith(
-                                  fontSize: 10.5, color: i == 0 ? Sky.gold : Sky.purple, fontWeight: FontWeight.w800)),
+                                  fontSize: 10.5, color: i == 0 ? Sky.gold : Sky.purple, fontWeight: FontWeight.w800,),),
                         ),
                       ],
                     ],
@@ -142,7 +142,7 @@ class _ConsultationsTabState extends ConsumerState<ConsultationsTab> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.auto_awesome_rounded, size: 42, color: Sky.ink3),
+          const Icon(Icons.auto_awesome_rounded, size: 42, color: Sky.ink3),
           const SizedBox(height: 12),
           Text(msg[_tab], style: Sky.label.copyWith(fontSize: 13.5)),
         ],
@@ -197,7 +197,7 @@ class _ConsultCard extends ConsumerWidget {
                       children: [
                         Flexible(
                           child: Text(cust?.name ?? 'Customer',
-                              style: Sky.h2.copyWith(fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              style: Sky.h2.copyWith(fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis,),
                         ),
                         if (repeat) ...[const SizedBox(width: 6), const Pill('Repeat', color: Sky.gold)],
                       ],

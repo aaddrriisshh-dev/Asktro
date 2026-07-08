@@ -5,7 +5,6 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../../ui/celestial.dart';
 import '../../ui/customer_insight.dart';
-import 'consultations_tab.dart' show relTime;
 import 'history_chat_view.dart';
 
 // Derived from the already-loaded session list (no extra Firestore query, so no
@@ -128,7 +127,7 @@ class _ConsultationDetailsScreenState extends ConsumerState<ConsultationDetailsS
                 ),
                 const SizedBox(height: 12),
                 Text(cust?.name ?? 'Customer',
-                    style: Sky.h1.copyWith(color: Colors.white, fontSize: 22), textAlign: TextAlign.center),
+                    style: Sky.h1.copyWith(color: Colors.white, fontSize: 22), textAlign: TextAlign.center,),
                 const SizedBox(height: 4),
                 Text(
                   [
@@ -186,7 +185,7 @@ class _ConsultationDetailsScreenState extends ConsumerState<ConsultationDetailsS
               child: Text(v,
                   style: Sky.body.copyWith(
                       fontSize: 13.5, fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
-                      color: v.contains('provided') || v.contains('unknown') || v == '—' ? Sky.ink3 : Sky.ink)),
+                      color: v.contains('provided') || v.contains('unknown') || v == '—' ? Sky.ink3 : Sky.ink,),),
             ),
           ],
         ),
@@ -296,7 +295,7 @@ class _ConsultationDetailsScreenState extends ConsumerState<ConsultationDetailsS
                     last: i == past.length - 1,
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => HistoryChatView(consultationId: past[i].id, self: widget.self),
-                    )),
+                    ),),
                   ),
               ],
             ),
@@ -366,7 +365,7 @@ class _ConsultationDetailsScreenState extends ConsumerState<ConsultationDetailsS
             Text(title, style: Sky.h1.copyWith(fontSize: 19)),
             const SizedBox(height: 6),
             Text('The full chart engine is being wired up. The Sun sign above is already computed from the birth date.',
-                style: Sky.label.copyWith(fontSize: 13), textAlign: TextAlign.center),
+                style: Sky.label.copyWith(fontSize: 13), textAlign: TextAlign.center,),
           ],
         ),
       ),
@@ -415,7 +414,7 @@ class _TimelineItem extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text('${c.type.name[0].toUpperCase()}${c.type.name.substring(1)} consultation',
-                              style: Sky.h2.copyWith(fontSize: 14)),
+                              style: Sky.h2.copyWith(fontSize: 14),),
                         ),
                         const Icon(Icons.chevron_right_rounded, size: 18, color: Sky.ink3),
                       ],

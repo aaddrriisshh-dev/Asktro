@@ -50,7 +50,7 @@ class PendingReviewScreen extends ConsumerWidget {
               Container(
                 width: 116,
                 height: 116,
-                decoration: BoxDecoration(gradient: Sky.lavGrad, shape: BoxShape.circle, boxShadow: Sky.soft),
+                decoration: const BoxDecoration(gradient: Sky.lavGrad, shape: BoxShape.circle, boxShadow: Sky.soft),
                 child: Icon(v.icon, size: 52, color: v.color),
               ),
               const SizedBox(height: 24),

@@ -27,7 +27,7 @@ class SplashScreen extends StatelessWidget {
                   child: const Center(
                     child: Text('A',
                         style: TextStyle(
-                            fontFamily: '.SF Pro Display', fontSize: 58, fontWeight: FontWeight.w800, color: Sky.purpleDeep)),
+                            fontFamily: '.SF Pro Display', fontSize: 58, fontWeight: FontWeight.w800, color: Sky.purpleDeep,),),
                   ),
                 ),
                 const SizedBox(height: 22),

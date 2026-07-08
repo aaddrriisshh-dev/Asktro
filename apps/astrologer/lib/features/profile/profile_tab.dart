@@ -10,7 +10,7 @@ class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
 
   Future<void> _editText(BuildContext context, WidgetRef ref, Astrologer self,
-      {required String title, required String field, required String initial, String? hint, int maxLines = 5}) async {
+      {required String title, required String field, required String initial, String? hint, int maxLines = 5,}) async {
     final c = TextEditingController(text: initial);
     final result = await showDialog<String>(
       context: context,
@@ -32,7 +32,7 @@ class ProfileTab extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: Sky.label)),
           TextButton(
               onPressed: () => Navigator.pop(context, c.text),
-              child: Text('Save', style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w800))),
+              child: Text('Save', style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w800)),),
         ],
       ),
     );
@@ -61,7 +61,7 @@ class ProfileTab extends ConsumerWidget {
           title: Text('Availability', style: Sky.h2),
           content: SwitchListTile(
             value: holiday,
-            activeColor: Sky.purple,
+            activeThumbColor: Sky.purple,
             contentPadding: EdgeInsets.zero,
             title: Text('Holiday mode', style: Sky.body),
             subtitle: Text('Go offline and stop receiving requests.', style: Sky.label.copyWith(fontSize: 12)),
@@ -71,7 +71,7 @@ class ProfileTab extends ConsumerWidget {
             TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: Sky.label)),
             TextButton(
                 onPressed: () => Navigator.pop(context, holiday),
-                child: Text('Save', style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w800))),
+                child: Text('Save', style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w800)),),
           ],
         ),
       ),
@@ -97,7 +97,7 @@ class ProfileTab extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Describe your issue and the Asktro team will get back to you.',
-                style: Sky.label.copyWith(fontSize: 12.5)),
+                style: Sky.label.copyWith(fontSize: 12.5),),
             const SizedBox(height: 12),
             TextField(
               controller: c,
@@ -115,7 +115,7 @@ class ProfileTab extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: Sky.label)),
           TextButton(
               onPressed: () => Navigator.pop(context, c.text.trim()),
-              child: Text('Send', style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w800))),
+              child: Text('Send', style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w800)),),
         ],
       ),
     );
@@ -131,7 +131,7 @@ class ProfileTab extends ConsumerWidget {
     });
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Ticket raised — we'll get back to you soon.")));
+          const SnackBar(content: Text("Ticket raised — we'll get back to you soon.")),);
     }
   }
 
@@ -157,7 +157,7 @@ class ProfileTab extends ConsumerWidget {
                 // About
                 SkyCard(
                   onTap: () => _editText(context, ref, self,
-                      title: 'About you', field: 'about', initial: self.about, hint: 'Tell customers about yourself'),
+                      title: 'About you', field: 'about', initial: self.about, hint: 'Tell customers about yourself',),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -165,10 +165,10 @@ class ProfileTab extends ConsumerWidget {
                         Text('About', style: Sky.h2.copyWith(fontSize: 15)),
                         const Spacer(),
                         const Icon(Icons.edit_rounded, size: 16, color: Sky.purple),
-                      ]),
+                      ],),
                       const SizedBox(height: 8),
                       Text(self.about.isEmpty ? 'Tap to add an introduction.' : self.about,
-                          style: Sky.body.copyWith(fontSize: 13.5, color: self.about.isEmpty ? Sky.ink3 : Sky.ink2)),
+                          style: Sky.body.copyWith(fontSize: 13.5, color: self.about.isEmpty ? Sky.ink3 : Sky.ink2),),
                     ],
                   ),
                 ),
@@ -191,25 +191,25 @@ class ProfileTab extends ConsumerWidget {
                         field: 'quickReplies',
                         initial: self.quickReplies.join('\n'),
                         hint: 'One reply per line',
-                        maxLines: 8)),
+                        maxLines: 8,),),
                 _tile(Icons.schedule_rounded, 'Availability', holiday ? 'Holiday mode' : 'Active',
                     valueColor: holiday ? Sky.amber : Sky.green,
-                    onTap: () => _editAvailability(context, ref, self)),
+                    onTap: () => _editAvailability(context, ref, self),),
                 _tile(Icons.account_balance_rounded, 'Bank / UPI details', (upi == null || upi.isEmpty) ? 'Add UPI' : upi,
                     onTap: () => _editText(context, ref, self,
                         title: 'Payout UPI',
                         field: 'payoutUpi',
                         initial: upi ?? '',
                         hint: 'name@bank',
-                        maxLines: 1)),
+                        maxLines: 1,),),
                 _tile(Icons.verified_user_rounded, 'Verification',
                     self.verified ? 'Verified' : self.status.name,
-                    valueColor: self.verified ? Sky.green : Sky.amber),
+                    valueColor: self.verified ? Sky.green : Sky.amber,),
                 _tile(Icons.account_balance_wallet_rounded, 'Payouts & earnings', 'In Wallet',
                     onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Open the Wallet tab to see earnings and request a withdrawal.')))),
+                        content: Text('Open the Wallet tab to see earnings and request a withdrawal.'),),),),
                 _tile(Icons.headset_mic_rounded, 'Help & Support', 'Raise a ticket',
-                    onTap: () => _raiseTicket(context, ref, self)),
+                    onTap: () => _raiseTicket(context, ref, self),),
                 const SizedBox(height: 20),
                 GhostButton(
                   label: 'Log out',
@@ -260,7 +260,7 @@ class ProfileTab extends ConsumerWidget {
                         const Icon(Icons.verified_rounded, size: 13, color: Sky.purpleDeep),
                         const SizedBox(width: 5),
                         Text('ASKTRO VERIFIED',
-                            style: Sky.label.copyWith(color: Sky.purpleDeep, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                            style: Sky.label.copyWith(color: Sky.purpleDeep, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 0.5),),
                       ],
                     ),
                   ),
@@ -268,7 +268,7 @@ class ProfileTab extends ConsumerWidget {
                 Text(self.name, style: Sky.h1.copyWith(color: Colors.white, fontSize: 22)),
                 const SizedBox(height: 4),
                 Text('${self.experience}y experience  ·  ${self.rating.toStringAsFixed(1)}★  ·  ${self.totalConsultations} sessions',
-                    style: Sky.label.copyWith(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5)),
+                    style: Sky.label.copyWith(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5),),
               ],
               ),
             ),
@@ -297,7 +297,7 @@ class ProfileTab extends ConsumerWidget {
             if (value.isNotEmpty)
               Text(value,
                   style: Sky.label.copyWith(fontSize: 12.5, color: valueColor ?? Sky.ink2, fontWeight: FontWeight.w700),
-                  overflow: TextOverflow.ellipsis),
+                  overflow: TextOverflow.ellipsis,),
             const SizedBox(width: 4),
             const Icon(Icons.chevron_right_rounded, size: 18, color: Sky.ink3),
           ],

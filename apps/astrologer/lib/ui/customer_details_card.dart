@@ -40,7 +40,7 @@ class CustomerDetailsCard extends StatelessWidget {
                 ],
               ),
             ),
-          ]),
+          ],),
           const SizedBox(height: 14),
           _section('Birth details'),
           _row('Date of birth', i.birthDate),
@@ -73,10 +73,10 @@ class CustomerDetailsCard extends StatelessWidget {
             const Icon(Icons.auto_awesome_rounded, color: Sky.gold, size: 24),
             const SizedBox(height: 6),
             Text('Full birth chart',
-                style: Sky.label.copyWith(fontWeight: FontWeight.w800, color: Sky.ink)),
+                style: Sky.label.copyWith(fontWeight: FontWeight.w800, color: Sky.ink),),
             const SizedBox(height: 2),
             Text('The kundli will render here once the chart service is connected.',
-                textAlign: TextAlign.center, style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
+                textAlign: TextAlign.center, style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3),),
           ],
         ),
       );
@@ -85,7 +85,7 @@ class CustomerDetailsCard extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(t.toUpperCase(),
             style: Sky.label
-                .copyWith(fontSize: 10.5, letterSpacing: 1, color: Sky.gold, fontWeight: FontWeight.w800)),
+                .copyWith(fontSize: 10.5, letterSpacing: 1, color: Sky.gold, fontWeight: FontWeight.w800),),
       );
 
   Widget _row(String k, String v) => Padding(

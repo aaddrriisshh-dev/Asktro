@@ -10,7 +10,7 @@ class CustomerInsight {
   final UserProfile? profile;
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
 
   DateTime? get _birth =>
@@ -22,7 +22,7 @@ class CustomerInsight {
     // Age uses a fixed reference is impossible here; approximate from the
     // stored date against a rolling "now" is fine for display.
     final now = DateTime.fromMillisecondsSinceEpoch(
-        DateTime.now().millisecondsSinceEpoch); // wrapped for clarity
+        DateTime.now().millisecondsSinceEpoch,); // wrapped for clarity
     var a = now.year - b.year;
     if (now.month < b.month || (now.month == b.month && now.day < b.day)) a--;
     return a < 0 ? null : a;
@@ -79,7 +79,7 @@ class CustomerInsight {
     const cusp = [20, 19, 21, 20, 21, 21, 23, 23, 23, 23, 22, 22];
     const signs = [
       'Capricorn', 'Aquarius', 'Pisces', 'Aries', 'Taurus', 'Gemini',
-      'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius'
+      'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius',
     ];
     final idx = d < cusp[m - 1] ? m - 1 : m % 12;
     return signs[idx];

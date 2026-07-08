@@ -76,7 +76,7 @@ class _WalletTabState extends ConsumerState<WalletTab> {
           TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: Sky.label)),
           TextButton(
               onPressed: () => Navigator.pop(context, c.text),
-              child: Text('Request', style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w800))),
+              child: Text('Request', style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w800)),),
         ],
       ),
     );
@@ -121,7 +121,7 @@ class _WalletTabState extends ConsumerState<WalletTab> {
                       Text('AVAILABLE TO WITHDRAW', style: Sky.kicker.copyWith(color: Sky.goldSoft)),
                       const SizedBox(height: 8),
                       Text(Money.formatPaise(self?.pendingPayout ?? 0),
-                          style: Sky.display.copyWith(color: Colors.white, fontSize: 34)),
+                          style: Sky.display.copyWith(color: Colors.white, fontSize: 34),),
                       const SizedBox(height: 14),
                       GoldButton(
                         label: 'Withdraw',
@@ -285,7 +285,7 @@ class _WeekChart extends StatelessWidget {
                                       .subtract(Duration(days: 6 - i))
                                       .weekday %
                                   7],
-                              style: Sky.label.copyWith(fontSize: 10.5)),
+                              style: Sky.label.copyWith(fontSize: 10.5),),
                         ],
                       ),
                     ),

@@ -68,10 +68,10 @@ class HistoryChatView extends ConsumerWidget {
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: Image.network(image, fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined)),
+                                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),),
                           )
                         : Text((m['text'] ?? '') as String,
-                            style: Sky.body.copyWith(fontSize: 14, color: mine ? Colors.white : Sky.ink)),
+                            style: Sky.body.copyWith(fontSize: 14, color: mine ? Colors.white : Sky.ink),),
                   ),
                 );
               },

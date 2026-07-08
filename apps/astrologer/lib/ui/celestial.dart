@@ -70,7 +70,7 @@ class Sky {
   static TextStyle get label =>
       const TextStyle(fontFamily: _f, fontSize: 12.5, fontWeight: FontWeight.w600, color: ink2);
   static TextStyle get kicker => const TextStyle(
-      fontFamily: _f, fontSize: 11, fontWeight: FontWeight.w700, color: gold, letterSpacing: 1.6);
+      fontFamily: _f, fontSize: 11, fontWeight: FontWeight.w700, color: gold, letterSpacing: 1.6,);
   static TextStyle get figure =>
       const TextStyle(fontFamily: _f, fontSize: 26, fontWeight: FontWeight.w800, color: ink, letterSpacing: -0.5);
 }
@@ -240,7 +240,7 @@ class OnlineToggle extends StatelessWidget {
             height: 24,
             decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: Sky.soft),
             child: Icon(value ? Icons.bolt_rounded : Icons.power_settings_new_rounded,
-                size: 14, color: value ? Sky.green : const Color(0xFF9A93AD)),
+                size: 14, color: value ? Sky.green : const Color(0xFF9A93AD),),
           ),
         ),
       ),
@@ -335,7 +335,7 @@ class Pill extends StatelessWidget {
           if (icon != null) ...[Icon(icon, size: 12, color: filled ? Colors.white : color), const SizedBox(width: 4)],
           Text(text,
               style: Sky.label.copyWith(
-                  fontSize: 11.5, fontWeight: FontWeight.w700, color: filled ? Colors.white : color)),
+                  fontSize: 11.5, fontWeight: FontWeight.w700, color: filled ? Colors.white : color,),),
         ],
       ),
     );
