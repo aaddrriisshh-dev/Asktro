@@ -31,12 +31,16 @@ class _ConsultationEndScreen extends ConsumerStatefulWidget {
 }
 
 class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> {
-  int _rating = 0;
+  int _behavior = 0;
+  int _accuracy = 0;
+  int _overall = 0;
   final _review = TextEditingController();
   bool _submitting = false;
 
   Future<void> _submit() async {
-    if (_rating == 0) {
+    // Overall is the headline score (drives the astrologer's average); the other
+    // two are captured as a breakdown. If they gave no overall, just leave.
+    if (_overall == 0) {
       _close();
       return;
     }
@@ -48,10 +52,15 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
     try {
       await ref
           .read(consultationControllerProvider(widget.consultation.id).notifier)
-          .rate(_rating.toDouble(), review: _review.text.trim().isEmpty ? null : _review.text.trim())
+          .rate(
+            _overall.toDouble(),
+            review: _review.text.trim().isEmpty ? null : _review.text.trim(),
+            behaviorRating: _behavior > 0 ? _behavior.toDouble() : null,
+            accuracyRating: _accuracy > 0 ? _accuracy.toDouble() : null,
+          )
           .timeout(const Duration(seconds: 10));
       ref.read(analyticsProvider).logEvent(AnalyticsEvents.ratingSubmitted, params: {
-        'rating': _rating,
+        'rating': _overall,
         'astrologerId': widget.astrologer.id,
       },);
     } catch (_) {
@@ -89,11 +98,11 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
           padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             children: [
-              const SizedBox(height: AppSpacing.xl),
-              const Icon(Icons.check_circle_rounded, size: 72, color: AppColors.success),
               const SizedBox(height: AppSpacing.md),
+              const Icon(Icons.check_circle_rounded, size: 56, color: AppColors.success),
+              const SizedBox(height: AppSpacing.sm),
               Text('Consultation complete', style: AppTypography.title),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
               AppCard(
                 child: Column(
                   children: [
@@ -105,30 +114,22 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
               Text('Rate your experience', style: AppTypography.subtitle),
               const SizedBox(height: AppSpacing.sm),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (i) {
-                  final filled = i < _rating;
-                  return IconButton(
-                    onPressed: () => setState(() => _rating = i + 1),
-                    icon: Icon(filled ? Icons.star_rounded : Icons.star_border_rounded,
-                        color: AppColors.warning, size: 36,),
-                  );
-                }),
-              ),
-              const SizedBox(height: AppSpacing.sm),
+              _ratingRow('Behaviour & politeness', _behavior, (v) => setState(() => _behavior = v)),
+              _ratingRow('Accuracy & prediction', _accuracy, (v) => setState(() => _accuracy = v)),
+              _ratingRow('Overall experience', _overall, (v) => setState(() => _overall = v)),
+              const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: _review,
-                minLines: 2,
-                maxLines: 4,
+                minLines: 1,
+                maxLines: 3,
                 decoration: const InputDecoration(hintText: 'Share a few words (optional)'),
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
               PrimaryButton(
-                label: _rating == 0 ? 'Done' : 'Submit rating',
+                label: _overall == 0 ? 'Done' : 'Submit rating',
                 loading: _submitting,
                 onPressed: _submitting ? null : _submit,
               ),
@@ -146,6 +147,32 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
           children: [
             Text(k, style: AppTypography.caption),
             Flexible(child: Text(v, style: AppTypography.body, overflow: TextOverflow.ellipsis)),
+          ],
+        ),
+      );
+
+  /// One labelled 5-star row. Compact (tap targets ~32px) so three of them plus
+  /// a review still fit the viewport without scrolling.
+  Widget _ratingRow(String label, int value, ValueChanged<int> onChanged) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          children: [
+            Expanded(child: Text(label, style: AppTypography.body)),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(5, (i) {
+                final filled = i < value;
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onChanged(i + 1),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                    child: Icon(filled ? Icons.star_rounded : Icons.star_border_rounded,
+                        color: AppColors.warning, size: 28),
+                  ),
+                );
+              }),
+            ),
           ],
         ),
       );

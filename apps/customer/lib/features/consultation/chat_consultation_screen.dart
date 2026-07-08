@@ -357,35 +357,81 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     );
   }
 
-  /// Slim astrologer name-card just under the header: experience, consultations,
-  /// rating. Kept to one compact line — a banner, not a full profile card.
+  /// Astrologer name-card just under the header — a compact but proper profile
+  /// card: avatar, name (+ verified), and experience · consultations · rating.
   Widget _astroBanner() {
     final a = widget.astrologer;
-    final parts = <String>[
-      if (a.experience > 0) '${a.experience} yrs exp',
-      '${a.totalConsultations} consultations',
-      if (a.rating > 0) '★ ${a.rating.toStringAsFixed(1)}',
-    ];
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: AppColors.card,
-        border: Border(bottom: BorderSide(color: Color(0x11000000))),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Row(
-        children: [
-          const Icon(Icons.workspace_premium_rounded, size: 14, color: AppColors.primary),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(parts.join('   ·   '),
-                style: AppTypography.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
-                overflow: TextOverflow.ellipsis),
+      color: AppColors.card,
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primary.withValues(alpha: 0.10),
+              AppColors.primary.withValues(alpha: 0.03),
+            ],
           ),
-        ],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+        ),
+        child: Row(
+          children: [
+            AppAvatar(name: a.name, photoUrl: a.profilePhoto, size: 46),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(a.name,
+                            style: AppTypography.body.copyWith(fontWeight: FontWeight.w700),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                      if (a.verified) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.verified_rounded, size: 15, color: AppColors.primary),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      _stat(Icons.workspace_premium_rounded,
+                          a.experience > 0 ? '${a.experience} yrs' : 'New'),
+                      const SizedBox(width: 14),
+                      _stat(Icons.forum_rounded, '${a.totalConsultations}'),
+                      const SizedBox(width: 14),
+                      _stat(Icons.star_rounded,
+                          a.rating > 0 ? a.rating.toStringAsFixed(1) : '—', gold: true),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  Widget _stat(IconData icon, String text, {bool gold = false}) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: gold ? AppColors.warning : AppColors.textSecondary),
+          const SizedBox(width: 3),
+          Text(text,
+              style: AppTypography.caption
+                  .copyWith(fontWeight: FontWeight.w600, color: AppColors.textDark)),
+        ],
+      );
 
   @override
   Widget build(BuildContext context) {

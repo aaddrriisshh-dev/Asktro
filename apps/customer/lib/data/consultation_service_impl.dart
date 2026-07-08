@@ -86,9 +86,15 @@ class ConsultationServiceImpl implements ConsultationService {
   }
 
   @override
-  Future<Result<void>> rate(String consultationId, {required double rating, String? review}) =>
-      _call('rateConsultation',
-          {'consultationId': consultationId, 'rating': rating, if (review != null) 'review': review}, (_) {},);
+  Future<Result<void>> rate(String consultationId,
+          {required double rating, String? review, double? behaviorRating, double? accuracyRating}) =>
+      _call('rateConsultation', {
+        'consultationId': consultationId,
+        'rating': rating,
+        if (review != null) 'review': review,
+        if (behaviorRating != null) 'behaviorRating': behaviorRating,
+        if (accuracyRating != null) 'accuracyRating': accuracyRating,
+      }, (_) {},);
 
   @override
   Stream<Consultation> watch(String consultationId) => _db

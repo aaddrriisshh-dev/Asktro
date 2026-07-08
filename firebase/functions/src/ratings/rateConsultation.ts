@@ -10,15 +10,22 @@ import { assertAuthed, badRequest, failedPrecondition, notFound } from '../commo
 
 export const rateConsultation = onCall(async (req) => {
   const uid = assertAuthed(req);
-  const { consultationId, rating, review } = (req.data ?? {}) as {
+  const { consultationId, rating, review, behaviorRating, accuracyRating } = (req.data ?? {}) as {
     consultationId?: string;
     rating?: number;
     review?: string;
+    behaviorRating?: number;
+    accuracyRating?: number;
   };
   if (!consultationId) badRequest('consultationId is required.');
   if (typeof rating !== 'number' || rating < 1 || rating > 5) {
     badRequest('rating must be between 1 and 5.');
   }
+  // Optional per-dimension breakdown (behaviour, accuracy). Clamp to 1..5 or drop.
+  const clampScore = (v: unknown): number | null =>
+    typeof v === 'number' && v >= 1 && v <= 5 ? v : null;
+  const behavior = clampScore(behaviorRating);
+  const accuracy = clampScore(accuracyRating);
 
   const ref = db.collection(Collections.consultations).doc(consultationId!);
 
@@ -43,6 +50,7 @@ export const rateConsultation = onCall(async (req) => {
     tx.update(ref, {
       rating,
       review: review ?? null,
+      ratingBreakdown: { behavior, accuracy, overall: rating },
       updatedAt: FieldValue.serverTimestamp(),
     });
     tx.set(
