@@ -62,6 +62,10 @@ final sessionRowsProvider = StreamProvider.autoDispose<List<SessionRow>>((ref) {
 /// can jump tabs without threading callbacks through the tree.
 final dashTabProvider = StateProvider<int>((_) => 0);
 
+/// The selected earnings window on the dashboard chart (0 Today · 1 Yesterday ·
+/// 2 This week). Drives the headline figure in the earnings card.
+final earningsRangeProvider = StateProvider<int>((_) => 2);
+
 /// Registers this device's FCM token so the astrologer receives consultation
 /// requests and payout/rating alerts (Part 5/7). Watch from the dashboard.
 final pushRegistrationProvider = Provider<void>((ref) {
