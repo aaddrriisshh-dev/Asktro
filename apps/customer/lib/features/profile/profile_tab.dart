@@ -265,6 +265,7 @@ class ProfileTab extends ConsumerWidget {
   void _soon(BuildContext context, String title) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
@@ -296,6 +297,7 @@ class ProfileTab extends ConsumerWidget {
         : 'Join me on ASKTRO — talk to expert astrologers! Use my code $code when you sign up, and we BOTH get ₹20 wallet credit after your first recharge.\n\nDownload: $_kAppDownloadLink';
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
@@ -359,6 +361,7 @@ class ProfileTab extends ConsumerWidget {
   void _freeService(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
