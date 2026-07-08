@@ -6,10 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
-/// Where "Share invite" points people. Replace with the live Play Store URL
-/// once the app is published (tracked in docs/PRE_LAUNCH.md).
-const _kAppDownloadLink = 'https://asktro.app';
-
 import '../../app/providers.dart';
 import '../auth/auth_controller.dart';
 import '../consultations/consultations_tab.dart';
@@ -21,6 +17,10 @@ import 'edit_profile_screen.dart';
 import 'favourites_screen.dart';
 import 'suggested_remedies_screen.dart';
 import 'support_screen.dart';
+
+/// Where "Share invite" points people. Replace with the live Play Store URL
+/// once the app is published (tracked in docs/PRE_LAUNCH.md).
+const _kAppDownloadLink = 'https://asktro.app';
 
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
