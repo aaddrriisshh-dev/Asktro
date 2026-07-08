@@ -253,16 +253,30 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                 final title = titleCtrl.text.trim();
                 final note = noteCtrl.text.trim();
                 if (title.isEmpty && note.isEmpty) return;
-                await ref.read(firestoreProvider).collection('remedies').add({
+                final remTitle = title.isEmpty ? 'Remedy' : title;
+                final fs = ref.read(firestoreProvider);
+                await fs.collection('remedies').add({
                   'customerId': c.customerId,
                   'astrologerId': widget.self.id,
                   'astrologerName': widget.self.name,
                   'astrologerPhoto': widget.self.profilePhoto,
                   'consultationId': c.id,
-                  'title': title.isEmpty ? 'Remedy' : title,
+                  'title': remTitle,
                   'note': note,
                   'done': false,
                   'createdAt': FieldValue.serverTimestamp(),
+                });
+                // Also drop it into the conversation so the customer sees it in
+                // context, as a distinct "remedy" message with its own styling.
+                await fs.collection('consultations').doc(c.id).collection('messages').add({
+                  'senderId': widget.self.id,
+                  'type': 'remedy',
+                  'title': remTitle,
+                  'note': note,
+                  'text': note.isEmpty ? remTitle : '$remTitle\n$note',
+                  'timestamp': FieldValue.serverTimestamp(),
+                  'delivered': true,
+                  'seen': false,
                 });
                 if (ctx.mounted) Navigator.pop(ctx);
                 if (mounted) {
@@ -357,6 +371,13 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                       final mine = m['senderId'] == widget.self.id;
                       final image = m['image'] as String?;
                       final hasImage = image != null && image.isNotEmpty;
+                      if (m['type'] == 'remedy') {
+                        return _RemedyBubble(
+                          mine: mine,
+                          title: (m['title'] ?? 'Remedy') as String,
+                          note: (m['note'] ?? '') as String,
+                        );
+                      }
                       return Align(
                         alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
                         child: Container(
@@ -702,3 +723,56 @@ final _messagesProvider =
       .snapshots()
       .map((s) => s.docs.map((d) => {'id': d.id, ...d.data()}).toList());
 });
+
+/// A remedy dropped into the chat — a distinct cosmic gold card so it stands
+/// apart from ordinary messages on both sides of the conversation.
+class _RemedyBubble extends StatelessWidget {
+  const _RemedyBubble({required this.mine, required this.title, required this.note});
+  final bool mine;
+  final String title;
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.all(13),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFFF4D9), Color(0xFFF3E7C9)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Sky.gold.withValues(alpha: 0.45)),
+          boxShadow: Sky.soft,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.self_improvement_rounded, size: 15, color: Sky.gold),
+                const SizedBox(width: 6),
+                Text('REMEDY',
+                    style: Sky.label.copyWith(
+                        fontSize: 10, color: Sky.gold, fontWeight: FontWeight.w800, letterSpacing: 1)),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Text(title, style: Sky.h2.copyWith(fontSize: 14.5, color: Sky.purpleDeep)),
+            if (note.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(note, style: Sky.body.copyWith(fontSize: 13.5, color: Sky.ink, height: 1.35)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

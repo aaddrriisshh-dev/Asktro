@@ -137,11 +137,14 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                   itemCount: messages.length,
                   itemBuilder: (_, i) {
                     final m = messages[i];
+                    final isRemedy = m['type'] == 'remedy';
                     return _Bubble(
                       text: (m['text'] ?? '') as String,
                       imageUrl: m['image'] as String?,
                       mine: m['senderId'] == uid,
                       seen: m['seen'] == true,
+                      remedyTitle: isRemedy ? (m['title'] ?? 'Remedy') as String : null,
+                      remedyNote: isRemedy ? (m['note'] ?? '') as String : null,
                     );
                   },
                 ),
@@ -558,11 +561,14 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                             itemBuilder: (_, i) {
                               final m = messages[i];
                               final mine = m['senderId'] == uid;
+                              final isRemedy = m['type'] == 'remedy';
                               return _Bubble(
                                 text: (m['text'] ?? '') as String,
                                 imageUrl: m['image'] as String?,
                                 mine: mine,
                                 seen: m['seen'] == true,
+                                remedyTitle: isRemedy ? (m['title'] ?? 'Remedy') as String : null,
+                                remedyNote: isRemedy ? (m['note'] ?? '') as String : null,
                               );
                             },
                           ),
@@ -593,14 +599,24 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.text, required this.mine, required this.seen, this.imageUrl});
+  const _Bubble({
+    required this.text,
+    required this.mine,
+    required this.seen,
+    this.imageUrl,
+    this.remedyTitle,
+    this.remedyNote,
+  });
   final String text;
   final String? imageUrl;
   final bool mine;
   final bool seen;
+  final String? remedyTitle;
+  final String? remedyNote;
 
   @override
   Widget build(BuildContext context) {
+    if (remedyTitle != null) return _remedy(context);
     final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
@@ -646,6 +662,53 @@ class _Bubble extends StatelessWidget {
                 child: Icon(seen ? Icons.done_all_rounded : Icons.done_rounded,
                     size: 14, color: mine ? Colors.white70 : AppColors.textSecondary,),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // A remedy the astrologer suggested — a distinct cosmic card so it reads
+  // apart from ordinary chat, and mirrors the "Your Personal Remedies" screen.
+  Widget _remedy(BuildContext context) {
+    final note = remedyNote ?? '';
+    return Align(
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF3ECFF), Color(0xFFFFF6E2)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+          boxShadow: AppShadows.soft,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.self_improvement_rounded, size: 15, color: AppColors.warning),
+                const SizedBox(width: 6),
+                Text('PERSONAL REMEDY',
+                    style: AppTypography.caption.copyWith(
+                        color: AppColors.warning, fontWeight: FontWeight.w800, letterSpacing: 0.8, fontSize: 10),),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Text(remedyTitle!,
+                style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)),
+            if (note.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(note, style: AppTypography.body.copyWith(fontSize: 14, height: 1.35, color: AppColors.textDark)),
+            ],
           ],
         ),
       ),
