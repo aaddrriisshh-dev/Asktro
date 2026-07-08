@@ -101,4 +101,25 @@ to a secure vault / password manager NOW, and keep them off `Downloads`.
 
 ---
 
+## ⚖️ SCALE HARDENING (from the 1M-user audit)
+
+**Fixed & committed** (need the function+index deploy to go live): function
+sizing/concurrency (C1), config caching (H3), missing composite indexes
+(H1/H5), bounded unread-count listener (M1).
+
+**Remaining — bigger changes, do before heavy scale:**
+- [ ] **C2 — `sendBroadcast` → FCM topics / paginated tasks.** Current version
+      loads ALL users into one function + writes 1M docs. **Do NOT send an
+      all-users broadcast until this is rewritten.**
+- [ ] **H2 — distributed counters** for the astrologer doc (rating/earnings/
+      counts) — a celebrity astrologer with many concurrent chats contends on
+      one document.
+- [ ] **H4 — denormalize participants onto message docs** so security rules
+      stop doing a `get(parent)` on every message/typing op (doubles reads on
+      the hottest path).
+- [ ] **M2 — home-feed "top rated"** sorts only 100 client-side (wrong past 100
+      astrologers); back the rails with server `orderBy(...).limit()` + indexes.
+- [ ] **M3 — `walletTransactions` growth** — add TTL/archival (ledger written
+      every ~10s per active session).
+
 ## Add new pre-launch items below as they come up.
