@@ -5,8 +5,17 @@
  */
 import { setGlobalOptions } from 'firebase-functions/v2';
 
-// Sensible defaults for all functions (region close to India, modest memory).
-setGlobalOptions({ region: 'asia-south1', maxInstances: 50 });
+// Defaults for all functions. cpu:1 + concurrency:80 lets one warm instance
+// serve up to 80 requests at once (256MiB/<1vCPU would force concurrency-1 and
+// throttle the billing heartbeat under load). maxInstances:100 => ~8k in-flight
+// requests of headroom. Scales to zero when idle, so idle cost is unchanged.
+setGlobalOptions({
+  region: 'asia-south1',
+  memory: '512MiB',
+  cpu: 1,
+  concurrency: 80,
+  maxInstances: 100,
+});
 
 // ---- Consultation / billing engine (core) ----
 export { createConsultation } from './billing/createConsultation';

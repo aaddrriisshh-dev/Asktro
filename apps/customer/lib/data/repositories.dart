@@ -279,10 +279,14 @@ class NotificationRepository {
   Future<void> markRead(String id) =>
       _db.collection('notifications').doc(id).update({'read': true});
 
+  // Bounded to 20 so a user with thousands of unread notifications doesn't
+  // stream them all just to render a badge (which caps at "9+" anyway). This
+  // listener is mounted on the home shell for the whole session.
   Stream<int> unreadCount(String uid) => _db
       .collection('notifications')
       .where('userId', isEqualTo: uid)
       .where('read', isEqualTo: false)
+      .limit(20)
       .snapshots()
       .map((s) => s.docs.length);
 }

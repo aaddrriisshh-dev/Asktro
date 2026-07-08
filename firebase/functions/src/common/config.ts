@@ -21,17 +21,32 @@ export const DEFAULT_CONFIG: GlobalConfig = {
   },
 };
 
+// Per-instance cache. The billing heartbeat (tickConsultation, every 10s per
+// active session) reads this same one doc constantly; caching it per warm
+// instance for a short TTL cuts that to ~1 read/minute/instance. Pricing
+// changes tolerate a minute of staleness, and each session already snapshots
+// its own price at creation, so live consultations are never re-rated.
+const CONFIG_TTL_MS = 60_000;
+let _cached: GlobalConfig | null = null;
+let _cachedAtMs = 0;
+
 /**
  * Load `config/global`, merged over defaults so a missing/partial doc never
- * breaks billing. Never trust the client for any of these values.
+ * breaks billing. Cached per instance for CONFIG_TTL_MS. Never trust the client
+ * for any of these values.
  */
 export async function getGlobalConfig(): Promise<GlobalConfig> {
+  // NOTE: Date.now() is fine at runtime in deployed functions.
+  const now = Date.now();
+  if (_cached && now - _cachedAtMs < CONFIG_TTL_MS) return _cached;
+
   const snap = await db.doc(ConfigDoc.path).get();
-  if (!snap.exists) return { ...DEFAULT_CONFIG };
-  const data = snap.data() as Partial<GlobalConfig> | undefined;
-  return {
+  const data = snap.exists ? (snap.data() as Partial<GlobalConfig> | undefined) : undefined;
+  _cached = {
     ...DEFAULT_CONFIG,
     ...(data ?? {}),
     featureFlags: { ...DEFAULT_CONFIG.featureFlags, ...(data?.featureFlags ?? {}) },
   };
+  _cachedAtMs = now;
+  return _cached;
 }
