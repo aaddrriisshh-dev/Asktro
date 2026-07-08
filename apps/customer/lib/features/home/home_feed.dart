@@ -134,7 +134,9 @@ class HomeFeed extends ConsumerWidget {
             children: [
               SizedBox(height: topPad + 12),
               _topBar(context, ref, profile),
-              const SizedBox(height: 22),
+              const SizedBox(height: 16),
+              _headerHairline(),
+              const SizedBox(height: 16),
               _ToolTabs(),
               const SizedBox(height: 18),
               _goldDivider(),
@@ -145,6 +147,22 @@ class HomeFeed extends ConsumerWidget {
       ),
     );
   }
+
+  // Whisper-thin lavender hairline that gives the greeting/wallet its own zone,
+  // set apart from the tool tabs below — a minimal header segregation.
+  Widget _headerHairline() => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          height: 1,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [
+              Ob.purple.withValues(alpha: 0),
+              Ob.purple.withValues(alpha: 0.16),
+              Ob.purple.withValues(alpha: 0),
+            ]),
+          ),
+        ),
+      );
 
   // Gold, sparkle-centred divider that marks the end of the tools zone.
   Widget _goldDivider() => Padding(
