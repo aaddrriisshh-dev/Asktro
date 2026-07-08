@@ -325,7 +325,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
               const SizedBox(height: 12),
               Expanded(
                 child: SingleChildScrollView(
-                  child: CustomerDetailsCard(profile: cust),
+                  child: CustomerDetailsCard(profile: cust, initiallyExpanded: true),
                 ),
               ),
               const SizedBox(height: 12),
