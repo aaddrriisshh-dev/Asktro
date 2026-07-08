@@ -117,9 +117,24 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
               const SizedBox(height: AppSpacing.lg),
               Text('Rate your experience', style: AppTypography.subtitle),
               const SizedBox(height: AppSpacing.sm),
-              _ratingRow('Behaviour & politeness', _behavior, (v) => setState(() => _behavior = v)),
-              _ratingRow('Accuracy & prediction', _accuracy, (v) => setState(() => _accuracy = v)),
-              _ratingRow('Overall experience', _overall, (v) => setState(() => _overall = v)),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                  boxShadow: AppShadows.soft,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Column(
+                  children: [
+                    _ratingRow('Behaviour & politeness', _behavior, (v) => setState(() => _behavior = v)),
+                    Divider(height: 1, color: AppColors.border.withValues(alpha: 0.6)),
+                    _ratingRow('Accuracy & prediction', _accuracy, (v) => setState(() => _accuracy = v)),
+                    Divider(height: 1, color: AppColors.border.withValues(alpha: 0.6)),
+                    _ratingRow('Overall experience', _overall, (v) => setState(() => _overall = v)),
+                  ],
+                ),
+              ),
               const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: _review,

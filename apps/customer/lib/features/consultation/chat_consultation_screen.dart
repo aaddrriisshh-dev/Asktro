@@ -357,8 +357,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     );
   }
 
-  /// Astrologer name-card just under the header — a compact but proper profile
-  /// card: avatar, name (+ verified), and experience · consultations · rating.
+  /// Astrologer name-card just under the header — a proper profile card on a
+  /// lavender panel: avatar, name + "Asktro Verified" badge, and three stat
+  /// chips (experience, sessions, rating).
   Widget _astroBanner() {
     final a = widget.astrologer;
     return Container(
@@ -366,22 +367,15 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       color: AppColors.card,
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primary.withValues(alpha: 0.10),
-              AppColors.primary.withValues(alpha: 0.03),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+          color: AppColors.accentLavender,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
         ),
         child: Row(
           children: [
-            AppAvatar(name: a.name, photoUrl: a.profilePhoto, size: 46),
+            AppAvatar(name: a.name, photoUrl: a.profilePhoto, size: 50),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -392,25 +386,45 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                     children: [
                       Flexible(
                         child: Text(a.name,
-                            style: AppTypography.body.copyWith(fontWeight: FontWeight.w700),
+                            style: AppTypography.body
+                                .copyWith(fontWeight: FontWeight.w800, fontSize: 15.5),
                             overflow: TextOverflow.ellipsis),
                       ),
                       if (a.verified) ...[
-                        const SizedBox(width: 4),
-                        const Icon(Icons.verified_rounded, size: 15, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.verified_rounded, size: 11, color: Colors.white),
+                              const SizedBox(width: 3),
+                              Text('Asktro Verified',
+                                  style: AppTypography.caption.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 9.5,
+                                      letterSpacing: 0.2)),
+                            ],
+                          ),
+                        ),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      _stat(Icons.workspace_premium_rounded,
-                          a.experience > 0 ? '${a.experience} yrs' : 'New'),
-                      const SizedBox(width: 14),
-                      _stat(Icons.forum_rounded, '${a.totalConsultations}'),
-                      const SizedBox(width: 14),
-                      _stat(Icons.star_rounded,
-                          a.rating > 0 ? a.rating.toStringAsFixed(1) : '—', gold: true),
+                      _statChip(Icons.workspace_premium_rounded,
+                          a.experience > 0 ? '${a.experience} yrs' : 'New', 'Experience'),
+                      const SizedBox(width: 8),
+                      _statChip(Icons.forum_rounded, '${a.totalConsultations}', 'Sessions'),
+                      const SizedBox(width: 8),
+                      _statChip(Icons.star_rounded,
+                          a.rating > 0 ? a.rating.toStringAsFixed(1) : '—', 'Rating', gold: true),
                     ],
                   ),
                 ],
@@ -422,15 +436,38 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     );
   }
 
-  Widget _stat(IconData icon, String text, {bool gold = false}) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: gold ? AppColors.warning : AppColors.textSecondary),
-          const SizedBox(width: 3),
-          Text(text,
-              style: AppTypography.caption
-                  .copyWith(fontWeight: FontWeight.w600, color: AppColors.textDark)),
-        ],
+  Widget _statChip(IconData icon, String value, String label, {bool gold = false}) => Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 13, color: gold ? AppColors.warning : AppColors.primary),
+                  const SizedBox(width: 3),
+                  Flexible(
+                    child: Text(value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.caption
+                            .copyWith(fontWeight: FontWeight.w800, color: AppColors.textDark)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 1),
+              Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption.copyWith(fontSize: 9, color: AppColors.textSecondary)),
+            ],
+          ),
+        ),
       );
 
   @override
