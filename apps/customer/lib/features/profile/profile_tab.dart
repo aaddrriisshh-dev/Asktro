@@ -1,11 +1,15 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 import '../auth/auth_controller.dart';
+import '../consultations/consultations_tab.dart';
 import '../search/search_screen.dart';
+import '../tools/horoscope_screen.dart';
 import '../profile_setup/onboarding_style.dart';
 import 'cms_viewer_screen.dart';
 import 'edit_profile_screen.dart';
@@ -32,7 +36,7 @@ class ProfileTab extends ConsumerWidget {
                   onTap: () => context.push('/recharge'),
                   trailing: _pill(Money.formatPaise(profile?.spendablePaise ?? 0)),),
               _row(Icons.chat_bubble_outline_rounded, 'My Sessions',
-                  onTap: () => _soon(context, 'My Sessions'),),
+                  onTap: () => _push(context, const ConsultationsTab()),),
               _row(Icons.favorite_border_rounded, 'My Favourites',
                   onTap: () => _soon(context, 'My Favourites'),),
               _row(Icons.self_improvement_rounded, 'Suggested Remedies',
@@ -45,9 +49,9 @@ class ProfileTab extends ConsumerWidget {
                       .push(MaterialPageRoute(builder: (_) => const SearchScreen())),),
               _row(Icons.live_tv_rounded, 'Live Session', onTap: () => _soon(context, 'Live Session')),
               _row(Icons.card_giftcard_rounded, 'Free Service',
-                  onTap: () => _soon(context, 'Free Service'), badge: 'NEW',),
+                  onTap: () => _freeService(context), badge: 'NEW',),
               if (profile != null)
-                _row(Icons.redeem_rounded, 'Refer a Friend',
+                _row(Icons.redeem_rounded, 'Refer a Friend or Family',
                     onTap: () => _referral(context, profile.referralCode),),
             ]),
             _label('SETTINGS'),
@@ -280,6 +284,9 @@ class ProfileTab extends ConsumerWidget {
   }
 
   void _referral(BuildContext context, String code) {
+    final shareText = code.isEmpty
+        ? 'Join me on ASKTRO — talk to expert astrologers. Download the app!'
+        : 'Join me on ASKTRO — talk to expert astrologers! Use my code $code when you sign up, and we BOTH get ₹20 wallet credit after your first recharge. Download the app!';
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -290,18 +297,55 @@ class ProfileTab extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Refer a Friend', style: Ob.title),
-            const SizedBox(height: 8),
-            Text('Share your code — you both get wallet credit when they recharge.',
-                style: Ob.subtitle, textAlign: TextAlign.center,),
-            const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-              decoration: BoxDecoration(
-                  color: Ob.lavenderChip, borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Ob.selectedBorder),),
-              child: Text(code.isEmpty ? '—' : code,
-                  style: Ob.title.copyWith(color: Ob.purpleDeep, letterSpacing: 2),),
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(gradient: Ob.goldCircle, shape: BoxShape.circle),
+              child: const Icon(Icons.redeem_rounded, color: Colors.white, size: 30),
+            ),
+            const SizedBox(height: 14),
+            Text('Refer a Friend or Family', style: Ob.title, textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text('Share your code. When they sign up and make their first recharge, you BOTH get ₹20 wallet credit.',
+                style: Ob.subtitle, textAlign: TextAlign.center,),
+            const SizedBox(height: 18),
+            GestureDetector(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: code));
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text('Referral code copied')));
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                decoration: BoxDecoration(
+                    color: Ob.lavenderChip,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Ob.selectedBorder),),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(code.isEmpty ? '—' : code,
+                        style: Ob.title.copyWith(color: Ob.purpleDeep, letterSpacing: 2),),
+                    const SizedBox(width: 10),
+                    const Icon(Icons.copy_rounded, size: 18, color: Ob.purple),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                    backgroundColor: Ob.purple, padding: const EdgeInsets.symmetric(vertical: 14)),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: shareText));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Invite message copied — paste it into WhatsApp or anywhere')),);
+                },
+                icon: const Icon(Icons.share_rounded, size: 18),
+                label: const Text('Share invite'),
+              ),
             ),
           ],
         ),
@@ -309,29 +353,142 @@ class ProfileTab extends ConsumerWidget {
     );
   }
 
+  void _freeService(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+            color: Ob.bgColor, borderRadius: BorderRadius.vertical(top: Radius.circular(28)),),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 34),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Free Services', style: Ob.title),
+            const SizedBox(height: 4),
+            Text('Complimentary tools, on us.', style: Ob.subtitle),
+            const SizedBox(height: 16),
+            _freeTile(Icons.wb_sunny_rounded, 'Daily Horoscope', "Your sign's reading for today", () {
+              Navigator.pop(context);
+              _push(context, const HoroscopeScreen());
+            }),
+            const SizedBox(height: 10),
+            _freeTile(Icons.brightness_5_rounded, 'Janam Kundli', 'Your birth chart — coming soon', () {
+              Navigator.pop(context);
+              _soon(context, 'Janam Kundli');
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _freeTile(IconData icon, String title, String subtitle, VoidCallback onTap) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+              color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: Ob.softShadow),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(color: Ob.lavenderChip, borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, color: Ob.purple),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Ob.option.copyWith(fontWeight: FontWeight.w700)),
+                    Text(subtitle, style: Ob.note),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFFB9B3C9)),
+            ],
+          ),
+        ),
+      );
+
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final confirmCtrl = TextEditingController();
+    final passwordCtrl = TextEditingController();
+    final user = FirebaseAuth.instance.currentUser;
+    // Only email/password accounts can (and must) re-enter a password. Phone and
+    // Google/Apple accounts have no password — for them typing DELETE is the gate.
+    final needsPassword = user?.providerData.any((p) => p.providerId == 'password') ?? false;
+
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: const Text(
-            'This permanently removes your profile and data. Active consultations must be finished first.',),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete', style: TextStyle(color: Color(0xFFD64545))),),
-        ],
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          final typedDelete = confirmCtrl.text.trim().toUpperCase() == 'DELETE';
+          final canDelete = typedDelete && (!needsPassword || passwordCtrl.text.isNotEmpty);
+          return AlertDialog(
+            title: const Text('Delete account?'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                    'This permanently removes your profile and data. Active consultations must be finished first.'),
+                const SizedBox(height: 16),
+                const Text('Type DELETE to confirm',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: confirmCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  onChanged: (_) => setLocal(() {}),
+                  decoration: const InputDecoration(
+                      hintText: 'DELETE', isDense: true, border: OutlineInputBorder()),
+                ),
+                if (needsPassword) ...[
+                  const SizedBox(height: 12),
+                  const Text('Enter your password',
+                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: passwordCtrl,
+                    obscureText: true,
+                    onChanged: (_) => setLocal(() {}),
+                    decoration: const InputDecoration(
+                        hintText: 'Password', isDense: true, border: OutlineInputBorder()),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              TextButton(
+                onPressed: canDelete ? () => Navigator.pop(ctx, true) : null,
+                child: const Text('Delete', style: TextStyle(color: Color(0xFFD64545))),
+              ),
+            ],
+          );
+        },
       ),
     );
     if (ok != true) return;
     try {
+      // Re-authenticate password users right before this destructive action.
+      if (needsPassword && user?.email != null) {
+        final cred = EmailAuthProvider.credential(email: user!.email!, password: passwordCtrl.text);
+        await user.reauthenticateWithCredential(cred);
+      }
       await ref.read(functionsProvider).httpsCallable('deleteAccount').call();
       await ref.read(authControllerProvider).signOut();
-    } catch (_) {
+    } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Could not delete account. Please try again.')));
+        final msg = e is FirebaseAuthException &&
+                (e.code == 'wrong-password' || e.code == 'invalid-credential')
+            ? 'Incorrect password. Please try again.'
+            : 'Could not delete account. Please try again.';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       }
     }
   }

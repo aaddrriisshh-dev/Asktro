@@ -120,29 +120,32 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
         ),
       ),
       body: DotGridBackground(
-        child: messages.isEmpty
-            ? const EmptyState(
-                icon: Icons.history_rounded,
-                title: 'No messages',
-                message: 'This consultation has no saved messages.',
-              )
-            : ListView.builder(
-                reverse: true,
-                // Bottom-safe so the newest bubble clears the phone's gesture bar
-                // instead of sliding under it.
-                padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg,
-                    AppSpacing.lg + MediaQuery.of(context).padding.bottom),
-                itemCount: messages.length,
-                itemBuilder: (_, i) {
-                  final m = messages[i];
-                  return _Bubble(
-                    text: (m['text'] ?? '') as String,
-                    imageUrl: m['image'] as String?,
-                    mine: m['senderId'] == uid,
-                    seen: m['seen'] == true,
-                  );
-                },
-              ),
+        // SafeArea owns the bottom gesture-bar inset (instead of hand-adding
+        // MediaQuery padding), so nothing can be pushed a few pixels past the
+        // viewport edge — the source of the stray "N PIXELS" overflow strip.
+        child: SafeArea(
+          top: false,
+          child: messages.isEmpty
+              ? const EmptyState(
+                  icon: Icons.history_rounded,
+                  title: 'No messages',
+                  message: 'This consultation has no saved messages.',
+                )
+              : ListView.builder(
+                  reverse: true,
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  itemCount: messages.length,
+                  itemBuilder: (_, i) {
+                    final m = messages[i];
+                    return _Bubble(
+                      text: (m['text'] ?? '') as String,
+                      imageUrl: m['image'] as String?,
+                      mine: m['senderId'] == uid,
+                      seen: m['seen'] == true,
+                    );
+                  },
+                ),
+        ),
       ),
     );
   }

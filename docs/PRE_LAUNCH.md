@@ -18,6 +18,11 @@
 ### Content
 - [ ] **About ASKTRO** text (you said you'd send it) — goes into `cms/about`
 
+### Run on your Mac (native/regeneration steps Claude can't do here)
+- [ ] `dart run flutter_launcher_icons` in `apps/customer` — regenerates the
+      home-screen launcher icon PNGs with the new lavender background (the
+      splash is already fixed in code; this fixes the app-drawer icon).
+
 ### Assets / accounts (from the security section below, repeated here for one view)
 - [ ] Move & back up the deploy key + all secrets (see "Critical files" section)
 - [ ] Create the Android **release keystore** before Play Store

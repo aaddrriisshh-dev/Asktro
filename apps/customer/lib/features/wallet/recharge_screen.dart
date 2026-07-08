@@ -229,6 +229,47 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
 
   void _snack(String msg) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
+  /// Prominent wallet-balance section at the top of the recharge body.
+  Widget _walletBalanceCard(int balance) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF8E6BD1), Color(0xFF5E3FBE)],
+          ),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+                color: const Color(0xFF5E3FBE).withValues(alpha: 0.28),
+                blurRadius: 18,
+                offset: const Offset(0, 8)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(12)),
+              child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white),
+            ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('WALLET BALANCE',
+                    style: Ob.note.copyWith(color: const Color(0xFFEAD79A), fontSize: 10, letterSpacing: 1)),
+                const SizedBox(height: 2),
+                Text(Money.formatPaise(balance),
+                    style: Ob.title.copyWith(color: Colors.white, fontSize: 24)),
+              ],
+            ),
+          ],
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final plans = ref.watch(_plansProvider);
@@ -301,6 +342,8 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                       children: [
+                        _walletBalanceCard(balance),
+                        const SizedBox(height: 18),
                         if (!offerMode && !lockMode) ...[
                           _offersBanner(),
                           const SizedBox(height: 20),
