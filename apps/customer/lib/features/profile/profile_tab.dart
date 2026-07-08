@@ -13,6 +13,8 @@ import '../tools/horoscope_screen.dart';
 import '../profile_setup/onboarding_style.dart';
 import 'cms_viewer_screen.dart';
 import 'edit_profile_screen.dart';
+import 'favourites_screen.dart';
+import 'suggested_remedies_screen.dart';
 import 'support_screen.dart';
 
 class ProfileTab extends ConsumerWidget {
@@ -38,9 +40,9 @@ class ProfileTab extends ConsumerWidget {
               _row(Icons.chat_bubble_outline_rounded, 'My Sessions',
                   onTap: () => _push(context, const ConsultationsTab()),),
               _row(Icons.favorite_border_rounded, 'My Favourites',
-                  onTap: () => _soon(context, 'My Favourites'),),
+                  onTap: () => _push(context, const FavouritesScreen()),),
               _row(Icons.self_improvement_rounded, 'Suggested Remedies',
-                  onTap: () => _soon(context, 'Suggested Remedies'),),
+                  onTap: () => _push(context, const SuggestedRemediesScreen()),),
             ]),
             _label('EXPLORE'),
             _card([

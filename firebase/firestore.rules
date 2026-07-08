@@ -63,6 +63,24 @@ service cloud.firestore {
       }
     }
 
+    // ================= remedies (astrologer -> customer suggestions) =================
+    match /remedies/{remedyId} {
+      // readable by the customer it's for, the astrologer who wrote it, or admin
+      allow read: if isAdmin()
+        || isSelf(resource.data.customerId)
+        || isSelf(resource.data.astrologerId);
+      // an astrologer creates a remedy addressed from themselves
+      allow create: if isAstrologer()
+        && isSelf(request.resource.data.astrologerId)
+        && request.resource.data.customerId is string;
+      // the customer may only flip the `done` flag — never rewrite the content
+      allow update: if isSelf(resource.data.customerId) && notChanging([
+        'customerId','astrologerId','astrologerName','astrologerPhoto',
+        'consultationId','title','note','createdAt'
+      ]);
+      allow delete: if false;
+    }
+
     // ================= consultations =================
     match /consultations/{consultationId} {
       // only the two participants (or admin) may read the session

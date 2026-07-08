@@ -195,6 +195,88 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
     );
   }
 
+  /// Suggest a remedy that lands in the customer's "Suggested Remedies".
+  Future<void> _suggestRemedy(Consultation c) async {
+    final titleCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Sky.card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+            left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.self_improvement_rounded, size: 16, color: Sky.gold),
+              const SizedBox(width: 7),
+              Text('Suggest a remedy', style: Sky.h2),
+              const Spacer(),
+              Text('Sent to customer', style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
+            ]),
+            const SizedBox(height: 12),
+            TextField(
+              controller: titleCtrl,
+              style: Sky.body,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Title (e.g. Chant Gayatri Mantra)',
+                filled: true,
+                fillColor: Sky.surface,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.all(14),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: noteCtrl,
+              minLines: 3,
+              maxLines: 6,
+              style: Sky.body,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'How to perform it — steps, timing, duration…',
+                filled: true,
+                fillColor: Sky.surface,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.all(14),
+              ),
+            ),
+            const SizedBox(height: 12),
+            GoldButton(
+              label: 'Send remedy',
+              onPressed: () async {
+                final title = titleCtrl.text.trim();
+                final note = noteCtrl.text.trim();
+                if (title.isEmpty && note.isEmpty) return;
+                await ref.read(firestoreProvider).collection('remedies').add({
+                  'customerId': c.customerId,
+                  'astrologerId': widget.self.id,
+                  'astrologerName': widget.self.name,
+                  'astrologerPhoto': widget.self.profilePhoto,
+                  'consultationId': c.id,
+                  'title': title.isEmpty ? 'Remedy' : title,
+                  'note': note,
+                  'done': false,
+                  'createdAt': FieldValue.serverTimestamp(),
+                });
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (mounted) {
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(const SnackBar(content: Text('Remedy sent to the customer')));
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(_sessionProvider(_id));
@@ -421,8 +503,8 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
         children: [
           chip(Icons.person_rounded, 'Profile', () => _openDetails(c)),
           chip(Icons.auto_awesome_rounded, 'Kundli', () => _openDetails(c)),
+          chip(Icons.self_improvement_rounded, 'Remedy', () => _suggestRemedy(c)),
           chip(Icons.lock_rounded, 'Notes', () => _quickNote(c)),
-          chip(Icons.history_rounded, 'History', () => _openDetails(c)),
         ],
       ),
     );
