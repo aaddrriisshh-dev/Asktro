@@ -33,7 +33,7 @@ class FavouritesScreen extends ConsumerWidget {
             )
           : ListView.separated(
               padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg,
-                  AppSpacing.lg + MediaQuery.of(context).padding.bottom),
+                  AppSpacing.lg + MediaQuery.of(context).padding.bottom,),
               itemCount: ids.length,
               separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
               itemBuilder: (_, i) => _FavTile(astrologerId: ids[i]),
@@ -65,7 +65,7 @@ class _FavTile extends ConsumerWidget {
                 children: [
                   Text(a.name,
                       style: AppTypography.body.copyWith(fontWeight: FontWeight.w700),
-                      overflow: TextOverflow.ellipsis),
+                      overflow: TextOverflow.ellipsis,),
                   const SizedBox(height: 2),
                   Text(
                     [
@@ -88,7 +88,7 @@ class _FavTile extends ConsumerWidget {
                 ),
                 child: Text('Online',
                     style: AppTypography.caption.copyWith(
-                        color: AppColors.success, fontWeight: FontWeight.w800, fontSize: 11)),
+                        color: AppColors.success, fontWeight: FontWeight.w800, fontSize: 11,),),
               )
             else
               const Icon(Icons.chevron_right_rounded, color: Color(0xFFB9B3C9)),

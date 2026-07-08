@@ -761,7 +761,7 @@ class _RemedyBubble extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text('REMEDY',
                     style: Sky.label.copyWith(
-                        fontSize: 10, color: Sky.gold, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                        fontSize: 10, color: Sky.gold, fontWeight: FontWeight.w800, letterSpacing: 1,),),
               ],
             ),
             const SizedBox(height: 7),

@@ -183,7 +183,7 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
                     child: Icon(filled ? Icons.star_rounded : Icons.star_border_rounded,
-                        color: AppColors.warning, size: 28),
+                        color: AppColors.warning, size: 28,),
                   ),
                 );
               }),

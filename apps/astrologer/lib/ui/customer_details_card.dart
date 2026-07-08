@@ -67,7 +67,7 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
                               const Icon(Icons.auto_awesome_rounded, size: 11, color: Sky.gold),
                               const SizedBox(width: 4),
                               Text('Birth details & kundli · tap to view',
-                                  style: Sky.label.copyWith(fontSize: 10.5, color: Sky.purple, fontWeight: FontWeight.w700)),
+                                  style: Sky.label.copyWith(fontSize: 10.5, color: Sky.purple, fontWeight: FontWeight.w700),),
                             ],
                           ),
                         ],
@@ -80,7 +80,7 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
                     height: 30,
                     decoration: BoxDecoration(color: Sky.purple.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(9)),
                     child: Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                        size: 20, color: Sky.purple),
+                        size: 20, color: Sky.purple,),
                   ),
                 ],
               ),
@@ -93,7 +93,7 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Divider(color: Sky.line, height: 1),
+                  const Divider(color: Sky.line, height: 1),
                   const SizedBox(height: 14),
                   _section('Birth details'),
                   _row('Date of birth', i.birthDate),
@@ -129,10 +129,10 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
             const Icon(Icons.auto_awesome_rounded, color: Sky.gold, size: 24),
             const SizedBox(height: 6),
             Text('Full birth chart',
-                style: Sky.label.copyWith(fontWeight: FontWeight.w800, color: Sky.ink)),
+                style: Sky.label.copyWith(fontWeight: FontWeight.w800, color: Sky.ink),),
             const SizedBox(height: 2),
             Text('The kundli will render here once the chart service is connected.',
-                textAlign: TextAlign.center, style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
+                textAlign: TextAlign.center, style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3),),
           ],
         ),
       );
@@ -141,7 +141,7 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(t.toUpperCase(),
             style: Sky.label
-                .copyWith(fontSize: 10.5, letterSpacing: 1, color: Sky.gold, fontWeight: FontWeight.w800)),
+                .copyWith(fontSize: 10.5, letterSpacing: 1, color: Sky.gold, fontWeight: FontWeight.w800),),
       );
 
   Widget _row(String k, String v) => Padding(

@@ -255,7 +255,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       // Never started (expired unaccepted / declined) — nothing was billed.
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("The astrologer couldn't take your request right now — you haven't been charged."),
-      ));
+      ),);
       Navigator.of(context).maybePop();
     }
   }
@@ -394,7 +394,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                         child: Text(a.name,
                             style: AppTypography.body
                                 .copyWith(fontWeight: FontWeight.w800, fontSize: 15.5),
-                            overflow: TextOverflow.ellipsis),
+                            overflow: TextOverflow.ellipsis,),
                       ),
                       if (a.verified) ...[
                         const SizedBox(width: 6),
@@ -414,7 +414,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                                       color: Colors.white,
                                       fontWeight: FontWeight.w700,
                                       fontSize: 9.5,
-                                      letterSpacing: 0.2)),
+                                      letterSpacing: 0.2,),),
                             ],
                           ),
                         ),
@@ -425,12 +425,12 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                   Row(
                     children: [
                       _statChip(Icons.workspace_premium_rounded,
-                          a.experience > 0 ? '${a.experience} yrs' : 'New', 'Experience'),
+                          a.experience > 0 ? '${a.experience} yrs' : 'New', 'Experience',),
                       const SizedBox(width: 8),
                       _statChip(Icons.forum_rounded, '${a.totalConsultations}', 'Sessions'),
                       const SizedBox(width: 8),
                       _statChip(Icons.star_rounded,
-                          a.rating > 0 ? a.rating.toStringAsFixed(1) : '—', 'Rating', gold: true),
+                          a.rating > 0 ? a.rating.toStringAsFixed(1) : '—', 'Rating', gold: true,),
                     ],
                   ),
                 ],
@@ -462,7 +462,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTypography.caption
-                            .copyWith(fontWeight: FontWeight.w800, color: AppColors.textDark)),
+                            .copyWith(fontWeight: FontWeight.w800, color: AppColors.textDark),),
                   ),
                 ],
               ),
@@ -470,7 +470,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
               Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.caption.copyWith(fontSize: 9, color: AppColors.textSecondary)),
+                  style: AppTypography.caption.copyWith(fontSize: 9, color: AppColors.textSecondary),),
             ],
           ),
         ),
@@ -520,9 +520,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text('Connection lost. Please go back and try again.',
-                          style: AppTypography.caption.copyWith(color: AppColors.error)),
+                          style: AppTypography.caption.copyWith(color: AppColors.error),),
                     ),
-                  ]),
+                  ],),
                 ),
               ),
               data: (s) => ConsultationHeader(
@@ -654,7 +654,7 @@ class _Bubble extends StatelessWidget {
                 padding: EdgeInsets.only(top: hasImage ? 6 : 0, left: hasImage ? 6 : 0, right: hasImage ? 6 : 0),
                 child: Text(text,
                     style: AppTypography.body.copyWith(
-                        color: mine ? Colors.white : AppColors.textDark, fontSize: 14.5, height: 1.3),),
+                        color: mine ? Colors.white : AppColors.textDark, fontSize: 14.5, height: 1.3,),),
               ),
             if (mine)
               Padding(
@@ -699,12 +699,12 @@ class _Bubble extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text('PERSONAL REMEDY',
                     style: AppTypography.caption.copyWith(
-                        color: AppColors.warning, fontWeight: FontWeight.w800, letterSpacing: 0.8, fontSize: 10),),
+                        color: AppColors.warning, fontWeight: FontWeight.w800, letterSpacing: 0.8, fontSize: 10,),),
               ],
             ),
             const SizedBox(height: 7),
             Text(remedyTitle!,
-                style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)),
+                style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),),
             if (note.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(note, style: AppTypography.body.copyWith(fontSize: 14, height: 1.35, color: AppColors.textDark)),

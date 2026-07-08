@@ -243,7 +243,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
             BoxShadow(
                 color: const Color(0xFF5E3FBE).withValues(alpha: 0.28),
                 blurRadius: 18,
-                offset: const Offset(0, 8)),
+                offset: const Offset(0, 8),),
           ],
         ),
         child: Row(
@@ -252,7 +252,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(12)),
+                  color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(12),),
               child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white),
             ),
             const SizedBox(width: 14),
@@ -260,10 +260,10 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('WALLET BALANCE',
-                    style: Ob.note.copyWith(color: const Color(0xFFEAD79A), fontSize: 10, letterSpacing: 1)),
+                    style: Ob.note.copyWith(color: const Color(0xFFEAD79A), fontSize: 10, letterSpacing: 1),),
                 const SizedBox(height: 2),
                 Text(Money.formatPaise(balance),
-                    style: Ob.title.copyWith(color: Colors.white, fontSize: 24)),
+                    style: Ob.title.copyWith(color: Colors.white, fontSize: 24),),
               ],
             ),
           ],
@@ -357,7 +357,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                         ),
                         if (lockMode) ...[
                           const SizedBox(height: 6),
-                          Text('This offer applies only to ${Money.formatPaise(lock!)}. Other amounts are locked.',
+                          Text('This offer applies only to ${Money.formatPaise(lock)}. Other amounts are locked.',
                               style: Ob.option.copyWith(color: Ob.navy.withValues(alpha: 0.6), fontSize: 12),),
                         ],
                         const SizedBox(height: 16),

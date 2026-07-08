@@ -49,7 +49,7 @@ Future<void> showOfferPopup(BuildContext context, Coupon coupon) {
     ctaLabel: ctaLabel,
     medal: th?.medal ?? '🎁',
     onAction: () => context.push(
-        '/recharge?coupon=${Uri.encodeComponent(coupon.code)}${coupon.amount > 0 ? '&lock=${coupon.amount}' : ''}'),
+        '/recharge?coupon=${Uri.encodeComponent(coupon.code)}${coupon.amount > 0 ? '&lock=${coupon.amount}' : ''}',),
   );
 }
 

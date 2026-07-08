@@ -346,7 +346,7 @@ class ProfileTab extends ConsumerWidget {
               width: double.infinity,
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
-                    backgroundColor: Ob.purple, padding: const EdgeInsets.symmetric(vertical: 14)),
+                    backgroundColor: Ob.purple, padding: const EdgeInsets.symmetric(vertical: 14),),
                 onPressed: () => Share.share(shareText, subject: 'Join me on ASKTRO'),
                 icon: const Icon(Icons.share_rounded, size: 18),
                 label: const Text('Share invite'),
@@ -395,7 +395,7 @@ class ProfileTab extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: Ob.softShadow),
+              color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: Ob.softShadow,),
           child: Row(
             children: [
               Container(
@@ -441,29 +441,29 @@ class ProfileTab extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                    'This permanently removes your profile and data. Active consultations must be finished first.'),
+                    'This permanently removes your profile and data. Active consultations must be finished first.',),
                 const SizedBox(height: 16),
                 const Text('Type DELETE to confirm',
-                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),),
                 const SizedBox(height: 6),
                 TextField(
                   controller: confirmCtrl,
                   textCapitalization: TextCapitalization.characters,
                   onChanged: (_) => setLocal(() {}),
                   decoration: const InputDecoration(
-                      hintText: 'DELETE', isDense: true, border: OutlineInputBorder()),
+                      hintText: 'DELETE', isDense: true, border: OutlineInputBorder(),),
                 ),
                 if (needsPassword) ...[
                   const SizedBox(height: 12),
                   const Text('Enter your password',
-                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),),
                   const SizedBox(height: 6),
                   TextField(
                     controller: passwordCtrl,
                     obscureText: true,
                     onChanged: (_) => setLocal(() {}),
                     decoration: const InputDecoration(
-                        hintText: 'Password', isDense: true, border: OutlineInputBorder()),
+                        hintText: 'Password', isDense: true, border: OutlineInputBorder(),),
                   ),
                 ],
               ],

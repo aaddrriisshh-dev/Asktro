@@ -207,7 +207,7 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
                   const SizedBox(width: 5),
                   Text('ASKTRO VERIFIED',
                       style: AppTypography.caption.copyWith(
-                          color: const Color(0xFF3A2A6E), fontWeight: FontWeight.w800, fontSize: 10.5, letterSpacing: 0.5),),
+                          color: const Color(0xFF3A2A6E), fontWeight: FontWeight.w800, fontSize: 10.5, letterSpacing: 0.5,),),
                 ],
               ),
             ),

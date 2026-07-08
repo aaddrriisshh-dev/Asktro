@@ -136,13 +136,13 @@ class _HistoryTile extends ConsumerWidget {
                         ),
                         child: Text('Resume',
                             style: AppTypography.caption.copyWith(
-                                color: AppColors.success, fontWeight: FontWeight.w800, fontSize: 11),),
+                                color: AppColors.success, fontWeight: FontWeight.w800, fontSize: 11,),),
                       )
                     : Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text('View chat',
-                              style: AppTypography.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 11.5)),
+                              style: AppTypography.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 11.5),),
                           const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.primary),
                         ],
                       ),

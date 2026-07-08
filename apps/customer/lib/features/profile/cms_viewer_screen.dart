@@ -32,7 +32,7 @@ class CmsViewerScreen extends ConsumerWidget {
               )
             : SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl, AppSpacing.xl,
-                    AppSpacing.xl + MediaQuery.of(context).padding.bottom),
+                    AppSpacing.xl + MediaQuery.of(context).padding.bottom,),
                 child: Text(content, style: AppTypography.body),
               ),
       ),

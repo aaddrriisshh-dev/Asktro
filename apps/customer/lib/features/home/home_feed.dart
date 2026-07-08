@@ -159,7 +159,7 @@ class HomeFeed extends ConsumerWidget {
               Ob.purple.withValues(alpha: 0),
               Ob.purple.withValues(alpha: 0.16),
               Ob.purple.withValues(alpha: 0),
-            ]),
+            ],),
           ),
         ),
       );
@@ -847,7 +847,7 @@ class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
           title: widget.onlyRisingStars ? 'Rising Stars' : 'All Astrologers',
           onlyRisingStars: widget.onlyRisingStars,
         ),
-      ));
+      ),);
 
   @override
   Widget build(BuildContext context) {
@@ -867,7 +867,7 @@ class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Text('View all  →',
-                      style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700, fontSize: 13)),
+                      style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700, fontSize: 13),),
                 ),
               ),
             ],
@@ -1006,10 +1006,10 @@ class _CelestialAstroCard extends StatelessWidget {
                 const Icon(Icons.star_rounded, size: 14, color: Ob.gold),
                 const SizedBox(width: 2),
                 Text(a.rating.toStringAsFixed(1),
-                    style: Ob.option.copyWith(fontSize: 12, fontWeight: FontWeight.w700)),
+                    style: Ob.option.copyWith(fontSize: 12, fontWeight: FontWeight.w700),),
                 const SizedBox(width: 7),
                 Text('${a.experience}y exp',
-                    style: Ob.note.copyWith(fontSize: 11.5, color: Ob.navy.withValues(alpha: 0.6))),
+                    style: Ob.note.copyWith(fontSize: 11.5, color: Ob.navy.withValues(alpha: 0.6)),),
               ],
             ),
             const Spacer(),
@@ -1018,7 +1018,7 @@ class _CelestialAstroCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
               decoration: BoxDecoration(color: Ob.lavenderChip, borderRadius: BorderRadius.circular(999)),
               child: Text(a.rateLabel,
-                  style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w800, fontSize: 12.5)),
+                  style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w800, fontSize: 12.5),),
             ),
           ],
         ),

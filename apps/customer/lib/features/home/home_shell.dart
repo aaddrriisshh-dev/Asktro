@@ -73,7 +73,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         content: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
         duration: const Duration(seconds: 5),
         action: SnackBarAction(label: 'View', onPressed: () => _handlePushTap(m)),
-      ));
+      ),);
   }
 
   void _handlePushTap(RemoteMessage m) {

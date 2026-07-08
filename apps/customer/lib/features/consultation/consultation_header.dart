@@ -93,7 +93,7 @@ class ConsultationHeader extends StatelessWidget {
                             const SizedBox(width: 4),
                             Text(Money.formatDuration(remainingSec),
                                 style: AppTypography.caption
-                                    .copyWith(color: _timerColor, fontWeight: FontWeight.w700)),
+                                    .copyWith(color: _timerColor, fontWeight: FontWeight.w700),),
                             const SizedBox(width: 3),
                             Icon(Icons.add_circle, size: 15, color: _timerColor),
                           ]
@@ -102,7 +102,7 @@ class ConsultationHeader extends StatelessWidget {
                             const SizedBox(width: 4),
                             Text('Add cash',
                                 style: AppTypography.caption
-                                    .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                                    .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),),
                           ],
                   ),
                 ),

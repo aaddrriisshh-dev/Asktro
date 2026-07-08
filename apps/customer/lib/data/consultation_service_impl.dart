@@ -27,10 +27,10 @@ class ConsultationServiceImpl implements ConsultationService {
     } catch (e) {
       // Transport/SDK failure (e.g. a token fetch timing out on a fresh
       // emulator) — surface a friendly message, not a raw platform exception.
-      return ResultFailure(Failure(
+      return const ResultFailure(Failure(
         message: 'Couldn\'t reach the server. Check your connection and try again.',
         code: 'transport',
-      ));
+      ),);
     }
   }
 
@@ -87,7 +87,7 @@ class ConsultationServiceImpl implements ConsultationService {
 
   @override
   Future<Result<void>> rate(String consultationId,
-          {required double rating, String? review, double? behaviorRating, double? accuracyRating}) =>
+          {required double rating, String? review, double? behaviorRating, double? accuracyRating,}) =>
       _call('rateConsultation', {
         'consultationId': consultationId,
         'rating': rating,

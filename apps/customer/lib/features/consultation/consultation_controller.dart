@@ -89,12 +89,12 @@ class ConsultationController extends StateNotifier<AsyncValue<ConsultationState>
   Future<Result<void>> resume() => _service.resume(consultationId);
   Future<Result<Consultation>> end() => _service.end(consultationId);
   Future<Result<void>> rate(double rating,
-          {String? review, double? behaviorRating, double? accuracyRating}) =>
+          {String? review, double? behaviorRating, double? accuracyRating,}) =>
       _service.rate(consultationId,
           rating: rating,
           review: review,
           behaviorRating: behaviorRating,
-          accuracyRating: accuracyRating);
+          accuracyRating: accuracyRating,);
 
   @override
   void dispose() {

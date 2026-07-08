@@ -54,7 +54,7 @@ class SuggestedRemediesScreen extends ConsumerWidget {
                       )
                     : ListView.separated(
                         padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg,
-                            AppSpacing.lg + MediaQuery.of(context).padding.bottom),
+                            AppSpacing.lg + MediaQuery.of(context).padding.bottom,),
                         itemCount: list.length,
                         separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
                         itemBuilder: (_, i) => _RemedyCard(data: list[i]),
@@ -96,10 +96,10 @@ class _RemediesHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Your Personal Remedies',
-                    style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 16)),
+                    style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 16),),
                 const SizedBox(height: 2),
                 Text('Rituals & remedies your astrologers chose, just for you ✦',
-                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),),
               ],
             ),
           ),
@@ -143,7 +143,7 @@ class _RemedyCardState extends State<_RemedyCard> {
               Expanded(
                 child: Text(title,
                     style: AppTypography.body.copyWith(fontWeight: FontWeight.w800),
-                    overflow: TextOverflow.ellipsis),
+                    overflow: TextOverflow.ellipsis,),
               ),
             ],
           ),
@@ -157,7 +157,7 @@ class _RemedyCardState extends State<_RemedyCard> {
               AppAvatar(name: astro, photoUrl: photo, size: 22),
               const SizedBox(width: 7),
               Text('Suggested by $astro',
-                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary),),
             ],
           ),
           const SizedBox(height: 14),
@@ -180,7 +180,7 @@ class _RemedyCardState extends State<_RemedyCard> {
                       const SizedBox(width: 8),
                       Text('Noted ✨ — may it bring you light',
                           style: AppTypography.body.copyWith(
-                              color: AppColors.success, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                              color: AppColors.success, fontWeight: FontWeight.w700, fontSize: 13.5,),),
                     ],
                   ),
                 )
@@ -198,7 +198,7 @@ class _RemedyCardState extends State<_RemedyCard> {
                     ),
                     child: Text("Thanks, I'll do it 🙏",
                         style: AppTypography.body.copyWith(
-                            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14.5)),
+                            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14.5,),),
                   ),
                 ),
         ],

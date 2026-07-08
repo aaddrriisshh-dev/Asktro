@@ -55,7 +55,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
       appBar: AppBar(title: const Text('Help & Support')),
       body: ListView(
         padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg,
-            AppSpacing.lg + MediaQuery.of(context).padding.bottom),
+            AppSpacing.lg + MediaQuery.of(context).padding.bottom,),
         children: [
           Text('Raise a ticket', style: AppTypography.subtitle),
           const SizedBox(height: AppSpacing.md),

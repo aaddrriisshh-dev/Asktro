@@ -139,7 +139,7 @@ Widget _actionCta(BuildContext ctx, PromoTheme? th, String label, VoidCallback o
 
 Future<void> _center(BuildContext context, PromoTheme? th, String title, String body,
     VoidCallback onAction, String ctaLabel, String? code, String medal, bool showMaybeLater,
-    String? imageUrl, String imageStyle) {
+    String? imageUrl, String imageStyle,) {
   return showDialog(
     context: context,
     barrierDismissible: true,
@@ -156,7 +156,7 @@ Future<void> _center(BuildContext context, PromoTheme? th, String title, String 
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: Image.network(
-                  imageUrl!,
+                  imageUrl,
                   height: imageStyle == 'portrait' ? 168 : 118,
                   width: imageStyle == 'portrait' ? 132 : double.infinity,
                   fit: BoxFit.cover,
@@ -203,7 +203,7 @@ Future<void> _center(BuildContext context, PromoTheme? th, String title, String 
 // ---- half sheet -------------------------------------------------------------
 
 Future<void> _half(BuildContext context, PromoTheme th, String title, String body,
-    VoidCallback onAction, String ctaLabel, String? code, String? imageUrl, String imageStyle) {
+    VoidCallback onAction, String ctaLabel, String? code, String? imageUrl, String imageStyle,) {
   final fg = th.tx;
   final head = promoHeadline(th);
   return showModalBottomSheet(
@@ -251,7 +251,7 @@ Future<void> _half(BuildContext context, PromoTheme th, String title, String bod
 
 Future<void> _full(BuildContext context, PromoTheme th, String title, String body,
     VoidCallback onAction, String ctaLabel, String? code, String kicker, String? tagline,
-    String? imageUrl, String imageStyle) {
+    String? imageUrl, String imageStyle,) {
   final fg = th.tx;
   final head = promoHeadline(th);
   return showGeneralDialog(
@@ -284,14 +284,14 @@ Future<void> _full(BuildContext context, PromoTheme th, String title, String bod
                         children: [
                           Text(kicker,
                               style: Ob.option.copyWith(color: head, fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 2, decoration: TextDecoration.none),
-                              textAlign: TextAlign.center),
+                              textAlign: TextAlign.center,),
                           const SizedBox(height: 22),
                           _hero(imageUrl, imageStyle, giftSize: 150),
                           if (tagline != null) ...[
                             const SizedBox(height: 14),
                             Text(tagline,
                                 style: Ob.title.copyWith(color: head, fontSize: 20, fontStyle: FontStyle.italic, decoration: TextDecoration.none),
-                                textAlign: TextAlign.center),
+                                textAlign: TextAlign.center,),
                           ],
                         ],
                       ),
@@ -302,11 +302,11 @@ Future<void> _full(BuildContext context, PromoTheme th, String title, String bod
                         children: [
                           Text(title,
                               style: Ob.title.copyWith(color: head, fontSize: 32, height: 1.12, decoration: TextDecoration.none),
-                              textAlign: TextAlign.center),
+                              textAlign: TextAlign.center,),
                           const SizedBox(height: 12),
                           Text(body,
                               style: Ob.subtitle.copyWith(color: fg.withValues(alpha: 0.92), fontSize: 16, height: 1.35, decoration: TextDecoration.none),
-                              textAlign: TextAlign.center),
+                              textAlign: TextAlign.center,),
                           if (code != null) ...[
                             const SizedBox(height: 22),
                             _pill(code, fg, fg.withValues(alpha: 0.16)),

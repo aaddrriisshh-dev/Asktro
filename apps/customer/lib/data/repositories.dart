@@ -66,7 +66,7 @@ class AstrologerRepository {
       .map((s) {
         final docs = s.docs.where(_isActive).toList();
         final tagged = docs
-            .where((d) => (d.data()?['risingStar'] ?? false) == true)
+            .where((d) => (d.data()['risingStar'] ?? false) == true)
             .map(_map)
             .toList()
           ..sort((a, b) => b.rating.compareTo(a.rating));

@@ -156,7 +156,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),),
       builder: (ctx) => SafeArea(
         top: false,
         child: SizedBox(
@@ -166,22 +166,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: const BoxDecoration(
-                    border: Border(bottom: BorderSide(color: Ob.border))),
+                    border: Border(bottom: BorderSide(color: Ob.border)),),
                 child: Row(
                   children: [
                     TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
                     Expanded(
                       child: Text(title,
                           textAlign: TextAlign.center,
-                          style: Ob.option.copyWith(fontWeight: FontWeight.w700)),
+                          style: Ob.option.copyWith(fontWeight: FontWeight.w700),),
                     ),
                     TextButton(
                       onPressed: () {
                         onDone();
                         Navigator.pop(ctx);
                       },
-                      child: Text('Done',
-                          style: TextStyle(color: Ob.purple, fontWeight: FontWeight.w700)),
+                      child: const Text('Done',
+                          style: TextStyle(color: Ob.purple, fontWeight: FontWeight.w700),),
                     ),
                   ],
                 ),
@@ -242,14 +242,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 _text('Email', _email,
                     hint: 'you@email.com',
                     icon: Icons.mail_outline_rounded,
-                    keyboardType: TextInputType.emailAddress),
+                    keyboardType: TextInputType.emailAddress,),
                 const SizedBox(height: 14),
                 _readOnly('Phone', profile.phone.isEmpty ? '—' : profile.phone,
-                    icon: Icons.phone_iphone_rounded),
+                    icon: Icons.phone_iphone_rounded,),
                 const SizedBox(height: 24),
                 _label('BIRTH DETAILS (FOR YOUR CHART)'),
                 _chips('Gender', const {'male': 'Male', 'female': 'Female'}, _gender,
-                    (v) => setState(() => _gender = v)),
+                    (v) => setState(() => _gender = v),),
                 const SizedBox(height: 14),
                 _pickerRow(
                   'Date of birth',
@@ -273,7 +273,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   child: TextButton(
                     onPressed: () => setState(() => _timeKnown = !_timeKnown),
                     child: Text(_timeKnown ? "I don't know my birth time" : 'I do know my birth time',
-                        style: Ob.note.copyWith(color: Ob.purple)),
+                        style: Ob.note.copyWith(color: Ob.purple),),
                   ),
                 ),
                 _placeField(),
@@ -283,7 +283,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     'Relationship',
                     const {'single': 'Single', 'in_relationship': 'In a relationship', 'married': 'Married'},
                     _relationship,
-                    (v) => setState(() => _relationship = v)),
+                    (v) => setState(() => _relationship = v),),
                 const SizedBox(height: 14),
                 _label('LANGUAGES'),
                 Wrap(
@@ -297,7 +297,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             } else {
                               _languages.add(lang);
                             }
-                          })),
+                          }),),
                   ],
                 ),
                 const SizedBox(height: 28),
@@ -311,7 +311,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           ? const SizedBox(
                               width: 22,
                               height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),)
                           : Text('Save changes', style: Ob.option.copyWith(fontWeight: FontWeight.w700)),
                     ),
                   ),
@@ -327,7 +327,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       );
 
   Widget _text(String label, TextEditingController c,
-      {required String hint, required IconData icon, TextInputType? keyboardType}) {
+      {required String hint, required IconData icon, TextInputType? keyboardType,}) {
     return TextField(
       controller: c,
       keyboardType: keyboardType,
@@ -338,11 +338,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         prefixIcon: Icon(icon, color: Ob.purple, size: 20),
         filled: true,
         fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Ob.border)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.border)),
         enabledBorder:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Ob.border)),
+            OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.border)),
         focusedBorder:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Ob.purple)),
+            OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.purple)),
       ),
     );
   }
@@ -363,7 +363,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         Text(value, style: Ob.option),
         const Spacer(),
         const Icon(Icons.lock_outline_rounded, color: Color(0xFFB9B3C9), size: 16),
-      ]),
+      ],),
     );
   }
 
@@ -385,7 +385,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           Text('$label:  ', style: Ob.note),
           Expanded(child: Text(value, style: Ob.option, overflow: TextOverflow.ellipsis)),
           const Icon(Icons.chevron_right_rounded, color: Color(0xFFB9B3C9)),
-        ]),
+        ],),
       ),
     );
   }
@@ -405,15 +405,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             suffixIcon: _placeLoading
                 ? const Padding(
                     padding: EdgeInsets.all(14),
-                    child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)))
+                    child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),)
                 : null,
             filled: true,
             fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Ob.border)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.border)),
             enabledBorder:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Ob.border)),
+                OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.border)),
             focusedBorder:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Ob.purple)),
+                OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.purple)),
           ),
         ),
         if (_placeResults.isNotEmpty)
@@ -440,7 +440,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         const Icon(Icons.place_outlined, size: 17, color: Ob.purple),
                         const SizedBox(width: 10),
                         Expanded(child: Text(r.label, style: Ob.note.copyWith(fontSize: 13.5))),
-                      ]),
+                      ],),
                     ),
                   ),
               ],
@@ -479,7 +479,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         child: Text(text,
             style: Ob.note.copyWith(
                 color: on ? Ob.purpleDeep : const Color(0xFF6B6580),
-                fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
+                fontWeight: on ? FontWeight.w700 : FontWeight.w500,),),
       ),
     );
   }
