@@ -32,6 +32,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   late final TextEditingController _name =
       TextEditingController(text: widget.initialName ?? '');
+  final TextEditingController _referral = TextEditingController();
   String? _gender;
   DateTime _birthDate = DateTime(1995, 6, 15);
   int _hour = 10;
@@ -50,6 +51,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   @override
   void dispose() {
     _name.dispose();
+    _referral.dispose();
     super.dispose();
   }
 
@@ -95,6 +97,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       'birthPlace': _birthPlace,
       'relationshipStatus': _relationship,
       'languages': _languages.toList(),
+      if (_referral.text.trim().isNotEmpty) 'referredBy': _referral.text.trim().toUpperCase(),
       'onboardingComplete': true,
     });
   }
@@ -646,6 +649,27 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             );
           },),
           const SizedBox(height: 18),
+          TextField(
+            controller: _referral,
+            textCapitalization: TextCapitalization.characters,
+            style: Ob.option,
+            decoration: InputDecoration(
+              labelText: 'Referral code (optional)',
+              hintText: 'e.g. ASK1234',
+              prefixIcon: const Icon(Icons.card_giftcard_rounded, color: Ob.purple),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Ob.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Ob.border),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
           const InfoNote(icon: Icons.language_rounded, body: 'You can add or remove languages anytime from your profile settings.'),
         ],
       ),

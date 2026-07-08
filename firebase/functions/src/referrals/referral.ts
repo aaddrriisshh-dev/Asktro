@@ -10,8 +10,8 @@ import { writeLedger } from '../wallet/ledger';
 
 // Reward amounts in paise. Admin-configurable via config/global in future;
 // kept here as defaults matching the referral program spec (Part 6).
-const REFERRER_REWARD_PAISE = 5000; // ₹50
-const REFERRED_REWARD_PAISE = 2500; // ₹25
+const REFERRER_REWARD_PAISE = 2000; // ₹20
+const REFERRED_REWARD_PAISE = 2000; // ₹20
 
 /** What the write phase needs, resolved during the transaction's read phase. */
 export interface ReferralCredit {
@@ -99,6 +99,24 @@ export function applyReferralCredit(
     referredReward: REFERRED_REWARD_PAISE,
     status: 'credited',
     triggeredByPaymentId: paymentId,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  // Notify both sides (a doc write here fans out to a push via onNotificationCreated).
+  tx.set(db.collection(Collections.notifications).doc(), {
+    userId: referrerId,
+    title: 'Referral reward 🎉',
+    body: `Your friend just recharged — ₹${(REFERRER_REWARD_PAISE / 100).toFixed(0)} added to your wallet.`,
+    type: 'referral_reward',
+    read: false,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  tx.set(db.collection(Collections.notifications).doc(), {
+    userId: referredUserId,
+    title: 'Welcome bonus 🎉',
+    body: `₹${(REFERRED_REWARD_PAISE / 100).toFixed(0)} referral bonus added to your wallet. Enjoy!`,
+    type: 'referral_reward',
+    read: false,
     createdAt: FieldValue.serverTimestamp(),
   });
 }
