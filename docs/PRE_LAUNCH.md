@@ -1,5 +1,31 @@
 # Pre-Launch Checklist — MUST do before going live
 
+---
+
+## 📋 NEEDS FROM YOU (Adrish) — fill these, then we apply them all at once
+
+> Running list of values/content only you can provide. Claude adds to this
+> whenever a task is blocked on your input; nothing else is blocked meanwhile.
+
+### Legal docs (to finalise Privacy Policy + Terms in `seed_legal.mjs`)
+- [ ] **Effective date** (e.g. 8 July 2026)
+- [ ] **Registered office address** of Asktro Tech Private Limited
+- [ ] **Support email** (e.g. support@asktro.app)
+- [ ] **Grievance Officer name** (a real person — required by IT Rules)
+- [ ] **Grievance email** (same as support, or grievance@…)
+- [ ] **City for legal jurisdiction** (e.g. Kolkata)
+
+### Content
+- [ ] **About ASKTRO** text (you said you'd send it) — goes into `cms/about`
+
+### Assets / accounts (from the security section below, repeated here for one view)
+- [ ] Move & back up the deploy key + all secrets (see "Critical files" section)
+- [ ] Create the Android **release keystore** before Play Store
+
+---
+
+
+
 > Living list of things that are safe for now but MUST be handled before the
 > public launch (~30 days out, real wallets, millions of users).
 
