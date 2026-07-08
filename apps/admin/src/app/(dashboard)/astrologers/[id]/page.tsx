@@ -53,6 +53,9 @@ export default function AstrologerViewPage() {
   const list = tab === 'voice' ? voice : tab === 'video' ? video : cons;
   const rating = (a.rating as number) ?? 0;
   const status = (a.accountStatus as string) ?? 'pending';
+  const reviews = cons
+    .filter((c) => c.rating != null)
+    .sort((x, y) => ms(y, 'updatedAt') - ms(x, 'updatedAt'));
 
   return (
     <div className="udet">
@@ -159,6 +162,44 @@ export default function AstrologerViewPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+
+          <div className="card" style={{ marginTop: 16 }}>
+            <h3 className="celeste" style={{ marginTop: 0 }}>⭐ Reviews ({reviews.length})</h3>
+            {reviews.length === 0 ? (
+              <p className="drawer-muted" style={{ textAlign: 'center', padding: '24px 0' }}>
+                No reviews yet.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {reviews.map((c) => {
+                  const bd = (c.ratingBreakdown as Any) ?? {};
+                  const stars = Math.round((c.rating as number) ?? 0);
+                  return (
+                    <div key={c.id as string} style={{ borderBottom: '1px solid #eee', paddingBottom: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#e6a800' }}>
+                          {'★'.repeat(stars)}<span style={{ color: '#ddd' }}>{'★'.repeat(5 - stars)}</span>
+                        </span>
+                        <span className="muted" style={{ fontSize: 12 }}>{ms(c, 'updatedAt') ? formatDate(ms(c, 'updatedAt')) : ''}</span>
+                      </div>
+                      {c.review ? (
+                        <p style={{ margin: '6px 0' }}>{c.review as string}</p>
+                      ) : (
+                        <p className="muted" style={{ margin: '6px 0', fontStyle: 'italic' }}>No written comment</p>
+                      )}
+                      {(bd.behavior != null || bd.accuracy != null || bd.overall != null) && (
+                        <div className="muted" style={{ display: 'flex', gap: 14, fontSize: 12, flexWrap: 'wrap' }}>
+                          {bd.behavior != null && <span>Behaviour: {bd.behavior as number}/5</span>}
+                          {bd.accuracy != null && <span>Accuracy: {bd.accuracy as number}/5</span>}
+                          {bd.overall != null && <span>Overall: {bd.overall as number}/5</span>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
