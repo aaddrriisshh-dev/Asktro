@@ -40,12 +40,18 @@ class ConnectivityBanner extends ConsumerWidget {
                   child: SafeArea(
                     top: false,
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 18),
                         const SizedBox(width: 8),
-                        Text('No Internet Connection. Trying to reconnect…',
-                            style: AppTypography.caption.copyWith(color: Colors.white),),
+                        // Flexible so the message never overflows the row (the
+                        // stray "12 PIXELS" strip that showed on every screen,
+                        // since this banner is laid out app-wide even when online).
+                        Flexible(
+                          child: Text('No Internet Connection. Trying to reconnect…',
+                              style: AppTypography.caption.copyWith(color: Colors.white),),
+                        ),
                       ],
                     ),
                   ),
