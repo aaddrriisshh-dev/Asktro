@@ -57,6 +57,11 @@ final sessionRowsProvider = StreamProvider.autoDispose<List<SessionRow>>((ref) {
   return ref.watch(astrologerRepositoryProvider).watchSessionRows(uid);
 });
 
+/// The selected bottom-nav tab (0 Home · 1 Consults · 2 Wallet · 3 Alerts ·
+/// 4 Profile). A provider so any screen — e.g. the dashboard Quick Actions —
+/// can jump tabs without threading callbacks through the tree.
+final dashTabProvider = StateProvider<int>((_) => 0);
+
 /// Registers this device's FCM token so the astrologer receives consultation
 /// requests and payout/rating alerts (Part 5/7). Watch from the dashboard.
 final pushRegistrationProvider = Provider<void>((ref) {

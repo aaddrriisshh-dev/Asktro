@@ -19,7 +19,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  int _index = 0;
   static const _tabs = [
     HomeTab(),
     ConsultationsTab(),
@@ -31,6 +30,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     ref.watch(pushRegistrationProvider); // register FCM once signed in
+    final index = ref.watch(dashTabProvider);
     final self = ref.watch(selfProvider);
     final rows = ref.watch(sessionRowsProvider).valueOrNull ?? const [];
     final pending = rows.where((r) => r.c.status == ConsultationStatus.waiting).length;
@@ -47,11 +47,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }
         return SkyScaffold(
           bottomNavigationBar: _SkyNav(
-            index: _index,
-            onTap: (i) => setState(() => _index = i),
+            index: index,
+            onTap: (i) => ref.read(dashTabProvider.notifier).state = i,
             badges: {1: pending, 3: unread},
           ),
-          child: IndexedStack(index: _index, children: _tabs),
+          child: IndexedStack(index: index, children: _tabs),
         );
       },
     );
