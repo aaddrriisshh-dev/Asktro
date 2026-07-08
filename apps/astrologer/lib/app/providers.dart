@@ -66,6 +66,11 @@ final pushRegistrationProvider = Provider<void>((ref) {
   FirebaseMessaging.instance.requestPermission().then((_) async {
     final token = await FirebaseMessaging.instance.getToken();
     if (token != null) await repo.registerFcmToken(uid, token);
+    // Subscribe to the astrologers topic for mass broadcasts (single topic
+    // message server-side instead of a per-astrologer fan-out).
+    try {
+      await FirebaseMessaging.instance.subscribeToTopic('astrologers');
+    } catch (_) {/* non-fatal */}
   });
   FirebaseMessaging.instance.onTokenRefresh.listen((t) => repo.registerFcmToken(uid, t));
 });

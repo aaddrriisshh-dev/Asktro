@@ -89,54 +89,84 @@ export const sendBroadcast = onCall(async (req) => {
   };
   if (!title || !body) badRequest('title and body are required.');
 
-  let targetIds: string[] = [];
-  if (segment === 'list') {
-    targetIds = uids ?? [];
-  } else if (segment === 'astrologers') {
-    const snap = await db.collection(Collections.astrologers).where('accountStatus', '==', 'approved').get();
-    targetIds = snap.docs.map((d) => d.id);
-  } else if (segment === 'paid_users' || segment === 'unpaid_users') {
-    // Single-field query (auto-indexed); drop deleted accounts client-side.
-    const op = segment === 'paid_users' ? '>' : '==';
-    const snap = await db.collection(Collections.users).where('totalRecharge', op, 0).get();
-    targetIds = snap.docs.filter((d) => d.data().accountStatus !== 'deleted').map((d) => d.id);
-  } else {
-    const snap = await db.collection(Collections.users).where('accountStatus', '==', 'active').get();
-    targetIds = snap.docs.map((d) => d.id);
-  }
+  // Common data payload for every push (topic or per-user).
+  const dataPayload: Record<string, string> = {
+    type: String(type ?? 'announcement'),
+    deeplink: String(deeplink ?? ''),
+    image: String(image ?? ''),
+    imageStyle: String(imageStyle ?? ''),
+    displayMode: String(displayMode ?? 'small'),
+    portraitImage: String(portraitImage ?? ''),
+    ctaText: String(ctaText ?? ''),
+    landingTitle: String(landingTitle ?? ''),
+    landingBody: String(landingBody ?? ''),
+    bgColor: String(bgColor ?? ''),
+    textColor: String(textColor ?? ''),
+    theme: String(theme ?? ''),
+  };
 
-  // Write one notification doc per target; the trigger above pushes each.
-  let batch = db.batch();
-  let count = 0;
-  for (const id of targetIds) {
-    const ref = db.collection(Collections.notifications).doc();
-    batch.set(ref, {
-      userId: id,
-      title,
-      body,
-      type: type ?? 'announcement',
-      deeplink: deeplink ?? null,
-      image: image ?? null,
-      imageStyle: imageStyle ?? null,
-      bgColor: bgColor ?? null,
-      textColor: textColor ?? null,
-      displayMode: displayMode ?? 'small',
-      portraitImage: portraitImage ?? null,
-      ctaText: ctaText ?? null,
-      landingTitle: landingTitle ?? null,
-      landingBody: landingBody ?? null,
-      landingBgColor: landingBgColor ?? null,
-      landingTextColor: landingTextColor ?? null,
-      theme: theme ?? null,
-      read: false,
-      createdAt: FieldValue.serverTimestamp(),
+  // Large, static audiences (all users / all astrologers) go out as ONE FCM
+  // topic message — devices subscribe to the topic at token registration. This
+  // avoids loading millions of user docs into memory and writing a doc + push
+  // per user (the launch-scale hazard). The single `broadcasts` doc below is the
+  // in-app record for these; the app surfaces it as a global announcement.
+  const TOPIC: Record<string, string> = { all_users: 'all_users', astrologers: 'astrologers' };
+  const topic = !segment || segment === 'all_users' ? TOPIC.all_users
+    : segment === 'astrologers' ? TOPIC.astrologers
+    : null;
+
+  let delivered = 0;
+  if (topic) {
+    await messaging.send({
+      topic,
+      notification: { title, body, ...(image ? { imageUrl: String(image) } : {}) },
+      data: dataPayload,
     });
-    if (++count % 400 === 0) {
-      await batch.commit();
-      batch = db.batch();
+    delivered = -1; // topic fan-out count is not known up-front
+  } else {
+    // Bounded, dynamic segments (paid/unpaid) or an explicit uid list. Stream
+    // in pages so memory stays flat, cap the total, and write per-user docs
+    // (the trigger pushes each) so they land in the in-app bell.
+    const MAX_TARGETS = 200_000;
+    async function collectPaged(): Promise<string[]> {
+      if (segment === 'list') return (uids ?? []).slice(0, MAX_TARGETS);
+      const op = segment === 'paid_users' ? '>' : '==';
+      const ids: string[] = [];
+      let cursor: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+      // Order by document id for a stable, index-free cursor.
+      while (ids.length < MAX_TARGETS) {
+        let q = db.collection(Collections.users).where('totalRecharge', op, 0)
+          .orderBy('__name__').limit(1000);
+        if (cursor) q = q.startAfter(cursor);
+        const page = await q.get();
+        if (page.empty) break;
+        for (const d of page.docs) if (d.data().accountStatus !== 'deleted') ids.push(d.id);
+        cursor = page.docs[page.docs.length - 1];
+        if (page.size < 1000) break;
+      }
+      return ids;
     }
+    const targetIds = await collectPaged();
+    delivered = targetIds.length;
+
+    let batch = db.batch();
+    let count = 0;
+    for (const id of targetIds) {
+      const ref = db.collection(Collections.notifications).doc();
+      batch.set(ref, {
+        userId: id, title, body,
+        type: type ?? 'announcement',
+        deeplink: deeplink ?? null, image: image ?? null, imageStyle: imageStyle ?? null,
+        bgColor: bgColor ?? null, textColor: textColor ?? null, displayMode: displayMode ?? 'small',
+        portraitImage: portraitImage ?? null, ctaText: ctaText ?? null,
+        landingTitle: landingTitle ?? null, landingBody: landingBody ?? null,
+        landingBgColor: landingBgColor ?? null, landingTextColor: landingTextColor ?? null,
+        theme: theme ?? null, read: false, createdAt: FieldValue.serverTimestamp(),
+      });
+      if (++count % 400 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+    if (count % 400 !== 0) await batch.commit();
   }
-  if (count % 400 !== 0) await batch.commit();
 
   const actorName = await adminName(actor);
 
@@ -151,7 +181,17 @@ export const sendBroadcast = onCall(async (req) => {
     displayMode: displayMode ?? 'small',
     image: image ?? null,
     deeplink: deeplink ?? null,
-    delivered: targetIds.length,
+    delivered: delivered >= 0 ? delivered : null,
+    channel: topic ? 'topic' : 'per_user',
+    // Full payload so the app can render a topic broadcast as a rich in-app
+    // announcement (topic sends write no per-user doc).
+    imageStyle: imageStyle ?? null,
+    portraitImage: portraitImage ?? null,
+    ctaText: ctaText ?? null,
+    landingTitle: landingTitle ?? null,
+    landingBody: landingBody ?? null,
+    bgColor: bgColor ?? null,
+    textColor: textColor ?? null,
     sentBy: actor,
     sentByName: actorName,
     createdAt: FieldValue.serverTimestamp(),
@@ -160,8 +200,8 @@ export const sendBroadcast = onCall(async (req) => {
   await db.collection(Collections.auditLogs).add({
     actorUid: actor, actorRole: 'admin', actorName,
     action: 'sendBroadcast', targetType: 'segment', targetId: segment ?? 'all_users',
-    after: { title, delivered: targetIds.length }, createdAt: FieldValue.serverTimestamp(),
+    after: { title, delivered, channel: topic ? 'topic' : 'per_user' }, createdAt: FieldValue.serverTimestamp(),
   });
 
-  return { ok: true, delivered: targetIds.length };
+  return { ok: true, delivered, channel: topic ? 'topic' : 'per_user' };
 });

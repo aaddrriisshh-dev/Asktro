@@ -16,6 +16,13 @@ class MessagingService {
     final token = await _messaging.getToken();
     if (token != null) await _users.registerFcmToken(uid, token);
     _messaging.onTokenRefresh.listen((t) => _users.registerFcmToken(uid, t));
+    // Subscribe to the all-users topic so mass broadcasts reach this device via
+    // a single topic message (no per-user fan-out on the server).
+    try {
+      await _messaging.subscribeToTopic('all_users');
+    } catch (_) {
+      // Non-fatal: topic subscription can fail offline; per-user pushes still work.
+    }
   }
 }
 
