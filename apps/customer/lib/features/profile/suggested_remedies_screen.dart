@@ -690,10 +690,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
         ] else
           Row(
             children: [
-              const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.warning)),
+              const Icon(Icons.schedule_rounded, size: 15, color: AppColors.warning),
               const SizedBox(width: 8),
               Expanded(
                 child: Text('Waiting for $astro to reply — we\'ll notify you.',
