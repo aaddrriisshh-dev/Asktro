@@ -60,27 +60,32 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
                         Text(name, style: Sky.h2.copyWith(fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
                         if (subtitle.isNotEmpty)
                           Text(subtitle, style: Sky.label.copyWith(fontSize: 12, color: Sky.ink2)),
-                        if (!_expanded) ...[
-                          const SizedBox(height: 3),
-                          Row(
-                            children: [
-                              const Icon(Icons.auto_awesome_rounded, size: 11, color: Sky.gold),
-                              const SizedBox(width: 4),
-                              Text('Birth details & kundli · tap to view',
-                                  style: Sky.label.copyWith(fontSize: 10.5, color: Sky.purple, fontWeight: FontWeight.w700),),
-                            ],
-                          ),
-                        ],
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            const Icon(Icons.auto_awesome_rounded, size: 11, color: Sky.gold),
+                            const SizedBox(width: 4),
+                            Text('Birth details & kundli',
+                                style: Sky.label.copyWith(fontSize: 10.5, color: Sky.purple, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(color: Sky.purple.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(9)),
-                    child: Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                        size: 20, color: Sky.purple,),
+                    padding: const EdgeInsets.fromLTRB(11, 6, 8, 6),
+                    decoration: BoxDecoration(color: Sky.purple.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(999)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_expanded ? 'Hide' : 'View',
+                            style: Sky.label.copyWith(fontSize: 11.5, color: Sky.purple, fontWeight: FontWeight.w800)),
+                        const SizedBox(width: 2),
+                        Icon(_expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                            size: 18, color: Sky.purple),
+                      ],
+                    ),
                   ),
                 ],
               ),

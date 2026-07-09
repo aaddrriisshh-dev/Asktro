@@ -349,24 +349,34 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
         children: [
           _liveHeader(c, cust, dark: false),
           _quickAccess(c),
+          // Fixed, collapsible customer details — auto-expanded on entry so the
+          // astrologer reads the person, then collapses to reclaim the chat
+          // viewport. Capped + scrollable so a tall expansion never overflows.
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.42),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+              child: CustomerDetailsCard(profile: cust, initiallyExpanded: true),
+            ),
+          ),
           Expanded(
             child: Column(
               children: [
                 Expanded(
-                  child: ListView.builder(
-                    reverse: true,
-                    padding: const EdgeInsets.all(16),
-                    // +1 for the customer-details card, pinned as the oldest item
-                    // (the "first message") so the astrologer always sees who
-                    // they're consulting and their birth details/kundli.
-                    itemCount: messages.length + 1,
-                    itemBuilder: (_, i) {
-                      if (i == messages.length) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 4, bottom: 12),
-                          child: CustomerDetailsCard(profile: cust),
-                        );
-                      }
+                  child: messages.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Text('Say hello and begin the consultation.',
+                                textAlign: TextAlign.center,
+                                style: Sky.label.copyWith(fontSize: 13, color: Sky.ink3)),
+                          ),
+                        )
+                      : ListView.builder(
+                          reverse: true,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: messages.length,
+                          itemBuilder: (_, i) {
                       final m = messages[i];
                       final mine = m['senderId'] == widget.self.id;
                       final image = m['image'] as String?;
