@@ -672,13 +672,18 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
             onTap: astrologerId.isEmpty ? null : () => context.push('/astrologer/$astrologerId'),
             behavior: HitTestBehavior.opaque,
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.chat_bubble_outline_rounded, size: 15, color: AppColors.primary),
+                const Padding(
+                  padding: EdgeInsets.only(top: 1),
+                  child: Icon(Icons.chat_bubble_outline_rounded, size: 15, color: AppColors.primary),
+                ),
                 const SizedBox(width: 6),
-                Text('Need more guidance? Chat with $astro',
-                    style: AppTypography.caption.copyWith(
-                        color: AppColors.primary, fontWeight: FontWeight.w700)),
+                Expanded(
+                  child: Text('Need more guidance? Chat with $astro',
+                      style: AppTypography.caption.copyWith(
+                          color: AppColors.primary, fontWeight: FontWeight.w700, height: 1.3)),
+                ),
               ],
             ),
           ),

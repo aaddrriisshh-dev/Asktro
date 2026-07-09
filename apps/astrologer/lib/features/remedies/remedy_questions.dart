@@ -69,11 +69,20 @@ class RemedyQuestionsScreen extends ConsumerWidget {
     final async = ref.watch(pendingRemedyQuestionsProvider);
     final topPad = MediaQuery.of(context).padding.top;
 
+    // Prefer any data we already have — a transient error (e.g. while the
+    // composite index finishes building) should never wipe a good list.
+    final list = async.valueOrNull;
+    if (list == null) {
+      return SkyScaffold(
+        child: async.isLoading
+            ? const Center(child: CircularProgressIndicator(color: Sky.purple))
+            : const Center(child: ErrorStateView()),
+      );
+    }
+
     return SkyScaffold(
-      child: async.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: Sky.purple)),
-        error: (_, __) => const Center(child: ErrorStateView()),
-        data: (list) => ListView(
+      child: Builder(
+        builder: (context) => ListView(
           padding: EdgeInsets.fromLTRB(16, topPad + 14, 16, 30),
           children: [
             Row(
@@ -254,7 +263,7 @@ class _RemedyAnswerScreenState extends ConsumerState<RemedyAnswerScreen> {
         title: Text('Remedy question', style: Sky.h2),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 28 + MediaQuery.of(context).padding.bottom),
         children: [
           // Who — the kundli snapshot jogs the astrologer's memory of the case.
           CustomerDetailsCard(profile: cust),
