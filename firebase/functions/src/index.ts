@@ -43,6 +43,9 @@ export { setUserRole, deleteAccount } from './auth/adminAndDeletion';
 // ---- Notifications ----
 export { onNotificationCreated, sendBroadcast } from './notifications/sender';
 
+// ---- Remedies (customer follow-up questions) ----
+export { askRemedyQuestion, answerRemedyQuestion } from './remedies/remedyFollowUp';
+
 // ---- Admin financial actions ----
 export { adjustWallet, processPayout, setAstrologerStatus, setUserStatus } from './admin/actions';
 

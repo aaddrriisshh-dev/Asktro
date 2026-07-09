@@ -20,8 +20,18 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
   const userId: string | undefined = n.userId;
   if (!userId || userId.startsWith('role:')) return; // broadcasts handled at fan-out
 
+  // Customers store their FCM tokens on users/{uid}; astrologers are staff and
+  // live in astrologers/{uid}. A notification's userId can be either, so read
+  // the customer doc first and fall back to the astrologer doc. Prune stale
+  // tokens from whichever collection actually supplied them.
+  let tokenCollection: string = Collections.users;
   const userSnap = await db.collection(Collections.users).doc(userId).get();
-  const tokens: string[] = userSnap.data()?.fcmTokens ?? [];
+  let tokens: string[] = userSnap.data()?.fcmTokens ?? [];
+  if (tokens.length === 0) {
+    const astroSnap = await db.collection(Collections.astrologers).doc(userId).get();
+    tokens = astroSnap.data()?.fcmTokens ?? [];
+    tokenCollection = Collections.astrologers;
+  }
   if (tokens.length === 0) return;
 
   const resp = await messaging.sendEachForMulticast({
@@ -59,7 +69,7 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
     }
   });
   if (stale.length) {
-    await db.collection(Collections.users).doc(userId).update({
+    await db.collection(tokenCollection).doc(userId).update({
       fcmTokens: FieldValue.arrayRemove(...stale),
     });
   }

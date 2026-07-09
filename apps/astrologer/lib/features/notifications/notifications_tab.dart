@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -35,7 +36,10 @@ class NotificationsTab extends ConsumerWidget {
             )
           else
             for (final n in items)
-              Padding(padding: const EdgeInsets.only(bottom: 10), child: _row(n)),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _row(context, ref, n),
+              ),
         ],
       ),
     );
@@ -51,6 +55,8 @@ class NotificationsTab extends ConsumerWidget {
       case 'review':
       case 'rating':
         return (icon: Icons.star_rounded, color: Sky.amber);
+      case 'remedy_question':
+        return (icon: Icons.self_improvement_rounded, color: Sky.gold);
       case 'consultation':
       case 'request':
         return (icon: Icons.chat_bubble_rounded, color: Sky.purple);
@@ -59,12 +65,15 @@ class NotificationsTab extends ConsumerWidget {
     }
   }
 
-  Widget _row(Map<String, dynamic> n) {
-    final v = _visual((n['type'] ?? '') as String);
+  Widget _row(BuildContext context, WidgetRef ref, Map<String, dynamic> n) {
+    final type = (n['type'] ?? '') as String;
+    final v = _visual(type);
     final read = n['read'] == true;
     final ts = n['createdAt'];
     final ms = ts is Timestamp ? ts.millisecondsSinceEpoch : null;
-    return SkyCard(
+    final isQuestion = type == 'remedy_question' && (n['remedyId'] is String);
+
+    final card = SkyCard(
       padding: const EdgeInsets.all(13),
       color: read ? Sky.card : Sky.surface,
       child: Row(
@@ -86,6 +95,16 @@ class NotificationsTab extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(n['body'] as String, style: Sky.label.copyWith(fontSize: 12.5, height: 1.35)),
                 ],
+                if (isQuestion) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.reply_rounded, size: 14, color: Sky.purple),
+                      const SizedBox(width: 5),
+                      Text('Tap to reply', style: Sky.label.copyWith(fontSize: 12, color: Sky.purple, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ],
                 if (ms != null) ...[
                   const SizedBox(height: 5),
                   Text(_ago(ms), style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
@@ -103,6 +122,107 @@ class NotificationsTab extends ConsumerWidget {
         ],
       ),
     );
+
+    if (!isQuestion) return card;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openAnswer(context, ref, n),
+      child: card,
+    );
+  }
+
+  /// Opens a sheet showing the customer's question and lets the astrologer send
+  /// a single reply, which lands back on the remedy for the customer to read.
+  Future<void> _openAnswer(BuildContext context, WidgetRef ref, Map<String, dynamic> n) async {
+    final remedyId = n['remedyId'] as String;
+    final fs = ref.read(firestoreProvider);
+
+    // Mark the notification read (best-effort) so the dot clears.
+    if (n['read'] != true && n['id'] is String) {
+      fs.collection('notifications').doc(n['id'] as String).update({'read': true}).catchError((_) {});
+    }
+
+    final snap = await fs.collection('remedies').doc(remedyId).get();
+    if (!context.mounted) return;
+    final r = snap.data() ?? const <String, dynamic>{};
+    final question = (r['question'] ?? '') as String;
+    final remTitle = (r['title'] ?? 'Remedy') as String;
+    final alreadyAnswered = r['answered'] == true && (r['answer'] ?? '').toString().isNotEmpty;
+
+    final ctrl = TextEditingController(text: alreadyAnswered ? (r['answer'] as String) : '');
+    final text = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Sky.card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.self_improvement_rounded, size: 16, color: Sky.gold),
+              const SizedBox(width: 7),
+              Expanded(child: Text('Reply about "$remTitle"', style: Sky.h2, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            ],),
+            const SizedBox(height: 12),
+            // The customer's question.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(color: Sky.surface, borderRadius: BorderRadius.circular(14)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('They asked', style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
+                  const SizedBox(height: 4),
+                  Text(question.isEmpty ? '(no question text)' : question, style: Sky.body),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              minLines: 3,
+              maxLines: 6,
+              maxLength: 600,
+              style: Sky.body,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Your reply — e.g. Do it at sunrise, facing east, for 11 days.',
+                filled: true,
+                fillColor: Sky.surface,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.all(14),
+              ),
+            ),
+            GoldButton(
+              label: alreadyAnswered ? 'Update reply' : 'Send reply',
+              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (text == null || text.isEmpty || !context.mounted) return;
+    try {
+      await ref
+          .read(functionsProvider)
+          .httpsCallable('answerRemedyQuestion')
+          .call<Map<String, dynamic>>({'remedyId': remedyId, 'answer': text});
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reply sent to the customer')));
+      }
+    } on FirebaseFunctionsException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Could not send your reply. Please try again.')),
+        );
+      }
+    }
   }
 
   String _ago(int ms) {

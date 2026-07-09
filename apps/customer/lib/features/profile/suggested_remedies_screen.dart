@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
@@ -26,6 +28,16 @@ final _remediesProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>
       return 0;
     });
     return list;
+  });
+});
+
+/// Live view of a single remedy — the detail screen watches this so the
+/// astrologer's reply appears the moment it lands.
+final _remedyDocProvider =
+    StreamProvider.autoDispose.family<Map<String, dynamic>, String>((ref, id) {
+  return ref.watch(firestoreProvider).collection('remedies').doc(id).snapshots().map((d) {
+    final data = d.data() ?? const <String, dynamic>{};
+    return {'id': d.id, ...data};
   });
 });
 
@@ -137,6 +149,8 @@ class _RemedyCardState extends State<_RemedyCard> {
     final note = (widget.data['note'] ?? '') as String;
     final astro = (widget.data['astrologerName'] ?? 'Astrologer') as String;
     final photo = widget.data['astrologerPhoto'] as String?;
+    final answered = widget.data['answered'] == true;
+    final awaiting = !answered && widget.data['followUpUsed'] == true;
 
     return AppCard(
       child: Column(
@@ -151,6 +165,8 @@ class _RemedyCardState extends State<_RemedyCard> {
                     style: AppTypography.body.copyWith(fontWeight: FontWeight.w800),
                     overflow: TextOverflow.ellipsis,),
               ),
+              if (answered) const _StatusPill(label: 'Reply received', color: AppColors.success),
+              if (awaiting) const _StatusPill(label: 'Awaiting reply', color: AppColors.warning),
             ],
           ),
           if (note.isNotEmpty) ...[
@@ -246,31 +262,141 @@ class _RemedyCardState extends State<_RemedyCard> {
   }
 }
 
+/// A small rounded status chip (e.g. "Reply received" / "Awaiting reply").
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Text(label,
+          style: AppTypography.caption.copyWith(
+              color: color, fontWeight: FontWeight.w700, fontSize: 11)),
+    );
+  }
+}
+
 /// A calm, full-screen reading view for a single remedy — the whole text,
 /// scrollable, inside a celestial lavender→gold box (the same palette as the
-/// remedy card that appears in a live chat), with a gentle affirming CTA.
-class RemedyDetailScreen extends StatefulWidget {
+/// remedy card that appears in a live chat), with a gentle affirming CTA and a
+/// one-free follow-up question routed to the astrologer who wrote it.
+class RemedyDetailScreen extends ConsumerStatefulWidget {
   const RemedyDetailScreen({required this.data, super.key});
   final Map<String, dynamic> data;
 
   @override
-  State<RemedyDetailScreen> createState() => _RemedyDetailScreenState();
+  ConsumerState<RemedyDetailScreen> createState() => _RemedyDetailScreenState();
 }
 
-class _RemedyDetailScreenState extends State<RemedyDetailScreen> {
+class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
   bool _followed = false;
+  bool _sending = false;
 
   void _follow() {
     HapticFeedback.mediumImpact();
     setState(() => _followed = true);
   }
 
+  Future<void> _askQuestion(String remedyId, String astro) async {
+    final ctrl = TextEditingController();
+    final text = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+            left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Ask $astro', style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 4),
+            Text('Your first follow-up on this remedy is free.',
+                style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+            const SizedBox(height: 14),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              minLines: 2,
+              maxLines: 5,
+              maxLength: 600,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'e.g. Should I do this in the morning or at night?',
+                filled: true,
+                fillColor: AppColors.background,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.all(14),
+              ),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+                child: const Text('Send question'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (text == null || text.isEmpty || !mounted) return;
+
+    setState(() => _sending = true);
+    try {
+      await ref
+          .read(functionsProvider)
+          .httpsCallable('askRemedyQuestion')
+          .call<Map<String, dynamic>>({'remedyId': remedyId, 'question': text});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sent to $astro. We\'ll notify you when they reply.')),
+        );
+      }
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Could not send your question. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final title = (widget.data['title'] ?? 'Remedy') as String;
-    final note = (widget.data['note'] ?? '') as String;
-    final astro = (widget.data['astrologerName'] ?? 'Astrologer') as String;
-    final photo = widget.data['astrologerPhoto'] as String?;
+    final id = (widget.data['id'] ?? '') as String;
+    // Merge the initial snapshot with the live doc so a reply appears instantly.
+    final live = id.isEmpty ? widget.data : (ref.watch(_remedyDocProvider(id)).valueOrNull ?? widget.data);
+
+    final title = (live['title'] ?? 'Remedy') as String;
+    final note = (live['note'] ?? '') as String;
+    final astro = (live['astrologerName'] ?? 'Astrologer') as String;
+    final photo = live['astrologerPhoto'] as String?;
+    final astrologerId = (live['astrologerId'] ?? '') as String;
+    final question = (live['question'] ?? '') as String;
+    final answer = (live['answer'] ?? '') as String;
+    final asked = live['followUpUsed'] == true && question.isNotEmpty;
+    final answered = live['answered'] == true && answer.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -353,6 +479,16 @@ class _RemedyDetailScreenState extends State<RemedyDetailScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: AppSpacing.lg),
+                  _followUpSection(
+                    remedyId: id,
+                    astro: astro,
+                    astrologerId: astrologerId,
+                    question: question,
+                    answer: answer,
+                    asked: asked,
+                    answered: answered,
+                  ),
                 ],
               ),
             ),
@@ -409,6 +545,158 @@ class _RemedyDetailScreenState extends State<RemedyDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// The follow-up thread: ask (once, free) → waiting → the astrologer's reply.
+  Widget _followUpSection({
+    required String remedyId,
+    required String astro,
+    required String astrologerId,
+    required String question,
+    required String answer,
+    required bool asked,
+    required bool answered,
+  }) {
+    // Nothing asked yet — offer the one free follow-up.
+    if (!asked) {
+      return GestureDetector(
+        onTap: _sending || remedyId.isEmpty ? null : () => _askQuestion(remedyId, astro),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.30)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(11)),
+                child: Icon(_sending ? Icons.hourglass_top_rounded : Icons.help_outline_rounded,
+                    color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Have a question about this remedy?',
+                        style: AppTypography.body.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text('Ask $astro · your first follow-up is free',
+                        style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Asked — show the thread (question, then reply or a waiting state).
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.forum_rounded, size: 15, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text('Your follow-up',
+                style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary, fontWeight: FontWeight.w700)),
+            const Spacer(),
+            if (answered)
+              const _StatusPill(label: 'Reply received', color: AppColors.success)
+            else
+              const _StatusPill(label: 'Awaiting reply', color: AppColors.warning),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // The customer's question bubble.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.08),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(14),
+              topRight: Radius.circular(14),
+              bottomRight: Radius.circular(14),
+              bottomLeft: Radius.circular(4),
+            ),
+          ),
+          child: Text(question, style: AppTypography.body.copyWith(height: 1.4)),
+        ),
+        const SizedBox(height: 10),
+        if (answered) ...[
+          Row(
+            children: [
+              AppAvatar(name: astro, size: 20),
+              const SizedBox(width: 7),
+              Text(astro,
+                  style: AppTypography.caption.copyWith(fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFF6E2), Color(0xFFF3ECFF)],
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4),
+                topRight: Radius.circular(14),
+                bottomRight: Radius.circular(14),
+                bottomLeft: Radius.circular(14),
+              ),
+              border: Border.all(color: AppColors.warning.withValues(alpha: 0.40)),
+            ),
+            child: Text(answer,
+                style: AppTypography.body.copyWith(height: 1.5, color: AppColors.textDark)),
+          ),
+          const SizedBox(height: 12),
+          // The one free follow-up is spent — further questions go to a paid chat.
+          GestureDetector(
+            onTap: astrologerId.isEmpty ? null : () => context.push('/astrologer/$astrologerId'),
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.chat_bubble_outline_rounded, size: 15, color: AppColors.primary),
+                const SizedBox(width: 6),
+                Text('Need more guidance? Chat with $astro',
+                    style: AppTypography.caption.copyWith(
+                        color: AppColors.primary, fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+        ] else
+          Row(
+            children: [
+              const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.warning)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Waiting for $astro to reply — we\'ll notify you.',
+                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+              ),
+            ],
+          ),
+      ],
     );
   }
 }
