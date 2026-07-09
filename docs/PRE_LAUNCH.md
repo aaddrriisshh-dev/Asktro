@@ -15,6 +15,29 @@
 
 ---
 
+## 📱 iOS PUSH NOTIFICATIONS — required before iOS launch (Apple-side, only Adrish can do)
+
+Launching iOS + Android together, so iOS push **must** be set up. The app code already
+sends iOS notifications (banner + sound + `time-sensitive`), but iPhones get **zero** push
+until the Apple pieces below exist:
+
+- [ ] **Apple Developer account** ($99/yr) enrolled for Asktro Tech Private Limited.
+- [ ] **APNs Auth Key (.p8)** created in the Apple Developer portal, then **uploaded into
+  Firebase** → Project Settings → Cloud Messaging → Apple app config. *(This is the switch
+  that lets Firebase send to iPhones. Without it, iOS push silently does nothing.)*
+- [ ] **`GoogleService-Info.plist`** added to `apps/astrologer/ios/Runner/` (and the customer
+  app's) — it's gitignored, so it must be placed on the build machine.
+- [ ] **Push Notifications** capability + **Background Modes → Remote notifications** enabled
+  in Xcode for both apps.
+- [ ] Test on a **real iPhone** (the simulator never receives push).
+
+Follow-up code (small, do during iOS device testing): bundle the custom `incoming_ring`
+sound into the iOS app so iOS rings with our tone instead of the default; add Accept/Decline
+notification actions (shared with Android). Not blockers — iOS still notifies with the
+default sound + tap-to-accept without them.
+
+---
+
 ## 📋 NEEDS FROM YOU (Adrish) — fill these, then we apply them all at once
 
 > Running list of values/content only you can provide. Claude adds to this
