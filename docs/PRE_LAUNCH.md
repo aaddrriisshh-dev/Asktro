@@ -2,6 +2,19 @@
 
 ---
 
+## 🔒 SECURITY — flip on RIGHT BEFORE launch (not earlier)
+
+- [ ] **Enforce App Check on the callables.** App Check is *activated* in both apps but NOT
+  *enforced* server-side (`setGlobalOptions` in `functions/src/index.ts` has no `enforceAppCheck`).
+  This is the anti-bot / anti-abuse layer (stops scripted free-credit farming). **Deliberately deferred
+  to launch:** turning it on before App Check is fully provisioned on the *production* builds
+  (Play Integrity for Android release, App Attest for iOS, debug tokens for dev) will **lock out real
+  users** from chat/recharge. Steps at launch: (1) confirm App Check is green in the Firebase console
+  for real builds, (2) add `enforceAppCheck: true`, (3) test on a real build, then deploy.
+  _(From the CTO audit — this was finding M1.)_
+
+---
+
 ## 📋 NEEDS FROM YOU (Adrish) — fill these, then we apply them all at once
 
 > Running list of values/content only you can provide. Claude adds to this
