@@ -39,6 +39,11 @@ class WalletTab extends ConsumerWidget {
                   Text('Includes ${Money.formatPaise(profile!.bonusBalance)} bonus',
                       style: AppTypography.caption.copyWith(color: Colors.white70),),
                 ],
+                if ((profile?.chatBonusBalance ?? 0) > 0) ...[
+                  const SizedBox(height: 4),
+                  Text('+ ${Money.formatPaise(profile!.chatBonusBalance)} free chat credit',
+                      style: AppTypography.caption.copyWith(color: Colors.white70),),
+                ],
                 const SizedBox(height: AppSpacing.lg),
                 SizedBox(
                   width: double.infinity,

@@ -10,6 +10,7 @@ class UserProfile extends Equatable {
     this.profilePhoto,
     this.walletBalance = 0,
     this.bonusBalance = 0,
+    this.chatBonusBalance = 0,
     this.referralCode = '',
     this.referredBy,
     this.totalConsultations = 0,
@@ -33,7 +34,8 @@ class UserProfile extends Equatable {
   final String? email;
   final String? profilePhoto;
   final int walletBalance; // paise
-  final int bonusBalance; // paise
+  final int bonusBalance; // paise (any-type bonus: referral, grace)
+  final int chatBonusBalance; // paise (chat-only welcome credit — free chat minutes)
   final String referralCode;
   final String? referredBy;
   final int totalConsultations;
@@ -52,7 +54,12 @@ class UserProfile extends Equatable {
   final String? relationshipStatus; // 'married' | 'single' | 'divorced' | 'in_relationship'
   final bool onboardingComplete;
 
+  /// General spendable (wallet + any-type bonus) — the balance usable on a
+  /// voice/video call. The chat-only welcome credit is NOT included here.
   int get spendablePaise => walletBalance + bonusBalance;
+
+  /// Spendable for a CHAT — includes the chat-only welcome credit.
+  int get spendableForChatPaise => walletBalance + bonusBalance + chatBonusBalance;
 
   DateTime? get birthDate =>
       birthDateMs == null ? null : DateTime.fromMillisecondsSinceEpoch(birthDateMs!);
@@ -65,6 +72,7 @@ class UserProfile extends Equatable {
         profilePhoto: m['profilePhoto'] as String?,
         walletBalance: (m['walletBalance'] ?? 0) as int,
         bonusBalance: (m['bonusBalance'] ?? 0) as int,
+        chatBonusBalance: (m['chatBonusBalance'] ?? 0) as int,
         referralCode: (m['referralCode'] ?? '') as String,
         referredBy: m['referredBy'] as String?,
         totalConsultations: (m['totalConsultations'] ?? 0) as int,
@@ -85,6 +93,7 @@ class UserProfile extends Equatable {
   @override
   List<Object?> get props => [
         id, name, phone, email, profilePhoto, walletBalance, bonusBalance,
+        chatBonusBalance,
         referralCode, referredBy, totalConsultations, notificationEnabled,
         favouriteAstrologers, followingAstrologers, accountStatus,
         gender, birthDateMs, birthTime, birthTimeKnown, birthPlace,
