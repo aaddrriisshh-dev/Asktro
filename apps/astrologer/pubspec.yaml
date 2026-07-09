@@ -42,20 +42,20 @@ dev_dependencies:
   # native android/ & ios/ folders (your Mac):  dart run flutter_launcher_icons
   flutter_launcher_icons: ^0.14.1
 
-# Astrologer launcher icon: a golden crescent + sparkles on the deep-purple
-# brand gradient. The adaptive + Android-12 splash background is the brand
-# purple so the gold emblem pops and the launch flows into the celestial splash.
+# Astrologer launcher icon: a warm reddish-orange → amber Surya (sun) on a
+# ghee-cream ground. The adaptive + Android-12 splash background is the same
+# ghee cream so the sun sits naturally and the launch flows into the splash.
 flutter_launcher_icons:
   image_path: "assets/brand/app_icon.png"
   android: true
   ios: true
   remove_alpha_ios: true
   min_sdk_android: 24
-  adaptive_icon_background: "#3A2A6E"
+  adaptive_icon_background: "#F5E1B8"
   adaptive_icon_foreground: "assets/brand/app_icon_fg.png"
   android_12:
     image: "assets/brand/app_icon_fg.png"
-    color: "#3A2A6E"
+    color: "#F5E1B8"
 
 flutter:
   uses-material-design: true
