@@ -387,3 +387,11 @@ the audit found:**
 The native `android/` & `ios/` project files (manifest, `google-services.json`, generated launcher
 icons) are **not committed** — they exist only on the dev Mac, so a fresh clone can't build the apps.
 Commit them from that machine.
+
+## 🤔 MAYBE-LATER — undecided features (do NOT build without an explicit decision)
+
+- **Voice notes in chat** — *[SKEPTICAL / undecided — revisit later]* Let a customer record a short
+  voice message to an astrologer in chat. **Not built.** The storage groundwork already exists — the
+  `voice_notes/{consultationId}/` path (now participant-locked in `storage.rules`) and an `isAudio()`
+  helper — but there is **no record/send UI** anywhere. Owner flagged it as a nice add-on to consider
+  "if required." Only build after an explicit go-ahead; not on the launch path.

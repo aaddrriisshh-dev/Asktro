@@ -14,6 +14,16 @@ service firebase.storage {
     function isAudio() { return request.resource.contentType.matches('audio/.*'); }
     function underMB(n) { return request.resource.size < n * 1024 * 1024; }
 
+    // True only if the caller is the customer or astrologer on this consultation.
+    // Looks the session up in Firestore so chat media can't be read/written by a
+    // stranger who merely knows (or guesses) the consultationId.
+    function isParticipant(consultationId) {
+      return isSignedIn() && (
+        firestore.get(/databases/(default)/documents/consultations/$(consultationId)).data.customerId == uid()
+        || firestore.get(/databases/(default)/documents/consultations/$(consultationId)).data.astrologerId == uid()
+      );
+    }
+
     // Profile images: publicly readable, written by the owner only.
     match /profile_images/{userId}/{fileName} {
       allow read: if isSignedIn();
@@ -38,18 +48,18 @@ service firebase.storage {
       allow write: if isAdmin() && isImage() && underMB(8);
     }
 
-    // Chat images: only participants of the consultation may read/write.
-    // Path carries the consultationId; membership enforced via Firestore-side
-    // rules on the message doc that references the file.
+    // Chat images: ONLY the two participants of the consultation (or an admin)
+    // may read or write. Membership is verified against the Firestore session.
     match /chat_images/{consultationId}/{fileName} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && isImage() && underMB(10);
+      allow read: if isAdmin() || isParticipant(consultationId);
+      allow write: if isParticipant(consultationId) && isImage() && underMB(10);
     }
 
-    // Voice notes.
+    // Voice notes: same participant-only access (feature not built yet, but the
+    // slot is locked down so it can't be abused).
     match /voice_notes/{consultationId}/{fileName} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && isAudio() && underMB(15);
+      allow read: if isAdmin() || isParticipant(consultationId);
+      allow write: if isParticipant(consultationId) && isAudio() && underMB(15);
     }
 
     // Astrologer documents / verification: private (owner + admin only).
