@@ -9,6 +9,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../../data/astrologer_repository.dart';
 import '../../ui/celestial.dart';
+import '../../ui/customer_insight.dart';
 import 'astrologer_consultation_screen.dart';
 
 /// Live view of the incoming consultation, so the ring auto-dismisses the moment
@@ -74,10 +75,22 @@ class _IncomingCallGateState extends ConsumerState<IncomingCallGate> {
 
   Future<void> _ring(SessionRow row) async {
     _ringing = true;
+    // A transparent route so the dimmed app shows behind the sliding card.
     await Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute<void>(
-        fullscreenDialog: true,
-        builder: (_) => IncomingCallScreen(row: row, self: widget.self),
+      PageRouteBuilder<void>(
+        opaque: false,
+        barrierColor: Colors.transparent,
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (_, __, ___) => IncomingCallScreen(row: row, self: widget.self),
+        transitionsBuilder: (_, anim, __, child) => FadeTransition(
+          opacity: anim,
+          child: SlideTransition(
+            position: Tween<Offset>(begin: const Offset(0, 0.14), end: Offset.zero)
+                .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+            child: child,
+          ),
+        ),
       ),
     );
     _ringing = false;
@@ -188,101 +201,145 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen>
     final cust = ref.watch(customerProvider(widget.row.c.customerId)).valueOrNull;
     final name = cust?.name ?? 'A customer';
     final type = widget.row.c.type;
+    final insight = CustomerInsight(cust);
+    final sign = insight.sunSign;
+    final age = insight.age;
+    final chip = <String>[
+      if (sign != '—') sign,
+      if (age != null) '$age yrs',
+    ].join(' · ');
 
     return PopScope(
       canPop: false, // must Accept or Decline — no accidental back-swipe
-      child: Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(gradient: Sky.heroGrad),
-          child: Stack(
-            children: [
-              const Positioned.fill(child: CelestialWash(opacity: 0.9)),
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 40, 28, 40),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      Text('INCOMING ${type.name.toUpperCase()} CONSULTATION',
-                          style: Sky.label.copyWith(
-                              color: Colors.white70, letterSpacing: 2, fontSize: 12.5)),
-                      const Spacer(),
-                      // Pulsing halo around the caller's avatar.
-                      AnimatedBuilder(
-                        animation: _pulse,
-                        builder: (_, child) {
-                          final s = 1 + _pulse.value * 0.10;
-                          return Column(
+      child: Material(
+        type: MaterialType.transparency,
+        child: Stack(
+          children: [
+            // Dim the app behind the card; absorb taps so nothing leaks through
+            // and tapping outside the card never dismisses it.
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () {},
+                behavior: HitTestBehavior.opaque,
+                child: ColoredBox(color: Colors.black.withValues(alpha: 0.58)),
+              ),
+            ),
+            // The overlay card — ~68% of the screen, sliding up from the bottom.
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: FractionallySizedBox(
+                heightFactor: 0.68,
+                widthFactor: 1,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFFFBF8FF), Color(0xFFF1E9FF)],
+                    ),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                    boxShadow: [BoxShadow(color: Color(0x66000000), blurRadius: 34, offset: Offset(0, -10))],
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(26, 12, 26, 22),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 40, height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFCBBFE8), borderRadius: BorderRadius.circular(99)),
+                          ),
+                          const SizedBox(height: 14),
+                          Text('INCOMING ${type.name.toUpperCase()} CONSULTATION',
+                              style: Sky.label.copyWith(
+                                  color: Sky.purple, letterSpacing: 1.8, fontSize: 11.5, fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 20),
+                          // Pulsing halo around the caller's avatar.
+                          AnimatedBuilder(
+                            animation: _pulse,
+                            builder: (_, __) {
+                              final s = 1 + _pulse.value * 0.12;
+                              return SizedBox(
+                                width: 128, height: 128,
+                                child: Center(
+                                  child: Container(
+                                    width: 104 * s, height: 104 * s,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Sky.gold.withValues(alpha: 0.16),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                      width: 92, height: 92,
+                                      decoration: const BoxDecoration(
+                                          shape: BoxShape.circle, gradient: Sky.goldGrad),
+                                      padding: const EdgeInsets.all(3),
+                                      child: AppAvatar(name: name, photoUrl: cust?.profilePhoto, size: 86),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          Text(name,
+                              style: Sky.h1.copyWith(color: Sky.ink, fontSize: 25),
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 4),
+                          Text('is requesting a consultation',
+                              style: Sky.label.copyWith(color: Sky.ink2, fontSize: 13.5)),
+                          if (chip.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(color: Sky.line),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.auto_awesome_rounded, size: 13, color: Sky.gold),
+                                  const SizedBox(width: 6),
+                                  Text(chip,
+                                      style: Sky.label.copyWith(
+                                          color: Sky.purpleDeep, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                                ],
+                              ),
+                            ),
+                          ],
+                          const Spacer(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              Container(
-                                width: 150 * s,
-                                height: 150 * s,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white.withValues(alpha: 0.10),
-                                ),
-                                alignment: Alignment.center,
-                                child: Container(
-                                  width: 118,
-                                  height: 118,
-                                  decoration: const BoxDecoration(
-                                      shape: BoxShape.circle, gradient: Sky.goldGrad),
-                                  padding: const EdgeInsets.all(3),
-                                  child: AppAvatar(
-                                      name: name, photoUrl: cust?.profilePhoto, size: 112),
-                                ),
+                              _action(
+                                label: 'Decline',
+                                color: Sky.red,
+                                icon: Icons.close_rounded,
+                                onTap: _acting ? null : _decline,
+                              ),
+                              _action(
+                                label: 'Accept',
+                                color: Sky.green,
+                                icon: Icons.chat_bubble_rounded,
+                                onTap: _acting ? null : _accept,
                               ),
                             ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 26),
-                      Text(name,
-                          style: Sky.h1.copyWith(color: Colors.white, fontSize: 28),
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFFFFD36E)),
-                          const SizedBox(width: 6),
-                          Text('is requesting a consultation',
-                              style: Sky.label.copyWith(color: Colors.white70, fontSize: 13.5)),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(_acting ? 'Connecting…' : 'Auto-declines shortly if unanswered',
+                              style: Sky.label.copyWith(color: Sky.ink3, fontSize: 11.5)),
                         ],
                       ),
-                      const Spacer(),
-                      // Decline / Accept.
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _action(
-                            label: 'Decline',
-                            color: Sky.red,
-                            icon: Icons.call_end_rounded,
-                            onTap: _acting ? null : _decline,
-                          ),
-                          _action(
-                            label: 'Accept',
-                            color: Sky.green,
-                            icon: Icons.chat_bubble_rounded,
-                            onTap: _acting ? null : _accept,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      if (_acting)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 6),
-                          child: SizedBox(
-                              width: 20, height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-                        ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -311,7 +368,7 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen>
             child: Icon(icon, color: Colors.white, size: 32),
           ),
           const SizedBox(height: 10),
-          Text(label, style: Sky.label.copyWith(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
+          Text(label, style: Sky.label.copyWith(color: Sky.ink, fontWeight: FontWeight.w700, fontSize: 13.5)),
         ],
       ),
     );
