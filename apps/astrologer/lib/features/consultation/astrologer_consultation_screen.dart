@@ -353,7 +353,12 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
           // astrologer reads the person, then collapses to reclaim the chat
           // viewport. Capped + scrollable so a tall expansion never overflows.
           ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.42),
+            // Cap on the AVAILABLE height (screen minus the keyboard inset) so
+            // the panel shrinks + scrolls when the keyboard is open, instead of
+            // overflowing the column.
+            constraints: BoxConstraints(
+              maxHeight: (MediaQuery.of(context).size.height - MediaQuery.of(context).viewInsets.bottom) * 0.4,
+            ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
               child: CustomerDetailsCard(profile: cust, initiallyExpanded: true),
