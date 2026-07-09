@@ -37,7 +37,9 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
       decoration: BoxDecoration(
         gradient: Sky.lavGrad,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Sky.line),
+        // A defined purple outline so the customer card reads as a distinct
+        // panel and doesn't blend into the chat behind it.
+        border: Border.all(color: Sky.purple.withValues(alpha: 0.38), width: 1.5),
         boxShadow: Sky.soft,
       ),
       child: Column(
