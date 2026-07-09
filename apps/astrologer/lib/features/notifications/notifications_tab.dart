@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../ui/celestial.dart';
+import '../remedies/remedy_questions.dart';
 
 class NotificationsTab extends ConsumerWidget {
   const NotificationsTab({super.key});
@@ -131,98 +131,19 @@ class NotificationsTab extends ConsumerWidget {
     );
   }
 
-  /// Opens a sheet showing the customer's question and lets the astrologer send
-  /// a single reply, which lands back on the remedy for the customer to read.
-  Future<void> _openAnswer(BuildContext context, WidgetRef ref, Map<String, dynamic> n) async {
+  /// Marks the notification read and opens the context-rich answer screen (the
+  /// customer's kundli, the remedy, the question, a link to the original chat,
+  /// and the reply box).
+  void _openAnswer(BuildContext context, WidgetRef ref, Map<String, dynamic> n) {
     final remedyId = n['remedyId'] as String;
-    final fs = ref.read(firestoreProvider);
-
-    // Mark the notification read (best-effort) so the dot clears.
     if (n['read'] != true && n['id'] is String) {
-      fs.collection('notifications').doc(n['id'] as String).update({'read': true}).catchError((_) {});
+      ref
+          .read(firestoreProvider)
+          .collection('notifications')
+          .doc(n['id'] as String)
+          .update({'read': true}).catchError((_) {});
     }
-
-    final snap = await fs.collection('remedies').doc(remedyId).get();
-    if (!context.mounted) return;
-    final r = snap.data() ?? const <String, dynamic>{};
-    final question = (r['question'] ?? '') as String;
-    final remTitle = (r['title'] ?? 'Remedy') as String;
-    final alreadyAnswered = r['answered'] == true && (r['answer'] ?? '').toString().isNotEmpty;
-
-    final ctrl = TextEditingController(text: alreadyAnswered ? (r['answer'] as String) : '');
-    final text = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Sky.card,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const Icon(Icons.self_improvement_rounded, size: 16, color: Sky.gold),
-              const SizedBox(width: 7),
-              Expanded(child: Text('Reply about "$remTitle"', style: Sky.h2, maxLines: 1, overflow: TextOverflow.ellipsis)),
-            ],),
-            const SizedBox(height: 12),
-            // The customer's question.
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(color: Sky.surface, borderRadius: BorderRadius.circular(14)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('They asked', style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
-                  const SizedBox(height: 4),
-                  Text(question.isEmpty ? '(no question text)' : question, style: Sky.body),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: ctrl,
-              autofocus: true,
-              minLines: 3,
-              maxLines: 6,
-              maxLength: 600,
-              style: Sky.body,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                hintText: 'Your reply — e.g. Do it at sunrise, facing east, for 11 days.',
-                filled: true,
-                fillColor: Sky.surface,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.all(14),
-              ),
-            ),
-            GoldButton(
-              label: alreadyAnswered ? 'Update reply' : 'Send reply',
-              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (text == null || text.isEmpty || !context.mounted) return;
-    try {
-      await ref
-          .read(functionsProvider)
-          .httpsCallable('answerRemedyQuestion')
-          .call<Map<String, dynamic>>({'remedyId': remedyId, 'answer': text});
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reply sent to the customer')));
-      }
-    } on FirebaseFunctionsException catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Could not send your reply. Please try again.')),
-        );
-      }
-    }
+    openRemedyAnswer(context, remedyId);
   }
 
   String _ago(int ms) {

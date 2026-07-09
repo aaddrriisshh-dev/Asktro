@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../data/astrologer_repository.dart';
 import '../../ui/celestial.dart';
 import '../consultation/astrologer_consultation_screen.dart';
+import '../remedies/remedy_questions.dart';
 import 'reviews_screen.dart';
 
 /// A custom earnings window picked via the date-range picker (null unless the
@@ -40,6 +41,7 @@ class HomeTab extends ConsumerWidget {
     final uid = ref.watch(currentUidProvider);
     final notifs = ref.watch(notificationsProvider).valueOrNull ?? const [];
     final unread = notifs.where((n) => n['read'] != true).length;
+    final remedyQ = ref.watch(pendingRemedyQuestionsProvider).valueOrNull ?? const [];
 
     final pending = rows.where((r) => r.c.status == ConsultationStatus.waiting).toList();
     final active = rows
@@ -120,6 +122,12 @@ class HomeTab extends ConsumerWidget {
                 children: [
                   // ---- incoming requests, always in the first viewport ----
                   _incoming(context, ref, self, online, pending),
+
+                  // ---- remedy follow-up questions (only when some are pending) ----
+                  if (remedyQ.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _remedyQuestions(context, remedyQ.length),
+                  ],
 
                   // ---- quick actions (tight gap under the title) ----
                   const SizedBox(height: 22),
@@ -266,6 +274,59 @@ class HomeTab extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ======================= REMEDY QUESTIONS =======================
+  // A discoverable inbox entry for follow-up questions, so an astrologer with
+  // thousands of clients never loses one in the notification stream.
+  Widget _remedyQuestions(BuildContext context, int count) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const RemedyQuestionsScreen())),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: Sky.lavGrad,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Sky.line),
+          boxShadow: Sky.soft,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(gradient: Sky.goldGrad, borderRadius: BorderRadius.circular(14)),
+              child: const Icon(Icons.mark_chat_unread_rounded, color: Sky.purpleDeep, size: 22),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Remedy questions', style: Sky.h2.copyWith(fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text(count == 1 ? '1 customer is waiting for your reply' : '$count customers are waiting for your reply',
+                      style: Sky.label.copyWith(fontSize: 11.5, color: Sky.ink2)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              constraints: const BoxConstraints(minWidth: 30),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: Sky.purple, borderRadius: BorderRadius.circular(999)),
+              child: Text('$count',
+                  style: Sky.label.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right_rounded, color: Sky.ink3),
+          ],
+        ),
       ),
     );
   }

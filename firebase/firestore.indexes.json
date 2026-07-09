@@ -142,6 +142,15 @@
         { "fieldPath": "accountStatus", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "remedies",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "astrologerId", "order": "ASCENDING" },
+        { "fieldPath": "answered", "order": "ASCENDING" },
+        { "fieldPath": "questionAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
