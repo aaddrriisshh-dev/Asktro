@@ -60,7 +60,37 @@ async function moveAstrologerContact() {
   console.log(`✓ astrologer contact moved to private/contact (and removed from public doc): ${moved}`);
 }
 
+// 3. Rebuild astrologer↔customer membership markers from every existing
+//    consultation, so an astrologer can still read the safe cards of customers
+//    they consulted BEFORE this change (the read is now scoped to memberships).
+async function backfillMemberships() {
+  let count = 0;
+  let cursor = null;
+  for (;;) {
+    let q = db.collection('consultations').orderBy('__name__').limit(400);
+    if (cursor) q = q.startAfter(cursor);
+    const snap = await q.get();
+    if (snap.empty) break;
+    const batch = db.batch();
+    for (const d of snap.docs) {
+      const c = d.data();
+      if (!c.astrologerId || !c.customerId) continue;
+      batch.set(
+        db.collection('astrologerCustomers').doc(c.astrologerId).collection('customers').doc(c.customerId),
+        { firstConsultedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      count++;
+    }
+    await batch.commit();
+    cursor = snap.docs[snap.docs.length - 1];
+    if (snap.size < 400) break;
+  }
+  console.log(`✓ astrologer↔customer membership markers backfilled: ${count}`);
+}
+
 await backfillCustomerCards();
 await moveAstrologerContact();
+await backfillMemberships();
 console.log('Privacy backfill complete.');
 process.exit(0);

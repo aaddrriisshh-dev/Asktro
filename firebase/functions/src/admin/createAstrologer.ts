@@ -134,10 +134,13 @@ export const updateAstrologer = onCall(async (req) => {
 
   await db.collection(Collections.astrologers).doc(astrologerId!).set(patch, { merge: true });
 
-  // Phone is contact PII — keep it in the private subcollection, never the public doc.
-  if ('phone' in rest) {
+  // Phone is contact PII — keep it in the private subcollection, never the public
+  // doc. Only write a NON-EMPTY phone: an edit form that didn't hydrate the phone
+  // field (e.g. opened from the list) sends a blank value, and a blank must never
+  // overwrite/erase the astrologer's real stored number.
+  if ('phone' in rest && typeof rest.phone === 'string' && rest.phone.trim() !== '') {
     await db.collection(Collections.astrologers).doc(astrologerId!).collection('private').doc('contact').set(
-      { phone: rest.phone ?? null, updatedAt: FieldValue.serverTimestamp() },
+      { phone: rest.phone.trim(), updatedAt: FieldValue.serverTimestamp() },
       { merge: true },
     );
   }

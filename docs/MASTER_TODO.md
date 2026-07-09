@@ -85,6 +85,11 @@ Legend: 🔴 launch-blocker · 🟠 important · 🟡 nice-to-have · ⚪ your a
 - 🟡 Chat **"typing…" indicator** dead — astrologer side never writes/reads it.
 - 🟡 Banner **placements 2–5 never render** (only "home"); banner **priority** not settable in portal.
 - 🟡 Astrologer notification **icon** doesn't match `consultation_request` type (cosmetic).
+- 🟡 **Safe-card staleness** — `customerProfiles` refreshes only when a consultation starts, so a
+  customer's birth-detail edit doesn't reach the astrologer until their next session. Fix later via a
+  profile-save mirror (avoid a per-write trigger — it fires on every billing tick).
+- 🟡 **Incoming-ring freshness window is hardcoded** (`incoming_call.dart` ~100s) instead of reading
+  `config.requestTimeoutSec`. Cosmetic drift if the server timeout ever changes.
 
 ## J. MAYBE-LATER (undecided — do NOT build without a decision)
 

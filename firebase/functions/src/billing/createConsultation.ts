@@ -191,6 +191,15 @@ export const createConsultation = onCall(async (req) => {
       { merge: true },
     );
 
+    // Membership marker: this astrologer has consulted this customer, so the
+    // security rules let them read ONLY this customer's safe card (never the
+    // whole collection). Prevents any astrologer from enumerating all customers.
+    tx.set(
+      db.collection('astrologerCustomers').doc(astrologerId!).collection('customers').doc(customerId),
+      { firstConsultedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+
     // Notify the astrologer of the incoming request.
     const notifRef = db.collection(Collections.notifications).doc();
     tx.set(notifRef, {

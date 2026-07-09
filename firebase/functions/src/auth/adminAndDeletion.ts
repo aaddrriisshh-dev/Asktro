@@ -74,6 +74,11 @@ export const deleteAccount = onCall(async (req) => {
     { merge: true },
   );
 
+  // Erase the safe-card mirror too (name/DOB/birthplace) — otherwise a "deleted"
+  // user's identity would live on in customerProfiles, readable by astrologers.
+  // Right-to-erasure: the mirror must go when the account is deleted.
+  await db.collection('customerProfiles').doc(uid).delete().catch(() => {});
+
   // Remove notifications.
   const notifs = await db.collection(Collections.notifications).where('userId', '==', uid).limit(500).get();
   const batch = db.batch();

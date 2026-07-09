@@ -39,6 +39,11 @@ export const askRemedyQuestion = onCall(async (req) => {
       failedPrecondition('FREE_FOLLOWUP_USED');
     }
 
+    // Read the customer's name for the notification body — inside the transaction
+    // and BEFORE any write (Firestore requires all reads to precede writes).
+    const customerSnap = await tx.get(db.collection(Collections.users).doc(uid));
+    const customerName = (customerSnap.data()?.name ?? 'A customer') as string;
+
     tx.update(ref, {
       question: q,
       questionAt: FieldValue.serverTimestamp(),
@@ -48,8 +53,6 @@ export const askRemedyQuestion = onCall(async (req) => {
     });
 
     // Notify the astrologer who authored this remedy (push + in-app bell).
-    const customerSnap = await db.collection(Collections.users).doc(uid).get();
-    const customerName = (customerSnap.data()?.name ?? 'A customer') as string;
     const notifRef = db.collection(Collections.notifications).doc();
     tx.set(notifRef, {
       userId: r.astrologerId,

@@ -51,11 +51,23 @@ service cloud.firestore {
 
     // ============ customerProfiles (safe mirror for astrologers) ============
     // A PII-free copy of the customer (name, photo, birth details) written by
-    // Cloud Functions when a consultation starts. Astrologers read this to run a
-    // reading; it deliberately contains NO phone/email/money. Function-write only.
+    // Cloud Functions when a consultation starts. NO phone/email/money.
+    // An astrologer may GET only a customer they have actually consulted (proven
+    // by the astrologerCustomers membership marker) and may NEVER list the
+    // collection — so no astrologer can enumerate/scrape the customer base.
     match /customerProfiles/{userId} {
-      allow read: if isAdmin() || isAstrologer() || isSelf(userId);
+      allow get: if isAdmin() || isSelf(userId)
+        || (isAstrologer()
+            && exists(/databases/$(database)/documents/astrologerCustomers/$(uid())/customers/$(userId)));
+      allow list: if isAdmin();
       allow write: if false; // only Cloud Functions (Admin SDK) write this
+    }
+
+    // Membership markers: which customers an astrologer has consulted. Written by
+    // Cloud Functions; backs the scoped customerProfiles read above.
+    match /astrologerCustomers/{astrologerId}/customers/{customerId} {
+      allow read: if isSelf(astrologerId) || isAdmin();
+      allow write: if false; // Cloud Functions only
     }
 
     // ================= astrologers =================
@@ -94,10 +106,12 @@ service cloud.firestore {
       allow read: if isAdmin()
         || isSelf(resource.data.customerId)
         || isSelf(resource.data.astrologerId);
-      // an astrologer creates a remedy addressed from themselves
+      // an astrologer creates a remedy addressed from themselves, and only for a
+      // customer they have actually consulted (no pushing remedies to strangers)
       allow create: if isAstrologer()
         && isSelf(request.resource.data.astrologerId)
-        && request.resource.data.customerId is string;
+        && request.resource.data.customerId is string
+        && exists(/databases/$(database)/documents/astrologerCustomers/$(uid())/customers/$(request.resource.data.customerId));
       // the customer may only flip the `done` flag — never rewrite the content
       allow update: if isSelf(resource.data.customerId) && notChanging([
         'customerId','astrologerId','astrologerName','astrologerPhoto',
