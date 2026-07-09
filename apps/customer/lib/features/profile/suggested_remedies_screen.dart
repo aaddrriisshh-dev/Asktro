@@ -125,6 +125,12 @@ class _RemedyCardState extends State<_RemedyCard> {
     setState(() => _accepted = true);
   }
 
+  void _openRemedy(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => RemedyDetailScreen(data: widget.data)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = (widget.data['title'] ?? 'Remedy') as String;
@@ -149,7 +155,10 @@ class _RemedyCardState extends State<_RemedyCard> {
           ),
           if (note.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(note, style: AppTypography.body.copyWith(height: 1.35)),
+            Text(note,
+                style: AppTypography.body.copyWith(height: 1.35),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis),
           ],
           const SizedBox(height: 12),
           Row(
@@ -161,46 +170,243 @@ class _RemedyCardState extends State<_RemedyCard> {
             ],
           ),
           const SizedBox(height: 14),
-          // A gentle, untracked call-to-action — a little cosmic moment for the
-          // customer to affirm the remedy. Intentionally not persisted.
-          _accepted
-              ? Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.success.withValues(alpha: 0.35)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.auto_awesome_rounded, size: 16, color: AppColors.success),
-                      const SizedBox(width: 8),
-                      Text('Noted ✨ — may it bring you light',
-                          style: AppTypography.body.copyWith(
-                              color: AppColors.success, fontWeight: FontWeight.w700, fontSize: 13.5,),),
-                    ],
-                  ),
-                )
-              : GestureDetector(
-                  onTap: _accept,
+          // Two actions side by side: open the full remedy, or affirm it.
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _openRemedy(context),
                   behavior: HitTestBehavior.opaque,
                   child: Container(
-                    width: double.infinity,
                     height: 46,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
+                      color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(14),
-                      boxShadow: AppShadows.soft,
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
                     ),
-                    child: Text("Thanks, I'll do it 🙏",
-                        style: AppTypography.body.copyWith(
-                            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14.5,),),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.auto_stories_rounded, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Text('Open remedy',
+                            style: AppTypography.body.copyWith(
+                                color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                      ],
+                    ),
                   ),
                 ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _accepted
+                    ? Container(
+                        height: 46,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.success.withValues(alpha: 0.35)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.check_circle_rounded, size: 16, color: AppColors.success),
+                            const SizedBox(width: 6),
+                            Text('Noted ✨',
+                                style: AppTypography.body.copyWith(
+                                    color: AppColors.success, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                          ],
+                        ),
+                      )
+                    : GestureDetector(
+                        onTap: _accept,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          height: 46,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: AppShadows.soft,
+                          ),
+                          child: Text("Thanks, I'll do it 🙏",
+                              style: AppTypography.body.copyWith(
+                                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12.5),
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A calm, full-screen reading view for a single remedy — the whole text,
+/// scrollable, inside a celestial lavender→gold box (the same palette as the
+/// remedy card that appears in a live chat), with a gentle affirming CTA.
+class RemedyDetailScreen extends StatefulWidget {
+  const RemedyDetailScreen({required this.data, super.key});
+  final Map<String, dynamic> data;
+
+  @override
+  State<RemedyDetailScreen> createState() => _RemedyDetailScreenState();
+}
+
+class _RemedyDetailScreenState extends State<RemedyDetailScreen> {
+  bool _followed = false;
+
+  void _follow() {
+    HapticFeedback.mediumImpact();
+    setState(() => _followed = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = (widget.data['title'] ?? 'Remedy') as String;
+    final note = (widget.data['note'] ?? '') as String;
+    final astro = (widget.data['astrologerName'] ?? 'Astrologer') as String;
+    final photo = widget.data['astrologerPhoto'] as String?;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(title: const Text('Your Remedy')),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('This is your remedy',
+                      style: AppTypography.headline.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      AppAvatar(name: astro, photoUrl: photo, size: 22),
+                      const SizedBox(width: 7),
+                      Text('From $astro',
+                          style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFFF3ECFF), Color(0xFFFFF6E2)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.warning.withValues(alpha: 0.45)),
+                      boxShadow: AppShadows.soft,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: const BoxDecoration(
+                                  gradient: AppColors.primaryGradient, shape: BoxShape.circle),
+                              child: const Icon(Icons.self_improvement_rounded,
+                                  color: Colors.white, size: 18),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(title,
+                                  style: AppTypography.body
+                                      .copyWith(fontWeight: FontWeight.w800, fontSize: 16)),
+                            ),
+                          ],
+                        ),
+                        if (note.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          Text(note,
+                              style: AppTypography.body
+                                  .copyWith(height: 1.5, color: AppColors.textDark)),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      const Icon(Icons.auto_awesome_rounded,
+                          size: 14, color: AppColors.textSecondary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                            'Follow this with faith and a calm heart. Small, steady steps carry the most blessings.',
+                            style: AppTypography.caption
+                                .copyWith(color: AppColors.textSecondary, height: 1.4)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
+              child: _followed
+                  ? Container(
+                      height: 54,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.success.withValues(alpha: 0.35)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.verified_rounded, size: 18, color: AppColors.success),
+                          const SizedBox(width: 8),
+                          Text('Blessings received ✨',
+                              style: AppTypography.body.copyWith(
+                                  color: AppColors.success, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap: _follow,
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        height: 54,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: AppShadows.soft,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.check_circle_rounded, size: 20, color: Colors.white),
+                            const SizedBox(width: 8),
+                            Text("I understood, I'll follow it",
+                                style: AppTypography.body.copyWith(
+                                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                          ],
+                        ),
+                      ),
+                    ),
+            ),
+          ),
         ],
       ),
     );
