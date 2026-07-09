@@ -5,6 +5,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../../ui/celestial.dart';
 import 'home_tab.dart';
+import '../consultation/incoming_call.dart';
 import '../consultation/consultations_tab.dart';
 import '../wallet/wallet_tab.dart';
 import '../notifications/notifications_tab.dart';
@@ -51,7 +52,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             onTap: (i) => ref.read(dashTabProvider.notifier).state = i,
             badges: {1: pending, 3: unread},
           ),
-          child: IndexedStack(index: index, children: _tabs),
+          child: Stack(
+            children: [
+              IndexedStack(index: index, children: _tabs),
+              // Invisible sentinel that raises the full-screen ring on a new request.
+              IncomingCallGate(self: astrologer),
+            ],
+          ),
         );
       },
     );
