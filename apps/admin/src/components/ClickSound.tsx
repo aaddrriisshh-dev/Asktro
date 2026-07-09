@@ -3,11 +3,11 @@
 import { useEffect } from 'react';
 
 /**
- * A subtle, professional "tick" on every click across the console. The sound is
- * synthesised with the Web Audio API (a short high-passed noise burst with a
- * fast decay) so there's no asset to ship and nothing to load — it stays crisp
- * and works within the portal's CSP. Mounted once at the root so it covers the
- * whole app, including the login screen.
+ * A subtle, professional "mouse click" on every click across the console. The
+ * sound is synthesised with the Web Audio API (a short high-passed noise-burst
+ * transient over a tiny low-frequency body thump — the tactile mouse feel) so
+ * there's no asset to ship and nothing to load, and it works within the portal's
+ * CSP. Mounted once at the root so it covers the whole app, including login.
  */
 export default function ClickSound() {
   useEffect(() => {
@@ -40,30 +40,33 @@ export default function ClickSound() {
       const ac = ensure();
       if (!ac || !noise) return;
       const t = ac.currentTime;
-      const dur = 0.028;
 
+      // Crisp transient — a short high-passed noise burst (the audible "click").
       const src = ac.createBufferSource();
       src.buffer = noise;
-
-      // High-pass keeps only the crisp "tick" transient, not a dull thud.
       const hp = ac.createBiquadFilter();
       hp.type = 'highpass';
-      hp.frequency.value = 1600;
-
-      // A gentle band-pass gives it a defined, clicky character.
-      const bp = ac.createBiquadFilter();
-      bp.type = 'bandpass';
-      bp.frequency.value = 2600;
-      bp.Q.value = 0.7;
-
-      const gain = ac.createGain();
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.05, t + 0.001); // fast, quiet attack
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur); // fast decay
-
-      src.connect(hp).connect(bp).connect(gain).connect(ac.destination);
+      hp.frequency.value = 1300;
+      const g1 = ac.createGain();
+      g1.gain.setValueAtTime(0.0001, t);
+      g1.gain.exponentialRampToValueAtTime(0.07, t + 0.0008); // fast, quiet attack
+      g1.gain.exponentialRampToValueAtTime(0.0001, t + 0.02); // fast decay
+      src.connect(hp).connect(g1).connect(ac.destination);
       src.start(t);
-      src.stop(t + dur);
+      src.stop(t + 0.025);
+
+      // A tiny low-frequency body thump under the transient — the tactile,
+      // "real mouse" feel rather than a thin beep.
+      const osc = ac.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = 160;
+      const g2 = ac.createGain();
+      g2.gain.setValueAtTime(0.0001, t);
+      g2.gain.exponentialRampToValueAtTime(0.05, t + 0.002);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+      osc.connect(g2).connect(ac.destination);
+      osc.start(t);
+      osc.stop(t + 0.04);
     }
 
     function onPointerDown(e: PointerEvent) {
