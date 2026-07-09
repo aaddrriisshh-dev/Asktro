@@ -34,6 +34,11 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
   }
   if (tokens.length === 0) return;
 
+  // A new consultation request rings loudly (heads-up + ringtone) even when the
+  // astrologer app is backgrounded/closed, via the high-importance Android
+  // channel the app created. Other notifications use normal priority.
+  const isCall = n.type === 'consultation_request';
+
   const resp = await messaging.sendEachForMulticast({
     tokens,
     notification: {
@@ -41,6 +46,21 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
       body: n.body,
       ...(n.image ? { imageUrl: String(n.image) } : {}),
     },
+    android: isCall
+      ? {
+          priority: 'high',
+          notification: {
+            channelId: 'incoming_consult',
+            sound: 'incoming_ring',
+            priority: 'max',
+            defaultVibrateTimings: false,
+            vibrateTimingsMillis: [0, 500, 500, 500],
+          },
+        }
+      : { priority: 'normal' },
+    ...(isCall
+      ? { apns: { payload: { aps: { sound: 'default', 'interruption-level': 'time-sensitive' } } } }
+      : {}),
     data: {
       type: String(n.type ?? ''),
       deeplink: String(n.deeplink ?? ''),
