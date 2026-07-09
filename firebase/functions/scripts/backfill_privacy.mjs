@@ -1,0 +1,66 @@
+// One-time privacy backfill for the phone-hiding / safe-card change.
+//
+//   cd firebase/functions
+//   GOOGLE_APPLICATION_CREDENTIALS=/path/to/serviceAccount.json node scripts/backfill_privacy.mjs
+//
+// It does two things, idempotently (safe to re-run):
+//   1. Creates a SAFE mirror card in /customerProfiles for every existing user
+//      (name + birth details only — NO phone/email/money) so astrologers can
+//      render existing customers after they lose read access to /users.
+//   2. Moves every existing astrologer's email/phone into
+//      /astrologers/{id}/private/contact and DELETES them from the public doc,
+//      so a customer can never read an astrologer's phone or email.
+import { initializeApp, applicationDefault } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+
+initializeApp({ credential: applicationDefault() });
+const db = getFirestore();
+
+const SAFE = [
+  'name', 'profilePhoto', 'gender', 'birthDateMs', 'birthTime',
+  'birthTimeKnown', 'birthPlace', 'languages', 'relationshipStatus',
+];
+
+async function backfillCustomerCards() {
+  let count = 0;
+  let cursor = null;
+  for (;;) {
+    let q = db.collection('users').orderBy('__name__').limit(400);
+    if (cursor) q = q.startAfter(cursor);
+    const snap = await q.get();
+    if (snap.empty) break;
+    const batch = db.batch();
+    for (const d of snap.docs) {
+      const u = d.data();
+      const card = { updatedAt: FieldValue.serverTimestamp() };
+      for (const k of SAFE) if (u[k] !== undefined) card[k] = u[k];
+      batch.set(db.collection('customerProfiles').doc(d.id), card, { merge: true });
+      count++;
+    }
+    await batch.commit();
+    cursor = snap.docs[snap.docs.length - 1];
+    if (snap.size < 400) break;
+  }
+  console.log(`✓ customerProfiles backfilled: ${count}`);
+}
+
+async function moveAstrologerContact() {
+  let moved = 0;
+  const snap = await db.collection('astrologers').get();
+  for (const d of snap.docs) {
+    const a = d.data();
+    if (a.email === undefined && a.phone === undefined) continue;
+    await d.ref
+      .collection('private')
+      .doc('contact')
+      .set({ email: a.email ?? null, phone: a.phone ?? null, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    await d.ref.update({ email: FieldValue.delete(), phone: FieldValue.delete() });
+    moved++;
+  }
+  console.log(`✓ astrologer contact moved to private/contact (and removed from public doc): ${moved}`);
+}
+
+await backfillCustomerCards();
+await moveAstrologerContact();
+console.log('Privacy backfill complete.');
+process.exit(0);

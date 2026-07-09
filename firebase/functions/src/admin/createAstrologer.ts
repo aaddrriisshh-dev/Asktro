@@ -70,8 +70,6 @@ export const createAstrologer = onCall(async (req) => {
   await db.collection(Collections.astrologers).doc(uid).set(
     {
       name: d.name!.trim(),
-      email: d.email!.trim(),
-      phone: d.phone ?? null,
       about: d.about ?? '',
       experience: d.experience ?? 0,
       languages: d.languages ?? [],
@@ -101,6 +99,14 @@ export const createAstrologer = onCall(async (req) => {
     { merge: true },
   );
 
+  // Contact PII (email/phone) lives in a private subcollection readable only by
+  // the astrologer themselves and admins — never on the public directory doc, so
+  // a customer can never read an astrologer's phone or email.
+  await db.collection(Collections.astrologers).doc(uid).collection('private').doc('contact').set(
+    { email: d.email!.trim(), phone: d.phone ?? null, updatedAt: FieldValue.serverTimestamp() },
+    { merge: true },
+  );
+
   await db.collection(Collections.auditLogs).add({
     actorUid: actor,
     actorRole: 'admin',
@@ -122,11 +128,19 @@ export const updateAstrologer = onCall(async (req) => {
   const { astrologerId, ...rest } = (req.data ?? {}) as { astrologerId?: string } & Record<string, unknown>;
   if (!astrologerId) badRequest('astrologerId is required.');
 
-  const allowed = ['name', 'phone', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'commissionPercent', 'profilePhoto', 'isAI', 'featured', 'risingStar'];
+  const allowed = ['name', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'commissionPercent', 'profilePhoto', 'isAI', 'featured', 'risingStar'];
   const patch: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
   for (const k of allowed) if (k in rest) patch[k] = rest[k];
 
   await db.collection(Collections.astrologers).doc(astrologerId!).set(patch, { merge: true });
+
+  // Phone is contact PII — keep it in the private subcollection, never the public doc.
+  if ('phone' in rest) {
+    await db.collection(Collections.astrologers).doc(astrologerId!).collection('private').doc('contact').set(
+      { phone: rest.phone ?? null, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+  }
   await db.collection(Collections.auditLogs).add({
     actorUid: actor, actorRole: 'admin', action: 'updateAstrologer',
     targetType: 'astrologer', targetId: astrologerId, after: patch, createdAt: FieldValue.serverTimestamp(),

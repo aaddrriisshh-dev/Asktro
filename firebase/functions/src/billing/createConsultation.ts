@@ -171,6 +171,26 @@ export const createConsultation = onCall(async (req) => {
       tx.update(astrologerRef, { available: false, updatedAt: FieldValue.serverTimestamp() });
     }
 
+    // Mirror a SAFE customer card (name, photo, birth details ONLY — never
+    // phone/email/money) so astrologers can render the client for a reading
+    // without ever reading the real `users` doc. Refreshed on each new session.
+    tx.set(
+      db.collection('customerProfiles').doc(customerId),
+      {
+        name: customer.name ?? '',
+        profilePhoto: customer.profilePhoto ?? null,
+        gender: customer.gender ?? null,
+        birthDateMs: customer.birthDateMs ?? null,
+        birthTime: customer.birthTime ?? null,
+        birthTimeKnown: customer.birthTimeKnown ?? true,
+        birthPlace: customer.birthPlace ?? null,
+        languages: customer.languages ?? [],
+        relationshipStatus: customer.relationshipStatus ?? null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
     // Notify the astrologer of the incoming request.
     const notifRef = db.collection(Collections.notifications).doc();
     tx.set(notifRef, {

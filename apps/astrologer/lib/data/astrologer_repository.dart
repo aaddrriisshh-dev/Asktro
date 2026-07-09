@@ -63,8 +63,13 @@ class AstrologerRepository {
   /// The customer's public profile (name, photo, gender, birth details, etc.).
   /// The astrologer never sees wallet/money fields — only what helps them read
   /// the chart and personalise the consultation.
+  /// Reads the customer's SAFE profile card (name, photo, birth details only) —
+  /// never their phone/email/money. This mirror doc is written by the backend
+  /// when a consultation is created, and astrologers have NO read access to the
+  /// real `users` collection (enforced in firestore.rules), so a customer's
+  /// phone number can never reach an astrologer.
   Stream<UserProfile?> watchCustomer(String customerId) => _db
-      .collection('users')
+      .collection('customerProfiles')
       .doc(customerId)
       .snapshots()
       .map((d) => d.exists ? UserProfile.fromMap(d.id, d.data() ?? const {}) : null);

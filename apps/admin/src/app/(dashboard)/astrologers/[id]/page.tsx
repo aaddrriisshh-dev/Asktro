@@ -28,7 +28,11 @@ export default function AstrologerViewPage() {
     (async () => {
       const snap = await getDoc(doc(db, 'astrologers', id));
       if (!snap.exists()) { setMissing(true); return; }
-      setA({ id, ...snap.data() });
+      // Contact PII (email/phone) now lives in the private subcollection — admins
+      // may read it; customers cannot. Merge it in for the admin detail view.
+      const contactSnap = await getDoc(doc(db, 'astrologers', id, 'private', 'contact'));
+      const contact = contactSnap.exists() ? contactSnap.data() : {};
+      setA({ id, ...snap.data(), ...contact });
       const cs = await getDocs(query(collection(db, 'consultations'), where('astrologerId', '==', id)));
       setCons(cs.docs.map((d) => ({ id: d.id, ...d.data() })).sort((x, y) => ms(y, 'createdAt') - ms(x, 'createdAt')));
     })().catch(() => setMissing(true));

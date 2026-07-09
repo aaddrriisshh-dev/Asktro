@@ -24,10 +24,11 @@ service cloud.firestore {
 
     // ================= users =================
     match /users/{userId} {
-      // Astrologers need to read the customer's profile (name, birth details,
-      // chart) for their consultations. Longer term this should be scoped to
-      // customers they actually consult, or denormalised onto the session.
-      allow read: if isSelf(userId) || isAdmin() || isAstrologer();
+      // Only the user themselves and admins may read the real profile. Astrologers
+      // must NOT — it holds phone/email/money. They read the SAFE mirror in
+      // /customerProfiles instead (name + birth details, no PII), so a customer's
+      // phone number can never reach an astrologer.
+      allow read: if isSelf(userId) || isAdmin();
       allow create: if isSelf(userId)
         // a new profile must start with zeroed, function-owned money fields
         && request.resource.data.walletBalance == 0
@@ -46,6 +47,15 @@ service cloud.firestore {
         'firstRechargeAt','chatGraceUsed'
       ]);
       allow delete: if false; // deletion only via Cloud Function
+    }
+
+    // ============ customerProfiles (safe mirror for astrologers) ============
+    // A PII-free copy of the customer (name, photo, birth details) written by
+    // Cloud Functions when a consultation starts. Astrologers read this to run a
+    // reading; it deliberately contains NO phone/email/money. Function-write only.
+    match /customerProfiles/{userId} {
+      allow read: if isAdmin() || isAstrologer() || isSelf(userId);
+      allow write: if false; // only Cloud Functions (Admin SDK) write this
     }
 
     // ================= astrologers =================
@@ -68,6 +78,13 @@ service cloud.firestore {
       // do not cascade into subcollections, so this needs its own match.
       match /notes/{noteId} {
         allow read, write: if isSelf(astrologerId);
+      }
+
+      // Contact PII (email/phone). Readable only by the astrologer themselves and
+      // admins — never by customers. Written by Cloud Functions (admin actions).
+      match /private/{doc} {
+        allow read: if isSelf(astrologerId) || isAdmin();
+        allow write: if false;
       }
     }
 
