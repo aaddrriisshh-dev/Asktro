@@ -88,10 +88,24 @@ export const createConsultation = onCall(async (req) => {
       }
     }
 
-    // Chat-only welcome credit (chatBonusBalance) counts only for a chat.
+    // Per-astrologer rate, snapshotted onto the session below so a later admin
+    // change never re-rates an in-progress consultation. Falls back to the
+    // global base rate only when an astrologer has none set (e.g. AI personas).
+    const price =
+      typeof astrologer.ratePerMinutePaise === 'number' && astrologer.ratePerMinutePaise > 0
+        ? astrologer.ratePerMinutePaise
+        : config.consultationPricePerMinutePaise;
+
+    // The one-time free CHAT credit (chatBonusBalance) is usable ONLY with AI or
+    // base-rate astrologers. Premium human astrologers charge from the first
+    // second, so their chats never draw on it. Decided once here and stamped on
+    // the session so every downstream tick honours the same rule.
+    const chatCreditEligible = type === 'chat'
+        && (astrologer.isAI === true || price <= config.consultationPricePerMinutePaise);
+
     const spendable = (customer.walletBalance ?? 0) +
         (customer.bonusBalance ?? 0) +
-        (type === 'chat' ? (customer.chatBonusBalance ?? 0) : 0);
+        (chatCreditEligible ? (customer.chatBonusBalance ?? 0) : 0);
     if (!canStartConsultation(spendable, config.minWalletToStartPaise)) {
       throw new HttpsError(
         'failed-precondition',
@@ -112,13 +126,8 @@ export const createConsultation = onCall(async (req) => {
       failedPrecondition('You already have an active consultation.');
     }
 
-    // Per-astrologer rate & commission, falling back to the global config when
-    // an astrologer has none set. Both are snapshotted onto the session so a
-    // later admin change never re-rates an in-progress consultation.
-    const price =
-      typeof astrologer.ratePerMinutePaise === 'number' && astrologer.ratePerMinutePaise > 0
-        ? astrologer.ratePerMinutePaise
-        : config.consultationPricePerMinutePaise;
+    // Per-astrologer commission, snapshotted onto the session (price computed
+    // above). Falls back to the global config when the astrologer has none set.
     const commissionPercent =
       typeof astrologer.commissionPercent === 'number'
         ? astrologer.commissionPercent
@@ -132,6 +141,7 @@ export const createConsultation = onCall(async (req) => {
       pricePerMinute: price,
       pricePerSecond: pricePerSecond(price),
       commissionPercent,
+      chatCreditEligible,
       status: 'waiting',
       paymentStatus: 'pending',
       networkStatus: 'ok',

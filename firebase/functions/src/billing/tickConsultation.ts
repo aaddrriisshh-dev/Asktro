@@ -56,11 +56,14 @@ export async function applyTick(
   const lastTickAtMs: number = (c.lastTickAt as Timestamp | null)?.toMillis() ?? nowMs;
 
   // Balance buckets. `bonusBalance` is the any-type bonus (referral/grace);
-  // `chatBonusBalance` is the CHAT-ONLY welcome credit, counted only for a chat.
+  // `chatBonusBalance` is the CHAT-ONLY welcome credit. It is spendable only on
+  // an ELIGIBLE chat (AI / base-rate astrologer) — the flag is stamped on the
+  // session at creation. A premium chat never reads or writes this bucket.
   const isChat = c.type === 'chat';
+  const chatCreditEligible = isChat && c.chatCreditEligible === true;
   const wallet0: number = user.walletBalance ?? 0;
   const anyBonus0: number = user.bonusBalance ?? 0;
-  const chatBonus0: number = isChat ? (user.chatBonusBalance ?? 0) : 0;
+  const chatBonus0: number = chatCreditEligible ? (user.chatBonusBalance ?? 0) : 0;
   const combinedBonus = anyBonus0 + chatBonus0;
 
   const result = computeTick({
@@ -95,7 +98,7 @@ export async function applyTick(
   const finalWallet = result.newWalletBalancePaise;
   const finalAnyBonus = newAnyBonus + graceBonus;
   const finalChatBonus = newChatBonus;
-  const finalSpendable = finalWallet + finalAnyBonus + (isChat ? finalChatBonus : 0);
+  const finalSpendable = finalWallet + finalAnyBonus + (chatCreditEligible ? finalChatBonus : 0);
   const finalRemainingSec = grantGrace
     ? affordableSeconds(finalSpendable, c.pricePerMinute)
     : result.remainingSec;
@@ -107,8 +110,9 @@ export async function applyTick(
     tx.update(userRef, {
       walletBalance: finalWallet,
       bonusBalance: finalAnyBonus,
-      // Only a chat consumes the chat-only welcome credit; never touch it on a call.
-      ...(isChat ? { chatBonusBalance: finalChatBonus } : {}),
+      // Only an eligible chat consumes the chat-only welcome credit; never touch
+      // it on a call or a premium chat (leave the bucket exactly as it was).
+      ...(chatCreditEligible ? { chatBonusBalance: finalChatBonus } : {}),
       ...(grantGrace && isChat ? { chatGraceUsed: true } : {}),
       ...(result.chargedPaise > 0 ? { totalSpent: FieldValue.increment(result.chargedPaise) } : {}),
       updatedAt: FieldValue.serverTimestamp(),
@@ -155,7 +159,7 @@ export async function applyTick(
     remainingSec: finalRemainingSec,
     warnLevel: finalWarnLevel,
     walletBalance: finalWallet,
-    bonusBalance: finalAnyBonus + (isChat ? finalChatBonus : 0),
+    bonusBalance: finalAnyBonus + (chatCreditEligible ? finalChatBonus : 0),
     billedSeconds: result.billedSeconds,
     chargedPaise: result.chargedPaise,
     graceGranted: grantGrace,

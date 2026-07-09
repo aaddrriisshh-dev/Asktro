@@ -56,7 +56,7 @@ export const resumeConsultation = onCall(async (req) => {
     const user = userSnap.data() ?? {};
     const spendable = (user.walletBalance ?? 0) +
         (user.bonusBalance ?? 0) +
-        (c.type === 'chat' ? (user.chatBonusBalance ?? 0) : 0);
+        (c.chatCreditEligible === true ? (user.chatBonusBalance ?? 0) : 0);
     if (spendable <= 0) {
       failedPrecondition('INSUFFICIENT_BALANCE');
     }
