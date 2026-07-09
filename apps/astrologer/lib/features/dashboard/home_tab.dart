@@ -28,7 +28,7 @@ class HomeTab extends ConsumerWidget {
   void _open(BuildContext context, Consultation c, Astrologer self) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => AstrologerConsultationScreen(consultationId: c.id, self: self),
-    ));
+    ),);
   }
 
   void _tab(WidgetRef ref, int i) => ref.read(dashTabProvider.notifier).state = i;
@@ -112,7 +112,7 @@ class HomeTab extends ConsumerWidget {
                 waiting: pending.length,
                 todayEarn: todayEarn,
                 yesterdayEarn: yesterdayEarn,
-                goalPct: goalPct),
+                goalPct: goalPct,),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
               child: Column(
@@ -151,12 +151,12 @@ class HomeTab extends ConsumerWidget {
                   if (recent.isNotEmpty) ...[
                     const SizedBox(height: 22),
                     SectionTitle('Recent clients',
-                        action: recent.length > 4 ? 'View all' : null, onAction: () => _tab(ref, 1)),
+                        action: recent.length > 4 ? 'View all' : null, onAction: () => _tab(ref, 1),),
                     for (final r in recent.take(4))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: _RecentClientCard(row: r, self: self,
-                            onOpen: self == null ? null : () => _open(context, r.c, self)),
+                            onOpen: self == null ? null : () => _open(context, r.c, self),),
                       ),
                   ],
 
@@ -201,7 +201,7 @@ class HomeTab extends ConsumerWidget {
         children: [
           Row(
             children: [
-              _PulseDot(color: Sky.green),
+              const _PulseDot(color: Sky.green),
               const SizedBox(width: 8),
               Text('New consultations · ${pending.length}', style: Sky.h2.copyWith(fontSize: 15.5)),
             ],
@@ -333,7 +333,7 @@ class HomeTab extends ConsumerWidget {
                               Flexible(
                                 child: Text(name,
                                     style: Sky.h1.copyWith(fontSize: 26, color: Colors.white),
-                                    overflow: TextOverflow.ellipsis),
+                                    overflow: TextOverflow.ellipsis,),
                               ),
                               if (self?.verified ?? false) ...[
                                 const SizedBox(width: 6),
@@ -365,7 +365,7 @@ class HomeTab extends ConsumerWidget {
                         const SizedBox(height: 7),
                         Text(online ? 'Visible to clients' : 'You are offline',
                             style: Sky.label.copyWith(
-                                fontSize: 10, color: online ? _cGreen : Colors.white54, fontWeight: FontWeight.w700)),
+                                fontSize: 10, color: online ? _cGreen : Colors.white54, fontWeight: FontWeight.w700,),),
                       ],
                     ),
                   ],
@@ -443,7 +443,7 @@ class HomeTab extends ConsumerWidget {
               const Icon(Icons.auto_awesome_rounded, size: 11, color: Sky.purpleDeep),
               const SizedBox(width: 4),
               Text(label,
-                  style: Sky.label.copyWith(fontSize: 10.5, color: Sky.purpleDeep, fontWeight: FontWeight.w800)),
+                  style: Sky.label.copyWith(fontSize: 10.5, color: Sky.purpleDeep, fontWeight: FontWeight.w800),),
             ],
           ),
         ),
@@ -455,7 +455,7 @@ class HomeTab extends ConsumerWidget {
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text('${self?.followers} followers',
-                style: Sky.label.copyWith(fontSize: 10.5, color: Colors.white, fontWeight: FontWeight.w700)),
+                style: Sky.label.copyWith(fontSize: 10.5, color: Colors.white, fontWeight: FontWeight.w700),),
           ),
       ],
     );
@@ -487,7 +487,7 @@ class HomeTab extends ConsumerWidget {
                 decoration: BoxDecoration(gradient: Sky.goldGrad, borderRadius: BorderRadius.circular(999)),
                 child: Text('${unread > 9 ? '9+' : unread}',
                     textAlign: TextAlign.center,
-                    style: Sky.label.copyWith(fontSize: 9.5, color: Sky.purpleDeep, fontWeight: FontWeight.w800)),
+                    style: Sky.label.copyWith(fontSize: 9.5, color: Sky.purpleDeep, fontWeight: FontWeight.w800),),
               ),
             ),
         ],
@@ -496,7 +496,7 @@ class HomeTab extends ConsumerWidget {
   }
 
   Widget _vDivider() => Container(
-      width: 1, height: 44, margin: const EdgeInsets.symmetric(horizontal: 7), color: Colors.white.withValues(alpha: 0.12));
+      width: 1, height: 44, margin: const EdgeInsets.symmetric(horizontal: 7), color: Colors.white.withValues(alpha: 0.12),);
 
   Widget _vital({
     required IconData icon,
@@ -519,7 +519,7 @@ class HomeTab extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(value,
-            style: Sky.h1.copyWith(fontSize: 17, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+            style: Sky.h1.copyWith(fontSize: 17, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis,),
         const SizedBox(height: 2),
         Text(label, style: Sky.label.copyWith(fontSize: 9.5, color: Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis),
         if (delta != null) ...[
@@ -531,7 +531,7 @@ class HomeTab extends ConsumerWidget {
               Flexible(
                 child: Text(delta,
                     style: Sky.label.copyWith(fontSize: 9, color: deltaColor, fontWeight: FontWeight.w700),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                    maxLines: 1, overflow: TextOverflow.ellipsis,),
               ),
             ],
           ),
@@ -595,7 +595,7 @@ class HomeTab extends ConsumerWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(13),
-                  boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 5))]),
+                  boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 5))],),
               child: Icon(icon, color: Colors.white, size: 21),
             ),
             const SizedBox(height: 9),
@@ -608,7 +608,7 @@ class HomeTab extends ConsumerWidget {
 
   // ============================ EARNINGS ============================
   Widget _earnings(BuildContext context, WidgetRef ref, List<SessionRow> rows, Astrologer? self,
-      List<double> pts, int todayEarn, int yesterdayEarn, int weekTotal) {
+      List<double> pts, int todayEarn, int yesterdayEarn, int weekTotal,) {
     final range = ref.watch(earningsRangeProvider);
     final custom = ref.watch(earningsCustomRangeProvider);
     final hasData = pts.any((p) => p > 0);
@@ -693,7 +693,7 @@ class HomeTab extends ConsumerWidget {
                 const Icon(Icons.emoji_events_rounded, size: 14, color: Sky.gold),
                 const SizedBox(width: 6),
                 Text('Best day this week: ${Money.formatPaise(best)}',
-                    style: Sky.label.copyWith(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                    style: Sky.label.copyWith(fontSize: 11.5, fontWeight: FontWeight.w700),),
               ],
             ),
           ],
@@ -724,7 +724,7 @@ class HomeTab extends ConsumerWidget {
         ),
         child: Text(label,
             style: Sky.label.copyWith(
-                fontSize: 11, color: on ? Colors.white : Sky.ink2, fontWeight: FontWeight.w700)),
+                fontSize: 11, color: on ? Colors.white : Sky.ink2, fontWeight: FontWeight.w700,),),
       ),
     );
   }
@@ -759,7 +759,7 @@ class HomeTab extends ConsumerWidget {
             const SizedBox(width: 5),
             Text('Custom',
                 style: Sky.label.copyWith(
-                    fontSize: 11, color: on ? Colors.white : Sky.ink2, fontWeight: FontWeight.w700)),
+                    fontSize: 11, color: on ? Colors.white : Sky.ink2, fontWeight: FontWeight.w700,),),
           ],
         ),
       ),
@@ -774,19 +774,19 @@ class HomeTab extends ConsumerWidget {
           Expanded(child: StatTile(label: "Today's sessions", value: '$todaySessions', icon: Icons.event_available_rounded, accent: Sky.purple)),
           const SizedBox(width: 12),
           Expanded(child: StatTile(label: 'Your rating', value: '${(self?.rating ?? 0).toStringAsFixed(1)}★', icon: Icons.star_rounded, accent: Sky.gold)),
-        ]),
+        ],),
         const SizedBox(height: 12),
         Row(children: [
           Expanded(child: StatTile(label: 'Avg response', value: _resp(self?.responseTimeSec ?? 0), icon: Icons.bolt_rounded, accent: Sky.green)),
           const SizedBox(width: 12),
           Expanded(child: StatTile(label: 'Total sessions', value: '${self?.totalConsultations ?? 0}', icon: Icons.forum_rounded, accent: Sky.purpleDeep)),
-        ]),
+        ],),
         const SizedBox(height: 12),
         Row(children: [
           Expanded(child: StatTile(label: 'Repeat clients', value: '$repeatClients', icon: Icons.autorenew_rounded, accent: Sky.amber)),
           const SizedBox(width: 12),
           Expanded(child: StatTile(label: 'Acceptance', value: acceptance, icon: Icons.verified_user_rounded, accent: Sky.green)),
-        ]),
+        ],),
       ],
     );
   }
@@ -823,7 +823,7 @@ class HomeTab extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text('Every consultation adds to your constellation. Keep shining. ✦',
-                    style: Sky.label.copyWith(fontSize: 11.5, color: Colors.white70)),
+                    style: Sky.label.copyWith(fontSize: 11.5, color: Colors.white70),),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -869,7 +869,7 @@ class HomeTab extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text((n['title'] ?? 'Announcement').toString(),
-                    style: Sky.h2.copyWith(fontSize: 13.5), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    style: Sky.h2.copyWith(fontSize: 13.5), maxLines: 1, overflow: TextOverflow.ellipsis,),
                 if (body.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(body, style: Sky.label.copyWith(fontSize: 11.5), maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -909,7 +909,7 @@ class HomeTab extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(online ? 'Online' : 'Offline',
-                        style: Sky.h2.copyWith(fontSize: 16, color: online ? Sky.green : Sky.ink3)),
+                        style: Sky.h2.copyWith(fontSize: 16, color: online ? Sky.green : Sky.ink3),),
                   ),
                   OnlineToggle(
                     value: online,
@@ -920,7 +920,7 @@ class HomeTab extends ConsumerWidget {
             ],
           ),
         );
-      }),
+      },),
     );
   }
 }
@@ -1011,10 +1011,10 @@ class _RequestCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(cust?.name ?? 'New customer',
-                    style: Sky.h2.copyWith(fontSize: 14.5), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    style: Sky.h2.copyWith(fontSize: 14.5), maxLines: 1, overflow: TextOverflow.ellipsis,),
                 const SizedBox(height: 3),
                 Text('New ${c.type.name} request',
-                    style: Sky.label.copyWith(fontSize: 12, color: Sky.gold, fontWeight: FontWeight.w700)),
+                    style: Sky.label.copyWith(fontSize: 12, color: Sky.gold, fontWeight: FontWeight.w700),),
               ],
             ),
           ),
@@ -1087,7 +1087,7 @@ class _ActiveChip extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text((cust?.name ?? 'Customer').split(' ').first,
-                style: Sky.label.copyWith(fontSize: 10.5), maxLines: 1, overflow: TextOverflow.ellipsis),
+                style: Sky.label.copyWith(fontSize: 10.5), maxLines: 1, overflow: TextOverflow.ellipsis,),
           ],
         ),
       ),
@@ -1121,10 +1121,10 @@ class _RecentClientCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(cust?.name ?? 'Customer',
-                    style: Sky.h2.copyWith(fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    style: Sky.h2.copyWith(fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis,),
                 const SizedBox(height: 2),
                 Text('$label · ${Money.formatDuration(c.billedSeconds)}',
-                    style: Sky.label.copyWith(fontSize: 11.5), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    style: Sky.label.copyWith(fontSize: 11.5), maxLines: 1, overflow: TextOverflow.ellipsis,),
               ],
             ),
           ),
