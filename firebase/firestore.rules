@@ -32,12 +32,18 @@ service cloud.firestore {
         // a new profile must start with zeroed, function-owned money fields
         && request.resource.data.walletBalance == 0
         && request.resource.data.bonusBalance == 0
-        && request.resource.data.lockedBalance == 0;
-      // clients may edit profile fields but never money/status/ledger fields
+        && request.resource.data.lockedBalance == 0
+        // chat-only welcome credit is function-granted at signup, never client-set
+        && (!('chatBonusBalance' in request.resource.data)
+            || request.resource.data.chatBonusBalance == 0);
+      // clients may edit profile fields but never money/status/ledger fields.
+      // NOTE: chatBonusBalance & chatGraceUsed are spendable/grace state owned by
+      // the billing functions — a client must never write them.
       allow update: if isSelf(userId) && notChanging([
-        'walletBalance','bonusBalance','lockedBalance','totalRecharge',
-        'totalSpent','pendingRefund','totalConsultations','referralCode',
-        'referredBy','accountStatus','signupBonusGranted','firstRechargeAt'
+        'walletBalance','bonusBalance','chatBonusBalance','lockedBalance',
+        'totalRecharge','totalSpent','pendingRefund','totalConsultations',
+        'referralCode','referredBy','accountStatus','signupBonusGranted',
+        'firstRechargeAt','chatGraceUsed'
       ]);
       allow delete: if false; // deletion only via Cloud Function
     }
@@ -52,7 +58,9 @@ service cloud.firestore {
       allow update: if isAdmin() || (isSelf(astrologerId) && notChanging([
         'rating','totalReviews','totalConsultations','followers','earnings',
         'pendingPayout','verified','featured','accountStatus',
-        'commissionPercent','ratePerMinutePaise','available'
+        'commissionPercent','ratePerMinutePaise','available',
+        // admin-owned flags: an astrologer must not self-promote or self-mark AI
+        'isAI','risingStar'
       ]));
       allow delete: if isAdmin();
 
