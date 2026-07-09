@@ -6,12 +6,21 @@ import '../features/auth/login_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/splash/splash_screen.dart';
 
+/// Holds the router on the splash long enough for the launch animation to play
+/// (the revolving zodiac wheel + wordmark reveal) before auth routing takes over.
+final splashGateProvider = FutureProvider<void>((ref) async {
+  await Future<void>.delayed(const Duration(milliseconds: 4200));
+});
+
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authStateProvider);
+  final splashReady = ref.watch(splashGateProvider).hasValue;
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
-      if (auth.isLoading) return state.matchedLocation == '/splash' ? null : '/splash';
+      if (auth.isLoading || !splashReady) {
+        return state.matchedLocation == '/splash' ? null : '/splash';
+      }
       final loggedIn = auth.valueOrNull != null;
       final loc = state.matchedLocation;
       if (!loggedIn) return loc == '/login' ? null : '/login';
