@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../app/providers.dart';
 import '../../ui/celestial.dart';
@@ -18,6 +21,9 @@ class LoginScreen extends ConsumerStatefulWidget {
 enum _Mode { email, phone }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  static const _zodiac = 'assets/onboarding/zodiac_wheel.png';
+  static const _wordmark = 'assets/onboarding/logo_wordmark.webp';
+
   _Mode _mode = _Mode.email;
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -105,82 +111,100 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     final topPad = MediaQuery.of(context).padding.top;
-    return SkyScaffold(
-      child: ListView(
-        padding: EdgeInsets.zero,
+    return Scaffold(
+      body: Stack(
         children: [
-          // Celestial hero
-          Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: const BoxDecoration(
-              gradient: Sky.heroGrad,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(34)),
+          // Celestial lavender sky — the splash, settled into a login.
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0, -0.4),
+                  radius: 1.1,
+                  colors: [Color(0xFFFBF9FF), Color(0xFFF5F2FF), Color(0xFFEDE7FB)],
+                  stops: [0.0, 0.5, 1.0],
+                ),
+              ),
             ),
-            child: Stack(
+          ),
+          // faint zodiac wheel behind the wordmark
+          Positioned(
+            top: topPad + 6,
+            left: -size.width * 0.12,
+            child: Opacity(opacity: 0.07, child: Image.asset(_zodiac, width: size.width * 1.24)),
+          ),
+          Positioned(
+            top: topPad + 64,
+            right: 42,
+            child: const Icon(Icons.auto_awesome, color: Color(0xFFEAD079), size: 16),
+          ),
+          Positioned(
+            top: topPad + 150,
+            left: 34,
+            child: const Icon(Icons.auto_awesome, color: Color(0xFFE6C86A), size: 12),
+          ),
+          SafeArea(
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(20, 36, 20, 24 + MediaQuery.of(context).padding.bottom),
               children: [
-                const Positioned.fill(child: CelestialWash()),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(24, topPad + 46, 24, 46),
+                Center(child: Image.asset(_wordmark, width: math.min(size.width * 0.52, 240))),
+                const SizedBox(height: 14),
+                Center(
+                  child: Text(
+                    'GUIDANCE WRITTEN IN THE STARS',
+                    style: GoogleFonts.cormorantGaramond(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 2.2,
+                      color: const Color(0xFF4B2A80),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                // form on a clean white card so fields stay crisp on the sky
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Sky.card,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Sky.line),
+                    boxShadow: Sky.lift,
+                  ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 78,
-                        height: 78,
-                        decoration: BoxDecoration(
-                          gradient: Sky.goldGrad,
-                          shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: Sky.gold.withValues(alpha: 0.4), blurRadius: 22, offset: const Offset(0, 8))],
-                        ),
-                        child: const Center(
-                          child: Text('A',
-                              style: TextStyle(
-                                  fontFamily: '.SF Pro Display',
-                                  fontSize: 42,
-                                  fontWeight: FontWeight.w800,
-                                  color: Sky.purpleDeep,),),
-                        ),
-                      ),
+                      Text('Sign in', style: Sky.h1.copyWith(fontSize: 22)),
+                      const SizedBox(height: 4),
+                      Text('Use the credentials provided by the Asktro team.',
+                          style: Sky.label.copyWith(fontSize: 13)),
                       const SizedBox(height: 18),
-                      Text('Asktro Consultation',
-                          style: Sky.h1.copyWith(color: Colors.white, fontSize: 24),),
-                      const SizedBox(height: 6),
-                      Text('The professional astrologer workspace',
-                          style: Sky.label.copyWith(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
-                          textAlign: TextAlign.center,),
+                      _segmented(),
+                      const SizedBox(height: 16),
+                      if (_mode == _Mode.email) ..._emailFields() else ..._phoneFields(),
+                      if (_error != null) ...[
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                          decoration: BoxDecoration(color: Sky.red.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(12)),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded, size: 17, color: Sky.red),
+                              const SizedBox(width: 9),
+                              Expanded(child: Text(_error!, style: Sky.label.copyWith(fontSize: 12.5, color: Sky.red))),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(20, 26, 20, 30 + MediaQuery.of(context).padding.bottom),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Sign in', style: Sky.h1),
-                const SizedBox(height: 4),
-                Text('Use the credentials provided by the Asktro team.',
-                    style: Sky.label.copyWith(fontSize: 13),),
                 const SizedBox(height: 20),
-                _segmented(),
-                const SizedBox(height: 18),
-                if (_mode == _Mode.email) ..._emailFields() else ..._phoneFields(),
-                if (_error != null) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                    decoration: BoxDecoration(color: Sky.red.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(12)),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline_rounded, size: 17, color: Sky.red),
-                        const SizedBox(width: 9),
-                        Expanded(child: Text(_error!, style: Sky.label.copyWith(fontSize: 12.5, color: Sky.red))),
-                      ],
-                    ),
-                  ),
-                ],
+                Center(
+                  child: Text('Asktro Tech Private Limited',
+                      style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
+                ),
               ],
             ),
           ),
