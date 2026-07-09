@@ -55,29 +55,47 @@ export async function applyTick(
 
   const lastTickAtMs: number = (c.lastTickAt as Timestamp | null)?.toMillis() ?? nowMs;
 
+  // Balance buckets. `bonusBalance` is the any-type bonus (referral/grace);
+  // `chatBonusBalance` is the CHAT-ONLY welcome credit, counted only for a chat.
+  const isChat = c.type === 'chat';
+  const wallet0: number = user.walletBalance ?? 0;
+  const anyBonus0: number = user.bonusBalance ?? 0;
+  const chatBonus0: number = isChat ? (user.chatBonusBalance ?? 0) : 0;
+  const combinedBonus = anyBonus0 + chatBonus0;
+
   const result = computeTick({
     lastTickAtMs,
     nowMs,
     pausedSinceLastTickMs: 0,
-    spendablePaise: (user.walletBalance ?? 0) + (user.bonusBalance ?? 0),
-    walletBalancePaise: user.walletBalance ?? 0,
-    bonusBalancePaise: user.bonusBalance ?? 0,
+    spendablePaise: wallet0 + combinedBonus,
+    walletBalancePaise: wallet0,
+    bonusBalancePaise: combinedBonus,
     pricePerMinutePaise: c.pricePerMinute,
     warnLevel1Sec: config.warnLevel1Sec,
     warnLevel2Sec: config.warnLevel2Sec,
   });
 
-  // One-time grace minute: if the balance just ran out and we haven't already
-  // gifted a grace minute for this session, add it as bonus credit and keep the
-  // session active instead of pausing. The client shows a celebratory popup.
+  // Split the bonus the engine consumed back into its buckets — spend the
+  // chat-only welcome credit FIRST, then the any-type bonus.
+  const consumedBonus = combinedBonus - result.newBonusBalancePaise;
+  const chatConsumed = Math.min(chatBonus0, consumedBonus);
+  const newChatBonus = chatBonus0 - chatConsumed;
+  const newAnyBonus = anyBonus0 - (consumedBonus - chatConsumed);
+
+  // One grace minute when the balance runs out. CHAT: once per USER
+  // (`chatGraceUsed`) — closing/reopening the app will NOT re-grant it.
+  // VOICE/VIDEO: once per call (`graceGranted` on the consultation). The grace
+  // credit lands in the any-type bonus so it is spendable on this same session.
   const graceMinutes = config.graceMinutes ?? 0;
-  const grantGrace = result.exhausted && c.graceGranted !== true && graceMinutes > 0;
+  const graceAllowed = isChat ? user.chatGraceUsed !== true : c.graceGranted !== true;
+  const grantGrace = result.exhausted && graceAllowed && graceMinutes > 0;
   const graceBonus = grantGrace ? graceMinutes * (c.pricePerMinute as number) : 0;
   const willPause = result.exhausted && !grantGrace;
 
   const finalWallet = result.newWalletBalancePaise;
-  const finalBonus = result.newBonusBalancePaise + graceBonus;
-  const finalSpendable = finalWallet + finalBonus;
+  const finalAnyBonus = newAnyBonus + graceBonus;
+  const finalChatBonus = newChatBonus;
+  const finalSpendable = finalWallet + finalAnyBonus + (isChat ? finalChatBonus : 0);
   const finalRemainingSec = grantGrace
     ? affordableSeconds(finalSpendable, c.pricePerMinute)
     : result.remainingSec;
@@ -88,7 +106,10 @@ export async function applyTick(
   if (result.chargedPaise > 0 || graceBonus > 0) {
     tx.update(userRef, {
       walletBalance: finalWallet,
-      bonusBalance: finalBonus,
+      bonusBalance: finalAnyBonus,
+      // Only a chat consumes the chat-only welcome credit; never touch it on a call.
+      ...(isChat ? { chatBonusBalance: finalChatBonus } : {}),
+      ...(grantGrace && isChat ? { chatGraceUsed: true } : {}),
       ...(result.chargedPaise > 0 ? { totalSpent: FieldValue.increment(result.chargedPaise) } : {}),
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -98,7 +119,7 @@ export async function applyTick(
       userId: c.customerId,
       kind: 'consultation',
       amount: -result.chargedPaise,
-      balanceBefore: (user.walletBalance ?? 0) + (user.bonusBalance ?? 0),
+      balanceBefore: wallet0 + combinedBonus,
       balanceAfter: result.remainingSpendablePaise,
       refId: consultationId,
       note: `${c.type} consultation billing`,
@@ -134,7 +155,7 @@ export async function applyTick(
     remainingSec: finalRemainingSec,
     warnLevel: finalWarnLevel,
     walletBalance: finalWallet,
-    bonusBalance: finalBonus,
+    bonusBalance: finalAnyBonus + (isChat ? finalChatBonus : 0),
     billedSeconds: result.billedSeconds,
     chargedPaise: result.chargedPaise,
     graceGranted: grantGrace,

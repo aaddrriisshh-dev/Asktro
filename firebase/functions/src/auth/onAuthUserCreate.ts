@@ -36,6 +36,7 @@ export const onAuthUserCreate = functionsV1
           email: user.email || null,
           walletBalance: 0,
           bonusBalance: 0,
+          chatBonusBalance: 0,
           lockedBalance: 0,
           totalRecharge: 0,
           totalSpent: 0,

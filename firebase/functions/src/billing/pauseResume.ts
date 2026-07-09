@@ -54,7 +54,9 @@ export const resumeConsultation = onCall(async (req) => {
     // Verify the customer actually has balance to continue.
     const userSnap = await tx.get(db.collection(Collections.users).doc(c.customerId));
     const user = userSnap.data() ?? {};
-    const spendable = (user.walletBalance ?? 0) + (user.bonusBalance ?? 0);
+    const spendable = (user.walletBalance ?? 0) +
+        (user.bonusBalance ?? 0) +
+        (c.type === 'chat' ? (user.chatBonusBalance ?? 0) : 0);
     if (spendable <= 0) {
       failedPrecondition('INSUFFICIENT_BALANCE');
     }

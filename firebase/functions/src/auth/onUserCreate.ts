@@ -38,17 +38,19 @@ export const onCustomerSignup = onDocumentCreated('users/{uid}', async (event) =
   if (data.accountStatus == null) patch.accountStatus = 'active';
   if (data.createdAt == null) patch.createdAt = FieldValue.serverTimestamp();
 
-  // Welcome bonus: grant N free chat minutes (as bonus credit) exactly once, so
-  // a brand-new customer can start their first chat with no recharge.
+  // Welcome bonus: grant N free CHAT minutes exactly once. It lands in
+  // `chatBonusBalance` (chat-only) so it cannot be spent on a voice/video call —
+  // only on the first chat. `bonusBalance` stays the any-type bonus bucket.
   const config = await getGlobalConfig();
   const welcomeBonus = (config.freeChatMinutes ?? 0) * config.consultationPricePerMinutePaise;
-  const priorBonus = (data.bonusBalance as number | undefined) ?? 0;
+  const priorBonus = (data.chatBonusBalance as number | undefined) ?? 0;
   if (!data.signupBonusGranted && welcomeBonus > 0) {
-    patch.bonusBalance = priorBonus + welcomeBonus;
+    patch.chatBonusBalance = priorBonus + welcomeBonus;
     patch.signupBonusGranted = true;
-  } else if (data.bonusBalance == null) {
-    patch.bonusBalance = 0;
+  } else if (data.chatBonusBalance == null) {
+    patch.chatBonusBalance = 0;
   }
+  if (data.bonusBalance == null) patch.bonusBalance = 0;
 
   await db.collection(Collections.users).doc(uid).set(patch, { merge: true });
 

@@ -88,7 +88,10 @@ export const createConsultation = onCall(async (req) => {
       }
     }
 
-    const spendable = (customer.walletBalance ?? 0) + (customer.bonusBalance ?? 0);
+    // Chat-only welcome credit (chatBonusBalance) counts only for a chat.
+    const spendable = (customer.walletBalance ?? 0) +
+        (customer.bonusBalance ?? 0) +
+        (type === 'chat' ? (customer.chatBonusBalance ?? 0) : 0);
     if (!canStartConsultation(spendable, config.minWalletToStartPaise)) {
       throw new HttpsError(
         'failed-precondition',
