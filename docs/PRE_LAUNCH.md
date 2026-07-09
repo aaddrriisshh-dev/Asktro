@@ -38,6 +38,21 @@ default sound + tap-to-accept without them.
 
 ---
 
+## 💳 BILLING & CLOUD CONSOLE (Adrish — verify before launch)
+
+- [ ] **Raise the budget alert** from **₹1,000 → ~₹50,000/month** at launch. The ₹1,000 tripwire is
+  correct for testing (early warning, spends nothing today), but real traffic will cross ₹1,000 in a
+  day or two and spam "over budget" emails. Google Cloud → **Billing → Budgets & alerts** → edit the
+  "Firebase Project" budget. Keep thresholds at 50/90/100%. **A budget only alerts — it does NOT cap
+  spend**, so raising it can't cut off users.
+- [ ] **Confirm budget-alert emails reach Adrish** (add your email under the budget's alert recipients
+  if it isn't already a billing admin).
+- [ ] **Complete pending Google Cloud Console verifications (Adrish)** — clear any identity / billing /
+  account-verification prompts flagged in the Cloud Console before launch. _(Confirm exactly what's
+  pending and resolve each.)_
+
+---
+
 ## 📋 NEEDS FROM YOU (Adrish) — fill these, then we apply them all at once
 
 > Running list of values/content only you can provide. Claude adds to this
