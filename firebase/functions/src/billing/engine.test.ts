@@ -3,6 +3,7 @@ import {
   deriveWarnLevel,
   canStartConsultation,
   astrologerNetEarning,
+  MAX_TICK_ELAPSED_MS,
   TickInput,
 } from './engine';
 import {
@@ -60,32 +61,39 @@ describe('computeTick — Part 4 duration matrix', () => {
     expect(r.exhausted).toBe(false);
   });
 
-  it('1-minute session', () => {
-    const r = computeTick(baseInput({ lastTickAtMs: 0, nowMs: 60_000 }));
-    expect(r.billedSeconds).toBe(60);
-    expect(r.chargedPaise).toBe(900); // ₹9
+  it('1-minute session charges ₹9 (accumulated over 10s ticks)', () => {
+    let billed = 0, charged = 0;
+    for (let i = 0; i < 6; i++) {
+      const r = computeTick(baseInput({ lastTickAtMs: 0, nowMs: 10_000, priorBilledSec: billed, priorChargedPaise: charged }));
+      billed += r.billedSeconds; charged += r.chargedPaise;
+    }
+    expect(billed).toBe(60);
+    expect(charged).toBe(900); // ₹9
   });
 
-  it('30-minute session charges ₹270', () => {
-    const r = computeTick(baseInput({
-      walletBalancePaise: rupeesToPaise(500),
-      bonusBalancePaise: 0,
-      lastTickAtMs: 0,
-      nowMs: 30 * 60_000,
-    }));
-    expect(r.billedSeconds).toBe(1800);
-    expect(r.chargedPaise).toBe(27000); // ₹270
-    expect(r.newWalletBalancePaise).toBe(rupeesToPaise(500) - 27000);
+  // Long sessions are billed as MANY 10s ticks (a single tick is clamped to the
+  // settle window — see MAX_TICK_ELAPSED_MS), so we accumulate to verify the total.
+  it('30-minute session charges ₹270 (accumulated over 10s ticks)', () => {
+    let billed = 0, charged = 0;
+    for (let i = 0; i < 180; i++) {
+      const r = computeTick(baseInput({ lastTickAtMs: 0, nowMs: 10_000, priorBilledSec: billed, priorChargedPaise: charged }));
+      billed += r.billedSeconds; charged += r.chargedPaise;
+    }
+    expect(billed).toBe(1800);
+    expect(charged).toBe(27000); // ₹270
   });
 
-  it('2-hour session charges ₹1080', () => {
-    const r = computeTick(baseInput({
-      walletBalancePaise: rupeesToPaise(2000),
-      lastTickAtMs: 0,
-      nowMs: 120 * 60_000,
-    }));
-    expect(r.billedSeconds).toBe(7200);
-    expect(r.chargedPaise).toBe(108000); // ₹1080
+  it('2-hour session charges ₹1080 (accumulated over 10s ticks)', () => {
+    let billed = 0, charged = 0;
+    for (let i = 0; i < 720; i++) {
+      const r = computeTick(baseInput({
+        walletBalancePaise: rupeesToPaise(2000), spendablePaise: rupeesToPaise(2000),
+        lastTickAtMs: 0, nowMs: 10_000, priorBilledSec: billed, priorChargedPaise: charged,
+      }));
+      billed += r.billedSeconds; charged += r.chargedPaise;
+    }
+    expect(billed).toBe(7200);
+    expect(charged).toBe(108000); // ₹1080
   });
 
   it('ignores sub-second remainder (partial seconds not billed)', () => {
@@ -145,14 +153,14 @@ describe('computeTick — bonus-first deduction', () => {
 
 describe('computeTick — paused time is excluded', () => {
   it('does not bill the paused span', () => {
-    // 60s wall-clock but 20s paused → bill 40s.
+    // 20s wall-clock but 12s paused → bill 8s (both within the single-tick clamp).
     const r = computeTick(baseInput({
       lastTickAtMs: 0,
-      nowMs: 60_000,
-      pausedSinceLastTickMs: 20_000,
+      nowMs: 20_000,
+      pausedSinceLastTickMs: 12_000,
     }));
-    expect(r.billedSeconds).toBe(40);
-    expect(r.chargedPaise).toBe(600);
+    expect(r.billedSeconds).toBe(8);
+    expect(r.chargedPaise).toBe(120);
   });
 });
 
@@ -187,12 +195,12 @@ describe('computeTick — cumulative billing (P2-5, no per-tick rounding drift)'
   const RATE_25 = 2500; // ₹25/min = 41.6667 paise/sec — NOT divisible by 60
   const pps25 = pricePerSecond(RATE_25);
 
-  it('a single 60s tick from zero is unchanged (round(pps*60) = 2500)', () => {
+  it('a single tick is clamped to the settle window (₹25/min → round(pps*15))', () => {
     const r = computeTick(
       baseInput({ lastTickAtMs: 0, nowMs: 60_000, pricePerMinutePaise: RATE_25 }),
     );
-    expect(r.billedSeconds).toBe(60);
-    expect(r.chargedPaise).toBe(2500);
+    expect(r.billedSeconds).toBe(15); // clamped from 60s; the full 2500 accrues over ticks (next test)
+    expect(r.chargedPaise).toBe(Math.round(pps25 * 15));
   });
 
   it('six 10s ticks total EXACTLY round(pps*60), not the per-tick-rounded 2502', () => {
@@ -254,5 +262,27 @@ describe('computeTick — cumulative billing (P2-5, no per-tick rounding drift)'
     expect(r.chargedPaise).toBeLessThanOrEqual(600);
     expect(r.chargedPaise).toBe(Math.round(pps25 * 14)); // 583
     expect(r.exhausted).toBe(true);
+  });
+});
+
+describe('computeTick — single-tick elapsed clamp (P1-2, MAX_TICK_ELAPSED_MS)', () => {
+  it('bills at most the settle window for one huge catch-up tick', () => {
+    const r = computeTick(baseInput({ lastTickAtMs: 0, nowMs: 90_000 }));
+    expect(r.billedSeconds).toBe(15); // clamped from 90s
+    expect(r.chargedPaise).toBe(225); // 15 * 15p
+  });
+  it('a normal-sized tick is unaffected by the clamp', () => {
+    const r = computeTick(baseInput({ lastTickAtMs: 0, nowMs: 10_000 }));
+    expect(r.billedSeconds).toBe(10);
+    expect(r.chargedPaise).toBe(150);
+  });
+  it('cumulative invariant holds after a clamped tick', () => {
+    const r = computeTick(baseInput({ lastTickAtMs: 0, nowMs: 90_000, priorBilledSec: 30, priorChargedPaise: 450 }));
+    // billed 15 more (clamped) → 45 total; charge == round(pps * 45) - 450.
+    const pps = pricePerSecond(PRICE);
+    expect(450 + r.chargedPaise).toBe(Math.round(pps * (30 + r.billedSeconds)));
+  });
+  it('the live clamp equals the sweep settle window', () => {
+    expect(MAX_TICK_ELAPSED_MS).toBe(15_000);
   });
 });

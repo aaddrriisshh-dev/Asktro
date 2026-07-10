@@ -11,7 +11,7 @@ import { db, FieldValue, Timestamp } from '../common/admin';
 import { Collections } from '../common/collections';
 import { getGlobalConfig } from '../common/config';
 import { assertAuthed, badRequest, failedPrecondition, notFound } from '../common/errors';
-import { applyTick, TickOutcome } from './tickConsultation';
+import { applyTick, TickOutcome, TickerParty } from './tickConsultation';
 import { astrologerNetEarning } from './engine';
 import { writeAstrologerLedger } from '../wallet/ledger';
 import { GlobalConfig } from '../common/types';
@@ -92,9 +92,12 @@ export async function settleConsultation(
     // the delta the tick reports, rather than re-reading the document.
     let tick: TickOutcome | null = null;
     if (c.status === 'active') {
-      // If the CUSTOMER ended it, they are present now, so the final tick may
-      // bill up to now; otherwise the customer-presence clamp applies.
-      tick = await applyTick(tx, consultationId, config, nowMs, undefined, caller.uid === c.customerId);
+      // The ending party is present now, so their own presence advances; the
+      // frontier still respects the OTHER party's last-seen time.
+      const ticker: TickerParty =
+        caller.uid === c.customerId ? 'customer'
+          : caller.uid === c.astrologerId ? 'astrologer' : 'system';
+      tick = await applyTick(tx, consultationId, config, nowMs, undefined, ticker);
     }
 
     const finalBilledSeconds = (c.billedSeconds ?? 0) + (tick?.billedSeconds ?? 0);

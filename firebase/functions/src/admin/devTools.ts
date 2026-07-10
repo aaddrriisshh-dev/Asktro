@@ -13,7 +13,22 @@ import { assertRole, assertAuthed, badRequest, notFound, failedPrecondition } fr
 import { writeLedger } from '../wallet/ledger';
 import { creditRecharge, autoResumePausedSession } from '../wallet/creditRecharge';
 
+/**
+ * Defence in depth (0c). These dummy-gateway tools MINT wallet credit with no
+ * real payment. The Firestore flag `devPaymentsEnabled` is a runtime value a
+ * human (or a compromised admin token) can flip — so the deployed build must
+ * refuse REGARDLESS of it. We allow these only under the local Firestore
+ * emulator. For payment testing against a real project, use Razorpay test-mode
+ * keys — never a wallet mint on production data.
+ */
+function assertDevToolsEnvironment(): void {
+  if (process.env.FUNCTIONS_EMULATOR !== 'true') {
+    failedPrecondition('Dev payment tools are permanently disabled outside the local emulator.');
+  }
+}
+
 export const devSimulateRecharge = onCall(async (req) => {
+  assertDevToolsEnvironment();
   const actor = assertRole(req, 'admin');
 
   // Hard kill-switch for production. This mints wallet credit with no real
@@ -80,6 +95,7 @@ export const devSimulateRecharge = onCall(async (req) => {
  * gated behind config/global.devPaymentsEnabled so it is inert in production.
  */
 export const simulateRechargeSelf = onCall(async (req) => {
+  assertDevToolsEnvironment();
   const userId = assertAuthed(req);
   const { planId, couponId } = (req.data ?? {}) as { planId?: string; couponId?: string };
   if (!planId) badRequest('planId is required.');

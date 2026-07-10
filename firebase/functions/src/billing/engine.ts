@@ -13,6 +13,15 @@ import { affordableSeconds, clampNonNegative, pricePerSecond } from '../common/m
 
 export type WarnLevel = 0 | 1 | 2 | 3;
 
+/**
+ * Upper bound on the billable span of ANY single tick. A client suspended by the
+ * OS that wakes and fires one catch-up tick after a long silence must never bill
+ * the whole gap — only this settle window, past which the sweep pauses the
+ * session. Shared by the live tick path (applyTick) and the stale-session sweep
+ * so the two can never drift apart. Keep equal to sweepSessions' settle window.
+ */
+export const MAX_TICK_ELAPSED_MS = 15_000;
+
 export interface TickInput {
   /** ms since epoch, from the server, of the previous billed instant. */
   lastTickAtMs: number;
@@ -85,7 +94,11 @@ export function computeTick(input: TickInput): TickResult {
 
   const spendable = clampNonNegative(walletBalancePaise) + clampNonNegative(bonusBalancePaise);
 
-  const elapsedMs = Math.max(0, nowMs - lastTickAtMs - Math.max(0, pausedSinceLastTickMs));
+  const rawElapsedMs = Math.max(0, nowMs - lastTickAtMs - Math.max(0, pausedSinceLastTickMs));
+  // Clamp a single tick's billable span (see MAX_TICK_ELAPSED_MS). Defence in
+  // depth: applyTick already caps its frontier, but bounding it here means ANY
+  // caller of the pure engine is safe from a catch-up over-bill.
+  const elapsedMs = Math.min(rawElapsedMs, MAX_TICK_ELAPSED_MS);
   const elapsedSec = Math.floor(elapsedMs / 1000);
 
   // CUMULATIVE billing: the charge to cover N total seconds is round(pps × N),

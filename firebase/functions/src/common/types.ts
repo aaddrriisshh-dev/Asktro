@@ -58,6 +58,10 @@ export interface ConsultationDoc {
    *  past this + a short settle window, so an astrologer-only heartbeat cannot
    *  drain an absent customer's wallet. */
   customerLastTickAt?: Timestamp | null;
+  /** Last time the ASTROLOGER party heartbeated (unset for AI sessions). The
+   *  meter bills only up to min(customer, astrologer) presence + settle window,
+   *  so an astrologer drop also pauses the session. */
+  astrologerLastTickAt?: Timestamp | null;
   /** Whether this chat may draw on the one-time chat-only welcome credit. */
   chatCreditEligible?: boolean;
   /** Set on the tick that granted the one-time grace minute. */

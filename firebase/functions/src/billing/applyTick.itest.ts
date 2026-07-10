@@ -35,7 +35,7 @@ async function seedSession(
   uid: string,
   agoMs: number,
   nowMs: number,
-  opts: { wallet?: number; anyBonus?: number; chatBonus?: number; eligible?: boolean } = {},
+  opts: { wallet?: number; anyBonus?: number; chatBonus?: number; eligible?: boolean; astroAgoMs?: number } = {},
 ) {
   await db.collection('users').doc(uid).set({
     walletBalance: opts.wallet ?? 0,
@@ -48,6 +48,8 @@ async function seedSession(
     customerId: uid, astrologerId: 'a1', type: 'chat', chatCreditEligible: opts.eligible ?? true,
     status: 'active', pricePerMinute: 900, billedSeconds: 0, totalCharged: 0,
     lastTickAt: t, customerLastTickAt: t,
+    // Only set the astrologer presence when a test needs it (human session).
+    ...(opts.astroAgoMs != null ? { astrologerLastTickAt: Timestamp.fromMillis(nowMs - opts.astroAgoMs) } : {}),
     createdAt: FieldValue.serverTimestamp(),
   });
 }
@@ -60,7 +62,7 @@ describe('applyTick (emulator)', () => {
     const T = Date.now();
     await seedSession(cid, uid, 15_000, T, { wallet: 0, anyBonus: 50, chatBonus: 100 });
 
-    const out = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, true));
+    const out = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'customer'));
     expect(out).not.toBeNull();
     expect(out!.status).toBe('paused');
     expect(out!.billedSeconds).toBe(10);
@@ -81,7 +83,7 @@ describe('applyTick (emulator)', () => {
     const T = Date.now();
     await seedSession(cid, uid, 10_000, T, { wallet: 1000, chatBonus: 500, eligible: false });
 
-    await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, true));
+    await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'customer'));
     const u = (await db.collection('users').doc(uid).get()).data()!;
     expect(u.chatBonusBalance).toBe(500); // untouched
     expect(u.walletBalance).toBe(850);    // 1000 - 150 (10s @ 900/min)
@@ -95,13 +97,13 @@ describe('applyTick (emulator)', () => {
 
     // Astrologer tick (tickedByCustomer=false): may bill only up to customer's
     // last tick + 15s settle = 15s of the 60s gap, NOT the whole gap.
-    const first = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, false));
+    const first = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'astrologer'));
     expect(first!.billedSeconds).toBe(15);
     expect(first!.chargedPaise).toBe(225); // 15s @ 900/min
 
     // A SECOND astrologer tick bills nothing — the meter has reached the frontier
     // and halts until the customer returns. The absent customer is not drained.
-    const second = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, false));
+    const second = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'astrologer'));
     expect(second!.billedSeconds).toBe(0);
     expect(second!.chargedPaise).toBe(0);
 
@@ -115,8 +117,25 @@ describe('applyTick (emulator)', () => {
     const T = Date.now();
     await seedSession(cid, uid, 90_000, T, { wallet: 100_000 });
 
-    const out = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, true));
+    const out = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'customer'));
     expect(out!.billedSeconds).toBe(15);   // clamped, NOT 90
     expect(out!.chargedPaise).toBe(225);
+  });
+
+  it('symmetry: an astrologer drop halts billing even while the customer keeps ticking', async () => {
+    const uid = 'u_tick_5'; const cid = 'c_tick_5';
+    // Both parties last seen 60s ago; the astrologer never returns, the customer
+    // resumes ticking. Billing must stop at the astrologer's last presence + settle.
+    const T = Date.now();
+    await seedSession(cid, uid, 60_000, T, { wallet: 100_000, astroAgoMs: 60_000 });
+
+    const first = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'customer'));
+    expect(first!.billedSeconds).toBe(15); // only the settle window past the astrologer's last tick
+
+    const second = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'customer'));
+    expect(second!.billedSeconds).toBe(0); // halted — the astrologer is still absent
+
+    const u = (await db.collection('users').doc(uid).get()).data()!;
+    expect(u.walletBalance).toBe(100_000 - 225); // customer not billed for astrologer dead air
   });
 });
