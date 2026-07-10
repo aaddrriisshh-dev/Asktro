@@ -41,6 +41,25 @@ Legend: 🔴 launch-blocker · 🟠 important · 🟡 nice-to-have · ⚪ your a
 - ✅ Customer phone hidden from astrologers; astrologer phone/email hidden from customers (safe cards + private contact). DONE.
 - ✅ Chat photos/voice-notes locked to participants. DONE.
 - ✅ `chatBonusBalance` free-money hole closed. DONE.
+- ✅ **Astrologer earnings/pendingPayout/commission moved off the world-readable
+  public doc** → `astrologers/{id}/private/financials` (self+admin only). Needs
+  the one-time backfill — see `DEPLOY_RUNBOOK_AUDIT_FIXES.md`. DONE (audit P1-5).
+- ✅ **Dev "money-mint" functions** (`devSimulateRecharge`/`simulateRechargeSelf`)
+  gated behind `config.devPaymentsEnabled` — inert in prod. DONE (audit P1-6).
+
+### Audit-fix batch (see AUDIT.md + DEPLOY_RUNBOOK_AUDIT_FIXES.md) — all DONE
+- ✅ Disconnect over-billing stopped (cap + auto-pause; `reconnectTimeoutSec` now used).
+- ✅ Account deletion now erases all personal content + Storage media (ledger retained, anonymised).
+- ✅ Missing recovery-sweep indexes added.
+- ✅ Commission consistency (sweep uses the session snapshot).
+- ✅ Webhook can't silently lose a payment (dead-letter + `reconcileFailedCredits` + alerts).
+- ✅ Real refund path that claws back the astrologer's cut.
+- ✅ Per-order recharge dedupe.
+- ✅ Consent recorded (versioned/timestamped; gate now on every sign-in path).
+- ✅ Moderation: report/block/auto-flag text + image-review pipeline (Vision behind a flag).
+- ✅ Money-path integration tests on the Firestore emulator; CI (build/test/typecheck/flutter-analyze).
+- ✅ Structured logging on money paths.
+- 🟠 **Apple IAP (P1-10)** — DECISION pending (not code).
 - 🔴 **App Check enforcement** — *deferred to right before launch* (turning it on before production
   App Check is provisioned locks out real users). **Requires:** Play Integrity (Android release),
   App Attest (iOS), debug tokens (dev). Steps in `PRE_LAUNCH.md`.
