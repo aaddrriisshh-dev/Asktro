@@ -6,6 +6,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../../data/messaging_service.dart';
 import '../consultation/chat_consultation_screen.dart';
+import '../moderation/moderation_actions.dart';
 
 final _astrologerProvider =
     StreamProvider.autoDispose.family<Astrologer, String>((ref, id) {
@@ -100,6 +101,12 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
                   .read(userRepositoryProvider)
                   .toggleFavourite(profile.id, widget.astrologerId, !isFav),
             ),
+          // Report / block this astrologer (safety — Apple/Play UGC requirement).
+          ModerationMenu(
+            targetId: widget.astrologerId,
+            targetLabel: 'astrologer',
+            iconColor: Colors.white,
+          ),
         ],
       ),
       body: async.when(

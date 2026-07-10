@@ -34,6 +34,35 @@ function SessionCard({ c, meId, astroName }: { c: Any; meId: string; astroName: 
   const icon = type === 'voice' ? '📞' : type === 'video' ? '🎥' : '💬';
   const status = (c.status as string) ?? '—';
 
+  // Refund: available on a finished, charged session that isn't fully refunded.
+  const charged = (c.totalCharged as number) ?? 0;
+  const refunded0 = (c.refundedPaise as number) ?? 0;
+  const [refunding, setRefunding] = useState(false);
+  const [didRefund, setDidRefund] = useState(false);
+  const refundable = Math.max(0, charged - refunded0);
+  const canRefund = (status === 'completed' || status === 'expired') && refundable > 0 && !didRefund;
+
+  async function refund() {
+    const amtStr = window.prompt(`Refund amount in ₹ (max ₹${(refundable / 100).toFixed(2)}).\nLeave blank for a FULL refund of ₹${(refundable / 100).toFixed(2)}.`);
+    if (amtStr === null) return; // cancelled
+    const reason = window.prompt('Reason for this refund (optional):') ?? '';
+    let amountPaise: number | undefined;
+    if (amtStr.trim() !== '') {
+      amountPaise = Math.round(Number(amtStr) * 100);
+      if (!Number.isFinite(amountPaise) || amountPaise <= 0) { alert('Enter a valid positive amount.'); return; }
+    }
+    setRefunding(true);
+    try {
+      await callFn('refundConsultation', { consultationId: c.id, ...(amountPaise !== undefined ? { amountPaise } : {}), reason });
+      setDidRefund(true);
+      alert('Refund processed — the customer was credited and the astrologer’s accrual reversed.');
+    } catch (e) {
+      alert('Refund failed: ' + ((e as Error).message ?? String(e)));
+    } finally {
+      setRefunding(false);
+    }
+  }
+
   return (
     <div className={`udet-sess${open ? ' open' : ''}`}>
       <button className="udet-sess-head" onClick={() => setOpen((o) => !o)}>
@@ -71,6 +100,21 @@ function SessionCard({ c, meId, astroName }: { c: Any; meId: string; astroName: 
             <p className="drawer-muted" style={{ margin: 0 }}>
               {type} call · {minsOf(c)} min. The call recording will appear here once voice/video calling is enabled.
             </p>
+          )}
+          {(canRefund || didRefund) && (
+            <div style={{ marginTop: 12, borderTop: '1px solid var(--border, #eee)', paddingTop: 10 }}>
+              {didRefund ? (
+                <p className="muted" style={{ margin: 0 }}>✓ Refunded. Reload to see updated totals.</p>
+              ) : (
+                <button
+                  onClick={refund}
+                  disabled={refunding}
+                  style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #d9534f', color: '#d9534f', background: 'transparent', fontWeight: 600, cursor: refunding ? 'default' : 'pointer' }}
+                >
+                  {refunding ? 'Refunding…' : `Refund (up to ₹${(refundable / 100).toFixed(0)})`}
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

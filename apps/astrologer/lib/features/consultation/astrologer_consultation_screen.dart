@@ -9,6 +9,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../../ui/celestial.dart';
 import '../../ui/customer_details_card.dart';
+import '../moderation/moderation_actions.dart';
 import 'consultation_details_screen.dart';
 
 /// The astrologer's live consultation screen. Accepts a waiting request
@@ -484,6 +485,8 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
               ],
             ),
           ),
+          // Report / block this customer (safety — Apple/Play UGC requirement).
+          ModerationMenu(targetId: c.customerId, targetLabel: 'customer', iconColor: fg),
           GestureDetector(
             onTap: _confirmEnd,
             child: Container(
