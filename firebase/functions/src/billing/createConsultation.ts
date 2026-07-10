@@ -44,10 +44,13 @@ export const createConsultation = onCall(async (req) => {
   const customerRef = db.collection(Collections.users).doc(customerId);
   const astrologerRef = db.collection(Collections.astrologers).doc(astrologerId!);
 
+  const financialsRef = astrologerRef.collection('private').doc('financials');
+
   await db.runTransaction(async (tx) => {
-    const [customerSnap, astrologerSnap] = await Promise.all([
+    const [customerSnap, astrologerSnap, financialsSnap] = await Promise.all([
       tx.get(customerRef),
       tx.get(astrologerRef),
+      tx.get(financialsRef),
     ]);
 
     if (!customerSnap.exists) notFound('Customer profile not found.');
@@ -55,6 +58,8 @@ export const createConsultation = onCall(async (req) => {
 
     const customer = customerSnap.data()!;
     const astrologer = astrologerSnap.data()!;
+    // commissionPercent now lives in private/financials, off the public doc.
+    const financials = financialsSnap.data() ?? {};
 
     if (customer.accountStatus === 'blocked') {
       throw new HttpsError('permission-denied', 'Your account is blocked.');
@@ -131,10 +136,11 @@ export const createConsultation = onCall(async (req) => {
     }
 
     // Per-astrologer commission, snapshotted onto the session (price computed
-    // above). Falls back to the global config when the astrologer has none set.
+    // above). Read from private/financials; falls back to the global config when
+    // the astrologer has none set.
     const commissionPercent =
-      typeof astrologer.commissionPercent === 'number'
-        ? astrologer.commissionPercent
+      typeof financials.commissionPercent === 'number'
+        ? financials.commissionPercent
         : config.commissionPercent;
     const agoraChannel = type === 'chat' ? null : `asktro_${consultationRef.id}_${randomUUID().slice(0, 8)}`;
 

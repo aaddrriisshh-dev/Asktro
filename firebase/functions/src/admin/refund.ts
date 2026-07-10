@@ -47,9 +47,10 @@ export const refundConsultation = onCall(async (req) => {
     if (refundAmt <= 0) failedPrecondition('Refund amount resolves to zero.');
 
     // Read the two accounts BEFORE any write (Firestore read-before-write rule).
+    // Astrologer money lives in private/financials, off the public doc.
     const userRef = db.collection(Collections.users).doc(c.customerId);
-    const astroRef = db.collection(Collections.astrologers).doc(c.astrologerId);
-    const [userSnap, astroSnap] = await Promise.all([tx.get(userRef), tx.get(astroRef)]);
+    const finRef = db.collection(Collections.astrologers).doc(c.astrologerId).collection('private').doc('financials');
+    const [userSnap, finSnap] = await Promise.all([tx.get(userRef), tx.get(finRef)]);
     if (!userSnap.exists) notFound('Customer not found.');
     const walletBefore = (userSnap.data()!.walletBalance ?? 0) + (userSnap.data()!.bonusBalance ?? 0);
 
@@ -59,8 +60,8 @@ export const refundConsultation = onCall(async (req) => {
     const commissionPercent =
       typeof c.commissionPercent === 'number' ? c.commissionPercent : config.commissionPercent;
     const netShare = astrologerNetEarning(refundAmt, commissionPercent);
-    const earnings0 = (astroSnap.data()?.earnings ?? 0) as number;
-    const pending0 = (astroSnap.data()?.pendingPayout ?? 0) as number;
+    const earnings0 = (finSnap.data()?.earnings ?? 0) as number;
+    const pending0 = (finSnap.data()?.pendingPayout ?? 0) as number;
     const clawEarnings = Math.min(netShare, Math.max(0, earnings0));
     const clawPending = Math.min(netShare, Math.max(0, pending0));
     const shortfall = netShare - clawPending; // already paid out — cannot reclaim from pending
@@ -81,10 +82,10 @@ export const refundConsultation = onCall(async (req) => {
       note: reason ?? 'Consultation refund',
     });
 
-    // Reverse the astrologer's accrual for the refunded slice.
+    // Reverse the astrologer's accrual for the refunded slice (private/financials).
     if (clawEarnings > 0 || clawPending > 0) {
       tx.set(
-        astroRef,
+        finRef,
         {
           earnings: FieldValue.increment(-clawEarnings),
           pendingPayout: FieldValue.increment(-clawPending),

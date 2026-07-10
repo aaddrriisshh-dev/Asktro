@@ -75,15 +75,16 @@ export const createAstrologer = onCall(async (req) => {
       languages: d.languages ?? [],
       expertise: d.expertise ?? [],
       ...(typeof d.ratePerMinutePaise === 'number' ? { ratePerMinutePaise: d.ratePerMinutePaise } : {}),
-      ...(typeof d.commissionPercent === 'number' ? { commissionPercent: d.commissionPercent } : {}),
+      // NOTE: commissionPercent, earnings and pendingPayout are NOT on the public
+      // directory doc — they live in private/financials (below), readable only by
+      // the astrologer themselves and admins, so no customer/competitor can read
+      // another astrologer's commission or lifetime revenue.
       ...(d.profilePhoto ? { profilePhoto: d.profilePhoto } : {}),
       isAI: d.isAI === true,
       risingStar: d.risingStar === true,
       rating: 0,
       totalReviews: 0,
       totalConsultations: 0,
-      earnings: 0,
-      pendingPayout: 0,
       onlineStatus: false,
       available: true, // free to consult once they go online (busy flag flips during a session)
       verified: isSuper,
@@ -104,6 +105,19 @@ export const createAstrologer = onCall(async (req) => {
   // a customer can never read an astrologer's phone or email.
   await db.collection(Collections.astrologers).doc(uid).collection('private').doc('contact').set(
     { email: d.email!.trim(), phone: d.phone ?? null, updatedAt: FieldValue.serverTimestamp() },
+    { merge: true },
+  );
+
+  // Money fields live in private/financials — readable only by this astrologer
+  // and admins (never on the public directory doc). Commission is a per-astrologer
+  // config value; earnings/pendingPayout are lifetime accruals.
+  await db.collection(Collections.astrologers).doc(uid).collection('private').doc('financials').set(
+    {
+      earnings: 0,
+      pendingPayout: 0,
+      ...(typeof d.commissionPercent === 'number' ? { commissionPercent: d.commissionPercent } : {}),
+      updatedAt: FieldValue.serverTimestamp(),
+    },
     { merge: true },
   );
 
@@ -128,11 +142,20 @@ export const updateAstrologer = onCall(async (req) => {
   const { astrologerId, ...rest } = (req.data ?? {}) as { astrologerId?: string } & Record<string, unknown>;
   if (!astrologerId) badRequest('astrologerId is required.');
 
-  const allowed = ['name', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'commissionPercent', 'profilePhoto', 'isAI', 'featured', 'risingStar'];
+  const allowed = ['name', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'profilePhoto', 'isAI', 'featured', 'risingStar'];
   const patch: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
   for (const k of allowed) if (k in rest) patch[k] = rest[k];
 
   await db.collection(Collections.astrologers).doc(astrologerId!).set(patch, { merge: true });
+
+  // commissionPercent is a money field — keep it in private/financials, never on
+  // the public doc. Only write a valid number so a blank edit form can't clobber it.
+  if ('commissionPercent' in rest && typeof rest.commissionPercent === 'number' && !Number.isNaN(rest.commissionPercent)) {
+    await db.collection(Collections.astrologers).doc(astrologerId!).collection('private').doc('financials').set(
+      { commissionPercent: rest.commissionPercent, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+  }
 
   // Phone is contact PII — keep it in the private subcollection, never the public
   // doc. Only write a NON-EMPTY phone: an edit form that didn't hydrate the phone

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
 } from 'recharts';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatPaise, shortDay } from '@/lib/format';
 import { useCardFilter } from '@/lib/useCardFilter';
@@ -102,6 +102,19 @@ export default function ReportsPage() {
     return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Any[];
   };
 
+  // Astrologer money (earnings/pendingPayout/commissionPercent) now lives in the
+  // admin-readable private/financials subdoc, off the public directory doc. Merge
+  // it per-astrologer for the export.
+  const fetchAstrologers = async (): Promise<Any[]> => {
+    const snap = await getDocs(collection(db, 'astrologers'));
+    return Promise.all(
+      snap.docs.map(async (d) => {
+        const fin = await getDoc(doc(db, 'astrologers', d.id, 'private', 'financials'));
+        return { id: d.id, ...d.data(), ...(fin.exists() ? fin.data() : {}) } as Any;
+      }),
+    );
+  };
+
   const kpis = data ? [
     { k: 'Gross Revenue', v: formatPaise(data.gross) },
     { k: 'Net Revenue', v: formatPaise(data.net) },
@@ -138,7 +151,7 @@ export default function ReportsPage() {
       { label: 'Wallet', value: (r) => rupeeCell(r.walletBalance) }, { label: 'Bonus', value: (r) => rupeeCell(r.bonusBalance) },
       { label: 'Total recharged', value: (r) => rupeeCell(r.totalRecharge) }, { label: 'Status', value: (r) => r.accountStatus as string },
       { label: 'Joined', value: (r) => tsCell(r.createdAt as never) }] },
-    { name: 'astrologers', label: 'All astrologers', desc: 'Full roster', count: -1, source: fetchAll('astrologers'), cols: [
+    { name: 'astrologers', label: 'All astrologers', desc: 'Full roster', count: -1, source: fetchAstrologers, cols: [
       { label: 'Name', value: (r) => r.name as string }, { label: 'AI', value: (r) => (r.isAI ? 'yes' : 'no') },
       { label: 'Rate/min', value: (r) => rupeeCell(r.ratePerMinutePaise) }, { label: 'Commission %', value: (r) => (r.commissionPercent as number) ?? '' },
       { label: 'Rating', value: (r) => (r.rating as number) ?? 0 }, { label: 'Earnings', value: (r) => rupeeCell(r.earnings) },

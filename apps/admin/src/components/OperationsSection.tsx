@@ -6,7 +6,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts';
-import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatPaise, shortDay } from '@/lib/format';
 import { useCardFilter } from '@/lib/useCardFilter';
@@ -308,11 +308,15 @@ function TopAstrologers() {
   useEffect(() => {
     (async () => {
       const snap = await getDocs(collection(db, 'astrologers'));
-      const list = snap.docs.map((doc) => {
-        const a = doc.data() as { name?: string; totalConsultations?: number; rating?: number; earnings?: number };
-        return { name: a.name ?? '—', cons: a.totalConsultations ?? 0, rating: a.rating ?? 0, earnings: a.earnings ?? 0 };
-      }).sort((a, b) => b.earnings - a.earnings).slice(0, 8);
-      setRows(list);
+      // earnings now live in the admin-readable private/financials subdoc.
+      const list = await Promise.all(snap.docs.map(async (dref) => {
+        const a = dref.data() as { name?: string; totalConsultations?: number; rating?: number };
+        const finSnap = await getDoc(doc(db, 'astrologers', dref.id, 'private', 'financials'));
+        const earnings = (finSnap.exists() ? (finSnap.data() as { earnings?: number }).earnings : 0) ?? 0;
+        return { name: a.name ?? '—', cons: a.totalConsultations ?? 0, rating: a.rating ?? 0, earnings };
+      }));
+      list.sort((a, b) => b.earnings - a.earnings);
+      setRows(list.slice(0, 8));
     })().catch(() => setRows([]));
   }, []);
   if (!rows) return <Skel h={200} />;

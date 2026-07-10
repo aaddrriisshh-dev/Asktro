@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart' hide Result;
 import 'package:shared_flutter/shared_flutter.dart';
@@ -10,9 +12,76 @@ class AstrologerRepository {
 
   DocumentReference<Map<String, dynamic>> _self(String uid) => _db.collection('astrologers').doc(uid);
 
-  Stream<Astrologer?> watchSelf(String uid) => _self(uid).snapshots().map(
-        (d) => d.exists ? Astrologer.fromMap(d.id, d.data() ?? const {}) : null,
+  /// The astrologer's own profile. Money fields (earnings, pendingPayout,
+  /// commissionPercent) no longer live on the public directory doc — they're in
+  /// `astrologers/{uid}/private/financials`, readable only by this astrologer
+  /// and admins. We merge that private doc over the public one so the astrologer
+  /// still sees their own money, while customers/competitors never can.
+  Stream<Astrologer?> watchSelf(String uid) => _combineSelf(
+        uid,
+        _self(uid).snapshots(),
+        _self(uid).collection('private').doc('financials').snapshots(),
       );
+
+  Stream<Astrologer?> _combineSelf(
+    String uid,
+    Stream<DocumentSnapshot<Map<String, dynamic>>> main,
+    Stream<DocumentSnapshot<Map<String, dynamic>>> fin,
+  ) {
+    final controller = StreamController<Astrologer?>();
+    Map<String, dynamic>? mainData;
+    var mainExists = false;
+    var mainReady = false;
+    Map<String, dynamic> finData = const {};
+    var finReady = false;
+    StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? s1, s2;
+
+    num asNum(dynamic v) => v is num ? v : 0;
+
+    void emit() {
+      if (!mainReady || !finReady) return; // wait for both first events
+      if (!mainExists) {
+        controller.add(null);
+        return;
+      }
+      final merged = <String, dynamic>{...?mainData, ...finData};
+      // During the migration window money can briefly sit on BOTH the public doc
+      // (pre-backfill) and private/financials (new accruals). SUM the additive
+      // fields so the astrologer's earnings never dips; after the backfill the
+      // public doc no longer carries them, so this equals financials alone.
+      final Map<String, dynamic> m = mainData ?? const <String, dynamic>{};
+      if (m.containsKey('earnings') || finData.containsKey('earnings')) {
+        merged['earnings'] = asNum(m['earnings']) + asNum(finData['earnings']);
+      }
+      if (m.containsKey('pendingPayout') || finData.containsKey('pendingPayout')) {
+        merged['pendingPayout'] = asNum(m['pendingPayout']) + asNum(finData['pendingPayout']);
+      }
+      controller.add(Astrologer.fromMap(uid, merged));
+    }
+
+    s1 = main.listen((d) {
+      mainExists = d.exists;
+      mainData = d.data();
+      mainReady = true;
+      emit();
+    }, onError: controller.addError,);
+
+    s2 = fin.listen((d) {
+      finData = d.data() ?? const {};
+      finReady = true;
+      emit();
+    }, onError: (_) {
+      // financials is optional (may not exist yet) — proceed without it.
+      finReady = true;
+      emit();
+    },);
+
+    controller.onCancel = () async {
+      await s1?.cancel();
+      await s2?.cancel();
+    };
+    return controller.stream;
+  }
 
   Future<void> setOnline(String uid, bool online) => _self(uid).set(
         {'onlineStatus': online, 'updatedAt': FieldValue.serverTimestamp()},

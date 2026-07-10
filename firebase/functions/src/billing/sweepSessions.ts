@@ -128,15 +128,20 @@ async function expirePaused(config: GlobalConfig, nowMs: number): Promise<void> 
         duration: c.billedSeconds ?? 0,
         updatedAt: FieldValue.serverTimestamp(),
       });
+      const astroRef = db.collection(Collections.astrologers).doc(c.astrologerId);
       const update: Record<string, unknown> = {
-        earnings: FieldValue.increment(net),
-        pendingPayout: FieldValue.increment(net),
         totalConsultations: FieldValue.increment(1),
         updatedAt: FieldValue.serverTimestamp(),
       };
       // Release the exclusive lock only for a call — chats never held it.
       if (isCall(c.type)) update.available = true;
-      tx.set(db.collection(Collections.astrologers).doc(c.astrologerId), update, { merge: true });
+      tx.set(astroRef, update, { merge: true });
+      // Earnings/pendingPayout live in private/financials, off the public doc.
+      tx.set(
+        astroRef.collection('private').doc('financials'),
+        { earnings: FieldValue.increment(net), pendingPayout: FieldValue.increment(net), updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
     });
   }
 }

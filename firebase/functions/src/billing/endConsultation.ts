@@ -111,8 +111,6 @@ export const endConsultation = onCall(async (req) => {
     // exclusive lock ONLY for a call — a chat never held it.
     const astrologerRef = db.collection(Collections.astrologers).doc(c.astrologerId);
     const astrologerUpdate: Record<string, unknown> = {
-      earnings: FieldValue.increment(net),
-      pendingPayout: FieldValue.increment(net),
       totalConsultations: FieldValue.increment(1),
       updatedAt: FieldValue.serverTimestamp(),
     };
@@ -120,6 +118,12 @@ export const endConsultation = onCall(async (req) => {
       astrologerUpdate.available = true;
     }
     tx.set(astrologerRef, astrologerUpdate, { merge: true });
+    // Earnings/pendingPayout live in private/financials, off the public doc.
+    tx.set(
+      astrologerRef.collection('private').doc('financials'),
+      { earnings: FieldValue.increment(net), pendingPayout: FieldValue.increment(net), updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
 
     const customerRef = db.collection(Collections.users).doc(c.customerId);
     tx.set(

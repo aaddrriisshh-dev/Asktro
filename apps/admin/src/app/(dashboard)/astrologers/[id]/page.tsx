@@ -28,11 +28,16 @@ export default function AstrologerViewPage() {
     (async () => {
       const snap = await getDoc(doc(db, 'astrologers', id));
       if (!snap.exists()) { setMissing(true); return; }
-      // Contact PII (email/phone) now lives in the private subcollection — admins
-      // may read it; customers cannot. Merge it in for the admin detail view.
-      const contactSnap = await getDoc(doc(db, 'astrologers', id, 'private', 'contact'));
+      // Contact PII (email/phone) and money (earnings/pendingPayout/commission)
+      // now live in private subdocs — admins may read them; customers cannot.
+      // Merge them in for the admin detail view.
+      const [contactSnap, finSnap] = await Promise.all([
+        getDoc(doc(db, 'astrologers', id, 'private', 'contact')),
+        getDoc(doc(db, 'astrologers', id, 'private', 'financials')),
+      ]);
       const contact = contactSnap.exists() ? contactSnap.data() : {};
-      setA({ id, ...snap.data(), ...contact });
+      const financials = finSnap.exists() ? finSnap.data() : {};
+      setA({ id, ...snap.data(), ...contact, ...financials });
       const cs = await getDocs(query(collection(db, 'consultations'), where('astrologerId', '==', id)));
       setCons(cs.docs.map((d) => ({ id: d.id, ...d.data() })).sort((x, y) => ms(y, 'createdAt') - ms(x, 'createdAt')));
     })().catch(() => setMissing(true));

@@ -60,6 +60,45 @@ async function moveAstrologerContact() {
   console.log(`✓ astrologer contact moved to private/contact (and removed from public doc): ${moved}`);
 }
 
+// 4. Move every astrologer's MONEY fields (earnings, pendingPayout,
+//    commissionPercent) into /astrologers/{id}/private/financials and DELETE
+//    them from the public doc, so a customer/competitor can never read another
+//    astrologer's revenue or commission. Idempotent: after the first run the
+//    public doc no longer carries these, so a re-run skips (has === false).
+async function moveAstrologerFinancials() {
+  let moved = 0;
+  const snap = await db.collection('astrologers').get();
+  for (const d of snap.docs) {
+    // Transaction-safe move: INCREMENT the public value into financials (so a
+    // consultation that settled into financials during the migration window is
+    // preserved, not overwritten) and delete it from the public doc atomically.
+    await db.runTransaction(async (tx) => {
+      const cur = await tx.get(d.ref);
+      const a = cur.data() || {};
+      const has = a.earnings !== undefined || a.pendingPayout !== undefined || a.commissionPercent !== undefined;
+      if (!has) return;
+      const finRef = d.ref.collection('private').doc('financials');
+      tx.set(
+        finRef,
+        {
+          earnings: FieldValue.increment(a.earnings ?? 0),
+          pendingPayout: FieldValue.increment(a.pendingPayout ?? 0),
+          ...(a.commissionPercent !== undefined ? { commissionPercent: a.commissionPercent } : {}),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      tx.update(d.ref, {
+        earnings: FieldValue.delete(),
+        pendingPayout: FieldValue.delete(),
+        commissionPercent: FieldValue.delete(),
+      });
+      moved++;
+    });
+  }
+  console.log(`✓ astrologer financials moved to private/financials (and removed from public doc): ${moved}`);
+}
+
 // 3. Rebuild astrologer↔customer membership markers from every existing
 //    consultation, so an astrologer can still read the safe cards of customers
 //    they consulted BEFORE this change (the read is now scoped to memberships).
@@ -91,6 +130,7 @@ async function backfillMemberships() {
 
 await backfillCustomerCards();
 await moveAstrologerContact();
+await moveAstrologerFinancials();
 await backfillMemberships();
 console.log('Privacy backfill complete.');
 process.exit(0);
