@@ -9,7 +9,7 @@
  * per-second charging without a per-second cron.
  */
 
-import { affordableSeconds, chargeForSeconds, clampNonNegative } from '../common/money';
+import { affordableSeconds, clampNonNegative, pricePerSecond } from '../common/money';
 
 export type WarnLevel = 0 | 1 | 2 | 3;
 
@@ -27,6 +27,15 @@ export interface TickInput {
   bonusBalancePaise: number;
   /** Global price snapshot for the session (paise/min). */
   pricePerMinutePaise: number;
+  /** Cumulative seconds already billed on this session BEFORE this tick. */
+  priorBilledSec?: number;
+  /** Cumulative paise already charged on this session BEFORE this tick.
+   *  Together with priorBilledSec these let us charge from the running total so
+   *  rounding happens ONCE against the cumulative amount, not per tick — which
+   *  is what stops the small systematic overcharge on rates not divisible by 60
+   *  (e.g. ₹25/min = 41.6667 p/s). Default 0 → a single tick from zero behaves
+   *  exactly as before. */
+  priorChargedPaise?: number;
   /** Warn thresholds (seconds of remaining talk-time). */
   warnLevel1Sec: number;
   warnLevel2Sec: number;
@@ -68,6 +77,8 @@ export function computeTick(input: TickInput): TickResult {
     walletBalancePaise,
     bonusBalancePaise,
     pricePerMinutePaise,
+    priorBilledSec = 0,
+    priorChargedPaise = 0,
     warnLevel1Sec,
     warnLevel2Sec,
   } = input;
@@ -77,17 +88,32 @@ export function computeTick(input: TickInput): TickResult {
   const elapsedMs = Math.max(0, nowMs - lastTickAtMs - Math.max(0, pausedSinceLastTickMs));
   const elapsedSec = Math.floor(elapsedMs / 1000);
 
-  // Full charge if we had unlimited balance.
-  const desiredCharge = chargeForSeconds(pricePerMinutePaise, elapsedSec);
+  // CUMULATIVE billing: the charge to cover N total seconds is round(pps × N),
+  // computed against the running total — NOT round(pps × elapsedSec) per tick.
+  // This removes the sub-paise drift that per-tick rounding accumulates on rates
+  // not divisible by 60. The invariant it maintains: at all times
+  // totalCharged == round(pps × totalBilledSeconds).
+  const pps = pricePerSecond(pricePerMinutePaise);
+  const desiredCumulative = Math.round(pps * (priorBilledSec + elapsedSec));
+  const desiredChargeThisTick = Math.max(0, desiredCumulative - priorChargedPaise);
 
-  // Cap at spendable — you can only be billed for what you can pay.
-  const chargedPaise = Math.min(desiredCharge, spendable);
-
-  // How many whole seconds did we actually pay for?
-  const billedSeconds =
-    desiredCharge <= spendable
-      ? elapsedSec
-      : affordableSeconds(spendable, pricePerMinutePaise);
+  let billedSeconds: number;
+  let chargedPaise: number;
+  if (desiredChargeThisTick <= spendable) {
+    // Can afford the whole elapsed span.
+    billedSeconds = elapsedSec;
+    chargedPaise = desiredChargeThisTick;
+  } else {
+    // Balance runs out mid-tick — bill the most whole seconds we can fully pay
+    // for, keeping the cumulative invariant. Start from the estimate then walk
+    // down until the incremental charge fits within spendable.
+    const affordableTotalCharge = priorChargedPaise + spendable;
+    let k = pps > 0 ? Math.floor((affordableTotalCharge + 0.5) / pps - priorBilledSec) : 0;
+    k = Math.max(0, Math.min(elapsedSec, k));
+    while (k > 0 && Math.round(pps * (priorBilledSec + k)) - priorChargedPaise > spendable) k--;
+    billedSeconds = k;
+    chargedPaise = Math.min(spendable, Math.max(0, Math.round(pps * (priorBilledSec + k)) - priorChargedPaise));
+  }
 
   // Debit bonus first, then wallet.
   const fromBonus = Math.min(bonusBalancePaise, chargedPaise);

@@ -182,3 +182,77 @@ describe('astrologerNetEarning', () => {
     expect(astrologerNetEarning(0, 20)).toBe(0);
   });
 });
+
+describe('computeTick — cumulative billing (P2-5, no per-tick rounding drift)', () => {
+  const RATE_25 = 2500; // ₹25/min = 41.6667 paise/sec — NOT divisible by 60
+  const pps25 = pricePerSecond(RATE_25);
+
+  it('a single 60s tick from zero is unchanged (round(pps*60) = 2500)', () => {
+    const r = computeTick(
+      baseInput({ lastTickAtMs: 0, nowMs: 60_000, pricePerMinutePaise: RATE_25 }),
+    );
+    expect(r.billedSeconds).toBe(60);
+    expect(r.chargedPaise).toBe(2500);
+  });
+
+  it('six 10s ticks total EXACTLY round(pps*60), not the per-tick-rounded 2502', () => {
+    let billed = 0;
+    let charged = 0;
+    // Old per-tick behaviour would charge round(pps*10)=417 each → 6*417 = 2502.
+    for (let i = 0; i < 6; i++) {
+      const r = computeTick(
+        baseInput({
+          lastTickAtMs: 0,
+          nowMs: 10_000,
+          pricePerMinutePaise: RATE_25,
+          priorBilledSec: billed,
+          priorChargedPaise: charged,
+        }),
+      );
+      billed += r.billedSeconds;
+      charged += r.chargedPaise;
+    }
+    expect(billed).toBe(60);
+    expect(charged).toBe(2500); // exact — not 2502
+    // Invariant: cumulative charged == round(pps * cumulative billed).
+    expect(charged).toBe(Math.round(pps25 * billed));
+  });
+
+  it('maintains totalCharged == round(pps*billed) across many uneven ticks', () => {
+    const spans = [7000, 3000, 11000, 5000, 9000, 13000, 2000, 10000]; // uneven ms
+    let billed = 0;
+    let charged = 0;
+    for (const ms of spans) {
+      const r = computeTick(
+        baseInput({
+          lastTickAtMs: 0,
+          nowMs: ms,
+          pricePerMinutePaise: RATE_25,
+          priorBilledSec: billed,
+          priorChargedPaise: charged,
+        }),
+      );
+      billed += r.billedSeconds;
+      charged += r.chargedPaise;
+      expect(charged).toBe(Math.round(pps25 * billed)); // invariant holds every tick
+    }
+  });
+
+  it('still caps at spendable when the balance runs out mid-tick', () => {
+    // 600 paise spendable at 41.6667 p/s → floor(600/41.6667) = 14 whole seconds.
+    const r = computeTick(
+      baseInput({
+        lastTickAtMs: 0,
+        nowMs: 60_000,
+        pricePerMinutePaise: RATE_25,
+        walletBalancePaise: 600,
+        bonusBalancePaise: 0,
+        spendablePaise: 600,
+      }),
+    );
+    expect(r.billedSeconds).toBe(14);
+    expect(r.chargedPaise).toBeLessThanOrEqual(600);
+    expect(r.chargedPaise).toBe(Math.round(pps25 * 14)); // 583
+    expect(r.exhausted).toBe(true);
+  });
+});

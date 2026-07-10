@@ -74,6 +74,10 @@ export async function applyTick(
     walletBalancePaise: wallet0,
     bonusBalancePaise: combinedBonus,
     pricePerMinutePaise: c.pricePerMinute,
+    // Running totals so billing is cumulative (round once vs the total), which
+    // removes the per-tick rounding drift on rates not divisible by 60.
+    priorBilledSec: (c.billedSeconds as number) ?? 0,
+    priorChargedPaise: (c.totalCharged as number) ?? 0,
     warnLevel1Sec: config.warnLevel1Sec,
     warnLevel2Sec: config.warnLevel2Sec,
   });
