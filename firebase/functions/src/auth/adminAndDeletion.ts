@@ -2,12 +2,19 @@
  * Privileged auth functions:
  *  - setUserRole: a super-admin grants astrologer/admin custom claims. Bootstrap
  *    the first super-admin by setting the claim manually once in the console.
- *  - deleteAccount: secure, self-service account deletion (Part 3). Removes the
- *    profile, notifications and FCM tokens, anonymizes historical consultations
- *    (kept for the astrologer's records/audit), and deletes the Auth user.
+ *  - deleteAccount: secure, self-service account deletion (DPDP §12 / GDPR
+ *    Art. 17 erasure). It ERASES all personal, free-text and media content the
+ *    user generated — chat messages, chat images, voice notes, remedies, support
+ *    threads, notifications, the safe-card mirror, and the astrologer membership
+ *    markers — strips PII from the profile, and deletes the Auth user. It
+ *    intentionally RETAINS the financial ledger (walletTransactions) and the
+ *    billing skeleton of past consultations under the now-anonymized id, because
+ *    deleting transaction/accounting records is itself a legal violation (tax /
+ *    financial-record retention). No name, phone, email, birth data, chat text
+ *    or image survives; only anonymous money rows do.
  */
 import { onCall } from 'firebase-functions/v2/https';
-import { auth, db, FieldValue } from '../common/admin';
+import { auth, db, bucket, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertAuthed, assertRole, badRequest, failedPrecondition } from '../common/errors';
 
@@ -46,10 +53,43 @@ export const setUserRole = onCall(async (req) => {
   return { ok: true };
 });
 
+/**
+ * Delete every doc a query matches, in batches, until the query is empty.
+ * Firestore caps a batch at 500 writes, so we page at 300 to stay well under it.
+ */
+async function deleteByQuery(
+  buildQuery: () => FirebaseFirestore.Query,
+  pageSize = 300,
+): Promise<number> {
+  let removed = 0;
+  for (;;) {
+    const snap = await buildQuery().limit(pageSize).get();
+    if (snap.empty) break;
+    const batch = db.batch();
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+    removed += snap.size;
+    if (snap.size < pageSize) break;
+  }
+  return removed;
+}
+
+/** Delete every doc under a collection reference (used for subcollections). */
+async function deleteCollection(ref: FirebaseFirestore.CollectionReference, pageSize = 300): Promise<void> {
+  for (;;) {
+    const snap = await ref.limit(pageSize).get();
+    if (snap.empty) break;
+    const batch = db.batch();
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+    if (snap.size < pageSize) break;
+  }
+}
+
 export const deleteAccount = onCall(async (req) => {
   const uid = assertAuthed(req);
 
-  // Block deletion while a consultation is open.
+  // Block deletion while a consultation is open (money is mid-flight).
   const open = await db
     .collection(Collections.consultations)
     .where('customerId', '==', uid)
@@ -58,32 +98,72 @@ export const deleteAccount = onCall(async (req) => {
     .get();
   if (!open.empty) failedPrecondition('Finish your active consultation before deleting your account.');
 
-  // Mark deleted + scrub PII from the profile (keep the doc id for referential
-  // integrity of historical consultations/ledger).
+  // 1) Strip PII from the profile but keep the doc id so the retained financial
+  //    ledger stays referentially intact under an anonymous identity.
   await db.collection(Collections.users).doc(uid).set(
     {
       name: 'Deleted user',
       phone: FieldValue.delete(),
       email: FieldValue.delete(),
       profilePhoto: FieldValue.delete(),
+      gender: FieldValue.delete(),
+      birthDateMs: FieldValue.delete(),
+      birthTime: FieldValue.delete(),
+      birthPlace: FieldValue.delete(),
+      relationshipStatus: FieldValue.delete(),
       fcmTokens: [],
       accountStatus: 'deleted',
       notificationEnabled: false,
+      deletedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     },
     { merge: true },
   );
 
-  // Erase the safe-card mirror too (name/DOB/birthplace) — otherwise a "deleted"
-  // user's identity would live on in customerProfiles, readable by astrologers.
-  // Right-to-erasure: the mirror must go when the account is deleted.
+  // 2) Erase the safe-card mirror (name/DOB/birthplace readable by astrologers).
   await db.collection('customerProfiles').doc(uid).delete().catch(() => {});
 
-  // Remove notifications.
-  const notifs = await db.collection(Collections.notifications).where('userId', '==', uid).limit(500).get();
-  const batch = db.batch();
-  notifs.docs.forEach((d) => batch.delete(d.ref));
-  await batch.commit();
+  // 3) For every consultation this customer had: erase the chat transcript, the
+  //    typing docs, and all chat media in Storage. The consultation doc itself is
+  //    a billing record and is RETAINED (now pointing at an anonymized user).
+  const consults = await db
+    .collection(Collections.consultations)
+    .where('customerId', '==', uid)
+    .get();
+  for (const doc of consults.docs) {
+    await deleteCollection(doc.ref.collection('messages')).catch(() => {});
+    await deleteCollection(doc.ref.collection('typing')).catch(() => {});
+    // Chat media is stored under chat_images/{consultationId}/ and
+    // voice_notes/{consultationId}/ — purge both prefixes.
+    await bucket.deleteFiles({ prefix: `chat_images/${doc.id}/` }).catch(() => {});
+    await bucket.deleteFiles({ prefix: `voice_notes/${doc.id}/` }).catch(() => {});
+  }
+
+  // 4) Erase personal advice, support conversations, notifications, and the
+  //    astrologer→customer membership markers (which back astrologers' scoped
+  //    read of the customer's safe card — now gone anyway).
+  await deleteByQuery(() =>
+    db.collection('remedies').where('customerId', '==', uid),
+  ).catch(() => {});
+
+  const tickets = await db.collection('supportTickets').where('customerId', '==', uid).get();
+  for (const t of tickets.docs) {
+    await deleteCollection(t.ref.collection('thread')).catch(() => {});
+    await t.ref.delete().catch(() => {});
+  }
+
+  await deleteByQuery(() =>
+    db.collection(Collections.notifications).where('userId', '==', uid),
+  ).catch(() => {});
+
+  // Membership markers live at astrologerCustomers/{astrologerId}/customers/{uid}.
+  // Every astrologer this customer consulted is exactly the set of astrologerIds
+  // on their consultations — delete the marker for each so no astrologer keeps a
+  // scoped read of the (now-erased) customer.
+  const astroIds = new Set(consults.docs.map((d) => d.data().astrologerId as string).filter(Boolean));
+  for (const aid of astroIds) {
+    await db.collection('astrologerCustomers').doc(aid).collection('customers').doc(uid).delete().catch(() => {});
+  }
 
   await db.collection(Collections.auditLogs).add({
     actorUid: uid,
@@ -91,10 +171,11 @@ export const deleteAccount = onCall(async (req) => {
     action: 'deleteAccount',
     targetType: 'user',
     targetId: uid,
+    after: { erased: ['profilePII', 'customerProfile', 'messages', 'chatMedia', 'remedies', 'supportTickets', 'notifications', 'membershipMarkers'], retained: ['walletTransactions', 'consultationSkeleton'] },
     createdAt: FieldValue.serverTimestamp(),
   });
 
-  // Finally delete the Auth user.
+  // 5) Finally delete the Auth user (revokes login + tokens).
   await auth.deleteUser(uid);
 
   return { ok: true };

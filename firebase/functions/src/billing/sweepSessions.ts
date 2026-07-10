@@ -45,9 +45,23 @@ export const sweepStaleSessions = onSchedule('every 1 minutes', async () => {
   }
 });
 
-// --- 1. Late-heartbeat active sessions (lastTickAt older than 30s) ---
+// --- 1. Disconnected active sessions → bill a short settle window, then PAUSE ---
+// A live client sends a heartbeat every ~10s. If we have NOT heard from it for
+// longer than the reconnect grace, the customer is gone (app killed / network
+// lost). We must NOT keep billing wall-clock dead air until the wallet drains —
+// that is the "charged me after it disconnected" leak. Instead we bill only a
+// small settle window past the last confirmed contact (covers one missed tick),
+// then PAUSE the session (networkStatus 'reconnecting'). If the client comes
+// back it resumes; if it never does, expirePaused settles it after the timeout.
+const STALE_BILL_SETTLE_MS = 15_000;
+
 async function billStaleActive(config: GlobalConfig, nowMs: number): Promise<void> {
-  const staleCutoff = Timestamp.fromMillis(nowMs - 30_000);
+  // Only touch sessions silent BEYOND the reconnect grace (floored at 30s so a
+  // misconfigured tiny reconnectTimeoutSec can never pause live sessions). A
+  // brief blip that recovers updates lastTickAt on its own next tick and is
+  // never seen here.
+  const graceMs = Math.max(30, config.reconnectTimeoutSec || 45) * 1000;
+  const staleCutoff = Timestamp.fromMillis(nowMs - graceMs);
   const activeStale = await db
     .collection(Collections.consultations)
     .where('status', '==', 'active')
@@ -57,7 +71,27 @@ async function billStaleActive(config: GlobalConfig, nowMs: number): Promise<voi
 
   for (const doc of activeStale.docs) {
     await db.runTransaction(async (tx) => {
-      await applyTick(tx, doc.id, config, Timestamp.now().toMillis());
+      const snap = await tx.get(doc.ref);
+      if (!snap.exists) return;
+      const c = snap.data()!;
+      if (c.status !== 'active') return; // may have ticked/ended since the query
+
+      const lastTickMs = (c.lastTickAt as Timestamp | null)?.toMillis() ?? nowMs;
+      // Bill only up to a short settle window past the last contact — never the
+      // full silent gap. This is the fix for over-billing on disconnect.
+      const billUntilMs = Math.min(nowMs, lastTickMs + STALE_BILL_SETTLE_MS);
+      await applyTick(tx, doc.id, config, billUntilMs, 'reconnecting');
+
+      // Force-pause for lost connection. applyTick only auto-pauses on balance
+      // exhaustion; a disconnect must pause regardless. Reads are forbidden after
+      // applyTick's writes, so we pause unconditionally — if applyTick already
+      // paused on exhaustion this simply re-writes the same fields (idempotent).
+      tx.update(doc.ref, {
+        status: 'paused',
+        pausedAt: Timestamp.fromMillis(billUntilMs),
+        networkStatus: 'reconnecting',
+        updatedAt: FieldValue.serverTimestamp(),
+      });
     });
   }
 }
@@ -79,7 +113,13 @@ async function expirePaused(config: GlobalConfig, nowMs: number): Promise<void> 
       const c = snap.data()!;
       if (c.status !== 'paused') return;
 
-      const net = astrologerNetEarning(c.totalCharged ?? 0, config.commissionPercent);
+      // Use the per-astrologer commission snapshotted on the session at start —
+      // NOT the current global config — so a session that ends via this sweep
+      // pays the astrologer exactly what a manual "End" would (endConsultation
+      // uses the same snapshot). Fall back to global only for legacy sessions.
+      const commissionPercent =
+        typeof c.commissionPercent === 'number' ? c.commissionPercent : config.commissionPercent;
+      const net = astrologerNetEarning(c.totalCharged ?? 0, commissionPercent);
       tx.update(doc.ref, {
         status: 'expired',
         paymentStatus: 'settled',

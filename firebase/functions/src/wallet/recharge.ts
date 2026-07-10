@@ -19,6 +19,8 @@ import {
 } from '../common/secrets';
 import { createOrder, verifyPaymentSignature, verifyWebhookSignature } from './razorpay';
 import { creditRecharge, autoResumePausedSession } from './creditRecharge';
+import { recordFailedCredit } from './reconcile';
+import { logger } from 'firebase-functions/v2';
 
 export const createRechargeOrder = onCall(
   { secrets: [RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET] },
@@ -132,9 +134,16 @@ export const razorpayWebhook = onRequest(
           await creditRecharge({ userId, paymentId, orderId, planId, couponId, source: 'webhook' });
           await autoResumePausedSession(userId);
         } catch (e) {
-          // Ack anyway to avoid retry storms; log for investigation.
-          console.error('webhook credit failed', e);
+          // Do NOT silently drop the money. Record a dead-letter row + admin
+          // alert so reconcileFailedCredits retries it and an operator is warned.
+          // We still 200 so Razorpay doesn't hammer us, but the payment is now
+          // durably tracked until it credits.
+          await recordFailedCredit({ userId, paymentId, orderId, planId, couponId }, e).catch((re) =>
+            logger.error('webhook: recordFailedCredit ALSO failed', { paymentId, error: re instanceof Error ? re.message : String(re) }),
+          );
         }
+      } else {
+        logger.warn('razorpayWebhook: payment.captured missing notes', { paymentId, orderId, hasUser: !!userId, hasPlan: !!planId });
       }
     }
     res.status(200).send('ok');

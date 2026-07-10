@@ -441,7 +441,7 @@ class ProfileTab extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                    'This permanently removes your profile and data. Active consultations must be finished first.',),
+                    'This permanently erases your profile, chats, photos and personal data. Payment records are kept in anonymised form as required by law. Active consultations must be finished first.',),
                 const SizedBox(height: 16),
                 const Text('Type DELETE to confirm',
                     style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),),

@@ -15,6 +15,17 @@ import { creditRecharge, autoResumePausedSession } from '../wallet/creditRecharg
 
 export const devSimulateRecharge = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
+
+  // Hard kill-switch for production. This mints wallet credit with no real
+  // payment, so it must be INERT unless test payments are explicitly enabled
+  // (config/global.devPaymentsEnabled === true, a Super-Admin-only write). In
+  // production this flag is off/absent, so even a compromised admin token can
+  // never print money here.
+  const cfg = await db.collection('config').doc('global').get();
+  if (cfg.data()?.devPaymentsEnabled !== true) {
+    failedPrecondition('Test payments are disabled. Enable config/global.devPaymentsEnabled to use this.');
+  }
+
   const { userId, amountPaise, bonusPaise } = (req.data ?? {}) as {
     userId?: string; amountPaise?: number; bonusPaise?: number;
   };

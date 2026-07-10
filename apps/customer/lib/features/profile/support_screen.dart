@@ -188,7 +188,7 @@ const _faqs = [
   ('How is a consultation charged?', "Each consultation is billed per minute at the astrologer's own rate (shown on their profile), calculated per second, directly from your wallet."),
   ('What happens if my balance runs out?', 'The consultation pauses. Recharge to resume exactly where you left off — your chat history is preserved.'),
   ('How do refunds work?', 'If a consultation ends due to an astrologer or network issue, unused balance is handled per our refund policy.'),
-  ('How do I delete my account?', 'Profile → Delete account. This permanently removes your data after any active consultation ends.'),
+  ('How do I delete my account?', 'Profile → Delete account. This permanently erases your profile, chats and personal data after any active consultation ends. Anonymised payment records are retained as required by law.'),
 ];
 
 class _FaqTile extends StatelessWidget {

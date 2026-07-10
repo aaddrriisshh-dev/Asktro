@@ -43,6 +43,18 @@ export async function creditRecharge(params: {
       };
     }
 
+    // Second guard: dedupe per ORDER, not only per payment. Razorpay normally
+    // captures once per order, but a second distinct captured paymentId on the
+    // same order must NOT credit twice. We stamp the order with the paymentId
+    // that credited it; a different payment arriving on an already-credited
+    // order is treated as already processed.
+    const orderRef = db.collection('rechargeOrders').doc(orderId);
+    const orderSnap = await tx.get(orderRef);
+    const creditedPaymentId = orderSnap.exists ? (orderSnap.data()!.creditedPaymentId as string | undefined) : undefined;
+    if (creditedPaymentId && creditedPaymentId !== paymentId) {
+      return { credited: false, alreadyProcessed: true, walletCreditPaise: 0, bonusPaise: 0, newBalancePaise: 0 };
+    }
+
     const planSnap = await tx.get(db.collection(Collections.rechargePlans).doc(planId));
     if (!planSnap.exists) throw new Error('PLAN_NOT_FOUND');
     const plan = planSnap.data()!;
@@ -158,6 +170,9 @@ export async function creditRecharge(params: {
     if (referralCredit) {
       applyReferralCredit(tx, referralCredit, { referredUserId: userId, paymentId });
     }
+
+    // Stamp the order as credited by THIS payment (backs the per-order guard).
+    tx.set(orderRef, { creditedPaymentId: paymentId, creditedAt: FieldValue.serverTimestamp() }, { merge: true });
 
     // Record idempotency key.
     tx.set(dedupeRef, {

@@ -27,6 +27,7 @@ export { sweepStaleSessions } from './billing/sweepSessions';
 
 // ---- Wallet / recharge / payments ----
 export { createRechargeOrder, verifyRecharge, razorpayWebhook } from './wallet/recharge';
+export { reconcileFailedCredits } from './wallet/reconcile';
 
 // ---- Coupons / referrals / ratings ----
 export { validateCoupon } from './coupons/validateCoupon';
@@ -48,6 +49,7 @@ export { askRemedyQuestion, answerRemedyQuestion } from './remedies/remedyFollow
 
 // ---- Admin financial actions ----
 export { adjustWallet, processPayout, setAstrologerStatus, setUserStatus } from './admin/actions';
+export { refundConsultation } from './admin/refund';
 
 // ---- Admin astrologer provisioning ----
 export { createAstrologer, updateAstrologer, deleteAstrologer } from './admin/createAstrologer';
