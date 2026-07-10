@@ -13,9 +13,9 @@ SERVER_SCALING_AND_COSTS.md, REMAINING_FIXES_PLAN.md._
       auto-resume, presence heartbeat. (Needs release keystore — see §D.)
 
 ## B. Building NOW — astrologer multi-chat (the "scaling" work)
-- [ ] **#1 Ring for CALLS only** — chats stop taking over the screen; arrive as a
+- [x] **#1 Ring for CALLS only** — chats stop taking over the screen; arrive as a
       non-blocking in-app banner + the existing New-bucket badge.
-- [ ] **#2 Multi-chat inbox polish** — unread badges + last-message preview so
+- [x] **#2 Multi-chat inbox polish** — unread badges + last-message preview so
       many concurrent chats are easy to juggle.
 - [ ] **#3 Concurrency fairness** — per-astrologer concurrent-chat cap and/or
       visible reply-time (customers are billed while queued). NEEDS A DECISION.
@@ -50,7 +50,7 @@ SERVER_SCALING_AND_COSTS.md, REMAINING_FIXES_PLAN.md._
 
 ## F. Polish / UX-completeness (from the original audit — MASTER_TODO §H/I/J)
 - [ ] Portal "live" session views are static — convert to onSnapshot.
-- [ ] Chat **seen** + **typing** indicators dead on the astrologer side.
+- [ ] Chat **typing** indicator dead on astrologer side. (**seen** now marked ✓ via the inbox.)
 - [ ] Banner **placements 2–5** never render; banner **priority** not settable.
 - [ ] Astrologer notification **icon** mismatch for consultation_request.
 - [ ] **Safe-card staleness** — a customer's birth-detail edit doesn't reach the

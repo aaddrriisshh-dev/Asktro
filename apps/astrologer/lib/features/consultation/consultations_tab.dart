@@ -162,6 +162,41 @@ String relTime(int? ms) {
   return '${h ~/ 24}d ago';
 }
 
+/// Per-chat inbox summary: last message + unread count (messages the customer
+/// sent that this astrologer hasn't seen). Reads only the last 30 messages —
+/// bounded, and messages the astrologer already has participant access to.
+class ChatSummary {
+  const ChatSummary({this.lastText, this.unread = 0});
+  final String? lastText;
+  final int unread;
+}
+
+final _chatSummaryProvider =
+    StreamProvider.autoDispose.family<ChatSummary, ({String cid, String selfId})>((ref, a) {
+  final db = ref.watch(firestoreProvider);
+  return db
+      .collection('consultations')
+      .doc(a.cid)
+      .collection('messages')
+      .orderBy('timestamp', descending: true)
+      .limit(30)
+      .snapshots()
+      .map((snap) {
+    String? lastText;
+    var unread = 0;
+    for (final d in snap.docs) {
+      final m = d.data();
+      final mine = m['senderId'] == a.selfId;
+      if (lastText == null) {
+        final body = m['type'] == 'image' ? '📷 Photo' : ((m['text'] ?? '') as String);
+        lastText = mine ? 'You: $body' : body;
+      }
+      if (!mine && m['seen'] != true) unread++;
+    }
+    return ChatSummary(lastText: lastText, unread: unread);
+  });
+});
+
 class _ConsultCard extends ConsumerWidget {
   const _ConsultCard({required this.row, required this.repeat, required this.onTap});
   final SessionRow row;
@@ -179,6 +214,15 @@ class _ConsultCard extends ConsumerWidget {
     ].join(' · ');
     final lang = cust?.languages.isNotEmpty ?? false ? cust!.languages.first : null;
 
+    // Inbox summary (last message + unread) for ongoing chats only.
+    final selfId = ref.watch(selfProvider).valueOrNull?.id ?? '';
+    final active = c.status == ConsultationStatus.active;
+    final ongoing = active || c.status == ConsultationStatus.paused;
+    final summary = (c.type == ConsultationType.chat && ongoing && selfId.isNotEmpty)
+        ? ref.watch(_chatSummaryProvider((cid: c.id, selfId: selfId))).valueOrNull
+        : null;
+    final unread = summary?.unread ?? 0;
+
     return SkyCard(
       onTap: onTap,
       padding: const EdgeInsets.all(13),
@@ -187,7 +231,26 @@ class _ConsultCard extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppAvatar(name: cust?.name ?? 'Guest', photoUrl: cust?.profilePhoto, size: 48),
+              Stack(
+                children: [
+                  AppAvatar(name: cust?.name ?? 'Guest', photoUrl: cust?.profilePhoto, size: 48),
+                  // Live green dot = an active (billing) session.
+                  if (active)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: Sky.green,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Sky.card, width: 2.5),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -202,7 +265,21 @@ class _ConsultCard extends ConsumerWidget {
                         if (repeat) ...[const SizedBox(width: 6), const Pill('Repeat', color: Sky.gold)],
                       ],
                     ),
-                    if (meta.isNotEmpty) ...[
+                    // Last-message preview for ongoing chats; falls back to the
+                    // birth-detail meta line for calls / not-yet-started sessions.
+                    if (summary?.lastText != null) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        summary!.lastText!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Sky.label.copyWith(
+                          fontSize: 12.5,
+                          color: unread > 0 ? Sky.ink : Sky.ink2,
+                          fontWeight: unread > 0 ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    ] else if (meta.isNotEmpty) ...[
                       const SizedBox(height: 3),
                       Text(meta, style: Sky.label.copyWith(fontSize: 12)),
                     ],
@@ -212,12 +289,23 @@ class _ConsultCard extends ConsumerWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(color: Sky.purple.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(11)),
-                    child: Icon(typeIcon(c.type), size: 17, color: Sky.purple),
-                  ),
+                  if (unread > 0)
+                    Container(
+                      constraints: const BoxConstraints(minWidth: 22),
+                      height: 22,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(color: Sky.purple, borderRadius: BorderRadius.circular(11)),
+                      child: Text('$unread',
+                          style: Sky.label.copyWith(fontSize: 11.5, color: Colors.white, fontWeight: FontWeight.w800),),
+                    )
+                  else
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(color: Sky.purple.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(11)),
+                      child: Icon(typeIcon(c.type), size: 17, color: Sky.purple),
+                    ),
                   const SizedBox(height: 6),
                   Text(relTime(row.createdAtMs), style: Sky.label.copyWith(fontSize: 10.5, color: Sky.ink3)),
                 ],

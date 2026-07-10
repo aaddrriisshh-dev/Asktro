@@ -341,10 +341,33 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
     );
   }
 
+  /// Flip `seen:true` on the customer's unseen messages (participant-scoped by
+  /// rules). Batched + best-effort; harmless if it races another mark.
+  Future<void> _markSeen(List<Map<String, dynamic>> messages) async {
+    final unseen = messages
+        .where((m) => m['senderId'] != widget.self.id && m['seen'] != true && m['id'] is String)
+        .toList();
+    if (unseen.isEmpty) return;
+    final fs = ref.read(firestoreProvider);
+    final batch = fs.batch();
+    for (final m in unseen) {
+      batch.update(
+        fs.collection('consultations').doc(_id).collection('messages').doc(m['id'] as String),
+        {'seen': true},
+      );
+    }
+    await batch.commit().catchError((_) {});
+  }
+
   // ---- live chat ----
   Widget _chatView(Consultation c) {
     final cust = ref.watch(customerProvider(c.customerId)).valueOrNull;
     final messages = ref.watch(_messagesProvider(_id)).valueOrNull ?? const [];
+    // Mark the customer's messages seen while the astrologer is viewing — clears
+    // the inbox unread badge and gives the customer a real read-receipt.
+    if (messages.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _markSeen(messages));
+    }
     return SkyScaffold(
       child: Column(
         children: [
