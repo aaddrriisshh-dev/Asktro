@@ -19,5 +19,5 @@
     "resolveJsonModule": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "lib", "src/**/*.test.ts"]
+  "exclude": ["node_modules", "lib", "src/**/*.test.ts", "src/**/*.itest.ts"]
 }

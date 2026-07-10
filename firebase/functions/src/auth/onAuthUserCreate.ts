@@ -13,6 +13,7 @@
  * Auth triggers are a Gen1 product; this coexists with the Gen2 callables.
  */
 import * as functionsV1 from 'firebase-functions/v1';
+import { logger } from 'firebase-functions/v2';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 
@@ -51,6 +52,6 @@ export const onAuthUserCreate = functionsV1
       );
     } catch (err) {
       // Never throw — a failure here must not block sign-up. Logged for triage.
-      console.error(`onAuthUserCreate: failed to ensure profile for ${uid}`, err);
+      logger.error('onAuthUserCreate: failed to ensure profile', { uid, error: err instanceof Error ? err.message : String(err) });
     }
   });

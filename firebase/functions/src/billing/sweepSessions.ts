@@ -15,6 +15,7 @@
  * Uses the same transactional `applyTick` as the client heartbeat.
  */
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { logger } from 'firebase-functions/v2';
 import { db, FieldValue, Timestamp } from '../common/admin';
 import { Collections } from '../common/collections';
 import { getGlobalConfig } from '../common/config';
@@ -40,7 +41,7 @@ export const sweepStaleSessions = onSchedule('every 1 minutes', async () => {
     try {
       await run();
     } catch (err) {
-      console.error(`sweepStaleSessions: job "${name}" failed`, err);
+      logger.error('sweepStaleSessions: job failed', { job: name, error: err instanceof Error ? err.message : String(err) });
     }
   }
 });

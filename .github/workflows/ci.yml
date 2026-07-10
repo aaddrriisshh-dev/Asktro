@@ -1,0 +1,84 @@
+name: CI
+
+# Gate every push / PR on the checks that used to be manual: the Cloud Functions
+# build + money-path tests, the admin portal typecheck, and `flutter analyze`
+# across the shared package and both apps (which catches Dart errors no Node CI
+# would see).
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  functions:
+    name: Cloud Functions (build + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase/functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: firebase/functions/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npx jest --ci
+
+  money-integration:
+    name: Money-path integration tests (Firestore emulator)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase/functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: firebase/functions/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: npm ci
+      - run: npm run test:integration
+
+  admin:
+    name: Admin portal (typecheck)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/admin/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+
+  flutter:
+    name: Flutter analyze (${{ matrix.pkg }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: [packages/shared_flutter, apps/customer, apps/astrologer]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: flutter pub get
+        working-directory: ${{ matrix.pkg }}
+        run: flutter pub get
+      - name: flutter analyze
+        working-directory: ${{ matrix.pkg }}
+        run: flutter analyze
