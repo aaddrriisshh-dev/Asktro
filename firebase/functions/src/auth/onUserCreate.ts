@@ -11,6 +11,7 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { getGlobalConfig } from '../common/config';
+import { CONSENT_POLICY_VERSION } from './consent';
 
 function generateReferralCode(uid: string): string {
   // Deterministic, collision-resistant, human-friendly.
@@ -38,6 +39,20 @@ export const onCustomerSignup = onDocumentCreated('users/{uid}', async (event) =
   if (data.accountStatus == null) patch.accountStatus = 'active';
   if (data.createdAt == null) patch.createdAt = FieldValue.serverTimestamp();
 
+  // Record consent at account creation. The app gates EVERY sign-in path
+  // (phone/Google/Apple) behind the Terms & Privacy checkbox, so a profile only
+  // ever comes into existence after the user agreed — capture that as a
+  // versioned, timestamped record (DPDP §6). The recordConsent callable handles
+  // later re-consent when the policy version bumps.
+  if (data.consent == null) {
+    patch.consent = {
+      agreed: true,
+      policyVersion: CONSENT_POLICY_VERSION,
+      at: FieldValue.serverTimestamp(),
+      source: 'signup',
+    };
+  }
+
   // Welcome bonus: grant N free CHAT minutes exactly once. It lands in
   // `chatBonusBalance` (chat-only) so it cannot be spent on a voice/video call —
   // only on the first chat. `bonusBalance` stays the any-type bonus bucket.
@@ -53,6 +68,16 @@ export const onCustomerSignup = onDocumentCreated('users/{uid}', async (event) =
   if (data.bonusBalance == null) patch.bonusBalance = 0;
 
   await db.collection(Collections.users).doc(uid).set(patch, { merge: true });
+
+  // Append an immutable consent-trail row (only for a genuinely new consent).
+  if (patch.consent) {
+    await db.collection('consentRecords').add({
+      userId: uid,
+      policyVersion: CONSENT_POLICY_VERSION,
+      source: 'signup',
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  }
 
   // Record the welcome bonus in the ledger so it shows in transaction history.
   if (patch.signupBonusGranted) {

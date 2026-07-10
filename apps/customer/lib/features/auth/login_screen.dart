@@ -62,6 +62,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _social(Future<Result<void>> Function() action) async {
+    // Consent gate applies to EVERY sign-in path, not just phone — a user must
+    // never be able to create an account via Google/Apple without agreeing.
+    if (!_agreed) {
+      setState(() => _error = 'Please accept the Terms & Privacy Policy to continue.');
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;

@@ -244,6 +244,35 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ================= moderation: reports / blocks / image review =========
+    // A signed-in user may FILE a report (naming themselves as reporter) and
+    // read their own; admins read/triage all. Reports are never editable by
+    // clients (status changes go through admin functions/console).
+    match /reports/{id} {
+      allow read: if isAdmin() || isSelf(resource.data.reporterId);
+      allow create: if isSignedIn() && request.resource.data.reporterId == uid();
+      allow update, delete: if false;
+    }
+    // A user's block list. Only the owner reads it; writes go through the
+    // blockUser/unblockUser functions (Admin SDK) so the shape stays trusted.
+    match /userBlocks/{ownerId} {
+      allow read: if isSelf(ownerId) || isAdmin();
+      allow write: if false;
+    }
+    // Image-moderation queue — admins only; written by the Storage trigger.
+    match /imageModeration/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ================= consent records (immutable audit trail) =============
+    // Written ONLY by Cloud Functions. The user may read their own consent
+    // history; admins read all. Never client-writable.
+    match /consentRecords/{id} {
+      allow read: if isAdmin() || isSelf(resource.data.userId);
+      allow write: if false;
+    }
+
     // ================= operational alerts & payment dead-letters (admin) =====
     // Written ONLY by Cloud Functions. Surfaces failed webhook credits and other
     // critical operational events to the admin portal; never client-writable.

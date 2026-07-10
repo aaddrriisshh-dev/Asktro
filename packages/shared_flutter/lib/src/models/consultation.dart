@@ -73,9 +73,13 @@ class Consultation extends Equatable {
   factory Consultation.fromMap(String id, Map<String, dynamic> m) {
     int? ms(dynamic v) {
       if (v == null) return null;
-      // Firestore Timestamp exposes millisecondsSinceEpoch via toDate() upstream;
-      // callers normalize to int ms before constructing when needed.
       if (v is int) return v;
+      // Firestore Timestamp: read millisecondsSinceEpoch by duck-typing so this
+      // model stays free of a hard cloud_firestore import.
+      try {
+        final n = (v as dynamic).millisecondsSinceEpoch;
+        if (n is int) return n;
+      } catch (_) {/* not a Timestamp */}
       return null;
     }
 
@@ -97,8 +101,10 @@ class Consultation extends Equatable {
       receiptNo: m['receiptNo'] as String?,
       rating: (m['rating'] as num?)?.toDouble(),
       review: m['review'] as String?,
-      startTimeMs: ms(m['startTimeMs']),
-      endTimeMs: ms(m['endTimeMs']),
+      // Backend writes Firestore Timestamps `startTime`/`endTime`; fall back to
+      // the *Ms integer names for any legacy/local doc that used them.
+      startTimeMs: ms(m['startTime'] ?? m['startTimeMs']),
+      endTimeMs: ms(m['endTime'] ?? m['endTimeMs']),
     );
   }
 

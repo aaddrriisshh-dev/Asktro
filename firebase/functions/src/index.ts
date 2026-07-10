@@ -40,12 +40,19 @@ export { generateAgoraToken } from './agora/token';
 export { onAuthUserCreate } from './auth/onAuthUserCreate';
 export { onCustomerSignup } from './auth/onUserCreate';
 export { setUserRole, deleteAccount } from './auth/adminAndDeletion';
+export { recordConsent } from './auth/consent';
 
 // ---- Notifications ----
 export { onNotificationCreated, sendBroadcast } from './notifications/sender';
 
 // ---- Remedies (customer follow-up questions) ----
 export { askRemedyQuestion, answerRemedyQuestion } from './remedies/remedyFollowUp';
+
+// ---- Content moderation (report / block / auto-flag) ----
+export {
+  reportContent, blockUser, unblockUser,
+  onChatMessageCreated, onChatImageUploaded,
+} from './moderation/moderation';
 
 // ---- Admin financial actions ----
 export { adjustWallet, processPayout, setAstrologerStatus, setUserStatus } from './admin/actions';

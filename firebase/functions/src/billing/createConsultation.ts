@@ -12,6 +12,7 @@ import { assertAuthed, badRequest, failedPrecondition, notFound } from '../commo
 import { canStartConsultation } from '../billing/engine';
 import { pricePerSecond } from '../common/money';
 import { ConsultationType } from '../common/types';
+import { assertNotBlocked } from '../moderation/moderation';
 import { randomUUID } from 'crypto';
 
 const VALID_TYPES: ConsultationType[] = ['chat', 'voice', 'video'];
@@ -27,6 +28,9 @@ export const createConsultation = onCall(async (req) => {
   if (!type || !VALID_TYPES.includes(type)) badRequest('type must be chat, voice, or video.');
 
   const config = await getGlobalConfig();
+
+  // Block gate: if either party has blocked the other, no new session forms.
+  await assertNotBlocked(customerId, astrologerId!);
 
   // Feature-flag gating for voice/video.
   if (type === 'voice' && config.featureFlags.voice === false) {
