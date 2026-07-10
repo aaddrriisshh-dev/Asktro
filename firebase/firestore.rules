@@ -14,6 +14,11 @@ service cloud.firestore {
     function claims() { return request.auth.token; }
     function isAdmin() { return isSignedIn() && claims().role == 'admin'; }
     function isSuperAdmin() { return isAdmin() && claims().adminRole == 'super'; }
+    // The customer money ledger is reconstructable revenue. Only the tiers whose
+    // portal actually surfaces it (super = dashboard/reports, ops = reports +
+    // user detail) may read it. The 'astrology' tier has no route that needs the
+    // ledger, so it must not be able to read it straight from Firestore either.
+    function canReadLedger() { return isAdmin() && (claims().adminRole == 'super' || claims().adminRole == 'ops'); }
     function isAstrologer() { return isSignedIn() && claims().role == 'astrologer'; }
     function isSelf(id) { return isSignedIn() && uid() == id; }
 
@@ -160,7 +165,9 @@ service cloud.firestore {
 
     // ================= walletTransactions (immutable ledger) =================
     match /walletTransactions/{txnId} {
-      allow read: if isAdmin() || isSelf(resource.data.userId);
+      // The owner always reads their own rows; among admins only super+ops (the
+      // tiers whose UI surfaces the ledger) — never the astrology tier.
+      allow read: if canReadLedger() || isSelf(resource.data.userId);
       allow write: if false; // functions only
     }
 
