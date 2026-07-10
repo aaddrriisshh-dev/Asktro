@@ -46,12 +46,21 @@ export const createConsultation = onCall(async (req) => {
   const astrologerRef = db.collection(Collections.astrologers).doc(astrologerId!);
 
   const financialsRef = astrologerRef.collection('private').doc('financials');
+  // Per-customer serialization lock. Firestore transactions do NOT detect
+  // phantom inserts from a query, so the "no open session" query below cannot,
+  // by itself, stop two concurrent createConsultation calls from both reading
+  // empty and both creating a session. Having every call READ and WRITE this one
+  // per-customer doc forces the two transactions to conflict — the loser retries,
+  // re-runs the open-session query against the winner's committed write, and is
+  // correctly rejected. Source of truth stays the query; the lock only serializes.
+  const lockRef = db.collection('consultationLocks').doc(customerId);
 
   await db.runTransaction(async (tx) => {
     const [customerSnap, astrologerSnap, financialsSnap] = await Promise.all([
       tx.get(customerRef),
       tx.get(astrologerRef),
       tx.get(financialsRef),
+      tx.get(lockRef), // enroll the lock in the conflict set
     ]);
 
     if (!customerSnap.exists) notFound('Customer profile not found.');
@@ -182,6 +191,10 @@ export const createConsultation = onCall(async (req) => {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
+
+    // Write the per-customer lock so two concurrent creates conflict (the loser's
+    // read of this doc is invalidated → it retries → sees this new session).
+    tx.set(lockRef, { lastConsultationId: consultationRef.id, updatedAt: FieldValue.serverTimestamp() });
 
     // Reserve the astrologer ONLY for a call (the exclusive lock). Chats never
     // reserve — many can run at once. AI personas are never reserved.

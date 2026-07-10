@@ -111,6 +111,9 @@ export const deleteAccount = onCall(async (req) => {
       birthTime: FieldValue.delete(),
       birthPlace: FieldValue.delete(),
       relationshipStatus: FieldValue.delete(),
+      // Referral identifiers are a re-identification link — strip them too.
+      referralCode: FieldValue.delete(),
+      referredBy: FieldValue.delete(),
       fcmTokens: [],
       accountStatus: 'deleted',
       notificationEnabled: false,
@@ -165,13 +168,39 @@ export const deleteAccount = onCall(async (req) => {
     await db.collection('astrologerCustomers').doc(aid).collection('customers').doc(uid).delete().catch(() => {});
   }
 
+  // 5) Erase the remaining PII-bearing / uid-linked records the earlier version
+  //    missed (DPDP §12 / GDPR Art. 17 completeness):
+  //  - reports the user AUTHORED (free-text detail). Reports ABOUT them
+  //    (reportedId==uid) are RETAINED as safety records authored by others.
+  await deleteByQuery(() => db.collection('reports').where('reporterId', '==', uid)).catch(() => {});
+  //  - consent records for this (now-deleted) subject.
+  await deleteByQuery(() => db.collection('consentRecords').where('userId', '==', uid)).catch(() => {});
+  //  - ops alerts that reference this user directly.
+  await deleteByQuery(() => db.collection('alerts').where('refId', '==', uid)).catch(() => {});
+  //  - referral links in either direction (referrer↔referred uid linkage).
+  await deleteByQuery(() => db.collection(Collections.referrals).where('referrerId', '==', uid)).catch(() => {});
+  await deleteByQuery(() => db.collection(Collections.referrals).where('referredId', '==', uid)).catch(() => {});
+  //  - the user's own block list, AND their uid inside anyone else's block list.
+  await db.collection('userBlocks').doc(uid).delete().catch(() => {});
+  const blockers = await db.collection('userBlocks').where('blocked', 'array-contains', uid).get().catch(() => null);
+  for (const b of blockers?.docs ?? []) {
+    await b.ref.update({ blocked: FieldValue.arrayRemove(uid) }).catch(() => {});
+  }
+
   await db.collection(Collections.auditLogs).add({
     actorUid: uid,
     actorRole: 'customer',
     action: 'deleteAccount',
     targetType: 'user',
     targetId: uid,
-    after: { erased: ['profilePII', 'customerProfile', 'messages', 'chatMedia', 'remedies', 'supportTickets', 'notifications', 'membershipMarkers'], retained: ['walletTransactions', 'consultationSkeleton'] },
+    after: {
+      erased: [
+        'profilePII', 'referralIds', 'customerProfile', 'messages', 'chatMedia', 'remedies',
+        'supportTickets', 'notifications', 'membershipMarkers', 'authoredReports',
+        'consentRecords', 'linkedAlerts', 'referrals', 'blockList',
+      ],
+      retained: ['walletTransactions', 'consultationSkeleton', 'reportsAboutUser(safety)'],
+    },
     createdAt: FieldValue.serverTimestamp(),
   });
 

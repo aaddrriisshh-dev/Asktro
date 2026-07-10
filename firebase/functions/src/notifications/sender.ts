@@ -163,10 +163,17 @@ export const sendBroadcast = onCall(async (req) => {
       const op = segment === 'paid_users' ? '>' : '==';
       const ids: string[] = [];
       let cursor: FirebaseFirestore.QueryDocumentSnapshot | null = null;
-      // Order by document id for a stable, index-free cursor.
+      // A range filter (paid_users '>') REQUIRES the first orderBy to be on that
+      // same field, else Firestore rejects the query — so order by totalRecharge
+      // first, with __name__ as a stable tiebreaker for the cursor. The equality
+      // case ('==' unpaid) can order by __name__ alone. Both are served by the
+      // automatic single-field index; no composite index needed.
       while (ids.length < MAX_TARGETS) {
-        let q = db.collection(Collections.users).where('totalRecharge', op, 0)
-          .orderBy('__name__').limit(1000);
+        let q = db.collection(Collections.users).where('totalRecharge', op, 0);
+        q = segment === 'paid_users'
+          ? q.orderBy('totalRecharge').orderBy('__name__')
+          : q.orderBy('__name__');
+        q = q.limit(1000);
         if (cursor) q = q.startAfter(cursor);
         const page = await q.get();
         if (page.empty) break;

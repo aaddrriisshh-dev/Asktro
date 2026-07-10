@@ -249,12 +249,21 @@ service cloud.firestore {
       allow read: if isAdmin()
         || isSelf(resource.data.customerId)
         || isSelf(resource.data.astrologerId);
-      allow create: if isSignedIn();
+      // A ticket may only be opened by its OWN owner — the customerId (or
+      // astrologerId) stamped on the new doc must be the caller. Prevents opening
+      // a ticket under another user's identity.
+      allow create: if isSignedIn()
+        && (isSelf(request.resource.data.customerId) || isSelf(request.resource.data.astrologerId));
       allow update: if isAdmin();
       allow delete: if false;
       match /thread/{msgId} {
-        allow read: if isAdmin() || isSelf(get(/databases/$(database)/documents/supportTickets/$(id)).data.customerId);
-        allow create: if isSignedIn();
+        function ticket() { return get(/databases/$(database)/documents/supportTickets/$(id)).data; }
+        // Read AND append only by an admin or a participant of the PARENT ticket
+        // (checks both customerId and astrologerId — fixes the earlier bug where
+        // an astrologer could never read their own thread, and closes the IDOR
+        // where any signed-in user could post into anyone's thread).
+        allow read: if isAdmin() || isSelf(ticket().customerId) || isSelf(ticket().astrologerId);
+        allow create: if isAdmin() || isSelf(ticket().customerId) || isSelf(ticket().astrologerId);
         allow update, delete: if false;
       }
     }

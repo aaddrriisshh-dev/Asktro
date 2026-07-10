@@ -27,11 +27,14 @@ const CONFIG: GlobalConfig = {
   featureFlags: { voice: true, video: true, referrals: true },
 };
 
-/** Seed an active chat session. `agoMs` sets both lastTickAt and customerLastTickAt. */
+/** Seed an active chat session. `lastTickAt`/`customerLastTickAt` are set to
+ *  `nowMs - agoMs` so tests can pass the SAME `nowMs` to applyTick and get a
+ *  deterministic elapsed span (no emulator seed-to-call latency drift). */
 async function seedSession(
   cid: string,
   uid: string,
   agoMs: number,
+  nowMs: number,
   opts: { wallet?: number; anyBonus?: number; chatBonus?: number; eligible?: boolean } = {},
 ) {
   await db.collection('users').doc(uid).set({
@@ -40,7 +43,7 @@ async function seedSession(
     chatBonusBalance: opts.chatBonus ?? 0,
     chatGraceUsed: false,
   });
-  const t = Timestamp.fromMillis(Date.now() - agoMs);
+  const t = Timestamp.fromMillis(nowMs - agoMs);
   await db.collection('consultations').doc(cid).set({
     customerId: uid, astrologerId: 'a1', type: 'chat', chatCreditEligible: opts.eligible ?? true,
     status: 'active', pricePerMinute: 900, billedSeconds: 0, totalCharged: 0,
@@ -54,9 +57,10 @@ describe('applyTick (emulator)', () => {
     const uid = 'u_tick_1'; const cid = 'c_tick_1';
     // Spendable = 0 wallet + 50 any-bonus + 100 chat-bonus = 150 paise = 10s @ 900/min.
     // 15s elapsed wants 225p but only 150 is spendable → bill 10s / 150p, then pause.
-    await seedSession(cid, uid, 15_000, { wallet: 0, anyBonus: 50, chatBonus: 100 });
+    const T = Date.now();
+    await seedSession(cid, uid, 15_000, T, { wallet: 0, anyBonus: 50, chatBonus: 100 });
 
-    const out = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, Date.now(), undefined, true));
+    const out = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, true));
     expect(out).not.toBeNull();
     expect(out!.status).toBe('paused');
     expect(out!.billedSeconds).toBe(10);
@@ -74,9 +78,10 @@ describe('applyTick (emulator)', () => {
 
   it('does not touch the chat-only bucket for an ineligible (premium) chat', async () => {
     const uid = 'u_tick_2'; const cid = 'c_tick_2';
-    await seedSession(cid, uid, 10_000, { wallet: 1000, chatBonus: 500, eligible: false });
+    const T = Date.now();
+    await seedSession(cid, uid, 10_000, T, { wallet: 1000, chatBonus: 500, eligible: false });
 
-    await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, Date.now(), undefined, true));
+    await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, true));
     const u = (await db.collection('users').doc(uid).get()).data()!;
     expect(u.chatBonusBalance).toBe(500); // untouched
     expect(u.walletBalance).toBe(850);    // 1000 - 150 (10s @ 900/min)
@@ -85,17 +90,18 @@ describe('applyTick (emulator)', () => {
   it('P0-1: an astrologer-only heartbeat cannot bill past the customer presence frontier', async () => {
     const uid = 'u_tick_3'; const cid = 'c_tick_3';
     // Customer left 60s ago (lastTick + customerLastTick = now-60). Wallet is huge.
-    await seedSession(cid, uid, 60_000, { wallet: 100_000 });
+    const T = Date.now();
+    await seedSession(cid, uid, 60_000, T, { wallet: 100_000 });
 
     // Astrologer tick (tickedByCustomer=false): may bill only up to customer's
     // last tick + 15s settle = 15s of the 60s gap, NOT the whole gap.
-    const first = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, Date.now(), undefined, false));
+    const first = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, false));
     expect(first!.billedSeconds).toBe(15);
     expect(first!.chargedPaise).toBe(225); // 15s @ 900/min
 
     // A SECOND astrologer tick bills nothing — the meter has reached the frontier
     // and halts until the customer returns. The absent customer is not drained.
-    const second = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, Date.now(), undefined, false));
+    const second = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, false));
     expect(second!.billedSeconds).toBe(0);
     expect(second!.chargedPaise).toBe(0);
 
@@ -106,9 +112,10 @@ describe('applyTick (emulator)', () => {
   it('P1-2: a single customer catch-up tick after a long freeze is clamped to the settle window', async () => {
     const uid = 'u_tick_4'; const cid = 'c_tick_4';
     // Customer app was OS-suspended 90s, then foregrounds and fires one tick.
-    await seedSession(cid, uid, 90_000, { wallet: 100_000 });
+    const T = Date.now();
+    await seedSession(cid, uid, 90_000, T, { wallet: 100_000 });
 
-    const out = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, Date.now(), undefined, true));
+    const out = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, true));
     expect(out!.billedSeconds).toBe(15);   // clamped, NOT 90
     expect(out!.chargedPaise).toBe(225);
   });
