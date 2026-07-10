@@ -27,7 +27,7 @@ which would need Cloud Run for the dynamic `[id]` routes). Setup (first-time, vi
    `NEXT_PUBLIC_FIREBASE_FUNCTIONS_REGION=asia-south1`.
 3. Deploy → then log in to test roles.
 
-**Test accounts** (all password `Asktro@2026`, no emails sent): adrish@ / vineet@ / sanjay@ (Super),
+**Test accounts** (password set at seed time — see seed_admins.mjs; NEVER commit it): adrish@ / vineet@ / sanjay@ (Super),
 sachendra@ (Ops), neeraj@ (Astrology) — all @asktro.in.
 
 **Then: apps next.** User has NO keys yet (Agora / AI / Prokerala). Plan: build no-key app features
@@ -170,7 +170,7 @@ write your profile; then add Vineet & Sanjay from the Admin Management page. Red
 
 ### ✅ Role permissions FINALIZED (2026-07-04)
 - **Super (Adrish, Vineet, Sanjay):** full access. **3 dummy accounts created** via `seed_admins.mjs`
-  (`adrish@asktro.in` / `vineet@asktro.in` / `sanjay@asktro.in`, password `Asktro@2026`, no emails sent).
+  (`adrish@asktro.in` / `vineet@asktro.in` / `sanjay@asktro.in`, password set at seed time (never committed)).
 - **Chief Operations (Sachendra):** everything **except** — Dashboard hides Total Revenue, Revenue-trend,
   Money-held-&-owed and Test Recharge; **Pricing & Settings is view-only** (fields disabled, Save hidden;
   Firestore rules block non-super config writes); **Payouts view-only** (can't process); no Admin page.

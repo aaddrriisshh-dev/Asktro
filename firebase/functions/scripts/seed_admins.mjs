@@ -5,9 +5,12 @@
  * simply exist with the password below. Nobody is alerted; only you have the
  * credentials. Safe to run while the portal is still private.
  *
- *   node scripts/seed_admins.mjs                 # create with the default password
- *   node scripts/seed_admins.mjs MyPass123       # create with a custom password
- *   node scripts/seed_admins.mjs --clear         # disable + remove these 3 admins
+ *   node scripts/seed_admins.mjs 'MyStr0ng!Pass'  # create/reset with THIS password
+ *   node scripts/seed_admins.mjs --clear          # disable + remove these admins
+ *
+ * SECURITY: there is no built-in default password — you must pass one. Never
+ * commit a real password to this file or to any doc. Rotate immediately if a
+ * password was ever shared or committed.
  *
  * Run from the firebase/functions folder (needs serviceAccountKey.json).
  * Each account gets: role=admin, adminRole=super, and an adminUsers/{uid}
@@ -25,7 +28,6 @@ const ADMINS = [
   { name: 'Sachendra', email: 'sachendra@asktro.in', adminRole: 'ops' },
   { name: 'Neeraj', email: 'neeraj@asktro.in', adminRole: 'astrology' },
 ];
-const DEFAULT_PASSWORD = 'Asktro@2026';
 const ROLE_LABEL = { super: 'Super Admin', ops: 'Chief Operations', astrology: 'Chief Astrology' };
 
 const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || 'serviceAccountKey.json';
@@ -41,7 +43,18 @@ const auth = getAuth();
 const db = getFirestore();
 
 const clear = process.argv.includes('--clear');
-const password = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : DEFAULT_PASSWORD;
+const password = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : null;
+
+// No hardcoded fallback: refuse to run (except --clear) without an explicit,
+// reasonably strong password so a credential can never live in this repo again.
+if (!clear && (!password || password.length < 10)) {
+  console.error(
+    '\nRefusing to run: pass a strong password (>=10 chars) as the first arg,\n' +
+    "e.g.  node scripts/seed_admins.mjs 'MyStr0ng!Pass'\n" +
+    'Never commit the password anywhere.\n',
+  );
+  process.exit(1);
+}
 
 async function findUid(email) {
   try { return (await auth.getUserByEmail(email)).uid; } catch { return null; }
