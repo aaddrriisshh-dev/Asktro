@@ -63,14 +63,48 @@ class _IncomingCallGateState extends ConsumerState<IncomingCallGate> {
         if (_known.contains(r.c.id)) continue;
         _known.add(r.c.id);
         final ageMs = DateTime.now().millisecondsSinceEpoch - (r.createdAtMs ?? 0);
-        // Only ring for a fresh request, one at a time, and only while online.
-        if (!_ringing && ageMs < 100000 && (widget.self.onlineStatus)) {
-          _ring(r);
-          break;
+        if (ageMs >= 100000 || !widget.self.onlineStatus) continue; // stale / offline
+        final isCall = r.c.type == ConsultationType.voice || r.c.type == ConsultationType.video;
+        if (isCall) {
+          // A CALL is "answer now" — full-screen ring, one at a time.
+          if (!_ringing) {
+            _ring(r);
+            break;
+          }
+        } else {
+          // A CHAT is "take it when you can" — a non-blocking in-app banner, so
+          // an astrologer mid-conversation is never yanked out by a takeover.
+          // It also shows in the Consultations → New bucket + tab badge, and the
+          // push notification still fires when backgrounded.
+          _showChatRequestBanner(r);
         }
       }
     });
     return const SizedBox.shrink();
+  }
+
+  void _showChatRequestBanner(SessionRow row) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger.showSnackBar(SnackBar(
+      duration: const Duration(seconds: 6),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: Sky.card,
+      content: Row(children: [
+        const Icon(Icons.chat_bubble_rounded, size: 18, color: Sky.purple),
+        const SizedBox(width: 10),
+        Expanded(child: Text('New chat request', style: Sky.body.copyWith(fontWeight: FontWeight.w700))),
+      ],),
+      action: SnackBarAction(
+        label: 'View',
+        textColor: Sky.purple,
+        onPressed: () => Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute<void>(
+            builder: (_) => AstrologerConsultationScreen(consultationId: row.c.id, self: widget.self),
+          ),
+        ),
+      ),
+    ),);
   }
 
   Future<void> _ring(SessionRow row) async {

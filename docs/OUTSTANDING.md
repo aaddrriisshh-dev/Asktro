@@ -5,7 +5,7 @@ as items close. Companion to AUDIT.md, MASTER_TODO.md, PRE_LAUNCH.md,
 SERVER_SCALING_AND_COSTS.md, REMAINING_FIXES_PLAN.md._
 
 ## A. Deploy steps pending for code ALREADY BUILT
-- [ ] **Vercel redeploy** (`cd apps/admin && vercel --prod`) — ships the Trust &
+- [x] **Vercel redeploy** (`cd apps/admin && vercel --prod`) — ships the Trust &
       Safety `/moderation` page. ← next up
 - [ ] **App rebuild + ship (both apps)** — ships everything verified on debug but
       not yet released to stores: consent gate on all sign-ins, Report/Block,
