@@ -163,6 +163,14 @@ service cloud.firestore {
       }
     }
 
+    // ============ astrologerLedger (immutable astrologer earnings trail) ======
+    // Append-only double-entry trail for astrologer earnings/payouts/refund
+    // reversals. The astrologer reads their own; admins read all. Function-write.
+    match /astrologerLedger/{txnId} {
+      allow read: if isAdmin() || isSelf(resource.data.astrologerId);
+      allow write: if false;
+    }
+
     // ================= walletTransactions (immutable ledger) =================
     match /walletTransactions/{txnId} {
       // The owner always reads their own rows; among admins only super+ops (the

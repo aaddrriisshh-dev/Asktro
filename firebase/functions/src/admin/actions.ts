@@ -7,7 +7,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertRole, badRequest, failedPrecondition, notFound } from '../common/errors';
-import { writeLedger } from '../wallet/ledger';
+import { writeLedger, writeAstrologerLedger } from '../wallet/ledger';
 import { adminName } from '../common/actor';
 
 /** Credit or debit a user's wallet (finance/super admin). */
@@ -105,6 +105,7 @@ export const processPayout = onCall(async (req) => {
         { pendingPayout: FieldValue.increment(-(p.amount ?? 0)), updatedAt: FieldValue.serverTimestamp() },
         { merge: true },
       );
+      writeAstrologerLedger(tx, { astrologerId: p.astrologerId, kind: 'payout', amount: -(p.amount ?? 0), refId: payoutId!, note: 'Payout processed' });
     }
 
     tx.set(db.collection(Collections.auditLogs).doc(), {

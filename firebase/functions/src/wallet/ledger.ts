@@ -34,3 +34,30 @@ export function writeLedger(tx: Transaction, entry: LedgerEntry): DocumentRefere
 export function nowTs(): Timestamp {
   return Timestamp.now();
 }
+
+export type AstrologerTxnKind = 'earning' | 'payout' | 'refund_reversal';
+
+export interface AstrologerLedgerEntry {
+  astrologerId: string;
+  kind: AstrologerTxnKind;
+  amount: number; // signed paise: earning +, payout/reversal −
+  refId?: string;
+  note?: string;
+}
+
+/**
+ * Append an immutable astrologer-ledger row inside an existing transaction. The
+ * astrologer's `earnings`/`pendingPayout` counters are bare aggregates; this
+ * trail is what a payout or a drifted counter reconciles against (double-entry).
+ * Stored top-level in `astrologerLedger`; the running balance is the signed sum.
+ */
+export function writeAstrologerLedger(tx: Transaction, entry: AstrologerLedgerEntry): DocumentReference {
+  const ref = db.collection('astrologerLedger').doc();
+  tx.set(ref, {
+    ...entry,
+    refId: entry.refId ?? null,
+    note: entry.note ?? null,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  return ref;
+}

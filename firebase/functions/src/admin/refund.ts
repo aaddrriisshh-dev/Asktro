@@ -9,7 +9,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertRole, badRequest, failedPrecondition, notFound } from '../common/errors';
-import { writeLedger } from '../wallet/ledger';
+import { writeLedger, writeAstrologerLedger } from '../wallet/ledger';
 import { astrologerNetEarning } from '../billing/engine';
 import { getGlobalConfig } from '../common/config';
 
@@ -93,6 +93,7 @@ export const refundConsultation = onCall(async (req) => {
         },
         { merge: true },
       );
+      writeAstrologerLedger(tx, { astrologerId: c.astrologerId, kind: 'refund_reversal', amount: -clawEarnings, refId: consultationId!, note: reason ?? 'Refund clawback' });
     }
 
     tx.update(ref, {

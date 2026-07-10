@@ -12,6 +12,7 @@ import { getGlobalConfig } from '../common/config';
 import { assertAuthed, badRequest, failedPrecondition, notFound } from '../common/errors';
 import { applyTick, TickOutcome } from './tickConsultation';
 import { astrologerNetEarning } from './engine';
+import { writeAstrologerLedger } from '../wallet/ledger';
 
 function receiptNumber(consultationId: string, nowMs: number): string {
   return `ASK-${nowMs.toString(36).toUpperCase()}-${consultationId.slice(0, 6).toUpperCase()}`;
@@ -124,6 +125,10 @@ export const endConsultation = onCall(async (req) => {
       { earnings: FieldValue.increment(net), pendingPayout: FieldValue.increment(net), updatedAt: FieldValue.serverTimestamp() },
       { merge: true },
     );
+    // Append-only earnings trail (reconciles the bare counters).
+    if (net > 0) {
+      writeAstrologerLedger(tx, { astrologerId: c.astrologerId, kind: 'earning', amount: net, refId: consultationId!, note: `${c.type} consultation earning` });
+    }
 
     const customerRef = db.collection(Collections.users).doc(c.customerId);
     tx.set(

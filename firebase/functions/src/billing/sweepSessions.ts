@@ -22,6 +22,7 @@ import { getGlobalConfig } from '../common/config';
 import { GlobalConfig } from '../common/types';
 import { applyTick } from './tickConsultation';
 import { astrologerNetEarning } from './engine';
+import { writeAstrologerLedger } from '../wallet/ledger';
 
 const OPEN_STATUSES = ['waiting', 'active', 'paused'];
 const isCall = (type: unknown) => type === 'voice' || type === 'video';
@@ -142,6 +143,9 @@ async function expirePaused(config: GlobalConfig, nowMs: number): Promise<void> 
         { earnings: FieldValue.increment(net), pendingPayout: FieldValue.increment(net), updatedAt: FieldValue.serverTimestamp() },
         { merge: true },
       );
+      if (net > 0) {
+        writeAstrologerLedger(tx, { astrologerId: c.astrologerId, kind: 'earning', amount: net, refId: doc.id, note: `${c.type} consultation earning (timed out)` });
+      }
     });
   }
 }
