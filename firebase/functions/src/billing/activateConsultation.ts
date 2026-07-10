@@ -41,6 +41,10 @@ export const activateConsultation = onCall(async (req) => {
       status: 'active',
       startTime: FieldValue.serverTimestamp(),
       lastTickAt: FieldValue.serverTimestamp(),
+      // Seed the customer-presence marker so the billing frontier (which never
+      // bills past the customer's last confirmed heartbeat + a short settle
+      // window) starts from the session's own start, not the epoch.
+      customerLastTickAt: FieldValue.serverTimestamp(),
       paymentStatus: 'pending',
       updatedAt: FieldValue.serverTimestamp(),
     });

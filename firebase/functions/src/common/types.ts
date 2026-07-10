@@ -54,6 +54,15 @@ export interface ConsultationDoc {
   startTime: Timestamp | null;
   endTime: Timestamp | null;
   lastTickAt: Timestamp | null;
+  /** Last time the CUSTOMER party heartbeated. The billing frontier never bills
+   *  past this + a short settle window, so an astrologer-only heartbeat cannot
+   *  drain an absent customer's wallet. */
+  customerLastTickAt?: Timestamp | null;
+  /** Whether this chat may draw on the one-time chat-only welcome credit. */
+  chatCreditEligible?: boolean;
+  /** Set on the tick that granted the one-time grace minute. */
+  graceGranted?: boolean;
+  graceGrantedAt?: Timestamp | null;
   billedSeconds: number;
   duration: number;
   walletBefore: number;

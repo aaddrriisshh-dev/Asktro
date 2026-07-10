@@ -31,9 +31,28 @@ export interface TickOutcome {
   graceGranted?: boolean;
 }
 
+// The meter is gated on the CUSTOMER's presence (the paying, service-consuming
+// party). Two guards, both essential:
+//   MAX_TICK_BILL_MS       — no single tick may bill more than this. Kills the
+//                            catch-up over-bill when an OS-suspended client wakes
+//                            and fires one tick after a long freeze (P1-2).
+//   CUSTOMER_PRESENCE_TOL  — a NON-customer tick (astrologer heartbeat / sweep)
+//                            may bill at most this far past the customer's last
+//                            confirmed tick. So if the customer force-quits while
+//                            the astrologer app keeps ticking, billing halts a
+//                            short settle window later instead of draining the
+//                            absent customer's wallet (P0-1). Matches the sweep's
+//                            STALE_BILL_SETTLE_MS so both paths behave alike.
+const MAX_TICK_BILL_MS = 15_000;
+const CUSTOMER_PRESENCE_TOL_MS = 15_000;
+
 /**
  * Core tick applied inside a transaction. Shared by the callable and the
  * scheduled sweep. Returns null if the session is not billable (not active).
+ *
+ * `tickedByCustomer` MUST be true only when the customer party drove this tick;
+ * it advances the customer-presence frontier. Astrologer heartbeats and the
+ * sweep pass false, so they can never bill past the customer's presence.
  */
 export async function applyTick(
   tx: Transaction,
@@ -41,6 +60,7 @@ export async function applyTick(
   config: GlobalConfig,
   nowMs: number,
   networkStatus?: NetworkStatus,
+  tickedByCustomer = false,
 ): Promise<TickOutcome | null> {
   const consultationRef = db.collection(Collections.consultations).doc(consultationId);
   const snap = await tx.get(consultationRef);
@@ -55,6 +75,16 @@ export async function applyTick(
 
   const lastTickAtMs: number = (c.lastTickAt as Timestamp | null)?.toMillis() ?? nowMs;
 
+  // Customer-presence frontier. A customer tick confirms presence at `nowMs`;
+  // any other caller may only bill up to the customer's last confirmed tick plus
+  // a short tolerance. Then clamp the single-tick span, and never go backwards.
+  const custLastMs: number =
+    (c.customerLastTickAt as Timestamp | null)?.toMillis() ?? lastTickAtMs;
+  const presenceCeilMs = tickedByCustomer ? nowMs : custLastMs + CUSTOMER_PRESENCE_TOL_MS;
+  let billToMs = Math.min(nowMs, presenceCeilMs);
+  billToMs = Math.min(billToMs, lastTickAtMs + MAX_TICK_BILL_MS);
+  billToMs = Math.max(billToMs, lastTickAtMs);
+
   // Balance buckets. `bonusBalance` is the any-type bonus (referral/grace);
   // `chatBonusBalance` is the CHAT-ONLY welcome credit. It is spendable only on
   // an ELIGIBLE chat (AI / base-rate astrologer) — the flag is stamped on the
@@ -68,7 +98,7 @@ export async function applyTick(
 
   const result = computeTick({
     lastTickAtMs,
-    nowMs,
+    nowMs: billToMs,
     pausedSinceLastTickMs: 0,
     spendablePaise: wallet0 + combinedBonus,
     walletBalancePaise: wallet0,
@@ -151,10 +181,14 @@ export async function applyTick(
     walletAfter: finalSpendable,
     remainingSec: finalRemainingSec,
     warnLevel: finalWarnLevel,
-    lastTickAt: Timestamp.fromMillis(nowMs),
+    // Advance the billed-to marker to the (clamped) frontier, not raw nowMs, so
+    // a non-customer tick can never push billing past the customer's presence.
+    lastTickAt: Timestamp.fromMillis(billToMs),
+    // Record the customer's true last-seen time only when they drove the tick.
+    ...(tickedByCustomer ? { customerLastTickAt: Timestamp.fromMillis(nowMs) } : {}),
     networkStatus: networkStatus ?? c.networkStatus ?? 'ok',
-    ...(grantGrace ? { graceGranted: true, graceGrantedAt: Timestamp.fromMillis(nowMs) } : {}),
-    ...(willPause ? { status: 'paused', pausedAt: Timestamp.fromMillis(nowMs) } : {}),
+    ...(grantGrace ? { graceGranted: true, graceGrantedAt: Timestamp.fromMillis(billToMs) } : {}),
+    ...(willPause ? { status: 'paused', pausedAt: Timestamp.fromMillis(billToMs) } : {}),
     updatedAt: FieldValue.serverTimestamp(),
   });
 
@@ -189,7 +223,11 @@ export const tickConsultation = onCall(async (req) => {
     if (uid !== c.customerId && uid !== c.astrologerId && req.auth?.token?.role !== 'admin') {
       failedPrecondition('Not a participant of this consultation.');
     }
-    return applyTick(tx, consultationId!, config, nowMs, networkStatus);
+    // Only the customer's own heartbeat advances the billing frontier; an
+    // astrologer (or admin) tick keeps the session warm but cannot bill past the
+    // customer's last confirmed presence.
+    const tickedByCustomer = uid === c.customerId;
+    return applyTick(tx, consultationId!, config, nowMs, networkStatus, tickedByCustomer);
   });
 
   if (!outcome) {
