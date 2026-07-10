@@ -10,11 +10,10 @@ import { assertRole, badRequest, failedPrecondition, notFound } from '../common/
 import { writeLedger, writeAstrologerLedger } from '../wallet/ledger';
 import { adminName } from '../common/actor';
 
-/** Credit or debit a user's wallet (finance/super admin). */
+/** Credit or debit a user's wallet (super admin only — money action). */
 export const adjustWallet = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
-  const role = req.auth?.token?.adminRole;
-  if (role !== 'super' && role !== 'finance') failedPrecondition('Requires finance or super admin.');
+  if (req.auth?.token?.adminRole !== 'super') failedPrecondition('Requires a super admin.');
 
   const { userId, amountPaise, reason } = (req.data ?? {}) as {
     userId?: string;
@@ -59,11 +58,10 @@ export const adjustWallet = onCall(async (req) => {
   return { ok: true };
 });
 
-/** Approve/reject/process a payout request (finance/super admin). */
+/** Approve/reject/process a payout request (super admin only — money action). */
 export const processPayout = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
-  const role = req.auth?.token?.adminRole;
-  if (role !== 'super' && role !== 'finance') failedPrecondition('Requires finance or super admin.');
+  if (req.auth?.token?.adminRole !== 'super') failedPrecondition('Requires a super admin.');
 
   const { payoutId, decision } = (req.data ?? {}) as {
     payoutId?: string;

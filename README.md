@@ -65,6 +65,27 @@ flutter run
 ```
 `packages/shared_flutter` is consumed via a path dependency; no publish step.
 
+## Deployment (Cloud Functions)
+A v2 deploy needs the five `defineSecret` values set in Functions secrets FIRST,
+or `createRechargeOrder` / `verifyRecharge` / `razorpayWebhook` / `generateAgoraToken`
+fail to deploy on missing secrets. Set them once per project:
+```bash
+firebase functions:secrets:set RAZORPAY_KEY_ID
+firebase functions:secrets:set RAZORPAY_KEY_SECRET
+firebase functions:secrets:set RAZORPAY_WEBHOOK_SECRET
+firebase functions:secrets:set AGORA_APP_ID
+firebase functions:secrets:set AGORA_APP_CERTIFICATE
+```
+Then deploy (rules/indexes can go separately):
+```bash
+firebase deploy --only functions
+firebase deploy --only firestore:rules
+firebase deploy --only firestore:indexes
+```
+Non-owner deploys: the service account also needs IAM permission to grant the
+Cloud Run **invoker** binding on new callables (or grant `allUsers → Cloud Run
+Invoker` per new callable manually). See `docs/DEPLOY_RUNBOOK_AUDIT_FIXES.md`.
+
 ## Security
 Per-role Firestore/Storage rules; wallet/timer/billing fields are function-write-only.
 Razorpay signatures verified server-side with idempotent callbacks. Agora tokens

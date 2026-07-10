@@ -18,7 +18,7 @@ const _pages = [
   _Page(Icons.account_balance_wallet_outlined, 'Recharge & Consult Anytime',
       'A simple wallet with secure payments and instant consultations, whenever you need clarity.',),
   _Page(Icons.lock_outline_rounded, 'Private & Secure',
-      'Every consultation is private, encrypted and completely secure.',),
+      'Your consultations are private and confidential, protected with industry-standard security.',),
 ];
 
 class OnboardingScreen extends ConsumerStatefulWidget {

@@ -15,8 +15,7 @@ import { getGlobalConfig } from '../common/config';
 
 export const refundConsultation = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
-  const role = req.auth?.token?.adminRole;
-  if (role !== 'super' && role !== 'finance') failedPrecondition('Requires finance or super admin.');
+  if (req.auth?.token?.adminRole !== 'super') failedPrecondition('Requires a super admin.');
 
   const { consultationId, amountPaise, reason } = (req.data ?? {}) as {
     consultationId?: string;
