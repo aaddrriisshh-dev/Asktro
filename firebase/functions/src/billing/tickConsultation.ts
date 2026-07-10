@@ -178,9 +178,17 @@ export async function applyTick(
     });
   }
 
+  // Track how this charge was FUNDED (real wallet vs non-withdrawable bonus/grace)
+  // so a later refund returns money to the right bucket instead of turning free
+  // credit into withdrawable cash (P3-7).
+  const chargedFromBonusThisTick = consumedBonus;
+  const chargedFromWalletThisTick = Math.max(0, result.chargedPaise - consumedBonus);
+
   tx.update(consultationRef, {
     billedSeconds: FieldValue.increment(result.billedSeconds),
     totalCharged: FieldValue.increment(result.chargedPaise),
+    chargedFromWallet: FieldValue.increment(chargedFromWalletThisTick),
+    chargedFromBonus: FieldValue.increment(chargedFromBonusThisTick),
     walletAfter: finalSpendable,
     remainingSec: finalRemainingSec,
     warnLevel: finalWarnLevel,

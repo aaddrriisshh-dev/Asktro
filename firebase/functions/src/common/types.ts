@@ -72,6 +72,10 @@ export interface ConsultationDoc {
   walletBefore: number;
   walletAfter: number;
   totalCharged: number;
+  /** Cumulative split of totalCharged by funding source, so a refund returns
+   *  money to the right bucket (real wallet vs non-withdrawable bonus/grace). */
+  chargedFromWallet?: number;
+  chargedFromBonus?: number;
   pausedAccumMs: number;
   pausedAt: Timestamp | null;
   warnLevel: 0 | 1 | 2 | 3;
