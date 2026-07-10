@@ -7,7 +7,21 @@ in order. **No code has been changed for anything below yet.**
 
 ---
 
-## TIER 1 — recommended next (correctness / security / makes the new systems usable)
+## ✅ TIER 1 — DONE (committed + pushed; needs a deploy round)
+All three implemented and verified (backend build + 26 unit + 4 emulator tests /
+portal typecheck + full next build). **To go live, deploy this batch:**
+1. `firebase deploy --only functions` (ships P2-5 cumulative billing + the new
+   `resolveOpsItem` callable). Expect the usual Node-20 409 wobble — verify with
+   `firebase functions:list`.
+2. `firebase deploy --only firestore:rules` (ships P2-8 ledger restriction).
+3. Grant **Cloud Run Invoker → allUsers** on the new **`resolveOpsItem`** callable
+   (so the Resolve buttons work) — same as the earlier new callables.
+4. Redeploy the admin portal on Vercel (`cd apps/admin && vercel --prod`) — ships
+   the new **Trust & Safety** page (`/moderation`).
+
+Detail of what each was:
+
+
 
 ### 1. P2-5 — per-tick rounding overcharge (real money bug on custom rates)
 - **Problem:** billing rounds each ~10s tick separately. For a per-minute rate not
