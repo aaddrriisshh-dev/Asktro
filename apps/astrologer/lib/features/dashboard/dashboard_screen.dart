@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../ui/celestial.dart';
 import 'home_tab.dart';
 import '../consultation/incoming_call.dart';
+import 'presence_heartbeat.dart';
 import '../consultation/consultations_tab.dart';
 import '../wallet/wallet_tab.dart';
 import '../notifications/notifications_tab.dart';
@@ -57,6 +58,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               IndexedStack(index: index, children: _tabs),
               // Invisible sentinel that raises the full-screen ring on a new request.
               IncomingCallGate(self: astrologer),
+              // Invisible sentinel: presence heartbeat so a crashed/dropped app
+              // is forced offline server-side (no "ghost online").
+              PresenceHeartbeat(uid: astrologer.id),
             ],
           ),
         );

@@ -37,6 +37,7 @@ export const sweepStaleSessions = onSchedule('every 1 minutes', async () => {
     ['expirePaused', () => expirePaused(config, nowMs)],
     ['expireWaiting', () => expireWaiting(config, nowMs)],
     ['reconcileAvailability', () => reconcileAvailability()],
+    ['reconcileStaleOnline', () => reconcileStaleOnline(nowMs)],
   ];
   for (const [name, run] of jobs) {
     try {
@@ -183,6 +184,35 @@ async function expireWaiting(config: GlobalConfig, nowMs: number): Promise<void>
         );
       }
     });
+  }
+}
+
+// --- 5. Reconcile "ghost online" — presence heartbeat gone stale ---
+// A human astrologer's app writes a `presence/{id}.lastSeen` heartbeat while
+// online. If a crash / lost connection stops the heartbeat, `onlineStatus`
+// would otherwise stay true forever and customers would send requests no one
+// can accept. Any online human whose heartbeat is older than STALE_ONLINE_MS is
+// forced offline (and freed). Presence lives OFF the public astrologer doc so
+// the ~per-minute heartbeat never churns the directory customers are watching.
+const STALE_ONLINE_MS = 3 * 60 * 1000;
+
+async function reconcileStaleOnline(nowMs: number): Promise<void> {
+  const online = await db
+    .collection(Collections.astrologers)
+    .where('onlineStatus', '==', true)
+    .limit(300)
+    .get();
+
+  for (const astro of online.docs) {
+    if (astro.data().isAI === true) continue; // AI personas are always available
+    const pres = await db.collection('presence').doc(astro.id).get();
+    const lastSeen = (pres.data()?.lastSeen as Timestamp | undefined)?.toMillis?.() ?? 0;
+    if (nowMs - lastSeen > STALE_ONLINE_MS) {
+      await astro.ref.set(
+        { onlineStatus: false, available: true, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+    }
   }
 }
 

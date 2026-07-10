@@ -163,6 +163,18 @@ service cloud.firestore {
       }
     }
 
+    // ================= presence (astrologer online heartbeat) ==============
+    // The astrologer writes ONLY a heartbeat timestamp here while online; a sweep
+    // reads it to force a crashed/dropped app offline. Kept off the public doc so
+    // the frequent write never churns the directory. Client may only write
+    // lastSeen (never flip anyone else's presence).
+    match /presence/{astrologerId} {
+      allow read: if isSelf(astrologerId) || isAdmin();
+      // The doc only ever holds a lastSeen timestamp; the owner writes their own.
+      allow write: if isSelf(astrologerId)
+        && request.resource.data.keys().hasOnly(['lastSeen']);
+    }
+
     // ============ astrologerLedger (immutable astrologer earnings trail) ======
     // Append-only double-entry trail for astrologer earnings/payouts/refund
     // reversals. The astrologer reads their own; admins read all. Function-write.

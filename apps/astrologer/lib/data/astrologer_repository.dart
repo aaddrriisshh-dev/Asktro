@@ -88,6 +88,15 @@ class AstrologerRepository {
         SetOptions(merge: true),
       );
 
+  /// Presence heartbeat — written to a SEPARATE presence doc (not the public
+  /// directory doc) while the astrologer is online, so a sweep can force a
+  /// crashed/dropped app offline without the frequent write churning the doc
+  /// customers watch.
+  Future<void> heartbeat(String uid) => _db.collection('presence').doc(uid).set(
+        {'lastSeen': FieldValue.serverTimestamp()},
+        SetOptions(merge: true),
+      );
+
   Future<void> updateProfile(String uid, Map<String, dynamic> patch) => _self(uid).set(
         {...patch, 'updatedAt': FieldValue.serverTimestamp()},
         SetOptions(merge: true),
