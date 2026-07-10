@@ -49,15 +49,17 @@ export { onNotificationCreated, sendBroadcast } from './notifications/sender';
 export { askRemedyQuestion, answerRemedyQuestion } from './remedies/remedyFollowUp';
 
 // ---- Content moderation (report / block / auto-flag) ----
-// NOTE: onChatImageUploaded (the Storage-triggered image-scan queue) is
-// intentionally NOT exported yet. A Storage/Eventarc trigger requires a one-time
-// IAM grant (Cloud Storage service agent → roles/pubsub.publisher) that the
-// deploy service account can't set itself, and the scan is inert until the Cloud
-// Vision API + config flag are enabled. Re-export it when wiring up image
-// moderation (see DEPLOY_RUNBOOK_AUDIT_FIXES.md).
+// onChatImageUploaded is a Storage-triggered (us-east1, matching the default
+// bucket) queue: it records every chat image to `imageModeration` for admin
+// review, and — once config.featureFlags.imageModeration is true and the Cloud
+// Vision API + package are provisioned — auto-scans and deletes unsafe images.
+// Deploying it needs a ONE-TIME IAM grant the deploy SA can't set itself:
+//   Cloud Storage service agent → roles/pubsub.publisher
+// (see DEPLOY_RUNBOOK_AUDIT_FIXES.md). Until that grant exists the first deploy
+// of this one function will fail; the rest of the codebase deploys fine.
 export {
   reportContent, blockUser, unblockUser,
-  onChatMessageCreated,
+  onChatMessageCreated, onChatImageUploaded,
 } from './moderation/moderation';
 
 // ---- Admin financial actions ----
