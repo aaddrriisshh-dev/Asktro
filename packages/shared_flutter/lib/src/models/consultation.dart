@@ -17,6 +17,7 @@ class Consultation extends Equatable {
     this.walletAfter = 0,
     this.remainingSec = 0,
     this.warnLevel = 0,
+    this.networkStatus = 'ok',
     this.graceGranted = false,
     this.agoraChannel,
     this.receiptNo,
@@ -38,6 +39,9 @@ class Consultation extends Equatable {
   final int walletAfter; // paise
   final int remainingSec;
   final int warnLevel; // 0..3
+  /// 'ok' normally; 'reconnecting' when a disconnect paused the session — the
+  /// signal the client uses to auto-resume once the network is back.
+  final String networkStatus;
   final bool graceGranted; // a one-time grace minute was gifted this session
   final String? agoraChannel;
   final String? receiptNo;
@@ -96,6 +100,7 @@ class Consultation extends Equatable {
       walletAfter: (m['walletAfter'] ?? 0) as int,
       remainingSec: (m['remainingSec'] ?? 0) as int,
       warnLevel: (m['warnLevel'] ?? 0) as int,
+      networkStatus: (m['networkStatus'] ?? 'ok') as String,
       graceGranted: (m['graceGranted'] ?? false) as bool,
       agoraChannel: m['agoraChannel'] as String?,
       receiptNo: m['receiptNo'] as String?,
@@ -111,7 +116,7 @@ class Consultation extends Equatable {
   @override
   List<Object?> get props => [
         id, customerId, astrologerId, type, status, pricePerMinute, billedSeconds,
-        duration, totalCharged, walletAfter, remainingSec, warnLevel, graceGranted,
-        agoraChannel, receiptNo, rating, review, startTimeMs, endTimeMs,
+        duration, totalCharged, walletAfter, remainingSec, warnLevel, networkStatus,
+        graceGranted, agoraChannel, receiptNo, rating, review, startTimeMs, endTimeMs,
       ];
 }

@@ -43,6 +43,8 @@ class ConsultationController extends StateNotifier<AsyncValue<ConsultationState>
   StreamSubscription<Consultation>? _sub;
   Timer? _display;
   Timer? _heartbeat;
+  // Guards the network-loss auto-resume so it fires at most once per pause.
+  bool _autoResumeAttempted = false;
 
   ConsultationService get _service => _ref.read(consultationServiceProvider);
 
@@ -58,7 +60,27 @@ class ConsultationController extends StateNotifier<AsyncValue<ConsultationState>
         ),
       );
       _syncTimers(c.status);
+      _maybeAutoResume(c);
     }, onError: (e, st) => state = AsyncValue.error(e, st),);
+  }
+
+  /// Auto-resume a session the server paused due to a dropped connection, the
+  /// moment this client is receiving updates again. Only a network-loss pause
+  /// (`networkStatus == 'reconnecting'`) with balance left is resumed — never an
+  /// exhaustion pause (that needs a recharge) or a terminal state — and only
+  /// once per pause, so a failed resume never loops.
+  void _maybeAutoResume(Consultation c) {
+    if (c.status == ConsultationStatus.active) {
+      _autoResumeAttempted = false;
+      return;
+    }
+    if (c.status == ConsultationStatus.paused &&
+        c.networkStatus == 'reconnecting' &&
+        c.remainingSec > 0 &&
+        !_autoResumeAttempted) {
+      _autoResumeAttempted = true;
+      resume();
+    }
   }
 
   void _syncTimers(ConsultationStatus status) {
