@@ -1,4 +1,26 @@
-# Remaining fixes — plan (prepared, NOT yet implemented)
+# Remaining fixes — plan + progress
+
+## ✅ DONE this session (committed + pushed; needs a deploy round)
+**Tier 1:** P2-5 cumulative billing · P2-8 ledger read-tier · Trust & Safety console (P3-3)
+**Tier 2:** P2-10/11 astrologer ledger · P2-7 presence heartbeat · client auto-resume (P1-2) · P2-14 retention purge (default OFF)
+**Tier 3:** P2-13 honest copy · P4-1 README secrets · P4-2 real Flutter test · P4-3 dead-role cleanup
+All verified (functions build + 26 jest + 4 emulator · portal typecheck + next build · flutter analyze + test clean).
+
+## ⏳ Still open (code)
+- **Accept/Decline on the notification** — native Android; needs a device to verify. Deferred.
+- **Portal pagination (P2-3)** + **scale sharding (P2-1/4/16)** — only bite near ~100k; documented in SERVER_SCALING.
+- **P2-6** in-callable rate-limiting · **P2-15** broadcast in-app record.
+- **P3-2** portal/functions error tracking (Sentry) — needs a Sentry account.
+
+## 🔑 Not code (your side)
+- **P1-10 Apple IAP** decision · Vision enable · GitHub Actions enable · Razorpay live keys · iOS APNs · App Check enforcement · release keystore · Agora keys.
+
+**Deploy for the above batch:** `firebase deploy --only functions` (P2-5/ledger/presence/retention/resolveOpsItem + role cleanup), `--only firestore:rules` (P2-8/ledger/presence rules), grant invoker on `resolveOpsItem`, `vercel --prod` (moderation page), rebuild apps (auto-resume, presence, copy).
+
+---
+
+# Original plan (for reference)
+
 
 Status after the audit-fix batch: all **P0** and every **security/legal/correctness P1**
 are fixed, deployed, and device-verified. This doc lists what's still open, what I'd
