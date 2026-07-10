@@ -14,10 +14,12 @@ export const DEFAULT_CONFIG: GlobalConfig = {
   commissionPercent: 20,
   freeChatMinutes: 3, // welcome free chat minutes for new customers
   graceMinutes: 1, // one free grace minute when balance runs out mid-session
+  chatRetentionDays: 0, // 0 = keep chat content forever (purge disabled)
   featureFlags: {
     voice: true,
     video: true,
     referrals: true,
+    retention: false, // chat-retention purge OFF until a policy window is set
   },
 };
 

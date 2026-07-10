@@ -32,6 +32,9 @@ export interface GlobalConfig {
   freeChatMinutes: number;
   /** One-time grace minutes added when a live session's balance is exhausted. */
   graceMinutes: number;
+  /** Days to retain chat content before the retention purge strips it (0 = keep
+   *  forever / purge disabled). Only acts when featureFlags.retention is true. */
+  chatRetentionDays?: number;
   featureFlags: Record<string, boolean>;
 }
 

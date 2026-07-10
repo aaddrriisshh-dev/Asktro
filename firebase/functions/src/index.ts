@@ -67,6 +67,9 @@ export { refundConsultation } from './admin/refund';
 // ---- Admin trust & safety / ops ----
 export { resolveOpsItem } from './admin/ops';
 
+// ---- Data retention (default OFF; flag-gated) ----
+export { purgeOldChatData } from './ops/retention';
+
 // ---- Admin astrologer provisioning ----
 export { createAstrologer, updateAstrologer, deleteAstrologer } from './admin/createAstrologer';
 
