@@ -152,7 +152,11 @@ export const onChatMessageCreated = onDocumentCreated(
  * is a provisioning step (install the dep + enable the Vision API), not a code
  * change. Until then, images are queued for manual admin review.
  */
-export const onChatImageUploaded = onObjectFinalized(async (event) => {
+// A Storage trigger MUST run in the same region as the bucket. The default
+// bucket for this project lives in us-east1, so we pin this one function there
+// (overriding the global asia-south1) — otherwise deploy fails with
+// "a function in region asia-south1 cannot listen to a bucket in region us-east1".
+export const onChatImageUploaded = onObjectFinalized({ region: 'us-east1' }, async (event) => {
   const name = event.data.name ?? '';
   if (!name.startsWith('chat_images/')) return;
   const parts = name.split('/');
