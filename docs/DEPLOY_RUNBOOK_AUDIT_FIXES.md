@@ -27,8 +27,17 @@ then the next.
    `firebase deploy --only functions`
 3. **Rules**:
    `firebase deploy --only firestore:rules`
-4. **Rebuild + ship the two Flutter apps**, and **redeploy the admin portal** on Vercel.
-5. **Backfill LAST** (after functions are live, so new accruals already write to
+4. **Grant Cloud Run Invoker → `allUsers`** on the newly-called callables so the
+   app/portal buttons can reach them (the deploy service account can't set this
+   itself). Functions: `refundConsultation`, `reportContent`, `blockUser`,
+   `unblockUser`. Per function in the Cloud Run console → the service →
+   *Security/Permissions* → add principal `allUsers`, role **Cloud Run Invoker**
+   (i.e. "Allow unauthenticated"; the Firebase Auth token is still checked inside
+   the function). Or `gcloud run services add-iam-policy-binding <fn>
+   --member=allUsers --role=roles/run.invoker --region=asia-south1`. Existing
+   callables already have this from earlier deploys — only these four are new.
+5. **Rebuild + ship the two Flutter apps**, and **redeploy the admin portal** on Vercel.
+6. **Backfill LAST** (after functions are live, so new accruals already write to
    `private/financials`; the script increments the old public value in and
    deletes it from the public doc — transaction-safe, idempotent):
    ```
@@ -58,8 +67,9 @@ astrologer's displayed earnings never dips between step 4 and step 5.
 - **Chat image NSFW auto-scan** — written but NOT deployed (needs a one-time IAM
   grant + Vision API). Full enable steps live in **`PRE_LAUNCH.md` → Chat image
   auto-scan**. Report/block/text-flag moderation ARE live.
-- **Moderation UI** — backend (report/block) is live; the customer/astrologer
-  chat screens still need a "Report / Block" affordance wired to the callables.
+- ✅ **Moderation UI DONE** — Report/Block wired into the astrologer profile
+  (customer app) and the in-consultation header (astrologer app); Refund wired
+  into the admin user-detail view. They need step 4's invoker grant to function.
 - **Client auto-resume on network pause** — server now pauses a disconnected
   session (no more over-billing); a nice follow-up is auto-calling `resume`
   when the app reconnects with balance (today the user taps resume).
