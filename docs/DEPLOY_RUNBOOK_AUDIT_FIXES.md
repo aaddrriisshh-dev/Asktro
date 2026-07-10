@@ -55,10 +55,9 @@ astrologer's displayed earnings never dips between step 4 and step 5.
 ## Still open (not code — your action / a decision)
 - **Apple IAP (P1-10)** — decision needed: IAP vs. web-only recharge vs.
   carve-out. Not a code change until you choose.
-- **Image NSFW auto-scan** — code is in (`onChatImageUploaded`); to turn on real
-  scanning, enable the Cloud Vision API, `npm i @google-cloud/vision` in
-  functions, and set `config/global.featureFlags.imageModeration = true`. Until
-  then images are queued in `imageModeration` for manual admin review.
+- **Chat image NSFW auto-scan** — written but NOT deployed (needs a one-time IAM
+  grant + Vision API). Full enable steps live in **`PRE_LAUNCH.md` → Chat image
+  auto-scan**. Report/block/text-flag moderation ARE live.
 - **Moderation UI** — backend (report/block) is live; the customer/astrologer
   chat screens still need a "Report / Block" affordance wired to the callables.
 - **Client auto-resume on network pause** — server now pauses a disconnected

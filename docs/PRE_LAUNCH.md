@@ -15,6 +15,34 @@
 
 ---
 
+## 🖼️ CHAT IMAGE AUTO-SCAN (NSFW) — enable before launch
+
+The server-side image-safety trigger (`onChatImageUploaded`) is **written but
+deliberately NOT deployed yet**. Once on, it sends every chat photo to Google
+Cloud Vision SafeSearch and **auto-deletes + alerts** on adult/violent images so
+they never reach the other person. Until enabled, uploaded images are only queued
+in `imageModeration` for manual admin review — nothing is auto-blocked.
+
+Why it's deferred: a Storage/Eventarc trigger needs a one-time IAM grant the
+deploy service account can't set itself, and the real scan needs the Vision API.
+Turn it on in ONE step (all of the below together):
+
+- [ ] **Grant the IAM role.** Cloud Console → IAM → *Grant access* → principal
+  `service-234450497443@gs-project-accounts.iam.gserviceaccount.com` → role
+  **Pub/Sub Publisher** (`roles/pubsub.publisher`). _(Or make the deploy account
+  a project Owner once, and the Firebase CLI configures this automatically.)_
+- [ ] **Enable the Cloud Vision API** on the project (console → APIs & Services).
+- [ ] **Install the client:** `cd firebase/functions && npm i @google-cloud/vision`.
+- [ ] **Flip the flag:** set `config/global.featureFlags.imageModeration = true`.
+- [ ] **Re-export + deploy:** add `onChatImageUploaded` back to the moderation
+  export in `functions/src/index.ts`, then `firebase deploy --only functions`.
+  _(Remember: this one function must run in **us-east1** — the bucket's region.)_
+
+Note: report-user, block-user, and automatic **text** flagging (abuse / phone-
+number sharing) are ALREADY live — only the image auto-scan is pending.
+
+---
+
 ## 📱 iOS PUSH NOTIFICATIONS — required before iOS launch (Apple-side, only Adrish can do)
 
 Launching iOS + Android together, so iOS push **must** be set up. The app code already
