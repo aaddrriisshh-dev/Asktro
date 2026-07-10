@@ -43,9 +43,10 @@ export const createRechargeOrder = onCall(
       { userId, planId, couponId: couponId ?? '' },
     );
 
-    // Persist the authoritative order→plan binding. verifyRecharge reads THIS,
-    // never the client's planId, so a paid ₹X order can't be redeemed as a
-    // larger plan. (The webhook uses the order's own notes for the same reason.)
+    // Persist the authoritative order→plan binding. BOTH verifyRecharge and the
+    // razorpayWebhook read THIS doc (never the client's planId or the payment's
+    // notes), so a paid ₹X order can't be redeemed as a larger plan, and a
+    // client-crash-then-webhook still credits the correct plan.
     await db.collection('rechargeOrders').doc(order.id).set({
       userId,
       planId,
@@ -122,12 +123,32 @@ export const razorpayWebhook = onRequest(
     const event = rawReq.body?.event as string | undefined;
     if (event === 'payment.captured') {
       const entity = rawReq.body?.payload?.payment?.entity ?? {};
-      const notes = entity.notes ?? {};
-      const userId = notes.userId as string | undefined;
-      const planId = notes.planId as string | undefined;
-      const couponId = (notes.couponId as string | undefined) || null;
       const paymentId = entity.id as string | undefined;
       const orderId = entity.order_id as string | undefined;
+
+      // AUTHORITATIVE RESOLUTION: read userId/planId from the rechargeOrders doc
+      // we wrote at order creation — NOT from entity.notes. Razorpay does not
+      // copy order notes onto the payment entity, so payment.captured notes are
+      // typically empty; relying on them meant a captured-but-never-credited
+      // payment on the client-crash path with no dead-letter. Notes are only a
+      // last-resort fallback for any legacy order missing its binding doc.
+      const notes = entity.notes ?? {};
+      let userId = notes.userId as string | undefined;
+      let planId = notes.planId as string | undefined;
+      let couponId = (notes.couponId as string | undefined) || null;
+      if (orderId) {
+        try {
+          const orderSnap = await db.collection('rechargeOrders').doc(orderId).get();
+          const rec = orderSnap.data();
+          if (rec) {
+            userId = (rec.userId as string | undefined) ?? userId;
+            planId = (rec.planId as string | undefined) ?? planId;
+            couponId = (rec.couponId as string | null | undefined) ?? couponId;
+          }
+        } catch (e) {
+          logger.error('razorpayWebhook: order lookup failed', { orderId, paymentId, error: e instanceof Error ? e.message : String(e) });
+        }
+      }
 
       if (userId && planId && paymentId && orderId) {
         try {
@@ -142,8 +163,15 @@ export const razorpayWebhook = onRequest(
             logger.error('webhook: recordFailedCredit ALSO failed', { paymentId, error: re instanceof Error ? re.message : String(re) }),
           );
         }
-      } else {
-        logger.warn('razorpayWebhook: payment.captured missing notes', { paymentId, orderId, hasUser: !!userId, hasPlan: !!planId });
+      } else if (paymentId) {
+        // Could not resolve the order → still NEVER silently lose the money.
+        // Dead-letter it (keyed by paymentId) and alert an operator; the order
+        // binding may arrive late (webhook racing the create) and a retry/manual
+        // resolve can then credit it.
+        await recordFailedCredit(
+          { userId: userId ?? 'unknown', paymentId, orderId: orderId ?? 'unknown', planId: planId ?? 'unknown', couponId },
+          new Error('webhook: could not resolve order→user/plan binding'),
+        ).catch((re) => logger.error('webhook: recordFailedCredit ALSO failed', { paymentId, error: re instanceof Error ? re.message : String(re) }));
       }
     }
     res.status(200).send('ok');
