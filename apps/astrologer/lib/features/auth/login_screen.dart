@@ -133,7 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text('Sign in', style: Sky.h1.copyWith(fontSize: 22)),
                       const SizedBox(height: 4),
                       Text('Use the credentials provided by the Asktro team.',
-                          style: Sky.label.copyWith(fontSize: 13)),
+                          style: Sky.label.copyWith(fontSize: 13),),
                       const SizedBox(height: 18),
                       TextField(
                         controller: _email,
@@ -150,7 +150,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         decoration: _dec('Password', Icons.lock_outline_rounded).copyWith(
                           suffixIcon: IconButton(
                             icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                size: 20, color: Sky.ink2),
+                                size: 20, color: Sky.ink2,),
                             onPressed: () => setState(() => _obscure = !_obscure),
                           ),
                         ),
@@ -182,7 +182,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 20),
                 Center(
                   child: Text('Asktro Tech Private Limited',
-                      style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
+                      style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3),),
                 ),
               ],
             ),

@@ -375,7 +375,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                             padding: const EdgeInsets.all(32),
                             child: Text('Say hello and begin the consultation.',
                                 textAlign: TextAlign.center,
-                                style: Sky.label.copyWith(fontSize: 13, color: Sky.ink3)),
+                                style: Sky.label.copyWith(fontSize: 13, color: Sky.ink3),),
                           ),
                         )
                       : ListView.builder(

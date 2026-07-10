@@ -51,7 +51,7 @@ class _TextFallback extends StatelessWidget {
               TextSpan(
                 text: '.in',
                 style: TextStyle(
-                    color: const Color(0xFFC39A49), fontSize: height * 0.42),
+                    color: const Color(0xFFC39A49), fontSize: height * 0.42,),
               ),
             ],
           ),

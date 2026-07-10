@@ -1,4 +1,5 @@
 /// Shared enums mirroring the backend string values.
+library;
 
 enum ConsultationType {
   chat,

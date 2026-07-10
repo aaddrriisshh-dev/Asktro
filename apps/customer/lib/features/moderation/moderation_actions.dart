@@ -111,7 +111,7 @@ class ModerationMenu extends ConsumerWidget {
       await ref.read(functionsProvider).httpsCallable('blockUser').call<Map<String, dynamic>>({'targetId': targetId});
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${targetLabel[0].toUpperCase()}${targetLabel.substring(1)} blocked.')));
+            SnackBar(content: Text('${targetLabel[0].toUpperCase()}${targetLabel.substring(1)} blocked.')),);
       }
     } catch (_) {
       if (context.mounted) {

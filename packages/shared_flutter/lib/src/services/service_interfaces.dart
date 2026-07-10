@@ -44,7 +44,7 @@ abstract interface class ConsultationService {
   Future<Result<void>> resume(String consultationId);
   Future<Result<Consultation>> end(String consultationId);
   Future<Result<void>> rate(String consultationId,
-      {required double rating, String? review, double? behaviorRating, double? accuracyRating});
+      {required double rating, String? review, double? behaviorRating, double? accuracyRating,});
 
   /// Realtime stream of a single session (timer, wallet, status).
   Stream<Consultation> watch(String consultationId);

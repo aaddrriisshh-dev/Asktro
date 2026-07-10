@@ -284,7 +284,7 @@ class HomeTab extends ConsumerWidget {
   Widget _remedyQuestions(BuildContext context, int count) {
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const RemedyQuestionsScreen())),
+          MaterialPageRoute(builder: (_) => const RemedyQuestionsScreen()),),
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -310,7 +310,7 @@ class HomeTab extends ConsumerWidget {
                   Text('Remedy questions', style: Sky.h2.copyWith(fontSize: 15)),
                   const SizedBox(height: 2),
                   Text(count == 1 ? '1 customer is waiting for your reply' : '$count customers are waiting for your reply',
-                      style: Sky.label.copyWith(fontSize: 11.5, color: Sky.ink2)),
+                      style: Sky.label.copyWith(fontSize: 11.5, color: Sky.ink2),),
                 ],
               ),
             ),
@@ -321,7 +321,7 @@ class HomeTab extends ConsumerWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(color: Sky.purple, borderRadius: BorderRadius.circular(999)),
               child: Text('$count',
-                  style: Sky.label.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+                  style: Sky.label.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),),
             ),
             const SizedBox(width: 4),
             const Icon(Icons.chevron_right_rounded, color: Sky.ink3),

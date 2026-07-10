@@ -89,14 +89,14 @@ class AstrologerCardSkeleton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: softCardDecoration(),
-        child: Row(
+        child: const Row(
           children: [
-            const SkeletonBox(width: 56, height: 56, radius: 28),
-            const SizedBox(width: AppSpacing.lg),
+            SkeletonBox(width: 56, height: 56, radius: 28),
+            SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   SkeletonBox(width: 140, height: 16),
                   SizedBox(height: AppSpacing.sm),
                   SkeletonBox(width: 90, height: 12),

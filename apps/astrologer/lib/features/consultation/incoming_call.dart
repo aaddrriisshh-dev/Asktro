@@ -249,12 +249,12 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen>
                           Container(
                             width: 40, height: 4,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFCBBFE8), borderRadius: BorderRadius.circular(99)),
+                              color: const Color(0xFFCBBFE8), borderRadius: BorderRadius.circular(99),),
                           ),
                           const SizedBox(height: 14),
                           Text('INCOMING ${type.name.toUpperCase()} CONSULTATION',
                               style: Sky.label.copyWith(
-                                  color: Sky.purple, letterSpacing: 1.8, fontSize: 11.5, fontWeight: FontWeight.w800)),
+                                  color: Sky.purple, letterSpacing: 1.8, fontSize: 11.5, fontWeight: FontWeight.w800,),),
                           const SizedBox(height: 20),
                           // Pulsing halo around the caller's avatar.
                           AnimatedBuilder(
@@ -274,7 +274,7 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen>
                                     child: Container(
                                       width: 92, height: 92,
                                       decoration: const BoxDecoration(
-                                          shape: BoxShape.circle, gradient: Sky.goldGrad),
+                                          shape: BoxShape.circle, gradient: Sky.goldGrad,),
                                       padding: const EdgeInsets.all(3),
                                       child: AppAvatar(name: name, photoUrl: cust?.profilePhoto, size: 86),
                                     ),
@@ -286,10 +286,10 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen>
                           const SizedBox(height: 16),
                           Text(name,
                               style: Sky.h1.copyWith(color: Sky.ink, fontSize: 25),
-                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                              maxLines: 1, overflow: TextOverflow.ellipsis,),
                           const SizedBox(height: 4),
                           Text('is requesting a consultation',
-                              style: Sky.label.copyWith(color: Sky.ink2, fontSize: 13.5)),
+                              style: Sky.label.copyWith(color: Sky.ink2, fontSize: 13.5),),
                           if (chip.isNotEmpty) ...[
                             const SizedBox(height: 12),
                             Container(
@@ -306,7 +306,7 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen>
                                   const SizedBox(width: 6),
                                   Text(chip,
                                       style: Sky.label.copyWith(
-                                          color: Sky.purpleDeep, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                                          color: Sky.purpleDeep, fontSize: 12.5, fontWeight: FontWeight.w700,),),
                                 ],
                               ),
                             ),
@@ -331,7 +331,7 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen>
                           ),
                           const SizedBox(height: 10),
                           Text(_acting ? 'Connecting…' : 'Auto-declines shortly if unanswered',
-                              style: Sky.label.copyWith(color: Sky.ink3, fontSize: 11.5)),
+                              style: Sky.label.copyWith(color: Sky.ink3, fontSize: 11.5),),
                         ],
                       ),
                     ),

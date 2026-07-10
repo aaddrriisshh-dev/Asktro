@@ -174,7 +174,7 @@ class _RemedyCardState extends State<_RemedyCard> {
             Text(note,
                 style: AppTypography.body.copyWith(height: 1.35),
                 maxLines: 3,
-                overflow: TextOverflow.ellipsis),
+                overflow: TextOverflow.ellipsis,),
           ],
           const SizedBox(height: 12),
           Row(
@@ -208,7 +208,7 @@ class _RemedyCardState extends State<_RemedyCard> {
                         const SizedBox(width: 6),
                         Text('Open remedy',
                             style: AppTypography.body.copyWith(
-                                color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                                color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13.5,),),
                       ],
                     ),
                   ),
@@ -232,7 +232,7 @@ class _RemedyCardState extends State<_RemedyCard> {
                             const SizedBox(width: 6),
                             Text('Noted ✨',
                                 style: AppTypography.body.copyWith(
-                                    color: AppColors.success, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                                    color: AppColors.success, fontWeight: FontWeight.w700, fontSize: 13.5,),),
                           ],
                         ),
                       )
@@ -249,8 +249,8 @@ class _RemedyCardState extends State<_RemedyCard> {
                           ),
                           child: Text("Thanks, I'll do it 🙏",
                               style: AppTypography.body.copyWith(
-                                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12.5),
-                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12.5,),
+                              maxLines: 1, overflow: TextOverflow.ellipsis,),
                         ),
                       ),
               ),
@@ -279,7 +279,7 @@ class _StatusPill extends StatelessWidget {
       ),
       child: Text(label,
           style: AppTypography.caption.copyWith(
-              color: color, fontWeight: FontWeight.w700, fontSize: 11)),
+              color: color, fontWeight: FontWeight.w700, fontSize: 11,),),
     );
   }
 }
@@ -312,10 +312,10 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
       isScrollControlled: true,
       backgroundColor: AppColors.card,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),),
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(
-            left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+            left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,7 +323,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
             Text('Ask $astro', style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 4),
             Text('Your first follow-up on this remedy is free.',
-                style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),),
             const SizedBox(height: 14),
             TextField(
               controller: ctrl,
@@ -337,7 +337,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
                 filled: true,
                 fillColor: AppColors.background,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none,),
                 contentPadding: const EdgeInsets.all(14),
               ),
             ),
@@ -405,20 +405,20 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg),
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg,),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('This is your remedy',
-                      style: AppTypography.headline.copyWith(fontWeight: FontWeight.w800)),
+                      style: AppTypography.headline.copyWith(fontWeight: FontWeight.w800),),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       AppAvatar(name: astro, photoUrl: photo, size: 22),
                       const SizedBox(width: 7),
                       Text('From $astro',
-                          style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                          style: AppTypography.caption.copyWith(color: AppColors.textSecondary),),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
@@ -444,15 +444,15 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
                               width: 34,
                               height: 34,
                               decoration: const BoxDecoration(
-                                  gradient: AppColors.primaryGradient, shape: BoxShape.circle),
+                                  gradient: AppColors.primaryGradient, shape: BoxShape.circle,),
                               child: const Icon(Icons.self_improvement_rounded,
-                                  color: Colors.white, size: 18),
+                                  color: Colors.white, size: 18,),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(title,
                                   style: AppTypography.body
-                                      .copyWith(fontWeight: FontWeight.w800, fontSize: 16)),
+                                      .copyWith(fontWeight: FontWeight.w800, fontSize: 16),),
                             ),
                           ],
                         ),
@@ -460,7 +460,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
                           const SizedBox(height: 14),
                           Text(note,
                               style: AppTypography.body
-                                  .copyWith(height: 1.5, color: AppColors.textDark)),
+                                  .copyWith(height: 1.5, color: AppColors.textDark),),
                         ],
                       ],
                     ),
@@ -469,13 +469,13 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
                   Row(
                     children: [
                       const Icon(Icons.auto_awesome_rounded,
-                          size: 14, color: AppColors.textSecondary),
+                          size: 14, color: AppColors.textSecondary,),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                             'Follow this with faith and a calm heart. Small, steady steps carry the most blessings.',
                             style: AppTypography.caption
-                                .copyWith(color: AppColors.textSecondary, height: 1.4)),
+                                .copyWith(color: AppColors.textSecondary, height: 1.4),),
                       ),
                     ],
                   ),
@@ -497,7 +497,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
+                  AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md,),
               child: _followed
                   ? Container(
                       height: 54,
@@ -514,7 +514,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
                           const SizedBox(width: 8),
                           Text('Blessings received ✨',
                               style: AppTypography.body.copyWith(
-                                  color: AppColors.success, fontWeight: FontWeight.w700)),
+                                  color: AppColors.success, fontWeight: FontWeight.w700,),),
                         ],
                       ),
                     )
@@ -536,7 +536,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
                             const SizedBox(width: 8),
                             Text("I understood, I'll follow it",
                                 style: AppTypography.body.copyWith(
-                                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15,),),
                           ],
                         ),
                       ),
@@ -577,9 +577,9 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
                 height: 38,
                 decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(11)),
+                    borderRadius: BorderRadius.circular(11),),
                 child: Icon(_sending ? Icons.hourglass_top_rounded : Icons.help_outline_rounded,
-                    color: AppColors.primary, size: 20),
+                    color: AppColors.primary, size: 20,),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -587,10 +587,10 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Have a question about this remedy?',
-                        style: AppTypography.body.copyWith(fontWeight: FontWeight.w700)),
+                        style: AppTypography.body.copyWith(fontWeight: FontWeight.w700),),
                     const SizedBox(height: 2),
                     Text('Ask $astro · your first follow-up is free',
-                        style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                        style: AppTypography.caption.copyWith(color: AppColors.textSecondary),),
                   ],
                 ),
               ),
@@ -611,7 +611,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
             const SizedBox(width: 6),
             Text('Your follow-up',
                 style: AppTypography.caption.copyWith(
-                    color: AppColors.textSecondary, fontWeight: FontWeight.w700)),
+                    color: AppColors.textSecondary, fontWeight: FontWeight.w700,),),
             const Spacer(),
             if (answered)
               const _StatusPill(label: 'Reply received', color: AppColors.success)
@@ -642,7 +642,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
               AppAvatar(name: astro, size: 20),
               const SizedBox(width: 7),
               Text(astro,
-                  style: AppTypography.caption.copyWith(fontWeight: FontWeight.w700)),
+                  style: AppTypography.caption.copyWith(fontWeight: FontWeight.w700),),
             ],
           ),
           const SizedBox(height: 6),
@@ -664,7 +664,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
               border: Border.all(color: AppColors.warning.withValues(alpha: 0.40)),
             ),
             child: Text(answer,
-                style: AppTypography.body.copyWith(height: 1.5, color: AppColors.textDark)),
+                style: AppTypography.body.copyWith(height: 1.5, color: AppColors.textDark),),
           ),
           const SizedBox(height: 12),
           // The one free follow-up is spent — further questions go to a paid chat.
@@ -682,7 +682,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
                 Expanded(
                   child: Text('Need more guidance? Chat with $astro',
                       style: AppTypography.caption.copyWith(
-                          color: AppColors.primary, fontWeight: FontWeight.w700, height: 1.3)),
+                          color: AppColors.primary, fontWeight: FontWeight.w700, height: 1.3,),),
                 ),
               ],
             ),
@@ -694,7 +694,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text('Waiting for $astro to reply — we\'ll notify you.',
-                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),),
               ),
             ],
           ),

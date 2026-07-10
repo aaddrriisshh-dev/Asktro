@@ -118,7 +118,7 @@ class PromoBanner extends Equatable {
 
   @override
   List<Object?> get props => [id, image, title, subtitle, cta, deeplink, placement, priority,
-        bgColor, textColor, displayMode, portraitImage, landingTitle, landingBody, landingBgColor, landingTextColor, theme, createdAtMs];
+        bgColor, textColor, displayMode, portraitImage, landingTitle, landingBody, landingBgColor, landingTextColor, theme, createdAtMs,];
 }
 
 /// Admin-managed wallet coupon, surfaced on the Offers screen and applied at
@@ -200,7 +200,7 @@ class Coupon extends Equatable {
   @override
   List<Object?> get props => [id, code, title, description, amount, bonus, minimumRecharge,
         audience, image, bgColor, textColor, active, theme, displayMode, portraitImage,
-        ctaText, landingTitle, landingBody, expiryMs, createdAtMs];
+        ctaText, landingTitle, landingBody, expiryMs, createdAtMs,];
 }
 
 /// Immutable wallet ledger row.
@@ -288,5 +288,5 @@ class AppNotification extends Equatable {
 
   @override
   List<Object?> get props => [id, title, body, type, deeplink, read, theme, displayMode,
-        portraitImage, ctaText, landingTitle, landingBody, createdAtMs];
+        portraitImage, ctaText, landingTitle, landingBody, createdAtMs,];
 }

@@ -98,7 +98,7 @@ class RemedyQuestionsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text('Customers asking about a remedy you suggested.',
-                style: Sky.label.copyWith(fontSize: 12.5)),
+                style: Sky.label.copyWith(fontSize: 12.5),),
             const SizedBox(height: 16),
             if (list.isEmpty)
               Padding(
@@ -110,7 +110,7 @@ class RemedyQuestionsScreen extends ConsumerWidget {
                     Text('All caught up', style: Sky.h2.copyWith(fontSize: 15)),
                     const SizedBox(height: 4),
                     Text('No pending remedy questions right now.',
-                        style: Sky.label.copyWith(fontSize: 12.5), textAlign: TextAlign.center),
+                        style: Sky.label.copyWith(fontSize: 12.5), textAlign: TextAlign.center,),
                   ],
                 ),
               )
@@ -158,7 +158,7 @@ class _QuestionRow extends ConsumerWidget {
                     Expanded(
                       child: Text(name,
                           style: Sky.h2.copyWith(fontSize: 14.5),
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                          maxLines: 1, overflow: TextOverflow.ellipsis,),
                     ),
                     if (ms != null)
                       Text(_ago(ms), style: Sky.label.copyWith(fontSize: 10.5, color: Sky.ink3)),
@@ -167,11 +167,11 @@ class _QuestionRow extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text('On “$title”',
                     style: Sky.label.copyWith(fontSize: 11.5, color: Sky.gold, fontWeight: FontWeight.w700),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                    maxLines: 1, overflow: TextOverflow.ellipsis,),
                 const SizedBox(height: 5),
                 Text(question,
                     style: Sky.body.copyWith(fontSize: 13, height: 1.3),
-                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                    maxLines: 2, overflow: TextOverflow.ellipsis,),
               ],
             ),
           ),
@@ -308,14 +308,14 @@ class _RemedyAnswerScreenState extends ConsumerState<RemedyAnswerScreen> {
               behavior: HitTestBehavior.opaque,
               onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
                 builder: (_) => RemedyConversationScreen(consultationId: consultationId, selfId: selfId ?? ''),
-              )),
+              ),),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.forum_rounded, size: 15, color: Sky.purple),
                   const SizedBox(width: 6),
                   Text('View the original conversation',
-                      style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w700, fontSize: 12.5)),
+                      style: Sky.label.copyWith(color: Sky.purple, fontWeight: FontWeight.w700, fontSize: 12.5),),
                 ],
               ),
             ),
@@ -335,14 +335,14 @@ class _RemedyAnswerScreenState extends ConsumerState<RemedyAnswerScreen> {
               border: Border.all(color: Sky.purple.withValues(alpha: 0.18)),
             ),
             child: Text(question.isEmpty ? '(no question text)' : question,
-                style: Sky.body.copyWith(height: 1.4)),
+                style: Sky.body.copyWith(height: 1.4),),
           ),
 
           const SizedBox(height: 18),
 
           // The reply.
           Text(answered ? 'YOUR REPLY (tap to amend)' : 'YOUR REPLY',
-              style: Sky.label.copyWith(fontSize: 10.5, letterSpacing: 1, color: Sky.ink2, fontWeight: FontWeight.w800)),
+              style: Sky.label.copyWith(fontSize: 10.5, letterSpacing: 1, color: Sky.ink2, fontWeight: FontWeight.w800),),
           const SizedBox(height: 8),
           TextField(
             controller: _ctrl,
@@ -401,7 +401,7 @@ class RemedyConversationScreen extends ConsumerWidget {
           if (msgs.isEmpty) {
             return Center(
               child: Text('No messages in this conversation.',
-                  style: Sky.label.copyWith(fontSize: 12.5)),
+                  style: Sky.label.copyWith(fontSize: 12.5),),
             );
           }
           return ListView.builder(
@@ -424,7 +424,7 @@ class RemedyConversationScreen extends ConsumerWidget {
                     border: mine ? null : Border.all(color: Sky.line),
                   ),
                   child: Text(text,
-                      style: Sky.body.copyWith(color: mine ? Colors.white : Sky.ink, height: 1.35)),
+                      style: Sky.body.copyWith(color: mine ? Colors.white : Sky.ink, height: 1.35),),
                 ),
               );
             },
