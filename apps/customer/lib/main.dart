@@ -19,10 +19,19 @@ Future<void> main() async {
   // ("1 out of 2 underlying tasks failed"), taking every callable down. Debug
   // provider on debug builds (register the printed token in the Firebase
   // console), Play Integrity / App Attest for release.
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
-  );
+  // App Check activation must NEVER hard-crash startup. On a release build not
+  // distributed through Play (e.g. a local sideload), the Play Integrity provider
+  // can throw — without this guard that exception hangs the app at the splash.
+  // Wrapped so the app still launches; tokens simply aren't fetched until the
+  // provider is fully provisioned.
+  try {
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+      appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
+    );
+  } catch (e, st) {
+    FirebaseCrashlytics.instance.recordError(e, st, reason: 'App Check activate failed');
+  }
 
   // Route Flutter + async errors to Crashlytics (Part 7).
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
