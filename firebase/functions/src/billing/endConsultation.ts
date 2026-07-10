@@ -6,6 +6,7 @@
  * a no-op. See docs/BILLING_ENGINE.md.
  */
 import { onCall } from 'firebase-functions/v2/https';
+import { Transaction } from 'firebase-admin/firestore';
 import { db, FieldValue, Timestamp } from '../common/admin';
 import { Collections } from '../common/collections';
 import { getGlobalConfig } from '../common/config';
@@ -13,28 +14,33 @@ import { assertAuthed, badRequest, failedPrecondition, notFound } from '../commo
 import { applyTick, TickOutcome } from './tickConsultation';
 import { astrologerNetEarning } from './engine';
 import { writeAstrologerLedger } from '../wallet/ledger';
+import { GlobalConfig } from '../common/types';
 
 function receiptNumber(consultationId: string, nowMs: number): string {
   return `ASK-${nowMs.toString(36).toUpperCase()}-${consultationId.slice(0, 6).toUpperCase()}`;
 }
 
-export const endConsultation = onCall(async (req) => {
-  const uid = assertAuthed(req);
-  const { consultationId } = (req.data ?? {}) as { consultationId?: string };
-  if (!consultationId) badRequest('consultationId is required.');
+/**
+ * Settlement transaction body — extracted from the callable so the money
+ * movement (final tick, earnings credit, idempotent terminal no-op) is
+ * unit-testable against the emulator. `caller` authorizes the end; pass
+ * `{ isAdmin: true }` for the scheduled/admin path.
+ */
+export async function settleConsultation(
+  tx: Transaction,
+  consultationId: string,
+  config: GlobalConfig,
+  nowMs: number,
+  caller: { uid: string; isAdmin: boolean },
+): Promise<Record<string, unknown>> {
+  const ref = db.collection(Collections.consultations).doc(consultationId);
+  const snap = await tx.get(ref);
+  if (!snap.exists) notFound('Consultation not found.');
+  const c = snap.data()!;
 
-  const config = await getGlobalConfig();
-  const nowMs = Timestamp.now().toMillis();
-  const ref = db.collection(Collections.consultations).doc(consultationId!);
-
-  const summary = await db.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists) notFound('Consultation not found.');
-    const c = snap.data()!;
-
-    if (uid !== c.customerId && uid !== c.astrologerId && req.auth?.token?.role !== 'admin') {
-      failedPrecondition('Not a participant of this consultation.');
-    }
+  if (caller.uid !== c.customerId && caller.uid !== c.astrologerId && !caller.isAdmin) {
+    failedPrecondition('Not a participant of this consultation.');
+  }
 
     // Already terminal → idempotent no-op returning the stored summary.
     if (['completed', 'cancelled', 'expired'].includes(c.status)) {
@@ -86,7 +92,9 @@ export const endConsultation = onCall(async (req) => {
     // the delta the tick reports, rather than re-reading the document.
     let tick: TickOutcome | null = null;
     if (c.status === 'active') {
-      tick = await applyTick(tx, consultationId!, config, nowMs);
+      // If the CUSTOMER ended it, they are present now, so the final tick may
+      // bill up to now; otherwise the customer-presence clamp applies.
+      tick = await applyTick(tx, consultationId, config, nowMs, undefined, caller.uid === c.customerId);
     }
 
     const finalBilledSeconds = (c.billedSeconds ?? 0) + (tick?.billedSeconds ?? 0);
@@ -137,16 +145,27 @@ export const endConsultation = onCall(async (req) => {
       { merge: true },
     );
 
-    return {
-      alreadyEnded: false,
-      duration: finalBilledSeconds,
-      totalCharged: grossEarned,
-      astrologerNet: net,
-      receiptNo,
-      type: c.type,
-      astrologerId: c.astrologerId,
-    };
-  });
+  return {
+    alreadyEnded: false,
+    duration: finalBilledSeconds,
+    totalCharged: grossEarned,
+    astrologerNet: net,
+    receiptNo,
+    type: c.type,
+    astrologerId: c.astrologerId,
+  };
+}
 
-  return summary;
+export const endConsultation = onCall(async (req) => {
+  const uid = assertAuthed(req);
+  const { consultationId } = (req.data ?? {}) as { consultationId?: string };
+  if (!consultationId) badRequest('consultationId is required.');
+
+  const config = await getGlobalConfig();
+  const nowMs = Timestamp.now().toMillis();
+  const isAdmin = req.auth?.token?.role === 'admin';
+
+  return db.runTransaction((tx) =>
+    settleConsultation(tx, consultationId!, config, nowMs, { uid, isAdmin }),
+  );
 });
