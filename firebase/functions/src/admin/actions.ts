@@ -4,6 +4,7 @@
  * server-side, role-checked function.
  */
 import { onCall } from 'firebase-functions/v2/https';
+import { Transaction } from 'firebase-admin/firestore';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertRole, badRequest, failedPrecondition, notFound } from '../common/errors';
@@ -59,6 +60,65 @@ export const adjustWallet = onCall(async (req) => {
 });
 
 /** Approve/reject/process a payout request (super admin only — money action). */
+/**
+ * Payout decision transaction body — extracted so the double-issue and
+ * over-pending guards are unit-testable. A payout can be processed only from
+ * pending/approved (so it can never be paid twice), and never for more than the
+ * astrologer's current pendingPayout.
+ */
+export async function applyPayoutDecision(
+  tx: Transaction,
+  payoutId: string,
+  decision: 'approved' | 'rejected' | 'processed',
+  actorUid: string,
+): Promise<void> {
+  const ref = db.collection(Collections.payouts).doc(payoutId);
+  const snap = await tx.get(ref);
+  if (!snap.exists) notFound('Payout not found.');
+  const p = snap.data()!;
+  if (p.status !== 'pending' && p.status !== 'approved') {
+    failedPrecondition(`Cannot ${decision} a ${p.status} payout.`);
+  }
+
+  // Guard against paying out more than the astrologer has actually accrued
+  // (amount is client-set at request time). pendingPayout lives in the private
+  // financials subdoc (off the public directory doc). Read must precede writes.
+  const finRef = db.collection(Collections.astrologers).doc(p.astrologerId).collection('private').doc('financials');
+  if (decision === 'processed') {
+    const finSnap = await tx.get(finRef);
+    const pending = (finSnap.data()?.pendingPayout ?? 0) as number;
+    if ((p.amount ?? 0) > pending) {
+      failedPrecondition('PAYOUT_EXCEEDS_PENDING');
+    }
+  }
+
+  tx.update(ref, {
+    status: decision,
+    processedBy: actorUid,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  // On final processing, clear the astrologer's pending payout by that amount.
+  if (decision === 'processed') {
+    tx.set(
+      finRef,
+      { pendingPayout: FieldValue.increment(-(p.amount ?? 0)), updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+    writeAstrologerLedger(tx, { astrologerId: p.astrologerId, kind: 'payout', amount: -(p.amount ?? 0), refId: payoutId, note: 'Payout processed' });
+  }
+
+  tx.set(db.collection(Collections.auditLogs).doc(), {
+    actorUid,
+    actorRole: 'admin',
+    action: `payout_${decision}`,
+    targetType: 'payout',
+    targetId: payoutId,
+    after: { amount: p.amount, astrologerId: p.astrologerId },
+    createdAt: FieldValue.serverTimestamp(),
+  });
+}
+
 export const processPayout = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
   if (req.auth?.token?.adminRole !== 'super') failedPrecondition('Requires a super admin.');
@@ -69,54 +129,7 @@ export const processPayout = onCall(async (req) => {
   };
   if (!payoutId || !decision) badRequest('payoutId and decision are required.');
 
-  await db.runTransaction(async (tx) => {
-    const ref = db.collection(Collections.payouts).doc(payoutId!);
-    const snap = await tx.get(ref);
-    if (!snap.exists) notFound('Payout not found.');
-    const p = snap.data()!;
-    if (p.status !== 'pending' && p.status !== 'approved') {
-      failedPrecondition(`Cannot ${decision} a ${p.status} payout.`);
-    }
-
-    // Guard against paying out more than the astrologer has actually accrued
-    // (amount is client-set at request time). pendingPayout lives in the private
-    // financials subdoc (off the public directory doc). Read must precede writes.
-    const finRef = db.collection(Collections.astrologers).doc(p.astrologerId).collection('private').doc('financials');
-    if (decision === 'processed') {
-      const finSnap = await tx.get(finRef);
-      const pending = (finSnap.data()?.pendingPayout ?? 0) as number;
-      if ((p.amount ?? 0) > pending) {
-        failedPrecondition('PAYOUT_EXCEEDS_PENDING');
-      }
-    }
-
-    tx.update(ref, {
-      status: decision,
-      processedBy: actor,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-
-    // On final processing, clear the astrologer's pending payout by that amount.
-    if (decision === 'processed') {
-      tx.set(
-        finRef,
-        { pendingPayout: FieldValue.increment(-(p.amount ?? 0)), updatedAt: FieldValue.serverTimestamp() },
-        { merge: true },
-      );
-      writeAstrologerLedger(tx, { astrologerId: p.astrologerId, kind: 'payout', amount: -(p.amount ?? 0), refId: payoutId!, note: 'Payout processed' });
-    }
-
-    tx.set(db.collection(Collections.auditLogs).doc(), {
-      actorUid: actor,
-      actorRole: 'admin',
-      action: `payout_${decision}`,
-      targetType: 'payout',
-      targetId: payoutId,
-      after: { amount: p.amount, astrologerId: p.astrologerId },
-      createdAt: FieldValue.serverTimestamp(),
-    });
-  });
-
+  await db.runTransaction((tx) => applyPayoutDecision(tx, payoutId!, decision, actor));
   return { ok: true };
 });
 

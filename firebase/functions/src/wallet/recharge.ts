@@ -106,6 +106,61 @@ export const verifyRecharge = onCall(
   },
 );
 
+/**
+ * Handle a `payment.captured` event — extracted so the credit resolution is
+ * unit-testable without HTTP/signature plumbing. Resolves userId/planId from the
+ * authoritative rechargeOrders doc (NOT the payment's notes, which Razorpay
+ * leaves empty), credits idempotently, and NEVER silently drops money: an
+ * unresolvable or failed credit is dead-lettered + alerted.
+ */
+export async function creditCapturedPayment(
+  entity: { id?: string; order_id?: string; notes?: Record<string, unknown> },
+): Promise<{ credited: boolean; deadLettered: boolean }> {
+  const paymentId = entity.id;
+  const orderId = entity.order_id;
+  const notes = entity.notes ?? {};
+  let userId = notes.userId as string | undefined;
+  let planId = notes.planId as string | undefined;
+  let couponId = (notes.couponId as string | undefined) || null;
+
+  if (orderId) {
+    try {
+      const orderSnap = await db.collection('rechargeOrders').doc(orderId).get();
+      const rec = orderSnap.data();
+      if (rec) {
+        userId = (rec.userId as string | undefined) ?? userId;
+        planId = (rec.planId as string | undefined) ?? planId;
+        couponId = (rec.couponId as string | null | undefined) ?? couponId;
+      }
+    } catch (e) {
+      logger.error('razorpayWebhook: order lookup failed', { orderId, paymentId, error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  if (userId && planId && paymentId && orderId) {
+    try {
+      await creditRecharge({ userId, paymentId, orderId, planId, couponId, source: 'webhook' });
+      await autoResumePausedSession(userId);
+      return { credited: true, deadLettered: false };
+    } catch (e) {
+      await recordFailedCredit({ userId, paymentId, orderId, planId, couponId }, e).catch((re) =>
+        logger.error('webhook: recordFailedCredit ALSO failed', { paymentId, error: re instanceof Error ? re.message : String(re) }),
+      );
+      return { credited: false, deadLettered: true };
+    }
+  }
+  if (paymentId) {
+    // Could not resolve the order → dead-letter (keyed by paymentId) + alert so a
+    // late-arriving binding or manual resolve can still credit it.
+    await recordFailedCredit(
+      { userId: userId ?? 'unknown', paymentId, orderId: orderId ?? 'unknown', planId: planId ?? 'unknown', couponId },
+      new Error('webhook: could not resolve order→user/plan binding'),
+    ).catch((re) => logger.error('webhook: recordFailedCredit ALSO failed', { paymentId, error: re instanceof Error ? re.message : String(re) }));
+    return { credited: false, deadLettered: true };
+  }
+  return { credited: false, deadLettered: false };
+}
+
 export const razorpayWebhook = onRequest(
   { secrets: [RAZORPAY_WEBHOOK_SECRET] },
   async (rawReq, res) => {
@@ -120,59 +175,8 @@ export const razorpayWebhook = onRequest(
       return;
     }
 
-    const event = rawReq.body?.event as string | undefined;
-    if (event === 'payment.captured') {
-      const entity = rawReq.body?.payload?.payment?.entity ?? {};
-      const paymentId = entity.id as string | undefined;
-      const orderId = entity.order_id as string | undefined;
-
-      // AUTHORITATIVE RESOLUTION: read userId/planId from the rechargeOrders doc
-      // we wrote at order creation — NOT from entity.notes. Razorpay does not
-      // copy order notes onto the payment entity, so payment.captured notes are
-      // typically empty; relying on them meant a captured-but-never-credited
-      // payment on the client-crash path with no dead-letter. Notes are only a
-      // last-resort fallback for any legacy order missing its binding doc.
-      const notes = entity.notes ?? {};
-      let userId = notes.userId as string | undefined;
-      let planId = notes.planId as string | undefined;
-      let couponId = (notes.couponId as string | undefined) || null;
-      if (orderId) {
-        try {
-          const orderSnap = await db.collection('rechargeOrders').doc(orderId).get();
-          const rec = orderSnap.data();
-          if (rec) {
-            userId = (rec.userId as string | undefined) ?? userId;
-            planId = (rec.planId as string | undefined) ?? planId;
-            couponId = (rec.couponId as string | null | undefined) ?? couponId;
-          }
-        } catch (e) {
-          logger.error('razorpayWebhook: order lookup failed', { orderId, paymentId, error: e instanceof Error ? e.message : String(e) });
-        }
-      }
-
-      if (userId && planId && paymentId && orderId) {
-        try {
-          await creditRecharge({ userId, paymentId, orderId, planId, couponId, source: 'webhook' });
-          await autoResumePausedSession(userId);
-        } catch (e) {
-          // Do NOT silently drop the money. Record a dead-letter row + admin
-          // alert so reconcileFailedCredits retries it and an operator is warned.
-          // We still 200 so Razorpay doesn't hammer us, but the payment is now
-          // durably tracked until it credits.
-          await recordFailedCredit({ userId, paymentId, orderId, planId, couponId }, e).catch((re) =>
-            logger.error('webhook: recordFailedCredit ALSO failed', { paymentId, error: re instanceof Error ? re.message : String(re) }),
-          );
-        }
-      } else if (paymentId) {
-        // Could not resolve the order → still NEVER silently lose the money.
-        // Dead-letter it (keyed by paymentId) and alert an operator; the order
-        // binding may arrive late (webhook racing the create) and a retry/manual
-        // resolve can then credit it.
-        await recordFailedCredit(
-          { userId: userId ?? 'unknown', paymentId, orderId: orderId ?? 'unknown', planId: planId ?? 'unknown', couponId },
-          new Error('webhook: could not resolve order→user/plan binding'),
-        ).catch((re) => logger.error('webhook: recordFailedCredit ALSO failed', { paymentId, error: re instanceof Error ? re.message : String(re) }));
-      }
+    if ((rawReq.body?.event as string | undefined) === 'payment.captured') {
+      await creditCapturedPayment(rawReq.body?.payload?.payment?.entity ?? {});
     }
     res.status(200).send('ok');
   },

@@ -59,7 +59,7 @@ export const sweepStaleSessions = onSchedule('every 1 minutes', async () => {
 // Single source of truth, shared with the live tick path (see engine.ts).
 const STALE_BILL_SETTLE_MS = MAX_TICK_ELAPSED_MS;
 
-async function billStaleActive(config: GlobalConfig, nowMs: number): Promise<void> {
+export async function billStaleActive(config: GlobalConfig, nowMs: number): Promise<void> {
   // Only touch sessions silent BEYOND the reconnect grace (floored at 30s so a
   // misconfigured tiny reconnectTimeoutSec can never pause live sessions). A
   // brief blip that recovers updates lastTickAt on its own next tick and is
@@ -101,7 +101,7 @@ async function billStaleActive(config: GlobalConfig, nowMs: number): Promise<voi
 }
 
 // --- 2. Paused sessions past the session timeout → auto-end ---
-async function expirePaused(config: GlobalConfig, nowMs: number): Promise<void> {
+export async function expirePaused(config: GlobalConfig, nowMs: number): Promise<void> {
   const pausedCutoff = Timestamp.fromMillis(nowMs - config.sessionTimeoutSec * 1000);
   const expired = await db
     .collection(Collections.consultations)
