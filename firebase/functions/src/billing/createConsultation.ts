@@ -13,6 +13,7 @@ import { canStartConsultation } from '../billing/engine';
 import { pricePerSecond } from '../common/money';
 import { ConsultationType } from '../common/types';
 import { assertNotBlocked } from '../moderation/moderation';
+import { assertUnderChatCap } from './chatCap';
 import { randomUUID } from 'crypto';
 
 const VALID_TYPES: ConsultationType[] = ['chat', 'voice', 'video'];
@@ -94,6 +95,13 @@ export const createConsultation = onCall(async (req) => {
         if (openSnap.docs.some((d) => d.data().type === 'chat')) {
           failedPrecondition('This astrologer is busy in chats right now. Please try again shortly.');
         }
+      } else {
+        // Fairness cap: a human astrologer may hold only so many LIVE chats at
+        // once (default 5, tunable via config without a deploy). Beyond that a
+        // new customer would just sit in a queue while the meter never starts —
+        // so we refuse up front and steer them to another reader. Counts only
+        // active/paused chats (the ones actually running); 0/missing disables it.
+        await assertUnderChatCap(tx, astrologerId!, config.maxConcurrentChatsPerAstrologer ?? 0);
       }
     }
 

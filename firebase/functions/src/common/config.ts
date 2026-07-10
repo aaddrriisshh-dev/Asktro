@@ -14,6 +14,7 @@ export const DEFAULT_CONFIG: GlobalConfig = {
   commissionPercent: 20,
   freeChatMinutes: 3, // welcome free chat minutes for new customers
   graceMinutes: 1, // one free grace minute when balance runs out mid-session
+  maxConcurrentChatsPerAstrologer: 5, // fairness cap; tunable without a deploy
   chatRetentionDays: 0, // 0 = keep chat content forever (purge disabled)
   featureFlags: {
     voice: true,

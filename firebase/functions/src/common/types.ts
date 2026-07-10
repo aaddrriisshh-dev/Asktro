@@ -32,6 +32,9 @@ export interface GlobalConfig {
   freeChatMinutes: number;
   /** One-time grace minutes added when a live session's balance is exhausted. */
   graceMinutes: number;
+  /** Max simultaneous ACTIVE chats a human astrologer may hold, so a customer
+   *  never joins a queue they'll be ignored in while the meter runs. AI unlimited. */
+  maxConcurrentChatsPerAstrologer?: number;
   /** Days to retain chat content before the retention purge strips it (0 = keep
    *  forever / purge disabled). Only acts when featureFlags.retention is true. */
   chatRetentionDays?: number;
