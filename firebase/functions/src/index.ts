@@ -64,6 +64,9 @@ export {
 export { adjustWallet, processPayout, setAstrologerStatus, setUserStatus } from './admin/actions';
 export { refundConsultation } from './admin/refund';
 
+// ---- Admin trust & safety / ops ----
+export { resolveOpsItem } from './admin/ops';
+
 // ---- Admin astrologer provisioning ----
 export { createAstrologer, updateAstrologer, deleteAstrologer } from './admin/createAstrologer';
 
