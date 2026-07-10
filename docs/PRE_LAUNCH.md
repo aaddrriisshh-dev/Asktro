@@ -13,6 +13,30 @@
   for real builds, (2) add `enforceAppCheck: true`, (3) test on a real build, then deploy.
   _(From the CTO audit — this was finding M1.)_
 
+- [ ] **Add MFA (2‑factor) to the admin portal login.** Today the portal
+  (`asktro-admin.vercel.app`) is email + password only. It controls real money
+  (wallet adjust, payouts, refunds), so before real money flows it should require
+  a second factor (authenticator‑app code). **Safe to defer now — there are no
+  real users and the previously‑committed super‑admin password has been rotated.**
+  Needs: (1) upgrade Firebase Auth to **Identity Platform** (paid tier, enables
+  TOTP MFA), (2) each admin enrolls their phone, (3) small portal login‑flow code
+  (Claude can do the code side once the tier is enabled). _(Adversarial audit P0‑2.)_
+
+- [ ] **Flip `config/global.devPaymentsEnabled` → false.** This ON‑switch lets the
+  dummy‑gateway functions mint wallet credit with no real payment (for testing).
+  **No longer a live risk:** the 0c code guard is deployed, so those functions now
+  refuse to run outside the local emulator regardless of this flag — the money‑mint
+  is dead in production. Flipping the flag off before launch is just tidiness.
+  _(Adversarial audit 0a/0c.)_
+
+> **Adversarial‑audit money/trust fixes — DONE & DEPLOYED (2026‑07‑10).** For the
+> record: customer‑presence + astrologer‑drop billing gate, single‑tick over‑bill
+> clamp, Razorpay webhook credit fix (order‑doc resolution + dead‑letter),
+> two‑simultaneous‑session lock, refund bucket allocation (P3‑7) + ledger
+> reconciliation (P3‑8), dev‑mint prod guard (0c), full account deletion, support
+> IDOR, and settlement test coverage (endConsultation / sweep / refund / payout /
+> webhook / concurrency). 30 unit + 23 emulator tests green. See `AUDIT.md`.
+
 ---
 
 ## 🖼️ CHAT IMAGE AUTO-SCAN (NSFW) — enable before launch
