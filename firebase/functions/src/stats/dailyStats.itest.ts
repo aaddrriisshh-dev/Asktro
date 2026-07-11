@@ -16,15 +16,15 @@ const at = (h: number) => Timestamp.fromMillis(Date.parse(`${DAY}T${String(h).pa
 describe('dailyStats rollup (emulator)', () => {
   it('accumulates signed revenue, per-kind counts, and per-type sessions into one day doc', async () => {
     // Two recharges, one bonus, one consultation debit, one refund — same UTC day.
-    await applyRevenueRollup({ kind: 'recharge', amount: 10000, createdAt: at(1) });
-    await applyRevenueRollup({ kind: 'recharge', amount: 5000, createdAt: at(2) });
-    await applyRevenueRollup({ kind: 'bonus', amount: 2000, createdAt: at(3) });
-    await applyRevenueRollup({ kind: 'consultation', amount: -3000, createdAt: at(4) });
-    await applyRevenueRollup({ kind: 'refund', amount: -1500, createdAt: at(5) });
+    await applyRevenueRollup({ kind: 'recharge', amount: 10000, createdAt: at(1) }, 'r1');
+    await applyRevenueRollup({ kind: 'recharge', amount: 5000, createdAt: at(2) }, 'r2');
+    await applyRevenueRollup({ kind: 'bonus', amount: 2000, createdAt: at(3) }, 'r3');
+    await applyRevenueRollup({ kind: 'consultation', amount: -3000, createdAt: at(4) }, 'r4');
+    await applyRevenueRollup({ kind: 'refund', amount: -1500, createdAt: at(5) }, 'r5');
 
-    await applyConsultationRollup({ type: 'chat', createdAt: at(1) });
-    await applyConsultationRollup({ type: 'chat', createdAt: at(2) });
-    await applyConsultationRollup({ type: 'voice', createdAt: at(3) });
+    await applyConsultationRollup({ type: 'chat', createdAt: at(1) }, 'c1');
+    await applyConsultationRollup({ type: 'chat', createdAt: at(2) }, 'c2');
+    await applyConsultationRollup({ type: 'voice', createdAt: at(3) }, 'c3');
 
     const s = (await db.collection('dailyStats').doc(DAY).get()).data()!;
     expect(s.day).toBe(DAY);
@@ -40,7 +40,7 @@ describe('dailyStats rollup (emulator)', () => {
   });
 
   it('buckets by UTC day — a different day is a different doc', async () => {
-    await applyRevenueRollup({ kind: 'recharge', amount: 999, createdAt: Timestamp.fromMillis(Date.parse('2026-03-16T12:00:00.000Z')) });
+    await applyRevenueRollup({ kind: 'recharge', amount: 999, createdAt: Timestamp.fromMillis(Date.parse('2026-03-16T12:00:00.000Z')) }, 'r16');
     const other = (await db.collection('dailyStats').doc('2026-03-16').get()).data()!;
     expect(other.revenue.recharge).toBe(999);
     // The 15th doc is untouched by the 16th's write.
@@ -48,9 +48,20 @@ describe('dailyStats rollup (emulator)', () => {
     expect(s.revenue.recharge).toBe(15000);
   });
 
+  it('is idempotent — a redelivered event with the same source id does NOT double-count', async () => {
+    // Same sourceId as 'r1' (10000) delivered again → must stay 15000, not 25000.
+    await applyRevenueRollup({ kind: 'recharge', amount: 10000, createdAt: at(1) }, 'r1');
+    await applyRevenueRollup({ kind: 'recharge', amount: 10000, createdAt: at(1) }, 'r1');
+    await applyConsultationRollup({ type: 'chat', createdAt: at(1) }, 'c1'); // redelivered
+    const s = (await db.collection('dailyStats').doc(DAY).get()).data()!;
+    expect(s.revenue.recharge).toBe(15000);
+    expect(s.counts.recharge).toBe(2);
+    expect(s.consultations.chat).toBe(2);
+  });
+
   it('ignores rows with no kind / non-call consultation types', async () => {
-    await applyRevenueRollup({ amount: 100, createdAt: at(6) }); // no kind → skipped
-    await applyConsultationRollup({ type: 'unknown', createdAt: at(6) }); // not chat/voice/video
+    await applyRevenueRollup({ amount: 100, createdAt: at(6) }, 'r6'); // no kind → skipped
+    await applyConsultationRollup({ type: 'unknown', createdAt: at(6) }, 'c6'); // not chat/voice/video
     const s = (await db.collection('dailyStats').doc(DAY).get()).data()!;
     expect(s.revenue.recharge).toBe(15000); // unchanged
     expect(s.consultations.chat).toBe(2);

@@ -16,16 +16,23 @@ export const adjustWallet = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
   if (req.auth?.token?.adminRole !== 'super') failedPrecondition('Requires a super admin.');
 
-  const { userId, amountPaise, reason } = (req.data ?? {}) as {
+  const { userId, amountPaise, reason, opId } = (req.data ?? {}) as {
     userId?: string;
     amountPaise?: number;
     reason?: string;
+    opId?: string;
   };
   if (!userId || typeof amountPaise !== 'number' || amountPaise === 0) {
     badRequest('userId and a non-zero amountPaise are required.');
   }
 
-  await db.runTransaction(async (tx) => {
+  const duplicate = await db.runTransaction(async (tx) => {
+    // Idempotency: a double-submit of the SAME opId must not adjust twice.
+    const opRef = opId ? db.collection(Collections.processedAdminOps).doc(opId) : null;
+    if (opRef) {
+      const opSnap = await tx.get(opRef);
+      if (opSnap.exists) return true; // already applied — no-op
+    }
     const userRef = db.collection(Collections.users).doc(userId!);
     const snap = await tx.get(userRef);
     if (!snap.exists) notFound('User not found.');
@@ -54,9 +61,16 @@ export const adjustWallet = onCall(async (req) => {
       after: { amountPaise, reason: reason ?? null },
       createdAt: FieldValue.serverTimestamp(),
     });
+    if (opRef) {
+      tx.set(opRef, {
+        op: 'adjustWallet', userId, amountPaise, actorUid: actor,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+    return false;
   });
 
-  return { ok: true };
+  return { ok: true, alreadyProcessed: duplicate };
 });
 
 /** Approve/reject/process a payout request (super admin only — money action). */

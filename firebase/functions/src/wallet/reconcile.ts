@@ -74,7 +74,25 @@ export const reconcileFailedCredits = onSchedule('every 5 minutes', async () => 
 
   for (const doc of pending.docs) {
     const d = doc.data();
-    if ((d.attempts ?? 0) > MAX_ATTEMPTS) continue; // needs manual intervention; alert stays open
+    if ((d.attempts ?? 0) > MAX_ATTEMPTS) {
+      // Exhausted automated retries → escalate ONCE to a critical, unmissable
+      // alert (idempotent via the fixed alert id) and log at error so external
+      // routing on the `alerts` collection / Cloud Error Reporting can page a
+      // human. A captured payment stuck here is real customer money owed.
+      if (!d.escalated) {
+        await db.collection('alerts').doc(`credit_exhausted_${d.paymentId}`).set({
+          kind: 'credit_retry_exhausted',
+          severity: 'critical',
+          message: `MANUAL ACTION REQUIRED: captured payment ${d.paymentId} (user ${d.userId}, order ${d.orderId}) failed to credit after ${MAX_ATTEMPTS} retries. Customer paid but wallet not credited.`,
+          refId: d.paymentId,
+          resolved: false,
+          createdAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        await doc.ref.set({ escalated: true, escalatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        logger.error('reconcileFailedCredits: EXHAUSTED — manual intervention required', { paymentId: d.paymentId, userId: d.userId, orderId: d.orderId, attempts: d.attempts });
+      }
+      continue;
+    }
     try {
       const res = await creditRecharge({
         userId: d.userId,

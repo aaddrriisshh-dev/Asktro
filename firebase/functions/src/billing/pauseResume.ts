@@ -69,12 +69,15 @@ export const resumeConsultation = onCall(async (req) => {
       pausedAccumMs: FieldValue.increment(pausedSpanMs),
       pausedAt: null,
       lastTickAt: FieldValue.serverTimestamp(),
-      // Re-seed presence to match activation, so the billing frontier isn't
-      // pinned below the fresh lastTickAt (which would stall billing after a
-      // resume). Customer is present now; clear the astrologer marker so it is
-      // re-established on their next tick (never falsely mark an absent party).
+      // Re-seed BOTH presence markers to now (= lastTickAt), matching activation.
+      // Seeding (not deleting) the astrologer marker is critical: deleting it made
+      // `astroTracked` false and DISABLED the absent-astrologer billing gate, so a
+      // customer who resumed while the astrologer had left kept getting billed on
+      // their own presence alone. Seeding to now keeps the gate armed — an absent
+      // astrologer is billed at most one settle window past resume, then halts —
+      // while not pinning the frontier below the fresh lastTickAt (no stall).
       customerLastTickAt: FieldValue.serverTimestamp(),
-      astrologerLastTickAt: FieldValue.delete(),
+      astrologerLastTickAt: FieldValue.serverTimestamp(),
       networkStatus: 'ok',
       warnLevel: 0,
       updatedAt: FieldValue.serverTimestamp(),

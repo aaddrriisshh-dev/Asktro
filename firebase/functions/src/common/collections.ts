@@ -16,6 +16,7 @@ export const Collections = {
   auditLogs: 'auditLogs',
   adminUsers: 'adminUsers',
   processedPayments: 'processedPayments', // idempotency keys for recharge
+  processedAdminOps: 'processedAdminOps', // idempotency keys for manual money ops (refund / adjustWallet)
   counters: 'counters', // atomic sequence docs (e.g. human-readable ticket numbers)
   dailyStats: 'dailyStats', // per-UTC-day analytics rollup for the admin dashboard
 } as const;

@@ -99,7 +99,7 @@ export const verifyRecharge = onCall(
     });
 
     const resumedConsultationId = result.credited || result.alreadyProcessed
-      ? await autoResumePausedSession(userId)
+      ? await autoResumePausedSession(userId).catch(() => null) // best-effort; credit already committed
       : null;
 
     return { ...result, resumedConsultationId };
@@ -114,7 +114,7 @@ export const verifyRecharge = onCall(
  * unresolvable or failed credit is dead-lettered + alerted.
  */
 export async function creditCapturedPayment(
-  entity: { id?: string; order_id?: string; notes?: Record<string, unknown> },
+  entity: { id?: string; order_id?: string; amount?: number; notes?: Record<string, unknown> },
 ): Promise<{ credited: boolean; deadLettered: boolean }> {
   const paymentId = entity.id;
   const orderId = entity.order_id;
@@ -122,6 +122,7 @@ export async function creditCapturedPayment(
   let userId = notes.userId as string | undefined;
   let planId = notes.planId as string | undefined;
   let couponId = (notes.couponId as string | undefined) || null;
+  let orderAmountPaise: number | undefined;
 
   if (orderId) {
     try {
@@ -131,23 +132,46 @@ export async function creditCapturedPayment(
         userId = (rec.userId as string | undefined) ?? userId;
         planId = (rec.planId as string | undefined) ?? planId;
         couponId = (rec.couponId as string | null | undefined) ?? couponId;
+        orderAmountPaise = rec.amountPaise as number | undefined;
       }
     } catch (e) {
       logger.error('razorpayWebhook: order lookup failed', { orderId, paymentId, error: e instanceof Error ? e.message : String(e) });
     }
   }
 
+  // Defence in depth: the captured amount MUST match the amount we bound to the
+  // order. A mismatch (e.g. a partial capture, or a tampered/foreign payment
+  // pointed at this order) must NOT credit the full plan value — dead-letter it.
+  if (
+    typeof entity.amount === 'number' && typeof orderAmountPaise === 'number' &&
+    entity.amount !== orderAmountPaise
+  ) {
+    if (paymentId) {
+      await recordFailedCredit(
+        { userId: userId ?? 'unknown', paymentId, orderId: orderId ?? 'unknown', planId: planId ?? 'unknown', couponId },
+        new Error(`webhook: captured amount ${entity.amount} != order amount ${orderAmountPaise}`),
+      ).catch((re) => logger.error('webhook: recordFailedCredit ALSO failed', { paymentId, error: re instanceof Error ? re.message : String(re) }));
+    }
+    return { credited: false, deadLettered: true };
+  }
+
   if (userId && planId && paymentId && orderId) {
+    let credited = false;
     try {
       await creditRecharge({ userId, paymentId, orderId, planId, couponId, source: 'webhook' });
-      await autoResumePausedSession(userId);
-      return { credited: true, deadLettered: false };
+      credited = true;
     } catch (e) {
       await recordFailedCredit({ userId, paymentId, orderId, planId, couponId }, e).catch((re) =>
         logger.error('webhook: recordFailedCredit ALSO failed', { paymentId, error: re instanceof Error ? re.message : String(re) }),
       );
       return { credited: false, deadLettered: true };
     }
+    // Resume runs AFTER credit committed and is best-effort — a resume failure
+    // must NOT dead-letter money that was already credited (false alert).
+    await autoResumePausedSession(userId).catch((re) =>
+      logger.error('webhook: autoResume after credit failed (non-fatal)', { userId, paymentId, error: re instanceof Error ? re.message : String(re) }),
+    );
+    return { credited, deadLettered: false };
   }
   if (paymentId) {
     // Could not resolve the order → dead-letter (keyed by paymentId) + alert so a

@@ -74,9 +74,12 @@ describe('creditRecharge (emulator)', () => {
 
     const c = (await db.collection('consultations').doc(cid).get()).data()!;
     expect(c.status).toBe('active');
-    // customer presence refreshed to ~now; astrologer marker cleared (re-established
-    // on their next tick) so the frontier isn't pinned below the fresh lastTickAt.
+    // BOTH presence markers refreshed to ~now. The astrologer marker must be
+    // re-seeded (NOT null): a null marker disables the absent-astrologer billing
+    // gate and over-bills the customer after resume. Seeded-to-now keeps the gate
+    // armed while not stalling billing (frontier not pinned below lastTickAt).
     expect(c.customerLastTickAt.toMillis()).toBeGreaterThan(stale.toMillis());
-    expect(c.astrologerLastTickAt ?? null).toBeNull();
+    expect(c.astrologerLastTickAt).not.toBeNull();
+    expect(c.astrologerLastTickAt.toMillis()).toBeGreaterThan(stale.toMillis());
   });
 });

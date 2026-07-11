@@ -29,11 +29,13 @@ service cloud.firestore {
 
     // ================= users =================
     match /users/{userId} {
-      // Only the user themselves and admins may read the real profile. Astrologers
-      // must NOT — it holds phone/email/money. They read the SAFE mirror in
-      // /customerProfiles instead (name + birth details, no PII), so a customer's
-      // phone number can never reach an astrologer.
-      allow read: if isSelf(userId) || isAdmin();
+      // Only the user themselves and money-trusted admins (super/ops) may read
+      // the real profile — it holds phone/email AND live wallet/recharge/spend.
+      // The 'astrology' tier is walled off (consistent with walletTransactions):
+      // it has no route that needs customer PII or balances, so it must not read
+      // them straight from Firestore. Astrologers (non-admin) read the SAFE
+      // mirror in /customerProfiles (name + birth details, no PII) instead.
+      allow read: if isSelf(userId) || canReadLedger();
       allow create: if isSelf(userId)
         // a new profile must start with zeroed, function-owned money fields
         && request.resource.data.walletBalance == 0
@@ -80,9 +82,19 @@ service cloud.firestore {
       // public directory is readable by any signed-in user
       allow read: if isSignedIn();
       allow create: if isAdmin();
-      // astrologer may toggle their own presence/profile, never money/verify/
-      // status/rate/commission/availability-lock (all function- or admin-owned).
-      allow update: if isAdmin() || (isSelf(astrologerId) && notChanging([
+      // Three tiers of write authority, least-privilege:
+      //  - super-admin: may change anything (approval, rate, commission, money).
+      //  - other admins (ops/astrology): may edit profile/marketing fields, but
+      //    NEVER the money/approval/rate/verify fields — those mint value or
+      //    approve earners and are reserved for super (mirrors the super-only
+      //    setAstrologerStatus / adjustWallet gates at the function layer).
+      //  - the astrologer themselves: only their own non-privileged fields.
+      allow update: if isSuperAdmin()
+        || (isAdmin() && notChanging([
+            'verified','accountStatus','ratePerMinutePaise','commissionPercent',
+            'earnings','pendingPayout','isAI'
+          ]))
+        || (isSelf(astrologerId) && notChanging([
         'rating','totalReviews','totalConsultations','followers','earnings',
         'pendingPayout','verified','featured','accountStatus',
         'commissionPercent','ratePerMinutePaise','available',
@@ -97,10 +109,13 @@ service cloud.firestore {
         allow read, write: if isSelf(astrologerId);
       }
 
-      // Contact PII (email/phone). Readable only by the astrologer themselves and
-      // admins — never by customers. Written by Cloud Functions (admin actions).
+      // Private subdocs. The `financials` doc (earnings/pendingPayout/commission)
+      // is money — restricted to the astrologer and money-trusted admins
+      // (super/ops), NOT the astrology tier. Other private docs (contact PII)
+      // stay readable by any admin for astrologer management. Function-written.
       match /private/{doc} {
-        allow read: if isSelf(astrologerId) || isAdmin();
+        allow read: if isSelf(astrologerId)
+          || (doc == 'financials' ? canReadLedger() : isAdmin());
         allow write: if false;
       }
     }
@@ -194,7 +209,9 @@ service cloud.firestore {
     // ================= admin-managed catalogs (public read) =================
     match /rechargePlans/{planId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      // A recharge plan defines how much wallet value a payment yields — writing
+      // one is a money action, so super-admin only (mirrors adjustWallet).
+      allow write: if isSuperAdmin();
     }
     match /banners/{bannerId} {
       allow read: if isSignedIn();
@@ -205,7 +222,9 @@ service cloud.firestore {
       // popup). Full validity/audience/usage is still enforced server-side at
       // redemption; inactive/unpublished codes stay hidden. Admins read all.
       allow read: if isAdmin() || (isSignedIn() && resource.data.active == true);
-      allow write: if isAdmin();
+      // A coupon grants free wallet/bonus credit — authoring one mints money, so
+      // super-admin only. Closes the lower-tier-admin self-coupon mint path.
+      allow write: if isSuperAdmin();
     }
     match /couponRedemptions/{id} {
       allow read: if isAdmin() || isSelf(resource.data.userId);

@@ -21,12 +21,35 @@ import { GlobalConfig } from '../common/types';
  * wallet vs non-withdrawable bonus/grace — P3-7), and reverses the astrologer's
  * accrual, keeping the astrologerLedger reconciled with pendingPayout (P3-8).
  */
+export interface RefundResult {
+  refundAmt: number;
+  walletRefund: number;
+  bonusRefund: number;
+  netClawedBack: number;
+  shortfall: number;
+  alreadyProcessed?: boolean;
+}
+
 export async function applyRefund(
   tx: Transaction,
   consultationId: string,
-  input: { amountPaise?: number; reason?: string; actorUid: string },
+  input: { amountPaise?: number; reason?: string; actorUid: string; opId?: string },
   config: GlobalConfig,
-): Promise<{ refundAmt: number; walletRefund: number; bonusRefund: number; netClawedBack: number; shortfall: number }> {
+): Promise<RefundResult> {
+  // Idempotency: a double-submit (double-click / client retry) must not refund
+  // twice. Keyed by a client-supplied opId in processedAdminOps, checked in the
+  // read phase and stamped in the write phase — same pattern as recharge credit.
+  const opRef = input.opId
+    ? db.collection(Collections.processedAdminOps).doc(input.opId)
+    : null;
+  if (opRef) {
+    const opSnap = await tx.get(opRef);
+    if (opSnap.exists) {
+      const prev = (opSnap.data()!.result ?? {}) as RefundResult;
+      return { ...prev, alreadyProcessed: true };
+    }
+  }
+
   const ref = db.collection(Collections.consultations).doc(consultationId);
   const snap = await tx.get(ref);
   if (!snap.exists) notFound('Consultation not found.');
@@ -133,16 +156,31 @@ export async function applyRefund(
     });
   }
 
-  return { refundAmt, walletRefund, bonusRefund, netClawedBack: clawPending, shortfall };
+  const result: RefundResult = { refundAmt, walletRefund, bonusRefund, netClawedBack: clawPending, shortfall };
+
+  // Stamp the idempotency marker so a retry of the SAME opId is a no-op that
+  // returns this result instead of refunding again.
+  if (opRef) {
+    tx.set(opRef, {
+      op: 'refund',
+      consultationId,
+      actorUid: input.actorUid,
+      result,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  }
+
+  return result;
 }
 
 export const refundConsultation = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
   if (req.auth?.token?.adminRole !== 'super') failedPrecondition('Requires a super admin.');
 
-  const { consultationId, amountPaise, reason } = (req.data ?? {}) as {
+  const { consultationId, amountPaise, reason, opId } = (req.data ?? {}) as {
     consultationId?: string;
     amountPaise?: number;
+    opId?: string;
     reason?: string;
   };
   if (!consultationId) badRequest('consultationId is required.');
@@ -152,7 +190,7 @@ export const refundConsultation = onCall(async (req) => {
 
   const config = await getGlobalConfig();
   const result = await db.runTransaction((tx) =>
-    applyRefund(tx, consultationId!, { amountPaise, reason, actorUid: actor }, config),
+    applyRefund(tx, consultationId!, { amountPaise, reason, actorUid: actor, opId }, config),
   );
   return { ok: true, ...result };
 });

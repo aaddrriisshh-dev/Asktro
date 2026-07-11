@@ -10,8 +10,13 @@
  *
  * The docs carry SIGNED paise sums per ledger kind (recharge/bonus positive,
  * consultation/refund negative) plus per-kind counts, and per-type consultation
- * counts. Readers apply Math.abs where a magnitude is wanted. Increments are
- * idempotent per source row because each create fires the trigger exactly once.
+ * counts. Readers apply Math.abs where a magnitude is wanted.
+ *
+ * Idempotency: Eventarc delivery is AT-LEAST-once, so a create event can be
+ * delivered more than once. Each fold is therefore guarded by a per-source-row
+ * marker (`dailyStats/{day}/applied/{sourceId}`) written in the SAME transaction
+ * as the increment — a redelivery finds the marker and no-ops, so counters never
+ * double-count. (Analytics only; the authoritative ledger is separate.)
  */
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
@@ -31,39 +36,57 @@ function statsRef(day: string) {
   return db.collection(Collections.dailyStats).doc(day);
 }
 
-/** Fold one wallet-ledger row into its day's rollup. Extracted from the trigger
- *  so it is unit-testable against the emulator. */
-export async function applyRevenueRollup(t: { kind?: string; amount?: number; createdAt?: Timestamp }): Promise<void> {
+/** Run `fold` (which computes the day + the increment fields) exactly once per
+ *  sourceId, guarding against at-least-once redelivery with a per-row marker in
+ *  the same transaction as the increment. */
+async function foldOnce(
+  sourceId: string,
+  day: string,
+  fields: Record<string, unknown>,
+): Promise<void> {
+  const dayRef = statsRef(day);
+  const markerRef = dayRef.collection('applied').doc(sourceId);
+  await db.runTransaction(async (tx) => {
+    const marker = await tx.get(markerRef);
+    if (marker.exists) return; // already folded this source row — no double count
+    tx.set(dayRef, fields, { merge: true });
+    tx.set(markerRef, { at: FieldValue.serverTimestamp() });
+  });
+}
+
+/** Fold one wallet-ledger row into its day's rollup. `sourceId` is the ledger
+ *  doc id, used to dedupe redelivery. Extracted so it is unit-testable. */
+export async function applyRevenueRollup(
+  t: { kind?: string; amount?: number; createdAt?: Timestamp },
+  sourceId: string,
+): Promise<void> {
   const kind = t.kind;
   if (!kind) return;
   const amount = t.amount ?? 0;
   const { day, dayMs } = dayBucket(t.createdAt);
-  await statsRef(day).set(
-    {
-      day,
-      dayMs,
-      revenue: { [kind]: FieldValue.increment(amount) },
-      counts: { [kind]: FieldValue.increment(1) },
-      updatedAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
+  await foldOnce(sourceId, day, {
+    day,
+    dayMs,
+    revenue: { [kind]: FieldValue.increment(amount) },
+    counts: { [kind]: FieldValue.increment(1) },
+    updatedAt: FieldValue.serverTimestamp(),
+  });
 }
 
 /** Fold one consultation into its day's per-type session count. */
-export async function applyConsultationRollup(c: { type?: string; createdAt?: Timestamp }): Promise<void> {
+export async function applyConsultationRollup(
+  c: { type?: string; createdAt?: Timestamp },
+  sourceId: string,
+): Promise<void> {
   const type = c.type;
   if (type !== 'chat' && type !== 'voice' && type !== 'video') return;
   const { day, dayMs } = dayBucket(c.createdAt);
-  await statsRef(day).set(
-    {
-      day,
-      dayMs,
-      consultations: { [type]: FieldValue.increment(1) },
-      updatedAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
+  await foldOnce(sourceId, day, {
+    day,
+    dayMs,
+    consultations: { [type]: FieldValue.increment(1) },
+    updatedAt: FieldValue.serverTimestamp(),
+  });
 }
 
 // --- Revenue rollup: fold each new wallet-ledger row into its day ------------
@@ -71,7 +94,7 @@ export const rollupWalletTxn = onDocumentCreated('walletTransactions/{id}', asyn
   const t = event.data?.data();
   if (!t) return;
   try {
-    await applyRevenueRollup(t as { kind?: string; amount?: number; createdAt?: Timestamp });
+    await applyRevenueRollup(t as { kind?: string; amount?: number; createdAt?: Timestamp }, event.params.id);
   } catch (err) {
     logger.error('rollupWalletTxn failed', { id: event.params.id, error: err instanceof Error ? err.message : String(err) });
   }
@@ -82,7 +105,7 @@ export const rollupConsultation = onDocumentCreated('consultations/{id}', async 
   const c = event.data?.data();
   if (!c) return;
   try {
-    await applyConsultationRollup(c as { type?: string; createdAt?: Timestamp });
+    await applyConsultationRollup(c as { type?: string; createdAt?: Timestamp }, event.params.id);
   } catch (err) {
     logger.error('rollupConsultation failed', { id: event.params.id, error: err instanceof Error ? err.message : String(err) });
   }

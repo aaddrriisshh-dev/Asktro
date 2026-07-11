@@ -225,11 +225,13 @@ export async function autoResumePausedSession(userId: string): Promise<string | 
       pausedAccumMs: FieldValue.increment(Math.max(0, Date.now() - pausedAt)),
       pausedAt: null,
       lastTickAt: FieldValue.serverTimestamp(),
-      // Re-seed presence to match activation so billing doesn't stall after the
-      // resume. Customer is present (they just recharged); clear the astrologer
-      // marker so it re-establishes on their next tick.
+      // Re-seed BOTH presence markers to now (see pauseResume.ts for the full
+      // rationale): seeding — not deleting — the astrologer marker keeps the
+      // absent-astrologer billing gate armed, so a customer who recharges while
+      // the astrologer has left is billed at most one settle window, not until
+      // timeout. Seeding to now (= lastTickAt) also avoids stalling billing.
       customerLastTickAt: FieldValue.serverTimestamp(),
-      astrologerLastTickAt: FieldValue.delete(),
+      astrologerLastTickAt: FieldValue.serverTimestamp(),
       networkStatus: 'ok',
       warnLevel: 0,
       updatedAt: FieldValue.serverTimestamp(),
