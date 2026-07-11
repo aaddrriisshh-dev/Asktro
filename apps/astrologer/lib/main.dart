@@ -18,18 +18,26 @@ Future<void> main() async {
   // identifier / Play Integrity" error). Debug provider on debug builds
   // (register the printed token in the Firebase console), Play Integrity /
   // App Attest for release.
-  // App Check activation must NEVER hard-crash startup. On a release build that
-  // wasn't distributed through Play (e.g. a local sideload), the Play Integrity
-  // provider can throw — without this guard that exception hangs the app at the
-  // splash. Wrapped so the app still launches; callables/phone-auth simply fetch
-  // no App Check token until the provider is fully provisioned.
-  try {
-    await FirebaseAppCheck.instance.activate(
+  // App Check activation must NEVER hard-crash OR hang startup. On a release
+  // build not distributed through Play (a local sideload / friend test APK), the
+  // Play Integrity provider can't attest, and its token fetch can HANG — which
+  // holds the first data read and freezes the app on the splash. So: (1) skip it
+  // for test builds via --dart-define=DISABLE_APPCHECK=true, and (2) never
+  // `await` activation on release (fire-and-forget). App Check is not enforced
+  // server-side yet, so unactivated calls still succeed.
+  const disableAppCheck = bool.fromEnvironment('DISABLE_APPCHECK');
+  if (!disableAppCheck) {
+    final activation = FirebaseAppCheck.instance.activate(
       androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
       appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
     );
-  } catch (e, st) {
-    FirebaseCrashlytics.instance.recordError(e, st, reason: 'App Check activate failed');
+    if (kDebugMode) {
+      try { await activation; } catch (_) {/* non-fatal */}
+    } else {
+      activation.catchError((Object e, StackTrace st) {
+        FirebaseCrashlytics.instance.recordError(e, st, reason: 'App Check activate failed');
+      });
+    }
   }
 
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;

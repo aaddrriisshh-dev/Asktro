@@ -19,18 +19,30 @@ Future<void> main() async {
   // ("1 out of 2 underlying tasks failed"), taking every callable down. Debug
   // provider on debug builds (register the printed token in the Firebase
   // console), Play Integrity / App Attest for release.
-  // App Check activation must NEVER hard-crash startup. On a release build not
-  // distributed through Play (e.g. a local sideload), the Play Integrity provider
-  // can throw — without this guard that exception hangs the app at the splash.
-  // Wrapped so the app still launches; tokens simply aren't fetched until the
-  // provider is fully provisioned.
-  try {
-    await FirebaseAppCheck.instance.activate(
+  // App Check activation must NEVER hard-crash OR hang startup. On a release
+  // build NOT distributed through Play (a local sideload / friend test APK), the
+  // Play Integrity provider can't attest, and — worse than throwing — its token
+  // fetch can HANG, which makes the firebase SDKs hold the first data read and
+  // freezes the app on the splash. So: (1) skip activation entirely for test
+  // builds via --dart-define=DISABLE_APPCHECK=true, and (2) never `await` the
+  // activation on release — fire-and-forget so a slow/failed provider can't block
+  // launch. (App Check is not enforced server-side yet, so unactivated calls
+  // still succeed; enforcement is a launch-time step once real clients ship.)
+  const disableAppCheck = bool.fromEnvironment('DISABLE_APPCHECK');
+  if (!disableAppCheck) {
+    final activation = FirebaseAppCheck.instance.activate(
       androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
       appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
     );
-  } catch (e, st) {
-    FirebaseCrashlytics.instance.recordError(e, st, reason: 'App Check activate failed');
+    if (kDebugMode) {
+      // In debug we can await (fast, debug provider); surface failures.
+      try { await activation; } catch (_) {/* non-fatal */}
+    } else {
+      // Release: do NOT block startup on the provider.
+      activation.catchError((Object e, StackTrace st) {
+        FirebaseCrashlytics.instance.recordError(e, st, reason: 'App Check activate failed');
+      });
+    }
   }
 
   // Route Flutter + async errors to Crashlytics (Part 7).
