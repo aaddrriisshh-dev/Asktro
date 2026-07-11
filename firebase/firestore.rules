@@ -330,6 +330,12 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if false; // functions only, immutable
     }
+    // Per-day analytics rollup for the dashboard (aggregate counters only, no
+    // per-user detail). Any admin tier may read; the rollup triggers write it.
+    match /dailyStats/{day} {
+      allow read: if isAdmin();
+      allow write: if false; // functions only
+    }
 
     // default deny
     match /{document=**} {

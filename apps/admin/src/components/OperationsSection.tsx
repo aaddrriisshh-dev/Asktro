@@ -7,16 +7,15 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts';
 import {
-  collection, query, where, orderBy, getDocs, doc, getDoc, Timestamp,
+  collection, query, where, getDocs, doc, getDoc, Timestamp,
   getCountFromServer, getAggregateFromServer, sum,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatPaise, shortDay } from '@/lib/format';
 import { useCardFilter } from '@/lib/useCardFilter';
 import { Range } from '@/lib/dateRange';
+import { fetchDailyStats } from '@/lib/dailyStats';
 import { DrawerFilter } from './DrawerFilter';
-
-const dayKey = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
 // ---------------------------------------------------------------- panel shell
 function OpsPanel({
@@ -100,23 +99,9 @@ function RevenueTrend() {
     let cancelled = false;
     setData(null);
     (async () => {
-      // Filter to recharges SERVER-side so only revenue rows come down (not the
-      // full transaction firehose — ticks, refunds, bonuses). Bounded further by
-      // the selected date range. (Needs the kind+createdAt composite index.)
-      const snap = await getDocs(query(
-        collection(db, 'walletTransactions'),
-        where('kind', '==', 'recharge'),
-        where('createdAt', '>=', Timestamp.fromMillis(range.start)),
-        where('createdAt', '<', Timestamp.fromMillis(range.end)),
-        orderBy('createdAt', 'asc'),
-      ));
-      const byDay = new Map<string, number>();
-      snap.forEach((doc) => {
-        const t = doc.data() as { amount?: number; createdAt?: Timestamp };
-        const k = dayKey(t.createdAt?.toMillis?.() ?? range.start);
-        byDay.set(k, (byDay.get(k) ?? 0) + (t.amount ?? 0));
-      });
-      if (!cancelled) setData([...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, v]) => ({ day: shortDay(day), value: Math.round(v / 100) })));
+      // Per-day rollup — one small doc per day, not the transaction firehose.
+      const days = await fetchDailyStats(range);
+      if (!cancelled) setData(days.map((s) => ({ day: shortDay(s.day), value: Math.round((s.revenue?.recharge ?? 0) / 100) })));
     })().catch(() => { if (!cancelled) setData([]); });
     return () => { cancelled = true; };
   }, [range.start, range.end]);
@@ -195,21 +180,14 @@ function ConsultationActivity() {
     let cancelled = false;
     setData(null);
     (async () => {
-      const snap = await getDocs(query(
-        collection(db, 'consultations'),
-        where('createdAt', '>=', Timestamp.fromMillis(range.start)),
-        where('createdAt', '<', Timestamp.fromMillis(range.end)),
-        orderBy('createdAt', 'asc'),
-      ));
-      const byDay = new Map<string, { chat: number; voice: number; video: number }>();
-      snap.forEach((doc) => {
-        const c = doc.data() as { type?: string; createdAt?: Timestamp };
-        const k = dayKey(c.createdAt?.toMillis?.() ?? range.start);
-        const cur = byDay.get(k) ?? { chat: 0, voice: 0, video: 0 };
-        if (c.type === 'chat') cur.chat++; else if (c.type === 'voice') cur.voice++; else if (c.type === 'video') cur.video++;
-        byDay.set(k, cur);
-      });
-      if (!cancelled) setData([...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, v]) => ({ day: shortDay(day), ...v })));
+      // Per-day rollup — one small doc per day, not a scan of every session.
+      const days = await fetchDailyStats(range);
+      if (!cancelled) setData(days.map((s) => ({
+        day: shortDay(s.day),
+        chat: s.consultations?.chat ?? 0,
+        voice: s.consultations?.voice ?? 0,
+        video: s.consultations?.video ?? 0,
+      })));
     })().catch(() => { if (!cancelled) setData([]); });
     return () => { cancelled = true; };
   }, [range.start, range.end]);

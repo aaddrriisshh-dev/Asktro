@@ -17,6 +17,7 @@ export const Collections = {
   adminUsers: 'adminUsers',
   processedPayments: 'processedPayments', // idempotency keys for recharge
   counters: 'counters', // atomic sequence docs (e.g. human-readable ticket numbers)
+  dailyStats: 'dailyStats', // per-UTC-day analytics rollup for the admin dashboard
 } as const;
 
 export const ConfigDoc = { path: 'config/global' } as const;

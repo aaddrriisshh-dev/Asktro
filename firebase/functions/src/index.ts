@@ -42,6 +42,9 @@ export { onCustomerSignup } from './auth/onUserCreate';
 export { setUserRole, deleteAccount, processAccountDeletion } from './auth/adminAndDeletion';
 export { recordConsent } from './auth/consent';
 
+// ---- Analytics rollup (daily dashboard counters) ----
+export { rollupWalletTxn, rollupConsultation } from './stats/dailyStats';
+
 // ---- Notifications ----
 export { onNotificationCreated, sendBroadcast } from './notifications/sender';
 

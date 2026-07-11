@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { formatPaise, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
+import { fetchDailyStats } from '@/lib/dailyStats';
 import { DashCard, CardView } from './DashCard';
 import { Metric } from './Metric';
 import { DailyChart } from './DailyChart';
@@ -32,33 +31,23 @@ function useRevenue(range: Range): CardView<RevData> {
     setError(null);
     (async () => {
       try {
-        const q = query(
-          collection(db, 'walletTransactions'),
-          where('createdAt', '>=', Timestamp.fromMillis(range.start)),
-          where('createdAt', '<', Timestamp.fromMillis(range.end)),
-          orderBy('createdAt', 'asc'),
-        );
-        const snap = await getDocs(q);
+        // Read the per-day rollup (≤ one doc per day) instead of scanning the
+        // walletTransactions firehose. Rollup stores SIGNED sums per kind, so
+        // magnitudes (consultation billing, refunds) use Math.abs.
+        const days = await fetchDailyStats(range);
         let recharge = 0, bonus = 0, consultation = 0, refunds = 0, count = 0;
-        const byDay = new Map<string, number>();
-        snap.forEach((d) => {
-          const t = d.data() as { kind?: string; amount?: number; createdAt?: Timestamp };
-          const amt = t.amount ?? 0;
-          if (t.kind === 'recharge') {
-            recharge += amt;
-            count += 1;
-            const ms = t.createdAt?.toMillis?.() ?? range.start;
-            const key = new Date(ms).toISOString().slice(0, 10);
-            byDay.set(key, (byDay.get(key) ?? 0) + amt);
-          } else if (t.kind === 'bonus') bonus += amt;
-          else if (t.kind === 'consultation') consultation += Math.abs(amt);
-          else if (t.kind === 'refund') refunds += Math.abs(amt);
-        });
+        const daily: { day: string; value: number }[] = [];
+        for (const s of days) {
+          const rev = s.revenue ?? {};
+          recharge += rev.recharge ?? 0;
+          bonus += rev.bonus ?? 0;
+          consultation += Math.abs(rev.consultation ?? 0);
+          refunds += Math.abs(rev.refund ?? 0);
+          count += s.counts?.recharge ?? 0;
+          daily.push({ day: shortDay(s.day), value: Math.round((rev.recharge ?? 0) / 100) });
+        }
         const gross = recharge;
         const net = gross - refunds;
-        const daily = [...byDay.entries()]
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([day, amount]) => ({ day: shortDay(day), value: Math.round(amount / 100) }));
         if (!cancelled) setData({ gross, net, recharge, bonus, consultation, refunds, count, daily });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
