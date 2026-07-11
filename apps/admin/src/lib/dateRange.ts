@@ -27,15 +27,17 @@ export interface Range {
 }
 
 const DAY = 86_400_000;
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+// Day boundaries are computed in UTC so they align exactly with the backend's
+// UTC timestamps and the per-UTC-day dailyStats rollup markers. (A local-midnight
+// boundary in a non-UTC zone like IST straddles two UTC days and off-by-one'd the
+// rollup-backed cards.) "Today" therefore means the current UTC day.
+function startOfUtcDay(d: Date): number {
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 
 export function resolveRange(preset: Preset, custom?: { start?: string; end?: string }): Range {
   const now = new Date();
-  const t0 = startOfDay(now).getTime();
+  const t0 = startOfUtcDay(now);
   switch (preset) {
     case 'today':
       return { start: t0, end: t0 + DAY, label: 'Today' };
@@ -46,17 +48,17 @@ export function resolveRange(preset: Preset, custom?: { start?: string; end?: st
     case 'last30':
       return { start: t0 - 29 * DAY, end: t0 + DAY, label: 'Last 30 Days' };
     case 'thisMonth': {
-      const s = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      const e = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+      const s = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+      const e = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
       return { start: s, end: e, label: 'This Month' };
     }
     case 'prevMonth': {
-      const s = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
-      const e = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      const s = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1);
+      const e = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
       return { start: s, end: e, label: 'Previous Month' };
     }
     case 'allTime':
-      // everything from the epoch through the end of today
+      // everything from the epoch through the end of the current UTC day
       return { start: 0, end: t0 + DAY, label: 'All Time' };
     case 'custom': {
       // custom supports full date + time (datetime-local values).

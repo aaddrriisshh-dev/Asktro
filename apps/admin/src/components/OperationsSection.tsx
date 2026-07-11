@@ -70,7 +70,7 @@ function NeedsAttention() {
         getCountFromServer(query(collection(db, 'astrologers'), where('accountStatus', '==', 'pending'))),
       ]);
       setD({ tickets: tk.data().count, payouts: po.data().count, approvals: as.data().count });
-    })().catch(() => setD({ tickets: 0, payouts: 0, approvals: 0 }));
+    })().catch(() => setD(null)); // leave as '—' (unknown), never a misleading 0
   }, []);
   const items = [
     { href: '/support', label: 'Open support tickets', hint: 'Users & astrologers awaiting a reply', n: d?.tickets, cls: 'c-red' },
@@ -142,7 +142,7 @@ function PaidVsFree() {
       ]);
       const paid = paidAgg.data().count;
       if (!cancelled) setD({ paid, free: Math.max(0, totalAgg.data().count - paid) });
-    })().catch(() => { if (!cancelled) setD({ paid: 0, free: 0 }); });
+    })().catch(() => { if (!cancelled) setD(null); }); // stay in loading, never fake 0/0
     return () => { cancelled = true; };
   }, [range.start, range.end]);
   const total = (d?.paid ?? 0) + (d?.free ?? 0) || 1;
@@ -272,7 +272,7 @@ function MoneyHeldOwed() {
       const held = (heldAgg.data().wallet ?? 0) + (heldAgg.data().bonus ?? 0);
       const owed = owedAgg.data().amt ?? 0;
       setD({ held, owed });
-    })().catch(() => setD({ held: 0, owed: 0 }));
+    })().catch(() => setD(null)); // leave in loading, never show a misleading ₹0 held/owed
   }, []);
   if (!d) return <Skel h={120} />;
   return (
