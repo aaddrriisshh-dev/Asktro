@@ -51,6 +51,12 @@ android {
 
     buildTypes {
         release {
+            // AGP 9 enables R8 code shrinking by DEFAULT for release, which strips
+            // Firebase classes and makes Firebase.initializeApp() throw at launch
+            // (release-only; debug is fine). Disable shrinking so release works.
+            isMinifyEnabled = false
+            isShrinkResources = false
+
             signingConfig = if (hasReleaseKeystore)
                 signingConfigs.getByName("release")
             else

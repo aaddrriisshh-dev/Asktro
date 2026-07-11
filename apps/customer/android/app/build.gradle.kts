@@ -53,6 +53,15 @@ android {
 
     buildTypes {
         release {
+            // AGP 9 enables R8 code shrinking by DEFAULT for release, which strips
+            // Firebase's classes and makes Firebase.initializeApp() throw at launch
+            // (release-only crash; debug is unaffected). Disable shrinking so the
+            // release build works. A larger, un-obfuscated APK is a fine trade for
+            // a launching app; enabling minify later requires Firebase/Flutter
+            // proguard keep rules and a real device test.
+            isMinifyEnabled = false
+            isShrinkResources = false
+
             // Real upload key when key.properties is present; debug key otherwise
             // (so local test builds keep working). Play requires the real key.
             signingConfig = if (hasReleaseKeystore)
