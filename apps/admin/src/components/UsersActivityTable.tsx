@@ -187,7 +187,7 @@ export function UsersActivityTable() {
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table className="uat-table">
+        <table className="uat-table cardify">
           <thead>
             <tr>
               <th>User</th><th>Chat</th><th>Voice</th><th>Video</th>
@@ -196,30 +196,30 @@ export function UsersActivityTable() {
           </thead>
           <tbody>
             {rows === null ? (
-              <tr><td colSpan={8} className="muted" style={{ padding: 20 }}>Loading…</td></tr>
+              <tr><td colSpan={8} data-label="" className="muted" style={{ padding: 20 }}>Loading…</td></tr>
             ) : err ? (
-              <tr><td colSpan={8} className="muted" style={{ padding: 20 }}>Couldn’t load users: {err}</td></tr>
+              <tr><td colSpan={8} data-label="" className="muted" style={{ padding: 20 }}>Couldn’t load users: {err}</td></tr>
             ) : shown.length === 0 ? (
-              <tr><td colSpan={8} className="muted" style={{ padding: 20 }}>No users found.</td></tr>
+              <tr><td colSpan={8} data-label="" className="muted" style={{ padding: 20 }}>No users found.</td></tr>
             ) : shown.map((u) => (
               <tr key={u.id} className={u.status === 'blocked' ? 'uat-blocked' : ''}>
-                <td>
+                <td data-label="User">
                   <div className="uat-user">
                     <span className="uat-name">{u.name || 'Unnamed'}</span>
                     <span className="uat-phone">{u.phone || u.id.slice(0, 10)}</span>
                   </div>
                 </td>
-                <td><b>{mins(u.chatMin)}</b> <span className="uat-unit">min</span></td>
-                <td><b>{mins(u.voiceMin)}</b> <span className="uat-unit">min</span></td>
-                <td><b>{mins(u.videoMin)}</b> <span className="uat-unit">min</span></td>
-                <td>
+                <td data-label="Chat"><b>{mins(u.chatMin)}</b> <span className="uat-unit">min</span></td>
+                <td data-label="Voice"><b>{mins(u.voiceMin)}</b> <span className="uat-unit">min</span></td>
+                <td data-label="Video"><b>{mins(u.videoMin)}</b> <span className="uat-unit">min</span></td>
+                <td data-label="Payment">
                   {u.paid
                     ? <span className="pay-pill paid">Paid</span>
                     : <span className="pay-pill free">Free</span>}
                 </td>
-                <td className="uat-amount">{u.paid ? formatPaise(u.amount) : '—'}</td>
-                <td className="uat-date">{fmtDate(u.lastActive)}</td>
-                <td>
+                <td data-label="Amount" className="uat-amount">{u.paid ? formatPaise(u.amount) : '—'}</td>
+                <td data-label="Last active" className="uat-date">{fmtDate(u.lastActive)}</td>
+                <td data-label="">
                   <div className="uat-actions">
                     <Link href={`/users/${u.id}`} className="uat-act view" title="View profile" aria-label="View profile">{icoEye}</Link>
                     <Link href={`/users/${u.id}#chat`} className="uat-act chat" title="Chat log" aria-label="Chat log">{icoChat}</Link>

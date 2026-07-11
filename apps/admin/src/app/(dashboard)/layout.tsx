@@ -39,9 +39,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  // Mobile off-canvas drawer state (desktop ignores this — the sidebar is
-  // always docked there).
-  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // On phones/tablets start the sidebar in its compact icon-rail state so
+  // content gets the room; the chevron still expands it on demand.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) setCollapsed(true);
+  }, []);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) { router.replace('/login'); return; }
@@ -50,9 +53,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       router.replace(landingFor(adminRole));
     }
   }, [loading, user, isAdmin, adminRole, pathname, router]);
-
-  // Navigating (route change) always closes the mobile drawer.
-  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   if (loading || !user || !isAdmin) {
     return <div style={{ display: 'grid', placeItems: 'center', height: '100vh' }}>Loading…</div>;
@@ -63,21 +63,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <div className="celestial-bg" aria-hidden />
-      {/* Mobile-only top bar: brand + hamburger to open the drawer. */}
-      <header className="topbar">
-        <button className="topbar__burger" onClick={() => setMobileOpen(true)} aria-label="Open menu">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
-        </button>
-        <div className="topbar__brand">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="brand-emblem" src="/brand/emblem.png" alt="Asktro" />
-          <span className="brand-word">Asktro<span className="brand-tld">.in</span></span>
-        </div>
-      </header>
-      {/* Backdrop behind the open mobile drawer. */}
-      {mobileOpen && <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} aria-hidden />}
-      <aside className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}${mobileOpen ? ' sidebar--open' : ''}`}>
-        <button className="sidebar__close" onClick={() => setMobileOpen(false)} aria-label="Close menu">×</button>
+      <aside className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}>
         <div className="sidebar__brand">
           <div className="brand-row">
             {/* eslint-disable-next-line @next/next/no-img-element */}

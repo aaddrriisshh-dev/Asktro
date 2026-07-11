@@ -62,17 +62,17 @@ export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video'
 
   const rows = (list: Any[], dateLabel: string) => (
     <div style={{ overflowX: 'auto' }}>
-      <table>
+      <table className="cardify">
         <thead><tr><th>User</th><th>Min</th><th>Astrologer</th><th>Payment</th><th>Charged</th><th>{dateLabel}</th></tr></thead>
         <tbody>
           {list.map((c) => (
             <tr key={c.id as string}>
-              <td><Link href={`/users/${c.customerId}`} style={{ fontWeight: 600 }}>{(c.customerId as string)?.slice(0, 10) ?? '—'}</Link></td>
-              <td><b>{mins(c)}</b></td>
-              <td>{names[c.astrologerId as string] ?? '—'}</td>
-              <td>{(c.totalCharged as number) > 0 ? <span className="pay-pill paid">Paid</span> : <span className="pay-pill free">Free</span>}</td>
-              <td className="uat-amount">{formatPaise(c.totalCharged as number)}</td>
-              <td className="muted">{fmt(ms(c, 'createdAt'))}</td>
+              <td data-label="User"><Link href={`/users/${c.customerId}`} style={{ fontWeight: 600 }}>{(c.customerId as string)?.slice(0, 10) ?? '—'}</Link></td>
+              <td data-label="Min"><b>{mins(c)}</b></td>
+              <td data-label="Astrologer">{names[c.astrologerId as string] ?? '—'}</td>
+              <td data-label="Payment">{(c.totalCharged as number) > 0 ? <span className="pay-pill paid">Paid</span> : <span className="pay-pill free">Free</span>}</td>
+              <td data-label="Charged" className="uat-amount">{formatPaise(c.totalCharged as number)}</td>
+              <td data-label={dateLabel} className="muted">{fmt(ms(c, 'createdAt'))}</td>
             </tr>
           ))}
         </tbody>

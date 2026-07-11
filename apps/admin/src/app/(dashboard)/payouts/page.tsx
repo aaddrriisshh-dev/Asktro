@@ -24,17 +24,17 @@ export default function PayoutsPage() {
           <p className="muted">No payout requests.</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-          <table>
+          <table className="cardify">
             <thead><tr><th>Astrologer</th><th>Amount</th><th>Method</th><th>Requested</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {rows.map((p) => (
                 <tr key={p.id}>
-                  <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{p.astrologerId?.slice(0, 10)}</td>
-                  <td>{formatPaise(p.amount)}</td>
-                  <td>{p.method ?? '—'}</td>
-                  <td>{formatDate(p.createdAt?.toMillis?.())}</td>
-                  <td><span className={`badge ${badge(p.status)}`}>{p.status}</span></td>
-                  <td style={{ display: 'flex', gap: 6 }}>
+                  <td data-label="Astrologer" style={{ fontFamily: 'monospace', fontSize: 12 }}>{p.astrologerId?.slice(0, 10)}</td>
+                  <td data-label="Amount">{formatPaise(p.amount)}</td>
+                  <td data-label="Method">{p.method ?? '—'}</td>
+                  <td data-label="Requested">{formatDate(p.createdAt?.toMillis?.())}</td>
+                  <td data-label="Status"><span className={`badge ${badge(p.status)}`}>{p.status}</span></td>
+                  <td data-label="" style={{ display: 'flex', gap: 6 }}>
                     {p.status === 'pending' && (
                       <>
                         <button className="btn sm" onClick={() => decide(p.id, 'approved')}>Approve</button>
