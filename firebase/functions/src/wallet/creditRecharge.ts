@@ -225,6 +225,11 @@ export async function autoResumePausedSession(userId: string): Promise<string | 
       pausedAccumMs: FieldValue.increment(Math.max(0, Date.now() - pausedAt)),
       pausedAt: null,
       lastTickAt: FieldValue.serverTimestamp(),
+      // Re-seed presence to match activation so billing doesn't stall after the
+      // resume. Customer is present (they just recharged); clear the astrologer
+      // marker so it re-establishes on their next tick.
+      customerLastTickAt: FieldValue.serverTimestamp(),
+      astrologerLastTickAt: FieldValue.delete(),
       networkStatus: 'ok',
       warnLevel: 0,
       updatedAt: FieldValue.serverTimestamp(),

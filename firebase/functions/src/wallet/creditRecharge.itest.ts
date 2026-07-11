@@ -6,8 +6,8 @@
  * payment credits exactly once even when the callable and the webhook both fire,
  * and a second payment on the same order never double-credits.
  */
-import { db, FieldValue } from '../common/admin';
-import { creditRecharge } from './creditRecharge';
+import { db, FieldValue, Timestamp } from '../common/admin';
+import { creditRecharge, autoResumePausedSession } from './creditRecharge';
 
 async function seedUser(uid: string) {
   await db.collection('users').doc(uid).set({
@@ -57,5 +57,26 @@ describe('creditRecharge (emulator)', () => {
 
     const u = (await db.collection('users').doc(uid).get()).data()!;
     expect(u.walletBalance).toBe(10000); // credited once, not 20000
+  });
+
+  it('autoResumePausedSession re-seeds presence so billing does not stall after resume', async () => {
+    const uid = 'u_resume_1', cid = 'c_resume_1';
+    await db.collection('users').doc(uid).set({ walletBalance: 5000 });
+    const stale = Timestamp.fromMillis(Date.now() - 300_000); // 5 min ago
+    await db.collection('consultations').doc(cid).set({
+      customerId: uid, astrologerId: 'a1', type: 'chat', status: 'paused',
+      pausedAt: stale, lastTickAt: stale, customerLastTickAt: stale, astrologerLastTickAt: stale,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    const resumed = await autoResumePausedSession(uid);
+    expect(resumed).toBe(cid);
+
+    const c = (await db.collection('consultations').doc(cid).get()).data()!;
+    expect(c.status).toBe('active');
+    // customer presence refreshed to ~now; astrologer marker cleared (re-established
+    // on their next tick) so the frontier isn't pinned below the fresh lastTickAt.
+    expect(c.customerLastTickAt.toMillis()).toBeGreaterThan(stale.toMillis());
+    expect(c.astrologerLastTickAt ?? null).toBeNull();
   });
 });

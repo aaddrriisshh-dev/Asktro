@@ -16,9 +16,8 @@ export const generateAgoraToken = onCall(
   { secrets: [AGORA_APP_ID, AGORA_APP_CERTIFICATE] },
   async (req) => {
     const uid = assertAuthed(req);
-    const { consultationId, agoraUid } = (req.data ?? {}) as {
+    const { consultationId } = (req.data ?? {}) as {
       consultationId?: string;
-      agoraUid?: number;
     };
     if (!consultationId) badRequest('consultationId is required.');
 
@@ -34,7 +33,12 @@ export const generateAgoraToken = onCall(
       failedPrecondition('This consultation is not joinable.');
     }
 
-    const numericUid = typeof agoraUid === 'number' ? agoraUid : 0;
+    // Derive the Agora uid from the caller's ROLE in this call — customer=1,
+    // astrologer=2 — so the two participants always get DISTINCT uids. Never
+    // trust a client-supplied uid: if both omit it (or send the same), Agora
+    // treats them as one user (uid 0) and one kicks the other, so calls silently
+    // fail to connect. A call has exactly these two human parties (AI never calls).
+    const numericUid = uid === c.customerId ? 1 : 2;
     const privilegeExpire = Math.floor(Timestamp.now().toMillis() / 1000) + TOKEN_TTL_SEC;
 
     const token = RtcTokenBuilder.buildTokenWithUid(
