@@ -36,6 +36,9 @@ export { rateConsultation } from './ratings/rateConsultation';
 // ---- Voice / video ----
 export { generateAgoraToken } from './agora/token';
 
+// ---- ProKerala astrology API proxy ----
+export { prokeralaAstrology } from './prokerala/prokerala';
+
 // ---- Auth / account lifecycle ----
 export { onAuthUserCreate } from './auth/onAuthUserCreate';
 export { onCustomerSignup } from './auth/onUserCreate';
