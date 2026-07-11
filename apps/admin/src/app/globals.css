@@ -25,6 +25,10 @@
 /* ---- Celestial login ---- */
 .celestial {
   min-height: 100vh;
+  /* dvh = the *visible* viewport height, excluding the mobile browser's
+     top/bottom bars, so the card centres in what the user actually sees
+     instead of below it. (vh above is the fallback for old browsers.) */
+  min-height: 100dvh;
   display: grid;
   /* `safe center` falls back to top-alignment when the card is taller than the
      screen (small phones / landscape), so it never gets clipped; overflow-y is
