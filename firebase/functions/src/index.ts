@@ -54,6 +54,9 @@ export { onNotificationCreated, sendBroadcast } from './notifications/sender';
 // ---- Alert delivery (Slack) ----
 export { deliverAlert } from './alerts/deliver';
 
+// ---- Observability: portal error tracking ----
+export { reportClientError } from './observability/clientErrors';
+
 // ---- Remedies (customer follow-up questions) ----
 export { askRemedyQuestion, answerRemedyQuestion } from './remedies/remedyFollowUp';
 

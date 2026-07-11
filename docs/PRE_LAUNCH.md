@@ -19,6 +19,22 @@ Snapshot of what changed since the last audit deploy, so this doc matches HEAD:
 - **Offers screen** now shows offer‑type recharge plans under "View all offers".
 - **App launch crash fixed** (R8 shrinking disabled — see the R8 section below).
 
+### Pre-pilot brief (scale + observability) — DONE (2026‑07‑11)
+The "safe to point 10k users at it" brief is complete:
+- **Backups (C1/C2):** Firestore **Point-in-time recovery** (7‑day) and **daily
+  scheduled backups** (14‑day retention) enabled in the console.
+- **Bounded reads (A):** the last few `astrologers` full-collection reads capped
+  at `limit(500)`; no dashboard/report query can scan an unbounded collection.
+- **Alert delivery (B4):** `deliverAlert` forwards every new `alerts` doc to
+  **Slack #all-asktro-alerts** (critical = `@channel`). Tested end-to-end.
+- **Error tracking (B1/B2):** backend crashes are auto-captured by **Google
+  Cloud Error Reporting** (zero-code, gen-2 functions); the admin portal now has
+  a global handler + route error boundary (`ErrorReporter` / `error.tsx`) that
+  reports uncaught portal errors via the `reportClientError` callable → Slack.
+- Deliberately deferred per the brief (premature until ~100k users): distributed
+  counters, message-participant denormalization, sendBroadcast rewrite,
+  walletTransactions TTL.
+
 ### ProKerala astrology API — finish wiring before horoscope goes live
 - [ ] The `prokeralaAstrology` callable proxy is **written** (holds the
   Client ID/Secret in Secret Manager, OAuth2 client‑credentials, path
