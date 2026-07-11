@@ -242,4 +242,14 @@ those hot functions and raise with observed concurrency. (Left off until then.)
 - [ ] **M3 — `walletTransactions` growth** — add TTL/archival (ledger written
       every ~10s per active session).
 
+## 📦 ANDROID R8 CODE SHRINKING — re-enable with keep-rules before launch
+Currently **OFF** (`isMinifyEnabled=false` / `isShrinkResources=false` in both apps'
+`android/app/build.gradle.kts`). AGP 9 turned shrinking ON by default, and without
+keep-rules it stripped Firebase's classes → `Firebase.initializeApp()` crashed the
+release build on launch. We disabled it so the app works.
+**Before the polished launch:** turn shrinking back ON (smaller, harder-to-copy
+app) but WITH proper ProGuard/R8 keep-rules for Firebase + Flutter, and **test the
+release APK on a real device** — a shrunk build that isn't device-tested can crash
+only in production. (Only re-enable once the keep-rules are verified on a phone.)
+
 ## Add new pre-launch items below as they come up.
