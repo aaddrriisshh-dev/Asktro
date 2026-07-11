@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Purpose strings for the photo picker used in chat. Without these, iOS
+	     HARD-CRASHES the app on first access and Apple rejects the build. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Asktro needs access to your photos so you can share an image with your client in chat.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Asktro needs camera access so you can take and share a photo with your client in chat.</string>
 </dict>
 </plist>

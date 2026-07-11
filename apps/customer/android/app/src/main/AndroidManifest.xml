@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android 13+ requires this for FCM push notifications to be delivered;
+         without it the runtime prompt never shows and notifications are dropped. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="Asktro Clarity"
         android:name="${applicationName}"
