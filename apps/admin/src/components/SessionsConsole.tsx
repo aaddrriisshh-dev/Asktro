@@ -24,7 +24,7 @@ export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video'
 
   useEffect(() => {
     (async () => {
-      const asnap = await getDocs(collection(db, 'astrologers'));
+      const asnap = await getDocs(query(collection(db, 'astrologers'), limit(500)));
       const nm: Record<string, string> = {};
       asnap.forEach((d) => { nm[d.id] = (d.data() as { name?: string }).name ?? d.id.slice(0, 8); });
       setNames(nm);

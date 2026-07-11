@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
@@ -35,7 +35,7 @@ function useAstrologers(range: Range): CardView<AstroData> {
     setError(null);
     (async () => {
       try {
-        const snap = await getDocs(collection(db, 'astrologers'));
+        const snap = await getDocs(query(collection(db, 'astrologers'), limit(500)));
         let online = 0, available = 0, verified = 0, featured = 0, approved = 0, pending = 0;
         let male = 0, female = 0, ratingSum = 0, ratingCount = 0, newInPeriod = 0;
         snap.forEach((doc) => {

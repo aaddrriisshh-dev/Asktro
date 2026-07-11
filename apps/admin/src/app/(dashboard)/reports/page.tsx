@@ -114,7 +114,7 @@ export default function ReportsPage() {
   // admin-readable private/financials subdoc, off the public directory doc. Merge
   // it per-astrologer for the export.
   const fetchAstrologers = async (): Promise<Any[]> => {
-    const snap = await getDocs(collection(db, 'astrologers'));
+    const snap = await getDocs(query(collection(db, 'astrologers'), limit(500)));
     return Promise.all(
       snap.docs.map(async (d) => {
         const fin = await getDoc(doc(db, 'astrologers', d.id, 'private', 'financials'));

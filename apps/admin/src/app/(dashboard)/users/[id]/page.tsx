@@ -144,7 +144,7 @@ export default function UserDetailPage() {
       setCons(clist);
       const ts = await getDocs(query(collection(db, 'walletTransactions'), where('userId', '==', id), orderBy('createdAt', 'desc'), limit(200)));
       setTxns(ts.docs.map((d) => ({ id: d.id, ...d.data() })));
-      const asnap = await getDocs(collection(db, 'astrologers'));
+      const asnap = await getDocs(query(collection(db, 'astrologers'), limit(500)));
       const names: Record<string, string> = {};
       asnap.forEach((d) => { names[d.id] = (d.data() as { name?: string }).name ?? d.id.slice(0, 8); });
       setAstroNames(names);

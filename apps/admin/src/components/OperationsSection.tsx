@@ -7,7 +7,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts';
 import {
-  collection, query, where, getDocs, doc, getDoc, Timestamp,
+  collection, query, where, getDocs, doc, getDoc, Timestamp, limit,
   getCountFromServer, getAggregateFromServer, sum,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -224,7 +224,7 @@ function AstrologerSupply() {
   const [d, setD] = useState<{ online: number; total: number; male: number; female: number } | null>(null);
   useEffect(() => {
     (async () => {
-      const snap = await getDocs(collection(db, 'astrologers'));
+      const snap = await getDocs(query(collection(db, 'astrologers'), limit(500)));
       let online = 0, male = 0, female = 0;
       snap.forEach((doc) => {
         const a = doc.data() as { onlineStatus?: boolean; gender?: string };
@@ -301,7 +301,7 @@ function TopAstrologers() {
   const [rows, setRows] = useState<{ name: string; cons: number; rating: number; earnings: number }[] | null>(null);
   useEffect(() => {
     (async () => {
-      const snap = await getDocs(collection(db, 'astrologers'));
+      const snap = await getDocs(query(collection(db, 'astrologers'), limit(500)));
       // earnings now live in the admin-readable private/financials subdoc.
       const list = await Promise.all(snap.docs.map(async (dref) => {
         const a = dref.data() as { name?: string; totalConsultations?: number; rating?: number };
