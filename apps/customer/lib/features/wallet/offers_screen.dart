@@ -12,6 +12,16 @@ import 'promo_surface.dart';
 final _couponsProvider = StreamProvider.autoDispose<List<Coupon>>(
     (ref) => ref.watch(catalogRepositoryProvider).watchCoupons(),);
 
+/// Offer-type recharge plans (planType == 'offer'). These are "banner-only" on
+/// the recharge screen; here on the Offers screen we surface them too, so an
+/// offer plan created in the portal actually shows up for the user. Tapping one
+/// opens its locked recharge checkout (/recharge?plan=<id>).
+final _offerPlansProvider = StreamProvider.autoDispose<List<RechargePlan>>(
+    (ref) => ref
+        .watch(catalogRepositoryProvider)
+        .watchPlans()
+        .map((plans) => plans.where((p) => p.isOffer).toList()),);
+
 /// Guards the app-open offer popup so it shows at most once per app launch.
 final offerPopupShownProvider = StateProvider<bool>((ref) => false);
 
@@ -63,6 +73,12 @@ class OffersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final coupons = ref.watch(_couponsProvider);
+    final offerPlans = ref.watch(_offerPlansProvider);
+    final couponList = coupons.valueOrNull ?? const <Coupon>[];
+    final planList = offerPlans.valueOrNull ?? const <RechargePlan>[];
+    final anyLoading = coupons.isLoading || offerPlans.isLoading;
+    final bothError = coupons.hasError && offerPlans.hasError;
+
     return Scaffold(
       backgroundColor: Ob.bgColor,
       appBar: AppBar(
@@ -71,24 +87,77 @@ class OffersScreen extends ConsumerWidget {
         foregroundColor: Ob.navy,
         title: Text('Offers', style: Ob.title.copyWith(fontSize: 22)),
       ),
-      body: coupons.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: Ob.purple)),
-        error: (_, __) => const ErrorStateView(),
-        data: (list) {
-          if (list.isEmpty) {
-            return const EmptyState(
-              icon: Icons.local_offer_outlined,
-              title: 'No offers right now',
-              message: 'Check back soon — new coupons drop regularly.',
-            );
-          }
-          return ListView.separated(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
-            itemCount: list.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 14),
-            itemBuilder: (_, i) => _OfferCard(coupon: list[i]),
+      body: Builder(builder: (context) {
+        if (couponList.isEmpty && planList.isEmpty) {
+          if (anyLoading) return const Center(child: CircularProgressIndicator(color: Ob.purple));
+          if (bothError) return const ErrorStateView();
+          return const EmptyState(
+            icon: Icons.local_offer_outlined,
+            title: 'No offers right now',
+            message: 'Check back soon — new offers drop regularly.',
           );
-        },
+        }
+        return ListView(
+          padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
+          children: [
+            // Offer recharge plans first, then coupon tickets.
+            for (final p in planList) Padding(padding: const EdgeInsets.only(bottom: 14), child: _OfferPlanCard(plan: p)),
+            for (final c in couponList) Padding(padding: const EdgeInsets.only(bottom: 14), child: _OfferCard(coupon: c)),
+          ],
+        );
+      },),
+    );
+  }
+}
+
+/// A tappable card for an offer-type recharge plan. Opens the recharge screen
+/// locked to this exact plan (/recharge?plan=<id>), mirroring a recharge banner.
+class _OfferPlanCard extends StatelessWidget {
+  const _OfferPlanCard({required this.plan});
+  final RechargePlan plan;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/recharge?plan=${Uri.encodeComponent(plan.id)}'),
+      child: Container(
+        decoration: BoxDecoration(color: Ob.purple, borderRadius: BorderRadius.circular(20), boxShadow: Ob.softShadow),
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Recharge ${Money.formatPaise(plan.amount)}',
+                      style: Ob.title.copyWith(color: Colors.white, fontSize: 19),),
+                  const SizedBox(height: 6),
+                  Text(
+                    plan.bonus > 0
+                        ? 'Add ${Money.formatPaise(plan.amount)} and get ${Money.formatPaise(plan.bonus)} bonus'
+                        : 'A special recharge offer for you',
+                    style: Ob.subtitle.copyWith(color: Colors.white.withValues(alpha: 0.9), fontSize: 13.5),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            if (plan.bonus > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(12)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('+${Money.formatPaise(plan.bonus)}', style: Ob.title.copyWith(color: Ob.navy, fontSize: 16)),
+                    Text('bonus', style: Ob.option.copyWith(color: Ob.navy, fontSize: 10, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              )
+            else
+              const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 26),
+          ],
+        ),
       ),
     );
   }
