@@ -142,19 +142,19 @@ export default function BroadcastPage() {
         <h3 className="celeste" style={{ marginTop: 0 }}>Recent broadcasts</h3>
         {sentLoading ? <p className="muted">Loading…</p> : sent.length === 0 ? <p className="muted">No broadcasts sent yet.</p> : (
           <div style={{ overflowX: 'auto' }}>
-            <table>
+            <table className="cardify">
               <thead><tr><th>Title</th><th>Audience</th><th>Reached</th><th>Style</th><th>Sent by</th><th>When</th></tr></thead>
               <tbody>
                 {[...sent]
                   .sort((a, b) => ((b.createdAt as { seconds?: number })?.seconds ?? 0) - ((a.createdAt as { seconds?: number })?.seconds ?? 0))
                   .map((b) => (
                     <tr key={b.id}>
-                      <td><b>{(b.title as string) || '—'}</b></td>
-                      <td><span className="badge amber">{AUDIENCE.find((a) => a.key === (b.segment as Segment))?.label ?? 'All Users'}</span></td>
-                      <td>{(b.delivered as number) ?? 0}</td>
-                      <td className="muted" style={{ fontSize: 13 }}>{(b.theme as string) || 'plain'} · {(b.displayMode as string) || 'small'}</td>
-                      <td className="muted" style={{ fontSize: 13 }}>{(b.sentByName as string) || '—'}</td>
-                      <td className="muted" style={{ fontSize: 13 }}>{fmtWhen(b.createdAt)}</td>
+                      <td data-label="Title"><b>{(b.title as string) || '—'}</b></td>
+                      <td data-label="Audience"><span className="badge amber">{AUDIENCE.find((a) => a.key === (b.segment as Segment))?.label ?? 'All Users'}</span></td>
+                      <td data-label="Reached">{(b.delivered as number) ?? 0}</td>
+                      <td data-label="Style" className="muted" style={{ fontSize: 13 }}>{(b.theme as string) || 'plain'} · {(b.displayMode as string) || 'small'}</td>
+                      <td data-label="Sent by" className="muted" style={{ fontSize: 13 }}>{(b.sentByName as string) || '—'}</td>
+                      <td data-label="When" className="muted" style={{ fontSize: 13 }}>{fmtWhen(b.createdAt)}</td>
                     </tr>
                   ))}
               </tbody>

@@ -84,22 +84,22 @@ export default function AdminsPage() {
           <p className="muted">{error ? 'Could not reach the admin list (see the error above).' : 'No admins yet.'}</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table>
+            <table className="cardify">
               <thead>
                 <tr><th>Name</th><th>Email</th><th>Role</th><th>Access</th>{isSuper && <th>Actions</th>}</tr>
               </thead>
               <tbody>
                 {rows.map((a) => (
                   <tr key={a.uid}>
-                    <td>
+                    <td data-label="Name">
                       <b>{a.name || '—'}</b>
                       {a.uid === user?.uid && <span className="muted" style={{ fontSize: 12 }}> · you</span>}
                     </td>
-                    <td className="muted" style={{ fontSize: 13 }}>{a.email}</td>
-                    <td><span className={`badge ${ROLE_BADGE[a.adminRole] ?? ''}`}>{ROLE_LABEL[a.adminRole] ?? a.adminRole}</span></td>
-                    <td className="muted" style={{ fontSize: 12.5, maxWidth: 280 }}>{ACCESS_NOTE[a.adminRole] ?? '—'}</td>
+                    <td data-label="Email" className="muted" style={{ fontSize: 13 }}>{a.email}</td>
+                    <td data-label="Role"><span className={`badge ${ROLE_BADGE[a.adminRole] ?? ''}`}>{ROLE_LABEL[a.adminRole] ?? a.adminRole}</span></td>
+                    <td data-label="Access" className="muted" style={{ fontSize: 12.5, maxWidth: 280 }}>{ACCESS_NOTE[a.adminRole] ?? '—'}</td>
                     {isSuper && (
-                      <td>
+                      <td data-label="Actions">
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                           <select
                             value={a.adminRole}

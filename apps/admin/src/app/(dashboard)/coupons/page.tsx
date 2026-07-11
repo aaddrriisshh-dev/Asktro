@@ -151,24 +151,24 @@ export default function CouponsPage() {
         <h3 className="celeste" style={{ marginTop: 0 }}>Active coupons</h3>
         {loading ? <p className="muted">Loading…</p> : rows.length === 0 ? <p className="muted">No coupons yet.</p> : (
           <div style={{ overflowX: 'auto' }}>
-            <table>
+            <table className="cardify">
               <thead><tr><th>Code</th><th>Reward</th><th>Audience</th><th>Used</th><th>Added by</th><th>Active</th><th></th></tr></thead>
               <tbody>
                 {rows.map((c) => (
                   <tr key={c.id}>
-                    <td><b>{c.code}</b></td>
-                    <td>{formatPaise(c.amount)}{c.bonus ? ` + ${formatPaise(c.bonus)} bonus` : ''}</td>
-                    <td><span className="badge amber">{AUD_LABEL[c.audience] ?? 'All Users'}</span></td>
-                    <td>{c.usedCount ?? 0}{c.usageLimit ? ` / ${c.usageLimit}` : ''}</td>
-                    <td className="muted" style={{ fontSize: 13 }}>{(c.createdByName as string) || '—'}</td>
-                    <td>
+                    <td data-label="Code"><b>{c.code}</b></td>
+                    <td data-label="Reward">{formatPaise(c.amount)}{c.bonus ? ` + ${formatPaise(c.bonus)} bonus` : ''}</td>
+                    <td data-label="Audience"><span className="badge amber">{AUD_LABEL[c.audience] ?? 'All Users'}</span></td>
+                    <td data-label="Used">{c.usedCount ?? 0}{c.usageLimit ? ` / ${c.usageLimit}` : ''}</td>
+                    <td data-label="Added by" className="muted" style={{ fontSize: 13 }}>{(c.createdByName as string) || '—'}</td>
+                    <td data-label="Active">
                       <label className="switch" title={c.active ? 'Active — visible in the app' : 'Off — hidden from the app'}>
                         <input type="checkbox" checked={!!c.active} onChange={() => updateDoc(doc(db, 'coupons', c.id), { active: !c.active })} />
                         <span className="track"></span>
                         <span className="switch-lbl">{c.active ? 'On' : 'Off'}</span>
                       </label>
                     </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
+                    <td data-label="" style={{ whiteSpace: 'nowrap' }}>
                       <button className="btn sm secondary" title="Preview this coupon" onClick={() => setPreview(c)} style={{ marginRight: 6 }}>👁 View</button>
                       <button className="btn sm danger" onClick={() => { if (confirm('Delete this coupon?')) deleteDoc(doc(db, 'coupons', c.id)); }}>Delete</button>
                     </td>

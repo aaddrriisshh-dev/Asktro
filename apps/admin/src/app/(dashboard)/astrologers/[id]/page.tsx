@@ -158,16 +158,16 @@ export default function AstrologerViewPage() {
               </p>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <table>
+                <table className="cardify">
                   <thead><tr><th>Date</th><th>Type</th><th>Duration</th><th>Status</th><th>Charged</th></tr></thead>
                   <tbody>
                     {list.map((c) => (
                       <tr key={c.id as string}>
-                        <td>{ms(c, 'createdAt') ? formatDate(ms(c, 'createdAt')) : '—'}</td>
-                        <td style={{ textTransform: 'capitalize' }}>{(c.type as string) ?? '—'}</td>
-                        <td>{minsOf(c)} min</td>
-                        <td><span className={`badge ${c.status === 'completed' || c.status === 'active' ? 'green' : ''}`}>{(c.status as string) ?? '—'}</span></td>
-                        <td>{formatPaise(c.totalCharged as number)}</td>
+                        <td data-label="Date">{ms(c, 'createdAt') ? formatDate(ms(c, 'createdAt')) : '—'}</td>
+                        <td data-label="Type" style={{ textTransform: 'capitalize' }}>{(c.type as string) ?? '—'}</td>
+                        <td data-label="Duration">{minsOf(c)} min</td>
+                        <td data-label="Status"><span className={`badge ${c.status === 'completed' || c.status === 'active' ? 'green' : ''}`}>{(c.status as string) ?? '—'}</span></td>
+                        <td data-label="Charged">{formatPaise(c.totalCharged as number)}</td>
                       </tr>
                     ))}
                   </tbody>

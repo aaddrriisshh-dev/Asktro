@@ -277,17 +277,17 @@ export default function UserDetailPage() {
         <h3 className="celeste">▤ Transaction History</h3>
         {txns.length === 0 ? <p className="muted">No transactions yet.</p> : (
           <div style={{ overflowX: 'auto' }}>
-            <table>
+            <table className="cardify">
               <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Note</th></tr></thead>
               <tbody>
                 {txns.map((t) => {
                   const amt = (t.amount as number) ?? 0;
                   return (
                     <tr key={t.id as string}>
-                      <td>{ms(t, 'createdAt') ? formatDate(ms(t, 'createdAt')) : '—'}</td>
-                      <td style={{ textTransform: 'capitalize' }}>{(t.kind as string) ?? '—'}</td>
-                      <td style={{ color: amt < 0 ? 'var(--error)' : 'var(--success)', fontWeight: 600 }}>{amt < 0 ? '−' : '+'}{formatPaise(Math.abs(amt))}</td>
-                      <td className="muted">{(t.note as string) ?? '—'}</td>
+                      <td data-label="Date">{ms(t, 'createdAt') ? formatDate(ms(t, 'createdAt')) : '—'}</td>
+                      <td data-label="Type" style={{ textTransform: 'capitalize' }}>{(t.kind as string) ?? '—'}</td>
+                      <td data-label="Amount" style={{ color: amt < 0 ? 'var(--error)' : 'var(--success)', fontWeight: 600 }}>{amt < 0 ? '−' : '+'}{formatPaise(Math.abs(amt))}</td>
+                      <td data-label="Note" className="muted">{(t.note as string) ?? '—'}</td>
                     </tr>
                   );
                 })}

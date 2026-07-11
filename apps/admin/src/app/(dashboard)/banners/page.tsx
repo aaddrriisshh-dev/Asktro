@@ -160,17 +160,17 @@ export default function BannersPage() {
         <h3 className="celeste" style={{ marginTop: 0 }}>Live banners</h3>
         {loading ? <p className="muted">Loading…</p> : rows.length === 0 ? <p className="muted">No banners yet.</p> : (
           <div style={{ overflowX: 'auto' }}>
-            <table>
+            <table className="cardify">
               <thead><tr><th>Title</th><th>Placement</th><th>Added by</th><th>Created</th><th>Live</th><th></th></tr></thead>
               <tbody>
                 {rows.map((b) => (
                   <tr key={b.id}>
-                    <td><b>{b.title}</b></td>
-                    <td><span className="badge purple">{PLACE_LABEL[b.placement] ?? b.placement}</span></td>
-                    <td className="muted" style={{ fontSize: 13 }}>{(b.createdByName as string) || '—'}</td>
-                    <td className="muted" style={{ fontSize: 13 }}>{b.createdAt?.toMillis ? formatDate(b.createdAt.toMillis()) : '—'}</td>
-                    <td><button className={`btn sm ${b.active ? 'secondary' : ''}`} onClick={() => updateDoc(doc(db, 'banners', b.id), { active: !b.active })}>{b.active ? 'On' : 'Off'}</button></td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
+                    <td data-label="Title"><b>{b.title}</b></td>
+                    <td data-label="Placement"><span className="badge purple">{PLACE_LABEL[b.placement] ?? b.placement}</span></td>
+                    <td data-label="Added by" className="muted" style={{ fontSize: 13 }}>{(b.createdByName as string) || '—'}</td>
+                    <td data-label="Created" className="muted" style={{ fontSize: 13 }}>{b.createdAt?.toMillis ? formatDate(b.createdAt.toMillis()) : '—'}</td>
+                    <td data-label="Live"><button className={`btn sm ${b.active ? 'secondary' : ''}`} onClick={() => updateDoc(doc(db, 'banners', b.id), { active: !b.active })}>{b.active ? 'On' : 'Off'}</button></td>
+                    <td data-label="" style={{ whiteSpace: 'nowrap' }}>
                       <button className="btn sm secondary" title="Preview this banner" onClick={() => setPreview(b)} style={{ marginRight: 6 }}>👁 View</button>
                       <button className="btn sm danger" onClick={() => { if (confirm('Delete this banner?')) deleteDoc(doc(db, 'banners', b.id)); }}>Delete</button>
                     </td>

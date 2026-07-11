@@ -78,17 +78,17 @@ export default function ModerationPage() {
           : reportRows.length === 0 ? <p className="drawer-muted">No open reports right now.</p>
             : (
               <div style={{ overflowX: 'auto' }}>
-                <table>
+                <table className="cardify">
                   <thead><tr><th>Reporter</th><th>Reported</th><th>Reason</th><th>Details</th><th>When</th><th></th></tr></thead>
                   <tbody>
                     {reportRows.map((r) => (
                       <tr key={r.id}>
-                        <td><Link href={`/users/${r.reporterId}`}>{(r.reporterId as string)?.slice(0, 10) ?? '—'}</Link></td>
-                        <td><Link href={`/users/${r.reportedId}`} style={{ fontWeight: 600 }}>{(r.reportedId as string)?.slice(0, 10) ?? '—'}</Link></td>
-                        <td><span className="badge">{(r.reason as string) ?? 'other'}</span></td>
-                        <td className="muted" style={{ maxWidth: 280 }}>{(r.detail as string) || '—'}</td>
-                        <td className="muted">{fmt(r.createdAt)}</td>
-                        <td><ResolveBtn collection="reports" id={r.id} /></td>
+                        <td data-label="Reporter"><Link href={`/users/${r.reporterId}`}>{(r.reporterId as string)?.slice(0, 10) ?? '—'}</Link></td>
+                        <td data-label="Reported"><Link href={`/users/${r.reportedId}`} style={{ fontWeight: 600 }}>{(r.reportedId as string)?.slice(0, 10) ?? '—'}</Link></td>
+                        <td data-label="Reason"><span className="badge">{(r.reason as string) ?? 'other'}</span></td>
+                        <td data-label="Details" className="muted" style={{ maxWidth: 280 }}>{(r.detail as string) || '—'}</td>
+                        <td data-label="When" className="muted">{fmt(r.createdAt)}</td>
+                        <td data-label=""><ResolveBtn collection="reports" id={r.id} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -103,16 +103,16 @@ export default function ModerationPage() {
           : alertRows.length === 0 ? <p className="drawer-muted">No open alerts. All clear.</p>
             : (
               <div style={{ overflowX: 'auto' }}>
-                <table>
+                <table className="cardify">
                   <thead><tr><th>Severity</th><th>Type</th><th>Message</th><th>When</th><th></th></tr></thead>
                   <tbody>
                     {alertRows.map((a) => (
                       <tr key={a.id}>
-                        <td><span style={{ color: sevColor(a.severity as string), fontWeight: 700, fontSize: 12 }}>{(a.severity as string) ?? 'info'}</span></td>
-                        <td className="muted">{(a.kind as string) ?? '—'}</td>
-                        <td style={{ maxWidth: 420 }}>{(a.message as string) ?? '—'}</td>
-                        <td className="muted">{fmt(a.createdAt)}</td>
-                        <td><ResolveBtn collection="alerts" id={a.id} /></td>
+                        <td data-label="Severity"><span style={{ color: sevColor(a.severity as string), fontWeight: 700, fontSize: 12 }}>{(a.severity as string) ?? 'info'}</span></td>
+                        <td data-label="Type" className="muted">{(a.kind as string) ?? '—'}</td>
+                        <td data-label="Message" style={{ maxWidth: 420 }}>{(a.message as string) ?? '—'}</td>
+                        <td data-label="When" className="muted">{fmt(a.createdAt)}</td>
+                        <td data-label=""><ResolveBtn collection="alerts" id={a.id} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -127,18 +127,18 @@ export default function ModerationPage() {
           : dlRows.length === 0 ? <p className="drawer-muted">No unresolved payment failures.</p>
             : (
               <div style={{ overflowX: 'auto' }}>
-                <table>
+                <table className="cardify">
                   <thead><tr><th>User</th><th>Payment</th><th>Order</th><th>Attempts</th><th>Last error</th><th>When</th><th></th></tr></thead>
                   <tbody>
                     {dlRows.map((d) => (
                       <tr key={d.id}>
-                        <td><Link href={`/users/${d.userId}`}>{(d.userId as string)?.slice(0, 10) ?? '—'}</Link></td>
-                        <td className="muted">{(d.paymentId as string)?.slice(0, 16) ?? '—'}</td>
-                        <td className="muted">{(d.orderId as string)?.slice(0, 16) ?? '—'}</td>
-                        <td><b>{(d.attempts as number) ?? 0}</b></td>
-                        <td className="muted" style={{ maxWidth: 260 }}>{(d.lastError as string) ?? '—'}</td>
-                        <td className="muted">{fmt(d.createdAt)}</td>
-                        <td><ResolveBtn collection="failedWebhookCredits" id={d.id} /></td>
+                        <td data-label="User"><Link href={`/users/${d.userId}`}>{(d.userId as string)?.slice(0, 10) ?? '—'}</Link></td>
+                        <td data-label="Payment" className="muted">{(d.paymentId as string)?.slice(0, 16) ?? '—'}</td>
+                        <td data-label="Order" className="muted">{(d.orderId as string)?.slice(0, 16) ?? '—'}</td>
+                        <td data-label="Attempts"><b>{(d.attempts as number) ?? 0}</b></td>
+                        <td data-label="Last error" className="muted" style={{ maxWidth: 260 }}>{(d.lastError as string) ?? '—'}</td>
+                        <td data-label="When" className="muted">{fmt(d.createdAt)}</td>
+                        <td data-label=""><ResolveBtn collection="failedWebhookCredits" id={d.id} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -153,16 +153,16 @@ export default function ModerationPage() {
           : images.rows.length === 0 ? <p className="drawer-muted">No images queued. (Auto-scan enables via config.featureFlags.imageModeration.)</p>
             : (
               <div style={{ overflowX: 'auto' }}>
-                <table>
+                <table className="cardify">
                   <thead><tr><th>Status</th><th>Consultation</th><th>Path</th><th>When</th><th></th></tr></thead>
                   <tbody>
                     {images.rows.map((im) => (
                       <tr key={im.id}>
-                        <td><span className="badge">{(im.status as string) ?? 'pending'}</span></td>
-                        <td className="muted">{(im.consultationId as string)?.slice(0, 12) ?? '—'}</td>
-                        <td className="muted" style={{ maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis' }}>{(im.path as string) ?? '—'}</td>
-                        <td className="muted">{fmt(im.createdAt)}</td>
-                        <td><ResolveBtn collection="imageModeration" id={im.id} /></td>
+                        <td data-label="Status"><span className="badge">{(im.status as string) ?? 'pending'}</span></td>
+                        <td data-label="Consultation" className="muted">{(im.consultationId as string)?.slice(0, 12) ?? '—'}</td>
+                        <td data-label="Path" className="muted" style={{ maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis' }}>{(im.path as string) ?? '—'}</td>
+                        <td data-label="When" className="muted">{fmt(im.createdAt)}</td>
+                        <td data-label=""><ResolveBtn collection="imageModeration" id={im.id} /></td>
                       </tr>
                     ))}
                   </tbody>

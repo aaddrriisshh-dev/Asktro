@@ -41,21 +41,21 @@ export default function PlansPage() {
   function table(list: typeof rows) {
     if (list.length === 0) return <p className="muted" style={{ margin: '6px 0' }}>None yet.</p>;
     return (
-      <table>
+      <table className="cardify">
         <thead>
           <tr><th>Amount</th><th>Bonus</th><th>Total</th><th>Type</th><th>Popular</th><th>Recommended</th><th>Active</th><th></th></tr>
         </thead>
         <tbody>
           {list.map((p) => (
             <tr key={p.id}>
-              <td>{formatPaise(p.amount)}</td>
-              <td>{formatPaise(p.bonus)}</td>
-              <td>{formatPaise((p.walletCredit ?? p.amount ?? 0) + (p.bonus ?? 0))}</td>
-              <td><button className={`btn sm ${isOffer(p) ? '' : 'secondary'}`} onClick={() => switchType(p.id, p.planType)}>{isOffer(p) ? '🎁 Offer' : 'Regular'}</button></td>
-              <td><button className="btn sm secondary" onClick={() => toggle(p.id, 'popular', p.popular)}>{p.popular ? 'Yes' : 'No'}</button></td>
-              <td><button className="btn sm secondary" onClick={() => toggle(p.id, 'recommended', p.recommended)}>{p.recommended ? 'Yes' : 'No'}</button></td>
-              <td><button className="btn sm secondary" onClick={() => toggle(p.id, 'active', p.active)}>{p.active ? 'On' : 'Off'}</button></td>
-              <td><button className="btn sm danger" onClick={() => deleteDoc(doc(db, 'rechargePlans', p.id))}>Delete</button></td>
+              <td data-label="Amount">{formatPaise(p.amount)}</td>
+              <td data-label="Bonus">{formatPaise(p.bonus)}</td>
+              <td data-label="Total">{formatPaise((p.walletCredit ?? p.amount ?? 0) + (p.bonus ?? 0))}</td>
+              <td data-label="Type"><button className={`btn sm ${isOffer(p) ? '' : 'secondary'}`} onClick={() => switchType(p.id, p.planType)}>{isOffer(p) ? '🎁 Offer' : 'Regular'}</button></td>
+              <td data-label="Popular"><button className="btn sm secondary" onClick={() => toggle(p.id, 'popular', p.popular)}>{p.popular ? 'Yes' : 'No'}</button></td>
+              <td data-label="Recommended"><button className="btn sm secondary" onClick={() => toggle(p.id, 'recommended', p.recommended)}>{p.recommended ? 'Yes' : 'No'}</button></td>
+              <td data-label="Active"><button className="btn sm secondary" onClick={() => toggle(p.id, 'active', p.active)}>{p.active ? 'On' : 'Off'}</button></td>
+              <td data-label=""><button className="btn sm danger" onClick={() => deleteDoc(doc(db, 'rechargePlans', p.id))}>Delete</button></td>
             </tr>
           ))}
         </tbody>
