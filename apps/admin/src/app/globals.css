@@ -29,12 +29,12 @@
      top/bottom bars, so the card centres in what the user actually sees
      instead of below it. (vh above is the fallback for old browsers.) */
   min-height: 100dvh;
-  display: grid;
-  /* `safe center` falls back to top-alignment when the card is taller than the
-     screen (small phones / landscape), so it never gets clipped; overflow-y is
-     scrollable while the decorative wheels stay clipped horizontally. */
+  /* Flexbox centres the single card reliably on BOTH axes; `safe center`
+     falls back to top-alignment if the card is ever taller than the screen so
+     it never gets clipped. */
+  display: flex;
   align-items: safe center;
-  justify-items: center;
+  justify-content: center;
   padding: 24px;
   position: relative;
   overflow-x: hidden;
