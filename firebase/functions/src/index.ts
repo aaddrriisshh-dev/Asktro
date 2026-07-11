@@ -39,7 +39,7 @@ export { generateAgoraToken } from './agora/token';
 // ---- Auth / account lifecycle ----
 export { onAuthUserCreate } from './auth/onAuthUserCreate';
 export { onCustomerSignup } from './auth/onUserCreate';
-export { setUserRole, deleteAccount } from './auth/adminAndDeletion';
+export { setUserRole, deleteAccount, processAccountDeletion } from './auth/adminAndDeletion';
 export { recordConsent } from './auth/consent';
 
 // ---- Notifications ----
