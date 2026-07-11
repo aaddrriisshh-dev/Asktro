@@ -81,7 +81,10 @@ service cloud.firestore {
     match /astrologers/{astrologerId} {
       // public directory is readable by any signed-in user
       allow read: if isSignedIn();
-      allow create: if isAdmin();
+      // Creating an astrologer sets verify/rate/AI flags — a privileged action,
+      // super-admin only (the createAstrologer callable, admin-SDK, is the normal
+      // path and bypasses rules; this only blocks direct lower-tier client writes).
+      allow create: if isSuperAdmin();
       // Three tiers of write authority, least-privilege:
       //  - super-admin: may change anything (approval, rate, commission, money).
       //  - other admins (ops/astrology): may edit profile/marketing fields, but

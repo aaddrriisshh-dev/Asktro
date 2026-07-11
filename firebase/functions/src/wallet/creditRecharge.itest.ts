@@ -82,4 +82,24 @@ describe('creditRecharge (emulator)', () => {
     expect(c.astrologerLastTickAt).not.toBeNull();
     expect(c.astrologerLastTickAt.toMillis()).toBeGreaterThan(stale.toMillis());
   });
+
+  it('autoResume of an AI session leaves astrologerLastTickAt NULL (gate stays off)', async () => {
+    const uid = 'u_resume_ai', cid = 'c_resume_ai';
+    await db.collection('users').doc(uid).set({ walletBalance: 5000 });
+    const stale = Timestamp.fromMillis(Date.now() - 300_000);
+    // AI session: NO astrologerLastTickAt (AI never heartbeats as astrologer).
+    await db.collection('consultations').doc(cid).set({
+      customerId: uid, astrologerId: 'ai1', type: 'chat', status: 'paused',
+      pausedAt: stale, lastTickAt: stale, customerLastTickAt: stale,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    expect(await autoResumePausedSession(uid)).toBe(cid);
+
+    const c = (await db.collection('consultations').doc(cid).get()).data()!;
+    expect(c.status).toBe('active');
+    expect(c.customerLastTickAt.toMillis()).toBeGreaterThan(stale.toMillis());
+    // Must stay null — seeding it would freeze the AI meter + auto-pause the chat.
+    expect(c.astrologerLastTickAt ?? null).toBeNull();
+  });
 });

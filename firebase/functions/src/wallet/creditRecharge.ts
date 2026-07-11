@@ -225,13 +225,13 @@ export async function autoResumePausedSession(userId: string): Promise<string | 
       pausedAccumMs: FieldValue.increment(Math.max(0, Date.now() - pausedAt)),
       pausedAt: null,
       lastTickAt: FieldValue.serverTimestamp(),
-      // Re-seed BOTH presence markers to now (see pauseResume.ts for the full
-      // rationale): seeding — not deleting — the astrologer marker keeps the
-      // absent-astrologer billing gate armed, so a customer who recharges while
-      // the astrologer has left is billed at most one settle window, not until
-      // timeout. Seeding to now (= lastTickAt) also avoids stalling billing.
+      // Re-seed the customer marker to now. Re-seed the ASTROLOGER marker ONLY if
+      // this session tracks a human astrologer (marker already set) — seeding it
+      // keeps the absent-astrologer gate armed. An AI session leaves it null on
+      // purpose; seeding it there would freeze the AI meter after resume and the
+      // sweep would auto-pause the live chat. See pauseResume.ts for the full note.
       customerLastTickAt: FieldValue.serverTimestamp(),
-      astrologerLastTickAt: FieldValue.serverTimestamp(),
+      ...(s.data()!.astrologerLastTickAt != null ? { astrologerLastTickAt: FieldValue.serverTimestamp() } : {}),
       networkStatus: 'ok',
       warnLevel: 0,
       updatedAt: FieldValue.serverTimestamp(),

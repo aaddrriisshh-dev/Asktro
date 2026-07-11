@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { callFn, Row } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
@@ -38,8 +38,9 @@ export default function AstrologerViewPage() {
       const contact = contactSnap.exists() ? contactSnap.data() : {};
       const financials = finSnap.exists() ? finSnap.data() : {};
       setA({ id, ...snap.data(), ...contact, ...financials });
-      const cs = await getDocs(query(collection(db, 'consultations'), where('astrologerId', '==', id)));
-      setCons(cs.docs.map((d) => ({ id: d.id, ...d.data() })).sort((x, y) => ms(y, 'createdAt') - ms(x, 'createdAt')));
+      // Bounded to most-recent 200 (index: astrologerId+createdAt DESC).
+      const cs = await getDocs(query(collection(db, 'consultations'), where('astrologerId', '==', id), orderBy('createdAt', 'desc'), limit(200)));
+      setCons(cs.docs.map((d) => ({ id: d.id, ...d.data() })));
     })().catch(() => setMissing(true));
   }, [id]);
 

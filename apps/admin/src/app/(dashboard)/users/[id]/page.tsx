@@ -137,11 +137,13 @@ export default function UserDetailPage() {
       const snap = await getDoc(doc(db, 'users', id));
       if (!snap.exists()) { setMissing(true); return; }
       setUser({ id, ...snap.data() });
-      const cs = await getDocs(query(collection(db, 'consultations'), where('customerId', '==', id)));
-      const clist: Any[] = cs.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b, 'createdAt') - ms(a, 'createdAt'));
+      // Bounded to the most-recent 200 so a heavy user can't buffer thousands of
+      // rows into the page (indexes: customerId+createdAt, userId+createdAt).
+      const cs = await getDocs(query(collection(db, 'consultations'), where('customerId', '==', id), orderBy('createdAt', 'desc'), limit(200)));
+      const clist: Any[] = cs.docs.map((d) => ({ id: d.id, ...d.data() }));
       setCons(clist);
-      const ts = await getDocs(query(collection(db, 'walletTransactions'), where('userId', '==', id)));
-      setTxns(ts.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b, 'createdAt') - ms(a, 'createdAt')));
+      const ts = await getDocs(query(collection(db, 'walletTransactions'), where('userId', '==', id), orderBy('createdAt', 'desc'), limit(200)));
+      setTxns(ts.docs.map((d) => ({ id: d.id, ...d.data() })));
       const asnap = await getDocs(collection(db, 'astrologers'));
       const names: Record<string, string> = {};
       asnap.forEach((d) => { names[d.id] = (d.data() as { name?: string }).name ?? d.id.slice(0, 8); });

@@ -345,8 +345,24 @@ export const deleteAstrologerAccount = onCall(async (req) => {
   //    and the astrologer's customer-membership markers.
   const priv = await astroRef.collection('private').get();
   await Promise.all(priv.docs.map((d) => d.ref.delete().catch(() => {})));
+  await deleteCollection(astroRef.collection('notes')).catch(() => {}); // private customer notes
   await db.collection('presence').doc(uid).delete().catch(() => {});
   await deleteCollection(db.collection('astrologerCustomers').doc(uid).collection('customers')).catch(() => {});
+
+  // Scrub the astrologer's name/photo off the remedies they authored (those are
+  // customer-readable and carry astrologer PII). The advice text + the customer's
+  // question are RETAINED for the customer, just de-identified.
+  for (;;) {
+    const rem = await db.collection('remedies').where('astrologerId', '==', uid).limit(300).get();
+    if (rem.empty) break;
+    const batch = db.batch();
+    rem.docs.forEach((d) => batch.update(d.ref, {
+      astrologerName: 'Deleted astrologer',
+      astrologerPhoto: FieldValue.delete(),
+    }));
+    await batch.commit().catch(() => {});
+    if (rem.size < 300) break;
+  }
 
   // 4) Audit, then delete the Auth user (idempotent).
   await db.collection(Collections.auditLogs).add({

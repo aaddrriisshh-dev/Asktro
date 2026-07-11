@@ -73,10 +73,18 @@ describe('astrologers update — approval / rate / money fields', () => {
   // NB: values below genuinely differ from the seed (verified:true,
   // rate:2500, accountStatus:'approved') — a no-op change is legitimately
   // allowed because diff().affectedKeys() would be empty.
-  it('ops admin CANNOT change verified / rate / status', async () => {
+  it('ops admin CANNOT change verified / rate / status / commission / money / isAI', async () => {
     await assertFails(updateDoc(doc(opsAdmin(), 'astrologers/astro1'), { verified: false }));
     await assertFails(updateDoc(doc(opsAdmin(), 'astrologers/astro1'), { ratePerMinutePaise: 1 }));
     await assertFails(updateDoc(doc(opsAdmin(), 'astrologers/astro1'), { accountStatus: 'blocked' }));
+    await assertFails(updateDoc(doc(opsAdmin(), 'astrologers/astro1'), { commissionPercent: 5 }));
+    await assertFails(updateDoc(doc(opsAdmin(), 'astrologers/astro1'), { earnings: 999999 }));
+    await assertFails(updateDoc(doc(opsAdmin(), 'astrologers/astro1'), { pendingPayout: 999999 }));
+    await assertFails(updateDoc(doc(opsAdmin(), 'astrologers/astro1'), { isAI: true }));
+  });
+  it('only super can CREATE an astrologer (no lower-tier self-provision)', async () => {
+    await assertSucceeds(setDoc(doc(superAdmin(), 'astrologers/new1'), { name: 'X', verified: false }));
+    await assertFails(setDoc(doc(opsAdmin(), 'astrologers/new2'), { name: 'Y', verified: true }));
   });
   it('ops admin CAN edit a non-privileged field (e.g. featured)', async () => {
     await assertSucceeds(updateDoc(doc(opsAdmin(), 'astrologers/astro1'), { featured: true }));

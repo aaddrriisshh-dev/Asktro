@@ -69,15 +69,17 @@ export const resumeConsultation = onCall(async (req) => {
       pausedAccumMs: FieldValue.increment(pausedSpanMs),
       pausedAt: null,
       lastTickAt: FieldValue.serverTimestamp(),
-      // Re-seed BOTH presence markers to now (= lastTickAt), matching activation.
-      // Seeding (not deleting) the astrologer marker is critical: deleting it made
-      // `astroTracked` false and DISABLED the absent-astrologer billing gate, so a
-      // customer who resumed while the astrologer had left kept getting billed on
-      // their own presence alone. Seeding to now keeps the gate armed — an absent
-      // astrologer is billed at most one settle window past resume, then halts —
-      // while not pinning the frontier below the fresh lastTickAt (no stall).
+      // Re-seed the customer marker to now (= lastTickAt), matching activation.
+      // For the ASTROLOGER marker: re-seed to now ONLY if this session actually
+      // tracks a human astrologer (the marker was already set). Seeding keeps the
+      // absent-astrologer billing gate armed (deleting it disabled the gate and
+      // over-billed). But an AI session has NO astrologer heartbeat and leaves the
+      // marker null on purpose — seeding it there would freeze the AI meter 15s
+      // after resume (astroTracked flips true, frontier pins at the seeded time)
+      // and the sweep would then auto-pause the live AI chat. So leave it untouched
+      // when it was null.
       customerLastTickAt: FieldValue.serverTimestamp(),
-      astrologerLastTickAt: FieldValue.serverTimestamp(),
+      ...(c.astrologerLastTickAt != null ? { astrologerLastTickAt: FieldValue.serverTimestamp() } : {}),
       networkStatus: 'ok',
       warnLevel: 0,
       updatedAt: FieldValue.serverTimestamp(),
