@@ -1,10 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import {
+  collection, query, where, getDocs, Timestamp,
+  getCountFromServer, getAggregateFromServer, sum, QueryConstraint,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatPaise, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
+import { fetchDailyStats } from '@/lib/dailyStats';
 import { DashCard, CardView } from './DashCard';
 import { Metric } from './Metric';
 import { DailyChart } from './DailyChart';
@@ -32,7 +36,8 @@ function useConsultations(range: Range): CardView<ConsData> {
     setError(null);
     (async () => {
       try {
-        // live active consultations (range-independent)
+        // Live active consultations — bounded by concurrency (a handful), so a
+        // direct read is fine and gives the per-type split.
         const activeSnap = await getDocs(query(collection(db, 'consultations'), where('status', '==', 'active')));
         let activeChat = 0, activeVoice = 0, activeVideo = 0;
         activeSnap.forEach((doc) => {
@@ -42,29 +47,29 @@ function useConsultations(range: Range): CardView<ConsData> {
           else if (t === 'video') activeVideo += 1;
         });
 
-        // history in the selected range
-        const rangeSnap = await getDocs(query(
-          collection(db, 'consultations'),
-          where('createdAt', '>=', Timestamp.fromMillis(range.start)),
-          where('createdAt', '<', Timestamp.fromMillis(range.end)),
-          orderBy('createdAt', 'asc'),
-        ));
-        let completed = 0, cancelled2 = 0, billed = 0;
-        const byDay = new Map<string, number>();
-        rangeSnap.forEach((doc) => {
-          const c = doc.data() as { status?: string; totalCharged?: number; createdAt?: Timestamp };
-          if (c.status === 'completed') completed += 1;
-          else if (c.status === 'cancelled') cancelled2 += 1;
-          billed += c.totalCharged ?? 0;
-          const ms = c.createdAt?.toMillis?.() ?? range.start;
-          const key = new Date(ms).toISOString().slice(0, 10);
-          byDay.set(key, (byDay.get(key) ?? 0) + 1);
-        });
-        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
+        // History in the range WITHOUT downloading the consultations: counts and
+        // the billed sum are server-side aggregations; the daily "started per
+        // day" histogram comes from the per-day rollup. Nothing unbounded loads.
+        const start = Timestamp.fromMillis(range.start);
+        const end = Timestamp.fromMillis(range.end);
+        const inRange = (extra: QueryConstraint[]) =>
+          query(collection(db, 'consultations'), where('createdAt', '>=', start), where('createdAt', '<', end), ...extra);
+        const [completedC, cancelledC, totalC, billedAgg, days] = await Promise.all([
+          getCountFromServer(inRange([where('status', '==', 'completed')])),
+          getCountFromServer(inRange([where('status', '==', 'cancelled')])),
+          getCountFromServer(inRange([])),
+          getAggregateFromServer(inRange([]), { billed: sum('totalCharged') }),
+          fetchDailyStats(range),
+        ]);
+        const daily = days.map((s) => ({
+          day: shortDay(s.day),
+          value: (s.consultations?.chat ?? 0) + (s.consultations?.voice ?? 0) + (s.consultations?.video ?? 0),
+        }));
 
         if (!cancelled) setData({
           activeNow: activeSnap.size, activeChat, activeVoice, activeVideo,
-          completed, cancelled: cancelled2, totalInRange: rangeSnap.size, billedInRange: billed, daily,
+          completed: completedC.data().count, cancelled: cancelledC.data().count,
+          totalInRange: totalC.data().count, billedInRange: billedAgg.data().billed ?? 0, daily,
         });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
