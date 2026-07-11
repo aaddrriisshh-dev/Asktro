@@ -6,7 +6,10 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts';
-import { collection, query, where, orderBy, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
+import {
+  collection, query, where, orderBy, getDocs, doc, getDoc, Timestamp,
+  getCountFromServer, getAggregateFromServer, sum,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatPaise, shortDay } from '@/lib/format';
 import { useCardFilter } from '@/lib/useCardFilter';
@@ -61,12 +64,13 @@ function NeedsAttention() {
   const [d, setD] = useState<{ tickets: number; payouts: number; approvals: number } | null>(null);
   useEffect(() => {
     (async () => {
+      // Server-side counts — the number comes back, no docs are downloaded.
       const [tk, po, as] = await Promise.all([
-        getDocs(query(collection(db, 'supportTickets'), where('status', '==', 'open'))),
-        getDocs(query(collection(db, 'payouts'), where('status', '==', 'pending'))),
-        getDocs(query(collection(db, 'astrologers'), where('accountStatus', '==', 'pending'))),
+        getCountFromServer(query(collection(db, 'supportTickets'), where('status', '==', 'open'))),
+        getCountFromServer(query(collection(db, 'payouts'), where('status', '==', 'pending'))),
+        getCountFromServer(query(collection(db, 'astrologers'), where('accountStatus', '==', 'pending'))),
       ]);
-      setD({ tickets: tk.size, payouts: po.size, approvals: as.size });
+      setD({ tickets: tk.data().count, payouts: po.data().count, approvals: as.data().count });
     })().catch(() => setD({ tickets: 0, payouts: 0, approvals: 0 }));
   }, []);
   const items = [
@@ -96,16 +100,19 @@ function RevenueTrend() {
     let cancelled = false;
     setData(null);
     (async () => {
+      // Filter to recharges SERVER-side so only revenue rows come down (not the
+      // full transaction firehose — ticks, refunds, bonuses). Bounded further by
+      // the selected date range. (Needs the kind+createdAt composite index.)
       const snap = await getDocs(query(
         collection(db, 'walletTransactions'),
+        where('kind', '==', 'recharge'),
         where('createdAt', '>=', Timestamp.fromMillis(range.start)),
         where('createdAt', '<', Timestamp.fromMillis(range.end)),
         orderBy('createdAt', 'asc'),
       ));
       const byDay = new Map<string, number>();
       snap.forEach((doc) => {
-        const t = doc.data() as { kind?: string; amount?: number; createdAt?: Timestamp };
-        if (t.kind !== 'recharge') return;
+        const t = doc.data() as { amount?: number; createdAt?: Timestamp };
         const k = dayKey(t.createdAt?.toMillis?.() ?? range.start);
         byDay.set(k, (byDay.get(k) ?? 0) + (t.amount ?? 0));
       });
@@ -276,12 +283,15 @@ function MoneyHeldOwed() {
   const [d, setD] = useState<{ held: number; owed: number } | null>(null);
   useEffect(() => {
     (async () => {
-      const [us, po] = await Promise.all([
-        getDocs(collection(db, 'users')),
-        getDocs(query(collection(db, 'payouts'), where('status', 'in', ['pending', 'approved']))),
+      // Server-side SUM aggregations — the totals are computed by Firestore and
+      // only the numbers come back, so we never download the (growing) users or
+      // payouts collections into the browser.
+      const [heldAgg, owedAgg] = await Promise.all([
+        getAggregateFromServer(collection(db, 'users'), { wallet: sum('walletBalance'), bonus: sum('bonusBalance') }),
+        getAggregateFromServer(query(collection(db, 'payouts'), where('status', 'in', ['pending', 'approved'])), { amt: sum('amount') }),
       ]);
-      let held = 0; us.forEach((doc) => { const u = doc.data() as { walletBalance?: number; bonusBalance?: number }; held += (u.walletBalance ?? 0) + (u.bonusBalance ?? 0); });
-      let owed = 0; po.forEach((doc) => { owed += (doc.data() as { amount?: number }).amount ?? 0; });
+      const held = (heldAgg.data().wallet ?? 0) + (heldAgg.data().bonus ?? 0);
+      const owed = owedAgg.data().amt ?? 0;
       setD({ held, owed });
     })().catch(() => setD({ held: 0, owed: 0 }));
   }, []);
