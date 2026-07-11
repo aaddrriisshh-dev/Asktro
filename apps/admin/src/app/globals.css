@@ -486,6 +486,96 @@ tbody tr:last-child td { border-bottom: none; }
 
 .main { position: relative; z-index: 1; flex: 1; min-width: 0; padding: 30px 34px; }
 
+/* ---- Mobile top bar + off-canvas drawer (hidden on desktop) ---- */
+.topbar { display: none; }
+.sidebar__close { display: none; }
+.sidebar-backdrop { display: none; }
+
+@media (max-width: 900px) {
+  /* Top app bar with the hamburger — the only chrome visible until the
+     drawer is opened. */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 58px;
+    z-index: 30;
+    padding: 0 14px;
+    background: linear-gradient(180deg, #322e63 0%, #2a2657 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 4px 18px rgba(16, 12, 38, 0.24);
+  }
+  .topbar__burger {
+    display: grid; place-items: center;
+    width: 40px; height: 40px;
+    border: none; border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff; cursor: pointer;
+  }
+  .topbar__burger:active { background: rgba(255, 255, 255, 0.18); }
+  .topbar__brand { display: flex; align-items: center; gap: 9px; }
+  .topbar__brand .brand-emblem { height: 30px; width: 30px; }
+  .topbar__brand .brand-word { font-family: var(--serif); font-size: 21px; font-weight: 600; color: #fff; }
+
+  /* Sidebar becomes a slide-in drawer. */
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    width: 268px;
+    max-width: 84vw;
+    border-radius: 0 20px 20px 0;
+    transform: translateX(-104%);
+    transition: transform 0.26s ease;
+    z-index: 45;
+  }
+  .sidebar--open { transform: translateX(0); }
+  /* On mobile the collapse chevrons make no sense — drawer is full-width. */
+  .sidebar__toggle { display: none; }
+  .sidebar--collapsed { width: 268px; max-width: 84vw; padding: 22px 16px; }
+  .sidebar--collapsed .brand-word,
+  .sidebar--collapsed .brand-tag,
+  .sidebar--collapsed .sidebar__eyebrow,
+  .sidebar--collapsed .sidebar__label,
+  .sidebar--collapsed .sidebar__email,
+  .sidebar--collapsed .sidebar__foot .badge { display: revert; }
+  .sidebar--collapsed .sidebar__link { justify-content: flex-start; padding: 10px 12px; gap: 12px; }
+  .sidebar--collapsed .sidebar__logout { font-size: revert; padding: 9px 14px; }
+  .sidebar--collapsed .sidebar__logout::before { content: none; }
+
+  /* Close (×) button inside the open drawer. */
+  .sidebar__close {
+    display: block;
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 34px; height: 34px;
+    border: none; border-radius: 9px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff; font-size: 22px; line-height: 1;
+    cursor: pointer;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(16, 12, 38, 0.5);
+    backdrop-filter: blur(1.5px);
+  }
+
+  /* Content clears the fixed top bar and gets tighter side padding. */
+  .main { padding: 74px 16px 28px; }
+  h1 { font-size: 26px; margin: 2px 0 16px; }
+}
+
+@media (max-width: 460px) {
+  .main { padding: 70px 12px 24px; }
+  h1 { font-size: 23px; }
+}
+
 /* ---- Celestial backdrop behind every dashboard page ---- */
 .celestial-bg {
   position: fixed;

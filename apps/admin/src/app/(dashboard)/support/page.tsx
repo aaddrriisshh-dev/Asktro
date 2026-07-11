@@ -23,6 +23,7 @@ export default function SupportPage() {
         ) : rows.length === 0 ? (
           <p className="muted">No support tickets.</p>
         ) : (
+          <div style={{ overflowX: 'auto' }}>
           <table>
             <thead>
               <tr><th>Ticket #</th><th>Subject</th><th>From</th><th>Message</th><th>Created</th><th>Status</th><th>Actions</th></tr>
@@ -50,6 +51,7 @@ export default function SupportPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

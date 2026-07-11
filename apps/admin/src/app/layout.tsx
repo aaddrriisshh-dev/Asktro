@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import ClickSound from '@/components/ClickSound';
@@ -6,6 +6,13 @@ import ClickSound from '@/components/ClickSound';
 export const metadata: Metadata = {
   title: 'ASKTRO Admin',
   description: 'ASKTRO operations console',
+};
+
+// Explicit so the mobile-responsive layout scales to the device width instead
+// of rendering as a zoomed-out desktop page.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 // The console is entirely auth-gated and Firebase-driven at runtime — there is

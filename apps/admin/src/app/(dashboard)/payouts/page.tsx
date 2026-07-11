@@ -23,6 +23,7 @@ export default function PayoutsPage() {
         {loading ? <p className="muted">Loading…</p> : rows.length === 0 ? (
           <p className="muted">No payout requests.</p>
         ) : (
+          <div style={{ overflowX: 'auto' }}>
           <table>
             <thead><tr><th>Astrologer</th><th>Amount</th><th>Method</th><th>Requested</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
@@ -48,6 +49,7 @@ export default function PayoutsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
