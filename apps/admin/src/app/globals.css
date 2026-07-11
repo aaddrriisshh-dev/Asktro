@@ -26,11 +26,21 @@
 .celestial {
   min-height: 100vh;
   display: grid;
-  place-items: center;
+  /* `safe center` falls back to top-alignment when the card is taller than the
+     screen (small phones / landscape), so it never gets clipped; overflow-y is
+     scrollable while the decorative wheels stay clipped horizontally. */
+  align-items: safe center;
+  justify-items: center;
   padding: 24px;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: radial-gradient(120% 100% at 50% -10%, #fbf9ff 0%, #f5f2ff 48%, #ece4fb 100%);
+}
+@media (max-width: 460px) {
+  .celestial { padding: 16px; }
+  .celestial__card { padding: 26px 20px; border-radius: 22px; }
+  .celestial__title { font-size: 28px; }
 }
 .celestial__wheel {
   position: absolute;
