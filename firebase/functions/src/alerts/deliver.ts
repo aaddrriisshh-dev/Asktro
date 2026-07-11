@@ -41,8 +41,11 @@ export const deliverAlert = onDocumentCreated(
     const message = String(a.message ?? '(no message)');
     const refId = a.refId ? String(a.refId) : '';
 
+    // Critical alerts (payment not credited, etc.) force-notify every member of
+    // the channel with <!channel>; warnings stay quiet so the channel isn't spammy.
+    const mention = severity === 'critical' ? '<!channel> ' : '';
     const text =
-      `${emoji} *${severity.toUpperCase()} — ${kind}*\n` +
+      `${mention}${emoji} *${severity.toUpperCase()} — ${kind}*\n` +
       `${message}` +
       (refId ? `\n\`ref: ${refId}\`` : '') +
       `\n_Asktro · alert ${event.params.alertId}_`;
