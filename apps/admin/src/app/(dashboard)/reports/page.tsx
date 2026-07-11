@@ -15,6 +15,7 @@ import { formatPaise, shortDay } from '@/lib/format';
 import { useCardFilter } from '@/lib/useCardFilter';
 import { DrawerFilter } from '@/components/DrawerFilter';
 import { downloadCSV, downloadXLS, tsCell, rupeeCell, Col } from '@/lib/csv';
+import { MobileSection } from '@/components/MobileSection';
 
 type Any = Record<string, unknown>;
 const dayKey = (ms: number) => new Date(ms).toISOString().slice(0, 10);
@@ -178,10 +179,12 @@ export default function ReportsPage() {
       <h1 style={{ marginBottom: 2 }}>Reports</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>Business metrics and full data exports. Pick a range; download any dataset as CSV or Excel.</p>
 
+      <MobileSection title="Reports & exports" defaultOpen={true}>
       <div className="card" style={{ marginTop: 16 }}>
         <DrawerFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} />
         <p className="muted" style={{ fontSize: 12.5, margin: '10px 0 0' }}>Showing: <b>{range.label}</b></p>
       </div>
+      </MobileSection>
 
       {loading ? <p className="muted" style={{ marginTop: 16 }}>Crunching numbers…</p> : data && (
         <>

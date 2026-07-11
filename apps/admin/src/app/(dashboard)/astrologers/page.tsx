@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useCollection, callFn, Row } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 import { AstrologerFormModal } from '@/components/AstrologerFormModal';
+import { MobileSection } from '@/components/MobileSection';
 
 const STATUS_COLORS: Record<string, string> = {
   approved: 'green', pending: 'amber', suspended: 'red', rejected: 'red', disabled: 'red',
@@ -120,12 +121,18 @@ export default function AstrologersPage() {
 
       {loading ? <p className="muted" style={{ marginTop: 16 }}>Loading…</p> : (
         <div className="cust3">
-          <AstroBox title="Live Astrologers" icon="🟢" accent="#3cb371" list={live} showLiveDot
-            isSuper={isSuper} busy={busy} actions={['view', 'edit']} onStatus={setStatus} onEditRate={setEditing} />
-          <AstroBox title="All Astrologers" icon="📋" accent="var(--primary)" list={rows}
-            isSuper={isSuper} busy={busy} actions={['view', 'edit']} onStatus={setStatus} onEditRate={setEditing} />
-          <AstroBox title="Pending Approvals" icon="🕐" accent="var(--gold)" list={pending}
-            isSuper={isSuper} busy={busy} actions={['view', 'approve']} onStatus={setStatus} onEditRate={setEditing} />
+          <MobileSection title="Live Astrologers" defaultOpen={true}>
+            <AstroBox title="Live Astrologers" icon="🟢" accent="#3cb371" list={live} showLiveDot
+              isSuper={isSuper} busy={busy} actions={['view', 'edit']} onStatus={setStatus} onEditRate={setEditing} />
+          </MobileSection>
+          <MobileSection title="All Astrologers" defaultOpen={false}>
+            <AstroBox title="All Astrologers" icon="📋" accent="var(--primary)" list={rows}
+              isSuper={isSuper} busy={busy} actions={['view', 'edit']} onStatus={setStatus} onEditRate={setEditing} />
+          </MobileSection>
+          <MobileSection title="Pending Approvals" defaultOpen={false}>
+            <AstroBox title="Pending Approvals" icon="🕐" accent="var(--gold)" list={pending}
+              isSuper={isSuper} busy={busy} actions={['view', 'approve']} onStatus={setStatus} onEditRate={setEditing} />
+          </MobileSection>
         </div>
       )}
 

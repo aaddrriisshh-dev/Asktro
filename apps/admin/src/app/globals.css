@@ -584,6 +584,35 @@ tbody tr:last-child td { border-bottom: none; }
   .main { padding: 74px 14px 26px; }
   h1 { font-size: 25px; margin: 2px 0 16px; }
 
+  /* Force every multi-column layout to a single column on phones. Many pages
+     set grid-template-columns inline (form | list splits, 2-3 col form field
+     rows), which a normal media query can't override — hence !important. The
+     dashboard stat grid keeps its own auto-fill wrapping. */
+  .main .grid:not(.dashgrid) { grid-template-columns: 1fr !important; }
+  .main .metricgrid { grid-template-columns: 1fr 1fr !important; }
+
+  /* Collapsible page section (MobileSection): a tappable header pill that folds
+     its content away. */
+  .mfold { margin-top: 14px; }
+  .mfold__head {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid var(--line, #ece4fb);
+    border-radius: 14px;
+    cursor: pointer;
+    text-align: left;
+    box-shadow: 0 6px 18px rgba(46, 43, 95, 0.06);
+  }
+  .mfold__title { font-weight: 700; color: var(--navy, #2e2b5f); font-size: 15px; }
+  .mfold__sub { color: var(--muted, #8a84ad); font-size: 12px; }
+  .mfold__chev { margin-left: auto; color: var(--muted, #8a84ad); transition: transform 0.2s ease; }
+  .mfold--open .mfold__chev { transform: rotate(180deg); }
+  .mfold__body { margin-top: 10px; }
+
   /* Turn any table tagged .cardify into stacked cards: each row is a card and
      each cell shows its column name (from data-label) as a leading key. */
   table.cardify { border: 0; }

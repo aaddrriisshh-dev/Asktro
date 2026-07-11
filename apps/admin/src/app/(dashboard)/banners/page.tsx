@@ -12,6 +12,7 @@ import { LandingControls, DisplayMode } from '@/components/LandingControls';
 import { DeepLinkSelect } from '@/components/DeepLinkSelect';
 import { ThemePicker } from '@/components/ThemePicker';
 import { Collapsible } from '@/components/Collapsible';
+import { MobileSection } from '@/components/MobileSection';
 import { PromoTheme } from '@/lib/promoThemes';
 
 const PLACEMENTS = ['home', 'consults', 'wallet', 'alerts', 'profile'] as const;
@@ -89,6 +90,7 @@ export default function BannersPage() {
       <h1 style={{ marginBottom: 2 }}>Banners Management</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>Design the banner, preview it, then Commit &amp; Push to the chosen area of the app.</p>
 
+      <MobileSection title="Create banner" defaultOpen={false}>
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0,0.82fr) minmax(0,1.18fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
         {/* LEFT — live preview, pinned so it never overlaps the form */}
         <PromoPreview kind="banner" theme={theme} title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
@@ -155,7 +157,9 @@ export default function BannersPage() {
           <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
       </div>
+      </MobileSection>
 
+      <MobileSection title="Live banners" defaultOpen={true}>
       <div className="card" style={{ marginTop: 18 }}>
         <h3 className="celeste" style={{ marginTop: 0 }}>Live banners</h3>
         {loading ? <p className="muted">Loading…</p> : rows.length === 0 ? <p className="muted">No banners yet.</p> : (
@@ -181,6 +185,7 @@ export default function BannersPage() {
           </div>
         )}
       </div>
+      </MobileSection>
 
       {preview && (
         <div className="pv-modal" onClick={() => setPreview(null)}>

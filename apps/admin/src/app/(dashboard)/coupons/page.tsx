@@ -11,6 +11,7 @@ import { PromoPreview } from '@/components/PromoPreview';
 import { LandingControls, DisplayMode } from '@/components/LandingControls';
 import { ThemePicker } from '@/components/ThemePicker';
 import { Collapsible } from '@/components/Collapsible';
+import { MobileSection } from '@/components/MobileSection';
 import { PromoTheme } from '@/lib/promoThemes';
 
 const AUDIENCES = [
@@ -93,6 +94,7 @@ export default function CouponsPage() {
       <h1 style={{ marginBottom: 2 }}>Coupons Management</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>Design a wallet offer, preview it, then Commit &amp; Push to the chosen audience.</p>
 
+      <MobileSection title="Create coupon" defaultOpen={false}>
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0,0.82fr) minmax(0,1.18fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
         {/* LEFT — live preview, pinned so it never overlaps the form */}
         <PromoPreview kind="coupon" theme={theme} title={f.title || 'Your coupon title'} body={previewBody} code={f.code || 'ASK-XXXXX'} image={f.image} imageStyle="banner" bg={bg} fg={fg}
@@ -146,7 +148,9 @@ export default function CouponsPage() {
           <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
       </div>
+      </MobileSection>
 
+      <MobileSection title="Active coupons" defaultOpen={true}>
       <div className="card" style={{ marginTop: 18 }}>
         <h3 className="celeste" style={{ marginTop: 0 }}>Active coupons</h3>
         {loading ? <p className="muted">Loading…</p> : rows.length === 0 ? <p className="muted">No coupons yet.</p> : (
@@ -179,6 +183,7 @@ export default function CouponsPage() {
           </div>
         )}
       </div>
+      </MobileSection>
 
       {preview && (
         <div className="pv-modal" onClick={() => setPreview(null)}>

@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { useCollection } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 import { formatDate } from '@/lib/format';
+import { MobileSection } from '@/components/MobileSection';
 
 const PAGES = [
   { id: 'privacy', label: 'Privacy Policy', icon: '🔒' },
@@ -86,6 +87,7 @@ export default function CmsPage() {
       <h1 style={{ marginBottom: 2 }}>CMS</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>Edit legal &amp; help content, choose where it publishes, preview it, then Commit &amp; Push — live in the apps &amp; site without an update.</p>
 
+      <MobileSection title="Content pages" defaultOpen={true}>
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0,220px) minmax(0,1fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
         {/* Page list */}
         <div className="card sess-col" style={{ padding: 10 }}>
@@ -151,6 +153,7 @@ export default function CmsPage() {
           </div>
         </div>
       </div>
+      </MobileSection>
     </div>
   );
 }

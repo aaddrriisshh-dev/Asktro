@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useCollection, Row } from '@/lib/hooks';
 import { formatPaise } from '@/lib/format';
+import { MobileSection } from '@/components/MobileSection';
 
 const msOf = (t: { toMillis?: () => number } | undefined) => t?.toMillis?.() ?? 0;
 const lastActive = (u: Row) => msOf(u.updatedAt) || msOf(u.createdAt);
@@ -77,9 +78,15 @@ export default function CustomerManagementPage() {
 
       {loading ? <p className="muted" style={{ marginTop: 16 }}>Loading…</p> : (
         <div className="cust3">
-          <CustomerBox title="Live Customers" icon="🟢" accent="#3cb371" list={live} live />
-          <CustomerBox title="Paid Customers" icon="💚" accent="#2f9c63" list={paid} />
-          <CustomerBox title="Unpaid Customers" icon="🤍" accent="#c9a227" list={unpaid} />
+          <MobileSection title="Live Customers" defaultOpen={true}>
+            <CustomerBox title="Live Customers" icon="🟢" accent="#3cb371" list={live} live />
+          </MobileSection>
+          <MobileSection title="Paid Customers" defaultOpen={false}>
+            <CustomerBox title="Paid Customers" icon="💚" accent="#2f9c63" list={paid} />
+          </MobileSection>
+          <MobileSection title="Unpaid Customers" defaultOpen={false}>
+            <CustomerBox title="Unpaid Customers" icon="🤍" accent="#c9a227" list={unpaid} />
+          </MobileSection>
         </div>
       )}
     </div>

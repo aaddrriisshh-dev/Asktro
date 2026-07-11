@@ -5,6 +5,7 @@ import { addDoc, collection, deleteDoc, doc, updateDoc } from 'firebase/firestor
 import { db } from '@/lib/firebase';
 import { useCollection, Row } from '@/lib/hooks';
 import { formatPaise, rupeesToPaise } from '@/lib/format';
+import { MobileSection } from '@/components/MobileSection';
 
 export default function PlansPage() {
   const { rows, loading } = useCollection('rechargePlans');
@@ -70,6 +71,7 @@ export default function PlansPage() {
         <b>Regular</b> plans show on the app&apos;s recharge screen. <b>Offer</b> plans are hidden there and only appear when a user taps a <b>Recharge banner</b> tied to them.
       </p>
 
+      <MobileSection title="New plan" defaultOpen={false}>
       <div className="card" style={{ margin: '16px 0 20px' }}>
         <h3 style={{ marginTop: 0 }}>New plan</h3>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -83,8 +85,10 @@ export default function PlansPage() {
           <button className="btn" onClick={add}>Add plan</button>
         </div>
       </div>
+      </MobileSection>
 
       {loading ? <p className="muted">Loading…</p> : (
+        <MobileSection title="Existing plans" defaultOpen={true}>
         <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
           <div className="card sess-col" style={{ borderTop: '3px solid var(--primary)' }}>
             <div className="sess-col-head">
@@ -103,6 +107,7 @@ export default function PlansPage() {
             <div style={{ overflowX: 'auto' }}>{table(offers)}</div>
           </div>
         </div>
+        </MobileSection>
       )}
     </div>
   );

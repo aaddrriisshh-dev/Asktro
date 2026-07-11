@@ -8,6 +8,7 @@ import { LandingControls, DisplayMode } from '@/components/LandingControls';
 import { DeepLinkSelect } from '@/components/DeepLinkSelect';
 import { ThemePicker } from '@/components/ThemePicker';
 import { Collapsible } from '@/components/Collapsible';
+import { MobileSection } from '@/components/MobileSection';
 import { PromoTheme } from '@/lib/promoThemes';
 
 type Segment = 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers';
@@ -87,6 +88,7 @@ export default function BroadcastPage() {
       <h1 style={{ marginBottom: 2 }}>Push Notifications</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>Design it, preview the exact look, then Commit &amp; Push.</p>
 
+      <MobileSection title="Compose notification" defaultOpen={false}>
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0,0.82fr) minmax(0,1.18fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
         {/* LEFT — live preview, pinned so it never overlaps the form */}
         <PromoPreview kind="push" theme={theme} title={f.title} body={f.body} image={f.image} imageStyle={imageStyle} bg={bg} fg={fg}
@@ -137,7 +139,9 @@ export default function BroadcastPage() {
           </div>
         </div>
       </div>
+      </MobileSection>
 
+      <MobileSection title="Recent broadcasts" defaultOpen={true}>
       <div className="card" style={{ marginTop: 18 }}>
         <h3 className="celeste" style={{ marginTop: 0 }}>Recent broadcasts</h3>
         {sentLoading ? <p className="muted">Loading…</p> : sent.length === 0 ? <p className="muted">No broadcasts sent yet.</p> : (
@@ -162,6 +166,7 @@ export default function BroadcastPage() {
           </div>
         )}
       </div>
+      </MobileSection>
     </div>
   );
 }

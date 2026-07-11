@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import { formatPaise } from '@/lib/format';
 import { useCardFilter } from '@/lib/useCardFilter';
 import { DrawerFilter } from './DrawerFilter';
+import { MobileSection } from '@/components/MobileSection';
 
 type Any = Record<string, unknown>;
 const ms = (t: Any, k: string) => (t[k] as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0;
@@ -91,6 +92,7 @@ export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video'
 
       <div className="sess-split">
         {/* LEFT — Live */}
+        <MobileSection title="Live sessions" defaultOpen={true}>
         <div className="card sess-col sess-live">
           <div className="sess-col-head">
             <h3 className="celeste" style={{ margin: 0 }}>🟢 Live {type} sessions</h3>
@@ -103,8 +105,10 @@ export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video'
                 : rows(live, 'Started')}
           </div>
         </div>
+        </MobileSection>
 
         {/* RIGHT — Completed */}
+        <MobileSection title="Completed sessions" defaultOpen={false}>
         <div className="card sess-col sess-done">
           <div className="sess-col-head">
             <h3 className="celeste" style={{ margin: 0 }}>✅ Completed {type} sessions</h3>
@@ -117,6 +121,7 @@ export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video'
                 : rows(done, 'Ended')}
           </div>
         </div>
+        </MobileSection>
       </div>
     </div>
   );
