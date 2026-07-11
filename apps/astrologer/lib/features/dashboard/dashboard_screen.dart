@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
@@ -21,6 +22,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  DateTime? _lastBackAt;
   static const _tabs = [
     HomeTab(),
     ConsultationsTab(),
@@ -47,21 +49,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         if (astrologer == null || astrologer.status != AstrologerStatus.approved) {
           return PendingReviewScreen(status: astrologer?.status);
         }
-        return SkyScaffold(
-          bottomNavigationBar: _SkyNav(
-            index: index,
-            onTap: (i) => ref.read(dashTabProvider.notifier).state = i,
-            badges: {1: pending, 3: unread},
-          ),
-          child: Stack(
-            children: [
-              IndexedStack(index: index, children: _tabs),
-              // Invisible sentinel that raises the full-screen ring on a new request.
-              IncomingCallGate(self: astrologer),
-              // Invisible sentinel: presence heartbeat so a crashed/dropped app
-              // is forced offline server-side (no "ghost online").
-              PresenceHeartbeat(uid: astrologer.id),
-            ],
+        // Tabs are an IndexedStack, not routes, so the Android system back
+        // button would otherwise exit the app from any tab. Intercept it: from
+        // a non-Home tab, return to Home; from Home, require a second back
+        // within 2s to exit.
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            if (index != 0) {
+              ref.read(dashTabProvider.notifier).state = 0;
+              return;
+            }
+            final now = DateTime.now();
+            if (_lastBackAt == null || now.difference(_lastBackAt!) > const Duration(seconds: 2)) {
+              _lastBackAt = now;
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(const SnackBar(
+                  content: Text('Press back again to exit'),
+                  duration: Duration(seconds: 2),
+                ),);
+              return;
+            }
+            SystemNavigator.pop();
+          },
+          child: SkyScaffold(
+            bottomNavigationBar: _SkyNav(
+              index: index,
+              onTap: (i) => ref.read(dashTabProvider.notifier).state = i,
+              badges: {1: pending, 3: unread},
+            ),
+            child: Stack(
+              children: [
+                IndexedStack(index: index, children: _tabs),
+                // Invisible sentinel that raises the full-screen ring on a new request.
+                IncomingCallGate(self: astrologer),
+                // Invisible sentinel: presence heartbeat so a crashed/dropped app
+                // is forced offline server-side (no "ghost online").
+                PresenceHeartbeat(uid: astrologer.id),
+              ],
+            ),
           ),
         );
       },

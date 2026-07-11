@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
@@ -33,6 +34,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   StreamSubscription<RemoteMessage>? _openedSub;
   StreamSubscription<RemoteMessage>? _foregroundSub;
+  DateTime? _lastBackAt;
 
   @override
   void initState() {
@@ -151,7 +153,32 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         : ref.watch(_unreadProvider(uid));
 
     final index = ref.watch(homeTabProvider);
-    return Scaffold(
+    // The bottom-nav tabs are an IndexedStack, not routes, so the Android system
+    // back button would otherwise exit the app from any tab. Intercept it: from
+    // a non-Home tab, go back to Home; from Home, require a second back within
+    // 2s to exit (prevents an accidental single tap from dropping the app).
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (index != 0) {
+          ref.read(homeTabProvider.notifier).state = 0;
+          return;
+        }
+        final now = DateTime.now();
+        if (_lastBackAt == null || now.difference(_lastBackAt!) > const Duration(seconds: 2)) {
+          _lastBackAt = now;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(const SnackBar(
+              content: Text('Press back again to exit'),
+              duration: Duration(seconds: 2),
+            ),);
+          return;
+        }
+        SystemNavigator.pop();
+      },
+      child: Scaffold(
       body: IndexedStack(index: index, children: _tabs),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
@@ -184,6 +211,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
