@@ -8,7 +8,7 @@
  * compute by scanning the whole collections.
  */
 import { db, Timestamp } from '../common/admin';
-import { applyRevenueRollup, applyConsultationRollup } from './dailyStats';
+import { applyRevenueRollup, applyConsultationRollup, applyUserSignupRollup } from './dailyStats';
 
 const DAY = '2026-03-15';
 const at = (h: number) => Timestamp.fromMillis(Date.parse(`${DAY}T${String(h).padStart(2, '0')}:00:00.000Z`));
@@ -57,6 +57,18 @@ describe('dailyStats rollup (emulator)', () => {
     expect(s.revenue.recharge).toBe(15000);
     expect(s.counts.recharge).toBe(2);
     expect(s.consultations.chat).toBe(2);
+  });
+
+  it('folds user signups into per-day totals + gender + withEmail (idempotently)', async () => {
+    await applyUserSignupRollup({ gender: 'male', email: 'a@b.c', createdAt: at(1) }, 'u1');
+    await applyUserSignupRollup({ gender: 'female', createdAt: at(2) }, 'u2');
+    await applyUserSignupRollup({ gender: 'male', email: 'd@e.f', createdAt: at(3) }, 'u3');
+    await applyUserSignupRollup({ gender: 'male', email: 'd@e.f', createdAt: at(3) }, 'u3'); // redelivery
+    const s = (await db.collection('dailyStats').doc(DAY).get()).data()!;
+    expect(s.signups.total).toBe(3);
+    expect(s.signups.male).toBe(2);
+    expect(s.signups.female).toBe(1);
+    expect(s.signups.withEmail).toBe(2);
   });
 
   it('ignores rows with no kind / non-call consultation types', async () => {

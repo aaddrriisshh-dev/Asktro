@@ -43,7 +43,7 @@ export { setUserRole, deleteAccount, processAccountDeletion, deleteAstrologerAcc
 export { recordConsent } from './auth/consent';
 
 // ---- Analytics rollup (daily dashboard counters) ----
-export { rollupWalletTxn, rollupConsultation } from './stats/dailyStats';
+export { rollupWalletTxn, rollupConsultation, rollupUserSignup } from './stats/dailyStats';
 
 // ---- Notifications ----
 export { onNotificationCreated, sendBroadcast } from './notifications/sender';

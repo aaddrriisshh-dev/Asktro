@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatPaise, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
@@ -37,11 +37,17 @@ function useUsersMonetisation(range: Range): CardView<PayData> {
     setError(null);
     (async () => {
       try {
+        // Hard-capped to the most recent users in range so the browser can never
+        // OOM at scale (the audit's dashboard-crash finding). Beyond the cap the
+        // breakdown samples recent users; exact rollup-backed version is a
+        // 10k→50k refinement.
+        const PU_CAP = 5000;
         const snap = await getDocs(query(
           collection(db, 'users'),
           where('createdAt', '>=', Timestamp.fromMillis(range.start)),
           where('createdAt', '<', Timestamp.fromMillis(range.end)),
-          orderBy('createdAt', 'asc'),
+          orderBy('createdAt', 'desc'),
+          limit(PU_CAP),
         ));
         let paid = 0, rechargeSum = 0, paidMale = 0, paidFemale = 0, unpaidWithEmail = 0, unpaidBlocked = 0;
         const byDayPaid = new Map<string, number>();

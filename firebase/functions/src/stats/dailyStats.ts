@@ -89,6 +89,33 @@ export async function applyConsultationRollup(
   });
 }
 
+/** Fold one new user signup into its day's counters (total + gender + withEmail),
+ *  so the admin user cards never scan the whole users collection. Gender/email
+ *  are captured at signup (fixed); lifetime states (paid/blocked) are read via
+ *  server aggregations on the dashboard instead. */
+export async function applyUserSignupRollup(
+  u: { gender?: string; email?: unknown; createdAt?: Timestamp },
+  sourceId: string,
+): Promise<void> {
+  const { day, dayMs } = dayBucket(u.createdAt);
+  const signups: Record<string, unknown> = { total: FieldValue.increment(1) };
+  if (u.gender === 'male') signups.male = FieldValue.increment(1);
+  else if (u.gender === 'female') signups.female = FieldValue.increment(1);
+  if (u.email) signups.withEmail = FieldValue.increment(1);
+  await foldOnce(sourceId, day, { day, dayMs, signups, updatedAt: FieldValue.serverTimestamp() });
+}
+
+// --- Signup rollup: count each new user into its day -------------------------
+export const rollupUserSignup = onDocumentCreated('users/{id}', async (event) => {
+  const u = event.data?.data();
+  if (!u) return;
+  try {
+    await applyUserSignupRollup(u as { gender?: string; email?: unknown; createdAt?: Timestamp }, event.params.id);
+  } catch (err) {
+    logger.error('rollupUserSignup failed', { id: event.params.id, error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 // --- Revenue rollup: fold each new wallet-ledger row into its day ------------
 export const rollupWalletTxn = onDocumentCreated('walletTransactions/{id}', async (event) => {
   const t = event.data?.data();

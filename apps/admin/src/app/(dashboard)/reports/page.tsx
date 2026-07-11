@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
 } from 'recharts';
-import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
+
+// Hard cap so the reports page can never buffer millions of docs into the tab
+// (the audit's OOM finding). Exports beyond this need a server-side CSV job
+// (10k→50k refinement); the on-screen KPIs are based on up to this many rows.
+const REPORT_CAP = 10000;
 import { db } from '@/lib/firebase';
 import { formatPaise, shortDay } from '@/lib/format';
 import { useCardFilter } from '@/lib/useCardFilter';
@@ -47,6 +52,8 @@ export default function ReportsPage() {
         collection(db, coll),
         where('createdAt', '>=', Timestamp.fromMillis(range.start)),
         where('createdAt', '<', Timestamp.fromMillis(range.end)),
+        orderBy('createdAt', 'desc'),
+        limit(REPORT_CAP),
       ));
       const [txnSnap, consSnap, userSnap, poSnap] = await Promise.all([
         inRange('walletTransactions'), inRange('consultations'), inRange('users'), inRange('payouts'),
@@ -98,7 +105,7 @@ export default function ReportsPage() {
   }
 
   const fetchAll = (coll: string) => async (): Promise<Any[]> => {
-    const snap = await getDocs(collection(db, coll));
+    const snap = await getDocs(query(collection(db, coll), limit(REPORT_CAP)));
     return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Any[];
   };
 

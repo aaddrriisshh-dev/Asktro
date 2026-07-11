@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatPaise, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
@@ -32,11 +32,17 @@ function useConversion(range: Range): CardView<ConvData> {
     setError(null);
     (async () => {
       try {
+        // Detailed per-user conversion analytics need per-doc reads. Hard-capped
+        // to the most recent CONV_CAP users in range so the browser can never OOM
+        // (the crash the audit flagged). Beyond the cap the card samples the most
+        // recent users; a rollup-backed exact version is the 10k→50k refinement.
+        const CONV_CAP = 5000;
         const snap = await getDocs(query(
           collection(db, 'users'),
           where('createdAt', '>=', Timestamp.fromMillis(range.start)),
           where('createdAt', '<', Timestamp.fromMillis(range.end)),
-          orderBy('createdAt', 'asc'),
+          orderBy('createdAt', 'desc'),
+          limit(CONV_CAP),
         ));
         let converted = 0, sameDay = 0, rechargeSum = 0;
         const byDay = new Map<string, number>();

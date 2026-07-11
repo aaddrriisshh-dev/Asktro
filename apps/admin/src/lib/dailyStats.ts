@@ -9,6 +9,7 @@ export interface DailyStat {
   revenue?: Partial<Record<'recharge' | 'bonus' | 'consultation' | 'refund' | 'coupon' | 'adjustment', number>>;
   counts?: Partial<Record<'recharge' | 'bonus' | 'consultation' | 'refund' | 'coupon' | 'adjustment', number>>;
   consultations?: { chat?: number; voice?: number; video?: number };
+  signups?: { total?: number; male?: number; female?: number; withEmail?: number };
 }
 
 /**

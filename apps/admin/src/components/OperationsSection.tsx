@@ -133,14 +133,15 @@ function PaidVsFree() {
     let cancelled = false;
     setD(null);
     (async () => {
-      const snap = await getDocs(query(
-        collection(db, 'users'),
-        where('createdAt', '>=', Timestamp.fromMillis(range.start)),
-        where('createdAt', '<', Timestamp.fromMillis(range.end)),
-      ));
-      let paid = 0, free = 0;
-      snap.forEach((doc) => { ((doc.data() as { totalRecharge?: number }).totalRecharge ?? 0) > 0 ? paid++ : free++; });
-      if (!cancelled) setD({ paid, free });
+      // Lifetime paid-vs-free via server COUNT aggregations — no users download.
+      // (A range-scoped split would need two inequalities in one query, which
+      // Firestore disallows; paid-vs-free is naturally a current-state metric.)
+      const [totalAgg, paidAgg] = await Promise.all([
+        getCountFromServer(collection(db, 'users')),
+        getCountFromServer(query(collection(db, 'users'), where('totalRecharge', '>', 0))),
+      ]);
+      const paid = paidAgg.data().count;
+      if (!cancelled) setD({ paid, free: Math.max(0, totalAgg.data().count - paid) });
     })().catch(() => { if (!cancelled) setD({ paid: 0, free: 0 }); });
     return () => { cancelled = true; };
   }, [range.start, range.end]);

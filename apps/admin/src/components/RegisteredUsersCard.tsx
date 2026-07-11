@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
+import { fetchDailyStats } from '@/lib/dailyStats';
 import { DashCard, CardView } from './DashCard';
 import { Metric } from './Metric';
 import { DailyChart } from './DailyChart';
@@ -30,28 +31,22 @@ function useRegisteredUsers(range: Range): CardView<UsersData> {
     setError(null);
     (async () => {
       try {
-        const q = query(
-          collection(db, 'users'),
-          where('createdAt', '>=', Timestamp.fromMillis(range.start)),
-          where('createdAt', '<', Timestamp.fromMillis(range.end)),
-          orderBy('createdAt', 'asc'),
-        );
-        const snap = await getDocs(q);
-        let male = 0, female = 0, withEmail = 0, blocked = 0, paid = 0;
-        const byDay = new Map<string, number>();
-        snap.forEach((doc) => {
-          const u = doc.data() as { gender?: string; email?: string; accountStatus?: string; totalRecharge?: number; createdAt?: Timestamp };
-          if (u.gender === 'male') male += 1;
-          else if (u.gender === 'female') female += 1;
-          if (u.email) withEmail += 1;
-          if (u.accountStatus === 'blocked') blocked += 1;
-          if ((u.totalRecharge ?? 0) > 0) paid += 1;
-          const ms = u.createdAt?.toMillis?.() ?? range.start;
-          const key = new Date(ms).toISOString().slice(0, 10);
-          byDay.set(key, (byDay.get(key) ?? 0) + 1);
+        // Registered/gender/email + the daily histogram come from the per-day
+        // signup rollup (bounded — one small doc per day). Lifetime states
+        // (paid, blocked) are server-side COUNT aggregations — no docs are
+        // downloaded, so the whole users collection never reaches the browser.
+        const [days, paidAgg, blockedAgg] = await Promise.all([
+          fetchDailyStats(range),
+          getCountFromServer(query(collection(db, 'users'), where('totalRecharge', '>', 0))),
+          getCountFromServer(query(collection(db, 'users'), where('accountStatus', '==', 'blocked'))),
+        ]);
+        let total = 0, male = 0, female = 0, withEmail = 0;
+        const daily = days.map((s) => {
+          const n = s.signups?.total ?? 0;
+          total += n; male += s.signups?.male ?? 0; female += s.signups?.female ?? 0; withEmail += s.signups?.withEmail ?? 0;
+          return { day: shortDay(s.day), value: n };
         });
-        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
-        if (!cancelled) setData({ total: snap.size, male, female, withEmail, blocked, paid, daily });
+        if (!cancelled) setData({ total, male, female, withEmail, blocked: blockedAgg.data().count, paid: paidAgg.data().count, daily });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
       } finally {
