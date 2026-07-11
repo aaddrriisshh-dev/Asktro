@@ -35,6 +35,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   StreamSubscription<RemoteMessage>? _openedSub;
   StreamSubscription<RemoteMessage>? _foregroundSub;
   DateTime? _lastBackAt;
+  // Visited-tab history for system-back navigation, and a guard so the back
+  // navigation we trigger isn't recorded as a new visit.
+  final List<int> _tabHistory = [];
+  bool _handlingBack = false;
+
+  /// Switch tabs as part of a back-navigation (not recorded in history).
+  void _goToTab(int i) {
+    _handlingBack = true;
+    ref.read(homeTabProvider.notifier).state = i;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handlingBack = false);
+  }
 
   @override
   void initState() {
@@ -152,17 +163,31 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ? const AsyncValue<int>.data(0)
         : ref.watch(_unreadProvider(uid));
 
+    // Record every tab change (from any source: taps, deep links, push) into a
+    // history stack so the system back button retraces the tabs the user
+    // actually visited. Programmatic back-navigation is flagged so it isn't
+    // itself recorded.
+    ref.listen<int>(homeTabProvider, (prev, next) {
+      if (_handlingBack || prev == null || prev == next) return;
+      _tabHistory.add(prev);
+      if (_tabHistory.length > 20) _tabHistory.removeAt(0);
+    });
+
     final index = ref.watch(homeTabProvider);
     // The bottom-nav tabs are an IndexedStack, not routes, so the Android system
-    // back button would otherwise exit the app from any tab. Intercept it: from
-    // a non-Home tab, go back to Home; from Home, require a second back within
-    // 2s to exit (prevents an accidental single tap from dropping the app).
+    // back button would otherwise exit the app from any tab. Intercept it: go
+    // back to the previously visited tab; if there's no history, go to Home;
+    // on Home with no history, require a second back within 2s to exit.
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
+        if (_tabHistory.isNotEmpty) {
+          _goToTab(_tabHistory.removeLast());
+          return;
+        }
         if (index != 0) {
-          ref.read(homeTabProvider.notifier).state = 0;
+          _goToTab(0);
           return;
         }
         final now = DateTime.now();
