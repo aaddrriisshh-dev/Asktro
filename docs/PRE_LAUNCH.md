@@ -2,6 +2,26 @@
 
 ---
 
+## 🔴 CRITICAL — VERIFY BEFORE LAUNCH (added 2026‑07‑11, do first tomorrow)
+
+**End-to-end money-logic validation on a real phone — needs a discussion + a live test.**
+Before any real user is charged, confirm on-device that the numbers are exactly right:
+- **Billing basis:** what per-minute rate is actually being charged to the customer
+  (`ratePerMinutePaise` on the session) and how it's detected — confirm the rate
+  shown in the app == the rate metered == the rate on the astrologer doc.
+- **Commission:** what commission % is loaded for each astrologer and where it's
+  read from (session snapshot `commissionPercent`), and that the astrologer's
+  **earning = charge × (1 − commission%)** and the **platform cut = charge ×
+  commission%** — reconcile all three (customer debit, astrologer credit, platform
+  cut) for a real test session.
+- **Test matrix:** run a live chat session end-to-end and check: wallet debit per
+  minute, astrologer ledger credit, commission split, pause/resume, and end-of-
+  session settlement all agree to the paisa.
+- Discuss the intended commission model (flat vs per-astrologer, AI vs human,
+  offers/coupons effect on the split) so the config matches the business intent.
+
+---
+
 ## 🆕 RECENT UPDATES (2026‑07‑11)
 
 Snapshot of what changed since the last audit deploy, so this doc matches HEAD:
