@@ -76,6 +76,9 @@ export interface ConsultationDoc {
    *  money to the right bucket (real wallet vs non-withdrawable bonus/grace). */
   chargedFromWallet?: number;
   chargedFromBonus?: number;
+  /** Cumulative paise refunded against this session, so partial refunds are
+   *  idempotent and never exceed what was charged (see admin/refund.ts). */
+  refundedPaise?: number;
   pausedAccumMs: number;
   pausedAt: Timestamp | null;
   warnLevel: 0 | 1 | 2 | 3;
@@ -94,13 +97,38 @@ export interface UserDoc {
   email?: string;
   walletBalance: number;
   bonusBalance: number;
+  /** Non-withdrawable, CHAT-ONLY welcome/bonus credit — cannot fund a call. */
+  chatBonusBalance?: number;
   lockedBalance: number;
   totalRecharge: number;
   totalSpent: number;
   pendingRefund: number;
   totalConsultations: number;
+  /** Denormalized per-type billed seconds, incremented at settlement so the
+   *  admin users table never scans the consultations collection. */
+  usageSeconds?: { chat?: number; voice?: number; video?: number };
+  /** True once the one-time chat grace minute has been consumed (never re-granted). */
+  chatGraceUsed?: boolean;
   referralCode: string;
   referredBy?: string;
   accountStatus: 'active' | 'blocked' | 'deleted';
+  /** Erasure progress after a self-service account deletion: 'pending' while the
+   *  background worker drains content, 'done' once complete (see deleteAccount). */
+  deletionState?: 'pending' | 'done';
   fcmTokens?: string[];
+}
+
+/** Per-UTC-day analytics rollup (dailyStats/{YYYY-MM-DD}) read by the admin
+ *  dashboard so it never aggregates whole collections in the browser. Written
+ *  only by the rollup triggers (stats/dailyStats.ts). */
+export interface DailyStatsDoc {
+  day: string; // 'YYYY-MM-DD' (UTC)
+  dayMs: number; // ms at that day's UTC midnight
+  /** Signed paise sums per ledger kind (recharge/bonus +, consultation/refund −). */
+  revenue?: Partial<Record<TxnKind, number>>;
+  /** Row counts per ledger kind. */
+  counts?: Partial<Record<TxnKind, number>>;
+  /** Sessions STARTED that day, by type. */
+  consultations?: { chat?: number; voice?: number; video?: number };
+  updatedAt: Timestamp;
 }

@@ -210,6 +210,23 @@ to a secure vault / password manager NOW, and keep them off `Downloads`.
 sizing/concurrency (C1), config caching (H3), missing composite indexes
 (H1/H5), bounded unread-count listener (M1).
 
+**Fixed & committed (10k-scale audit):** sweep-job sharding (bounded-parallel
+batches + concurrent fan-out, 300s timeout); two-phase account deletion (fast
+critical phase + idempotent background erasure worker) so a heavy account can't
+time out mid-delete; admin dashboard no longer downloads whole collections —
+the users table paginates server-side and reads denormalized `usageSeconds`,
+and revenue / consultation-activity charts read a per-day `dailyStats` rollup
+instead of scanning walletTransactions / consultations. All need the function +
+index + rules deploy to go live.
+
+### `minInstances` — set at LAUNCH, not now
+Keeping Cloud Function instances warm (`minInstances: N` on the hot callables —
+tick / createConsultation / endConsultation / generateAgoraToken) removes the
+cold-start lag the first user of each idle period feels. **Do not set it yet:**
+a warm instance bills 24×7 even with zero traffic, so it only makes sense once
+real, steady traffic exists. When launching: start with `minInstances: 1` on
+those hot functions and raise with observed concurrency. (Left off until then.)
+
 **Remaining — bigger changes, do before heavy scale:**
 - [ ] **C2 — `sendBroadcast` → FCM topics / paginated tasks.** Current version
       loads ALL users into one function + writes 1M docs. **Do NOT send an

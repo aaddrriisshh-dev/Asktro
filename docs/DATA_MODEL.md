@@ -24,11 +24,14 @@ Customer profile. `userId` = Firebase Auth uid.
 | profilePhoto | string? | user | Storage URL |
 | walletBalance | int (paise) | **functions only** | spendable |
 | bonusBalance | int (paise) | **functions only** | promo credit |
+| chatBonusBalance | int (paise)? | **functions only** | non-withdrawable CHAT-ONLY welcome credit; cannot fund a call |
 | lockedBalance | int (paise) | **functions only** | reserved during active session |
 | totalRecharge | int (paise) | functions | lifetime |
 | totalSpent | int (paise) | functions | lifetime |
 | pendingRefund | int (paise) | functions | |
 | totalConsultations | int | functions | |
+| usageSeconds | map? | **functions only** | `{chat,voice,video}` billed seconds, incremented at settlement; backs the admin users table without scanning consultations |
+| chatGraceUsed | bool? | functions | one-time chat grace minute consumed (never re-granted) |
 | referralCode | string | functions | unique, generated at signup |
 | referredBy | string? | functions | referrer's code |
 | favouriteAstrologers | string[] | user | astrologerIds |
@@ -36,6 +39,8 @@ Customer profile. `userId` = Firebase Auth uid.
 | notificationEnabled | bool | user | |
 | fcmTokens | string[] | user | multi-device |
 | accountStatus | string | admin/functions | `active` \| `blocked` \| `deleted` |
+| deletionState | string? | **functions only** | `pending` while the deletion worker drains content, `done` when complete |
+| firstRechargeAt | Timestamp? | functions | stamped on first successful recharge (conversion analytics) |
 | createdAt / updatedAt | Timestamp | | |
 
 ## `astrologers/{astrologerId}`
@@ -81,11 +86,17 @@ The billing session. Written **only** by functions.
 | startTime | Timestamp | first activation |
 | endTime | Timestamp? | |
 | lastTickAt | Timestamp | last billed instant (drives deduction) |
+| customerLastTickAt | Timestamp? | last CUSTOMER heartbeat; billing never passes this + settle window |
+| astrologerLastTickAt | Timestamp? | last ASTROLOGER heartbeat (unset for AI); frontier = min(both) + settle |
+| chatCreditEligible | bool? | this chat may draw on the one-time chat welcome credit |
+| graceGranted / graceGrantedAt | bool? / Timestamp? | tick that granted the one-time grace minute |
 | billedSeconds | int | accumulated across pause/resume |
 | duration | int (sec) | final |
 | walletBefore | int (paise) | |
 | walletAfter | int (paise) | |
 | totalCharged | int (paise) | |
+| chargedFromWallet / chargedFromBonus | int (paise)? | cumulative split of totalCharged by funding source, so refunds return to the right bucket |
+| refundedPaise | int (paise)? | cumulative refunded; makes partial refunds idempotent and bounded |
 | pausedAccumMs | int | time spent paused (excluded from billing) |
 | agoraChannel | string? | voice/video |
 | rating | double? | set by rateConsultation |
@@ -151,6 +162,20 @@ consultationPricePerMinute(paise, default 900), minWalletToStart(paise), warnLev
 actorUid, actorRole, action, targetType, targetId, before?, after?, reason?, ip?, createdAt.
 
 ## `adminUsers/{uid}`  role(`super`|`ops`|`finance`|`support`|`marketing`|`analyst`), permissions(map), active(bool).
+
+## `dailyStats/{YYYY-MM-DD}`  (per-UTC-day analytics rollup — functions only)
+Written by the `rollupWalletTxn` / `rollupConsultation` create-triggers; read by
+the admin dashboard so revenue and consultation-activity charts never aggregate
+the whole (unbounded) walletTransactions / consultations collections in the
+browser. Fields: `day`, `dayMs` (UTC midnight), `revenue`(map: signed paise sum
+per TxnKind — recharge/bonus +, consultation/refund −), `counts`(map: row count
+per TxnKind), `consultations`(map `{chat,voice,video}` — sessions STARTED that
+day), `updatedAt`. Admin-read, backend-write.
+
+## `accountDeletions/{uid}`  (deletion job — functions only, backend-internal)
+Enqueued by `deleteAccount`; consumed by the `processAccountDeletion` worker.
+Fields: `uid`, `status`(`pending`|`done`), `requestedAt`, `completedAt?`. Denied
+to all clients by the rules catch-all.
 
 ---
 

@@ -12,11 +12,14 @@ This is a companion to `AUDIT.md` (the money/trust audit) and `PRE_LAUNCH.md`.
 | Backend code quality (Cloud Functions) | **8.5 / 10** | Yes — strongest part |
 | Data model (Firestore, ledgers, rules) | **8 / 10** | Yes (docs stale) |
 | Flutter apps (customer/astrologer/shared) | **7 / 10** | Yes, with a hardening punch‑list |
-| Admin portal (Next.js) | **6.5 / 10** | Adequate, not grade |
+| Admin portal (Next.js) | ~~6.5~~ → **8 / 10** | Unbounded reads removed (pagination/aggregation/rollup) |
 | Security model (rules/storage/auth) | **8.5 / 10** | Yes |
 | Overall architecture (Firebase + Agora) | **8 / 10** | Yes |
-| **Scalability to 10k** | **7 / 10** | Core scales; periphery (admin, sweep) breaks first |
-| **Blended** | **~7.8 / 10** | Yes — money core weighted highest |
+| **Scalability to 10k** | ~~7~~ → **9 / 10** | Periphery (admin, sweep, deletion) now bounded; core already scaled |
+| **Blended** | ~~7.8~~ → **~8.4 / 10** | Yes — money core weighted highest |
+
+*(Struck ratings are the original audit snapshot; the arrow shows the value after
+this session's scale‑hardening fixes.)*
 
 ## Will it crash at 10k registered users?
 
@@ -26,7 +29,9 @@ horizontally scalable (~8,000 in‑flight capacity vs ~60–100 tick calls/s nee
 per‑session docs; money is protected by server‑time billing + the 15s clamp + the
 sweep. Load model: ~2–3k DAU, ~300 concurrent paid sessions base / ~500 stress.
 
-**But three things fail before the core does:**
+**But three things fail before the core does** *(all three now FIXED — see the
+Verdict section for the closing changes; the diagnosis below is the original
+audit record):*
 
 1. **P1 — Admin portal is the first crash (data‑volume‑gated, not concurrency).**
    Unbounded `getDocs` buffer millions of docs into one browser tab:
@@ -88,17 +93,34 @@ scales. But `PRE_LAUNCH.md` as written (store/legal/security) is **not sufficien
 for 10k** — these scale items must be ADDED and done first:
 
 **Must‑fix before 10k (ordered):**
-1. Flutter money‑field cast crash (`consultation.dart`) — mid‑session crash. ~0.5d
-2. Admin dashboards: paginate/aggregate every unbounded `getDocs`; ideally back
-   reporting with pre‑aggregated rollups (a daily stats doc) — browser OOM. ~2–3d
-3. Sweep: shard into parallel workers, raise `timeoutSeconds`, run jobs concurrently —
-   stranded astrologers. ~1–2d
-4. `deleteAccount`: bound + background (chunked task, no 60s wall) — half‑delete. ~1d
-5. Agora uid collision — calls fail to connect. ~0.5d
+1. ✅ **DONE** — Flutter money‑field cast crash (`consultation.dart` + all models):
+   every unsafe `as int` on a money field → `(as num).toInt()`; double‑parse test added.
+2. ✅ **DONE** — Admin dashboards no longer download whole collections. Users table
+   paginates server‑side (Firestore cursors) + reads denormalized `usageSeconds`
+   (no consultations scan) + `getCountFromServer` total + server prefix search;
+   sessions console split into bounded live/completed queries; operations counts/
+   sums use `getCountFromServer` / `getAggregateFromServer`; revenue & consultation‑
+   activity charts read a per‑day `dailyStats` rollup (triggers `rollupWalletTxn` /
+   `rollupConsultation`). Nothing unbounded reaches the browser. (Users/astrologers‑
+   bounded cards left as direct reads — fine at ≤10k.)
+3. ✅ **DONE** — Sweep sharded: each job drains its batch in bounded‑parallel chunks
+   (`forEachLimited`, 40 concurrent txns), the 5 jobs run concurrently, `timeoutSeconds`
+   300, scan ceilings 200/300 → 500.
+4. ✅ **DONE** — `deleteAccount` split into a fast synchronous critical phase (revoke +
+   disable login, strip PII, enqueue) + an idempotent background worker
+   (`processAccountDeletion`, 540s) that drains content then deletes the Auth user.
+5. ✅ **DONE** — Agora uid derived from role (customer=1, astrologer=2) — collision‑proof.
 6. Hot astrologer/AI counter → distributed counter or event‑sourced aggregation. ~1–2d
+   *(deferred — only bites at viral scale, not 10k)*
 7. `minInstances: 1` on money‑critical callables — cold‑start latency. ~0.25d
-8. Resume presence re‑seed (P3 regression) + refund paise clamp + `types.ts`/docs refresh. ~0.5d
+   *(LAUNCH‑time setting — see PRE_LAUNCH; costs 24×7 with zero users)*
+8. ✅ **DONE** — Resume presence re‑seed (`resumeConsultation` + `autoResumePausedSession`);
+   proportional wallet/bonus refund split; `types.ts` + `DATA_MODEL.md` refreshed
+   (`usageSeconds`, `chatBonusBalance`, `chatGraceUsed`, `refundedPaise`, `deletionState`,
+   `dailyStats`, `accountDeletions`).
 
-**With those added to PRE_LAUNCH and done: yes, ready for a 10k pilot.** Without them,
-the core survives but the admin console OOMs within weeks and the marketplace degrades
-under correlated disconnects — operational failures, not lost money.
+**Status:** all must‑fix items for a 10k pilot are done except #6 (viral‑scale only)
+and #7 (a launch‑time toggle). The core was already production‑ready; the admin
+console OOM, the sweep degradation, and the half‑delete risk — the three operational
+failure modes this audit flagged — are now closed. **Ready for a 10k pilot** once the
+pending function + index + rules deploy lands (see the deploy runbook).
