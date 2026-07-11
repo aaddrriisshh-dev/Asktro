@@ -25,6 +25,11 @@ function OpsPanel({
   wide?: boolean; defaultOpen?: boolean; children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  // On phones, start every panel collapsed so the dashboard is a tidy list of
+  // headers the admin taps to open — no long scroll of charts and tables.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) setOpen(false);
+  }, []);
   return (
     <section className={`ops ${colorClass}${wide ? ' ops--wide' : ''}`}>
       <button className="ops-head" onClick={() => setOpen((o) => !o)}>
