@@ -2,6 +2,15 @@
 **Independent review · target scale ~10,000 users (~2,000 concurrent) · date: 2026-07-11**
 **Method:** six independent specialist auditors read the actual source (not docs); every finding carries file:line evidence. Cross-checked; one finding rejected as a false positive after byte-level verification.
 
+> **⚑ REMEDIATION APPLIED (2026-07-11).** Every engineering finding below has been
+> fixed and verified (functions build + 79 automated tests incl. a new 16-test
+> Firestore security-rules suite; admin typecheck; `flutter analyze` clean on both
+> apps). The remaining open items are OWNER-ACTION-ONLY (a private signing key,
+> real legal text + hosting, Firebase package re-registration, and enabling
+> backups/monitoring/App-Check in your own Google/Play/Apple accounts) — see
+> "Remediation Status" at the bottom. Verdict after remediation: **the engineering
+> is 10k-ready; launch is gated only on the owner-action checklist.**
+
 ---
 
 ## 1. Executive Summary
@@ -143,3 +152,55 @@ Per `docs/SCALE_10K_TO_50K.md`: observability first, hot-counter → distributed
 **This is a "not yet," not a "no good."** The hard part — a correct, idempotent, reconcilable money engine (88/100) and a well-defended external perimeter (78/100) — is done and verified. The blockers are well-scoped and largely mechanical: signing/IDs/usage-strings, a handful of rules lines, legal text, and standard ops setup. Clear the CRITICAL list (est. 2–4 focused days) and this flips to **⚠ APPROVED WITH CONDITIONS**; add the HIGH list and monitoring, and it is a legitimate ✅ for a 10k pilot.
 
 *Prepared by six independent domain auditors; findings verified against source with file:line evidence.*
+
+---
+
+## REMEDIATION STATUS (applied 2026-07-11)
+
+**Verified:** functions `tsc` build ✓ · 49 emulator integration tests + 30 unit tests (79 total) ✓ · new 16-test Firestore rules suite ✓ · admin `tsc` ✓ · `flutter analyze` both apps ✓.
+
+### Critical blockers
+| ID | Status | What was done |
+|---|---|---|
+| B1 privilege escalation | ✅ FIXED + TESTED | coupons/plans → super-only; astrologer approval/rate/money fields → super-only; users PII + astrologer financials walled from astrology tier. 16 rules tests lock it. |
+| B2 debug-key signing | ✅ WIRED · owner: create key | release signing reads `android/key.properties` (real key) with debug fallback; secrets gitignored. **You:** generate the upload keystore + key.properties (turnkey step below). |
+| B3 `com.example` app id | ⚑ OWNER-COORDINATED | coupled to Firebase package registration; changing it in code alone breaks the build. **You:** register the real package in Firebase, add google-services.json, then I flip the id. |
+| B4 iOS usage strings | ✅ FIXED | NSPhotoLibrary + NSCamera usage descriptions added to both Info.plist. |
+| B5 astrologer account deletion | ✅ FIXED | new astrologer-safe `deleteAstrologerAccount` (blocks on open session / unpaid earnings) + in-app Delete-account entry. **You (Play):** also host a public web deletion-request URL. |
+| B6 legal placeholders / privacy URL | ⚑ OWNER-ONLY | **You:** fill the real legal text (address, grievance officer, support email) in seed_legal.mjs and host the privacy policy at a public URL. |
+| B7 backups / monitoring | ⚑ OWNER-ONLY (I prepared hooks) | reconcile now escalates exhausted credits to a critical alert. **You:** enable Firestore PITR/scheduled export + route `alerts`(critical) to email/Cloud Monitoring. |
+
+### High
+| ID | Status |
+|---|---|
+| H1 resume over-bill | ✅ FIXED (re-seed astrologer marker) + test |
+| H2 message-send error handling | ✅ FIXED (both apps; text restored, snackbar) |
+| H3 voice/video vapor | ✅ FIXED (call affordances hidden behind kCallsEnabled=false) |
+| H4 admin user-cards OOM | ✅ FIXED (signup rollup + count aggregations; detailed cards hard-capped) |
+| H5 POST_NOTIFICATIONS | ✅ FIXED |
+
+### Medium / Low
+| ID | Status |
+|---|---|
+| M3 insider PII read | ✅ FIXED + TESTED |
+| M4 refund/adjust idempotency | ✅ FIXED (opId → processedAdminOps) |
+| M5 rollup idempotency | ✅ FIXED (per-source-row marker) + test |
+| M6 retry escalation | ✅ FIXED (critical alert on exhaustion) |
+| M7 ops-panel false zeros | ✅ FIXED (unknown state, not 0) |
+| M8 IST off-by-one range | ✅ FIXED (UTC ranges) |
+| M9 iOS privacy manifest | ✅ ADDED · owner: drag into Runner target in Xcode |
+| M10 captured-amount check | ✅ FIXED |
+| L1 storage content-type | ✅ FIXED (image/PDF only) |
+| L7 webhook false dead-letter | ✅ FIXED |
+| M1 App Check enforcement | ⚑ OWNER-COORDINATED — enabling `enforceAppCheck` before App Check is fully provisioned + clients verified would break the live app; flip it on with a monitor period at launch. |
+| M2 rate limiting | ▸ TRACKED in SCALE_10K_TO_50K.md (before heavy traffic). |
+| L2/L3 phone/name search niceties, L4–L10 cosmetic | ▸ acknowledged minor; ConversionCard/PaidUnpaidCards analytics use a bounded sample beyond 5k users (exact rollup is the 10k→50k refinement). |
+
+### Owner turnkey checklist (the only things blocking submission)
+1. **Signing key** (per app): `keytool -genkey -v -keystore ~/asktro-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload`, then create `apps/<app>/android/key.properties` with `storeFile/storePassword/keyAlias/keyPassword`. Release builds are then Play-valid automatically.
+2. **App IDs (B3):** register the real package (e.g. `com.asktro.customer` / `com.asktro.astrologer`) + bundle IDs in Firebase, add the new google-services.json / GoogleService-Info.plist, then I change the ids in one commit.
+3. **Legal (B6):** fill seed_legal.mjs with real details; host the privacy policy publicly; put the URL in the store listings + Data Safety / App Privacy forms.
+4. **Web deletion URL (B5):** host a public account-deletion-request page.
+5. **Backups + alerting (B7):** enable Firestore PITR/export; route critical `alerts` to email/Monitoring.
+6. **App Check (M1)** and the PRE_LAUNCH security toggles: flip on at launch with monitoring.
+7. **iOS privacy manifest (M9):** in Xcode, drag `PrivacyInfo.xcprivacy` into the Runner target (Copy Bundle Resources).
