@@ -165,40 +165,56 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       .doc(_id)
       .collection('messages');
 
+  void _toast(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   Future<void> _send() async {
     final text = _input.text.trim();
     final uid = ref.read(currentUidProvider);
     if (text.isEmpty || uid == null) return;
     _input.clear();
     _setTyping(false);
-    await _messagesCol.add({
-      'senderId': uid,
-      'type': 'text',
-      'text': text,
-      'timestamp': FieldValue.serverTimestamp(),
-      'delivered': true,
-      'seen': false,
-    });
+    try {
+      await _messagesCol.add({
+        'senderId': uid,
+        'type': 'text',
+        'text': text,
+        'timestamp': FieldValue.serverTimestamp(),
+        'delivered': true,
+        'seen': false,
+      });
+    } catch (_) {
+      // Restore the text so the message is never silently lost, and tell the user.
+      _input.text = text;
+      _input.selection = TextSelection.collapsed(offset: text.length);
+      _toast("Couldn't send — check your connection and try again.");
+    }
   }
 
   Future<void> _sendImage() async {
     final uid = ref.read(currentUidProvider);
     if (uid == null) return;
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (picked == null) return;
-    final data = await picked.readAsBytes();
-    final refStore = FirebaseStorage.instance
-        .ref('chat_images/$_id/${DateTime.now().millisecondsSinceEpoch}.jpg');
-    await refStore.putData(data, SettableMetadata(contentType: 'image/jpeg'));
-    final url = await refStore.getDownloadURL();
-    await _messagesCol.add({
-      'senderId': uid,
-      'type': 'image',
-      'image': url,
-      'timestamp': FieldValue.serverTimestamp(),
-      'delivered': true,
-      'seen': false,
-    });
+    try {
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (picked == null) return;
+      final data = await picked.readAsBytes();
+      final refStore = FirebaseStorage.instance
+          .ref('chat_images/$_id/${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await refStore.putData(data, SettableMetadata(contentType: 'image/jpeg'));
+      final url = await refStore.getDownloadURL();
+      await _messagesCol.add({
+        'senderId': uid,
+        'type': 'image',
+        'image': url,
+        'timestamp': FieldValue.serverTimestamp(),
+        'delivered': true,
+        'seen': false,
+      });
+    } catch (_) {
+      _toast("Couldn't send the image — please try again.");
+    }
   }
 
   DateTime _lastTypingWrite = DateTime.fromMillisecondsSinceEpoch(0);

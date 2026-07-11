@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
@@ -8,6 +9,50 @@ import '../../ui/celestial.dart';
 
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
+
+  /// In-app account deletion (Play requirement). Calls the astrologer-safe
+  /// backend deletion, which blocks on an active consultation or unpaid earnings
+  /// and otherwise erases PII + auth, retaining the anonymised earnings ledger.
+  Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Sky.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Delete account?', style: Sky.h2),
+        content: const Text(
+          'This permanently deletes your astrologer profile and personal data. '
+          'Your earnings ledger and past consultation records are kept in '
+          'anonymised form as required by law.\n\nYou must finish any active '
+          'consultation and withdraw all pending earnings first.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: Sky.label)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Delete', style: Sky.label.copyWith(color: Sky.red, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(functionsProvider).httpsCallable('deleteAstrologerAccount').call();
+      await ref.read(firebaseAuthProvider).signOut();
+    } on FirebaseFunctionsException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Could not delete account.')),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not delete account. Please try again.')),
+        );
+      }
+    }
+  }
 
   Future<void> _editText(BuildContext context, WidgetRef ref, Astrologer self,
       {required String title, required String field, required String initial, String? hint, int maxLines = 5,}) async {
@@ -216,6 +261,12 @@ class ProfileTab extends ConsumerWidget {
                   icon: Icons.logout_rounded,
                   color: Sky.red,
                   onPressed: () => ref.read(firebaseAuthProvider).signOut(),
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  icon: const Icon(Icons.delete_forever_rounded, size: 18, color: Sky.red),
+                  label: const Text('Delete account', style: TextStyle(color: Sky.red)),
+                  onPressed: () => _deleteAccount(context, ref),
                 ),
               ],
             ),

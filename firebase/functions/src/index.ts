@@ -39,7 +39,7 @@ export { generateAgoraToken } from './agora/token';
 // ---- Auth / account lifecycle ----
 export { onAuthUserCreate } from './auth/onAuthUserCreate';
 export { onCustomerSignup } from './auth/onUserCreate';
-export { setUserRole, deleteAccount, processAccountDeletion } from './auth/adminAndDeletion';
+export { setUserRole, deleteAccount, processAccountDeletion, deleteAstrologerAccount } from './auth/adminAndDeletion';
 export { recordConsent } from './auth/consent';
 
 // ---- Analytics rollup (daily dashboard counters) ----

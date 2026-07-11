@@ -284,3 +284,88 @@ export async function runAccountErasure(uid: string): Promise<void> {
 
     logger.info('processAccountDeletion: erasure complete', { uid, consultations: consults.size });
 }
+
+/**
+ * deleteAstrologerAccount — self-service deletion for an ASTROLOGER (Play / DPDP
+ * §12 requirement; the customer `deleteAccount` targets /users and is not
+ * astrologer-safe). Blocks while an obligation is open — a live consultation, or
+ * unpaid earnings the astrologer must withdraw first — then revokes login,
+ * strips PII from the public doc, erases private subdocs + presence + customer
+ * membership markers, and deletes the Auth user. RETAINS the anonymized
+ * append-only earnings ledger and the billing skeleton of past consultations
+ * (accounting retention), exactly like the customer path.
+ */
+export const deleteAstrologerAccount = onCall(async (req) => {
+  const uid = assertAuthed(req);
+  if (req.auth?.token?.role !== 'astrologer' && req.auth?.token?.role !== 'admin') {
+    failedPrecondition('Only an astrologer may delete an astrologer account.');
+  }
+
+  const astroRef = db.collection(Collections.astrologers).doc(uid);
+  const [snap, finSnap, open] = await Promise.all([
+    astroRef.get(),
+    astroRef.collection('private').doc('financials').get(),
+    db.collection(Collections.consultations)
+      .where('astrologerId', '==', uid)
+      .where('status', 'in', ['waiting', 'active', 'paused'])
+      .limit(1).get(),
+  ]);
+  if (!snap.exists) failedPrecondition('Astrologer profile not found.');
+  if (!open.empty) failedPrecondition('Finish your active consultation before deleting your account.');
+  const pendingPayout = (finSnap.data()?.pendingPayout as number | undefined) ?? 0;
+  if (pendingPayout > 0) {
+    failedPrecondition('You still have unpaid earnings. Please withdraw them before deleting your account.');
+  }
+
+  // 1) Kill the session immediately (revoke + disable login).
+  await auth.revokeRefreshTokens(uid).catch(() => {});
+  await auth.updateUser(uid, { disabled: true }).catch(() => {});
+
+  // 2) Strip PII from the public directory doc; take them offline + unlisted.
+  await astroRef.set(
+    {
+      name: 'Deleted astrologer',
+      phone: FieldValue.delete(),
+      email: FieldValue.delete(),
+      profilePhoto: FieldValue.delete(),
+      about: FieldValue.delete(),
+      languages: FieldValue.delete(),
+      onlineStatus: false,
+      available: false,
+      featured: false,
+      accountStatus: 'deleted',
+      deletedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  // 3) Erase private subdocs (contact PII + the financials counter — pendingPayout
+  //    is 0; the append-only astrologerLedger is RETAINED), presence heartbeat,
+  //    and the astrologer's customer-membership markers.
+  const priv = await astroRef.collection('private').get();
+  await Promise.all(priv.docs.map((d) => d.ref.delete().catch(() => {})));
+  await db.collection('presence').doc(uid).delete().catch(() => {});
+  await deleteCollection(db.collection('astrologerCustomers').doc(uid).collection('customers')).catch(() => {});
+
+  // 4) Audit, then delete the Auth user (idempotent).
+  await db.collection(Collections.auditLogs).add({
+    actorUid: uid,
+    actorRole: 'astrologer',
+    action: 'deleteAstrologerAccount',
+    targetType: 'astrologer',
+    targetId: uid,
+    after: {
+      erased: ['profilePII', 'privateSubdocs', 'presence', 'membershipMarkers', 'authUser'],
+      retained: ['astrologerLedger', 'consultationSkeleton'],
+    },
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  await auth.deleteUser(uid).catch((err) => {
+    if ((err as { code?: string })?.code !== 'auth/user-not-found') {
+      logger.warn('deleteAstrologerAccount: auth.deleteUser failed', { uid, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  return { ok: true };
+});

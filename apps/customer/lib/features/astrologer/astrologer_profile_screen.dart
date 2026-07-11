@@ -8,6 +8,11 @@ import '../../data/messaging_service.dart';
 import '../consultation/chat_consultation_screen.dart';
 import '../moderation/moderation_actions.dart';
 
+/// Voice/video calling is not shipped yet (the Agora RTC engine is intentionally
+/// absent from pubspec). While false, the app offers CHAT only — no call
+/// affordances are shown. Flip to true when the dedicated calls phase ships.
+const bool kCallsEnabled = false;
+
 final _astrologerProvider =
     StreamProvider.autoDispose.family<Astrologer, String>((ref, id) {
   return ref.watch(astrologerRepositoryProvider).watchOne(id);
@@ -295,10 +300,17 @@ class _StickyBar extends StatelessWidget {
                 : Row(
                     children: [
                       Expanded(child: _btn(Icons.chat_bubble_outline_rounded, 'Chat', onChat)),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(child: _btn(Icons.call_outlined, 'Voice', onVoice)),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(child: _btn(Icons.videocam_outlined, 'Video', onVideo)),
+                      // Voice/Video are NOT shipped yet (no RTC engine). We hide
+                      // the affordances entirely rather than show non-functional
+                      // "coming soon" buttons — cleaner UX and avoids an Apple
+                      // "advertised-but-broken feature" rejection. Flip
+                      // kCallsEnabled to true when the calls phase ships.
+                      if (kCallsEnabled) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(child: _btn(Icons.call_outlined, 'Voice', onVoice)),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(child: _btn(Icons.videocam_outlined, 'Video', onVideo)),
+                      ],
                     ],
                   ),
       ),
