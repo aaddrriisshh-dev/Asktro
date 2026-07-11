@@ -218,7 +218,7 @@ class _WalletTabState extends ConsumerState<WalletTab> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(Money.formatPaise((p['amount'] ?? 0) as int), style: Sky.h2.copyWith(fontSize: 14)),
+              Text(Money.formatPaise(((p['amount'] ?? 0) as num).toInt()), style: Sky.h2.copyWith(fontSize: 14)),
               const SizedBox(height: 3),
               Pill(status[0].toUpperCase() + status.substring(1), color: color),
             ],

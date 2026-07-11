@@ -39,5 +39,20 @@ void main() {
       expect(c.remainingSec, 0);
       expect(c.warnLevel, 0);
     });
+
+    test('parses double-valued money fields without throwing (Firestore may send 900.0)', () {
+      // Firestore can return an integer-valued field as a double. A bare `as int`
+      // would throw here and crash the live consultation screen mid-session.
+      final c = Consultation.fromMap('c3', const {
+        'type': 'chat', 'status': 'active',
+        'pricePerMinute': 900.0, 'billedSeconds': 30.0, 'totalCharged': 450.0,
+        'walletAfter': 1234.0, 'remainingSec': 60.0, 'warnLevel': 2.0, 'duration': 30.0,
+      });
+      expect(c.pricePerMinute, 900);
+      expect(c.totalCharged, 450);
+      expect(c.walletAfter, 1234);
+      expect(c.remainingSec, 60);
+      expect(c.warnLevel, 2);
+    });
   });
 }

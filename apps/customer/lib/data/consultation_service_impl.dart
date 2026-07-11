@@ -52,10 +52,10 @@ class ConsultationServiceImpl implements ConsultationService {
         {'consultationId': consultationId, if (networkStatus != null) 'networkStatus': networkStatus},
         (m) => TickState(
           status: ConsultationStatus.fromString(m['status'] as String?),
-          remainingSec: (m['remainingSec'] ?? 0) as int,
-          warnLevel: (m['warnLevel'] ?? 0) as int,
-          walletBalance: (m['walletBalance'] ?? 0) as int,
-          bonusBalance: (m['bonusBalance'] ?? 0) as int,
+          remainingSec: ((m['remainingSec'] ?? 0) as num).toInt(),
+          warnLevel: ((m['warnLevel'] ?? 0) as num).toInt(),
+          walletBalance: ((m['walletBalance'] ?? 0) as num).toInt(),
+          bonusBalance: ((m['bonusBalance'] ?? 0) as num).toInt(),
         ),
       );
 

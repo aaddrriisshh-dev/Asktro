@@ -93,13 +93,18 @@ class Consultation extends Equatable {
       astrologerId: (m['astrologerId'] ?? '') as String,
       type: ConsultationType.fromString(m['type'] as String?),
       status: ConsultationStatus.fromString(m['status'] as String?),
-      pricePerMinute: (m['pricePerMinute'] ?? 900) as int,
-      billedSeconds: (m['billedSeconds'] ?? 0) as int,
-      duration: (m['duration'] ?? 0) as int,
-      totalCharged: (m['totalCharged'] ?? 0) as int,
-      walletAfter: (m['walletAfter'] ?? 0) as int,
-      remainingSec: (m['remainingSec'] ?? 0) as int,
-      warnLevel: (m['warnLevel'] ?? 0) as int,
+      // Money/time fields are read via `as num).toInt()`, NOT `as int`: Firestore
+      // can return an integer-valued field as a double (e.g. 900.0), and a bare
+      // `as int` would throw INSIDE the live StreamProvider and crash the
+      // consultation screen mid-session. (Same safe pattern already used for
+      // `rating` below.)
+      pricePerMinute: ((m['pricePerMinute'] ?? 900) as num).toInt(),
+      billedSeconds: ((m['billedSeconds'] ?? 0) as num).toInt(),
+      duration: ((m['duration'] ?? 0) as num).toInt(),
+      totalCharged: ((m['totalCharged'] ?? 0) as num).toInt(),
+      walletAfter: ((m['walletAfter'] ?? 0) as num).toInt(),
+      remainingSec: ((m['remainingSec'] ?? 0) as num).toInt(),
+      warnLevel: ((m['warnLevel'] ?? 0) as num).toInt(),
       networkStatus: (m['networkStatus'] ?? 'ok') as String,
       graceGranted: (m['graceGranted'] ?? false) as bool,
       agoraChannel: m['agoraChannel'] as String?,

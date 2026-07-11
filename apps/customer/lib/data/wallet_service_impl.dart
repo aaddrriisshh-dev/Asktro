@@ -14,7 +14,7 @@ class WalletServiceImpl implements WalletService {
       final m = Map<String, dynamic>.from(res.data);
       return Success(RechargeOrder(
         orderId: m['orderId'] as String,
-        amount: (m['amount'] ?? 0) as int,
+        amount: ((m['amount'] ?? 0) as num).toInt(),
         currency: (m['currency'] ?? 'INR') as String,
         keyId: m['keyId'] as String,
         planId: m['planId'] as String,
@@ -43,7 +43,7 @@ class WalletServiceImpl implements WalletService {
         if (couponId != null) 'couponId': couponId,
       });
       final m = Map<String, dynamic>.from(res.data);
-      return Success((m['newBalancePaise'] ?? 0) as int);
+      return Success(((m['newBalancePaise'] ?? 0) as num).toInt());
     } on FirebaseFunctionsException catch (e) {
       return ResultFailure(Failure(message: e.message ?? 'Payment verification failed', code: e.code));
     } catch (e) {
@@ -60,7 +60,7 @@ class WalletServiceImpl implements WalletService {
       final m = Map<String, dynamic>.from(res.data);
       return Success(CouponValidation(
         couponId: (m['couponId'] ?? '') as String,
-        discountPaise: (m['discountPaise'] ?? 0) as int,
+        discountPaise: ((m['discountPaise'] ?? 0) as num).toInt(),
       ),);
     } on FirebaseFunctionsException catch (e) {
       return ResultFailure(Failure(message: e.message ?? 'Invalid coupon', code: e.code));
