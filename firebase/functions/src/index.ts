@@ -51,6 +51,9 @@ export { rollupWalletTxn, rollupConsultation, rollupUserSignup } from './stats/d
 // ---- Notifications ----
 export { onNotificationCreated, sendBroadcast } from './notifications/sender';
 
+// ---- Alert delivery (Slack) ----
+export { deliverAlert } from './alerts/deliver';
+
 // ---- Remedies (customer follow-up questions) ----
 export { askRemedyQuestion, answerRemedyQuestion } from './remedies/remedyFollowUp';
 
