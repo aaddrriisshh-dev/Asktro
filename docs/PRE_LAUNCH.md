@@ -2,6 +2,34 @@
 
 ---
 
+## 🆕 RECENT UPDATES (2026‑07‑11)
+
+Snapshot of what changed since the last audit deploy, so this doc matches HEAD:
+
+- **Admin portal is now fully mobile‑responsive** (deployed to Vercel). Login
+  centres correctly on phones; the sidebar is an off‑canvas hamburger drawer so
+  content uses the full width; every list renders as cards; every page section
+  (Customer/Astrologer Management, Sessions, Coupons, Banners, Push, Plans,
+  Reports, CMS) folds into tappable collapsible headers; all multi‑column forms
+  drop to a single column. Desktop layout unchanged.
+- **Android/iOS back button fixed in both apps** — the phone back button now
+  retraces visited tabs (and asks once before exiting on Home) instead of
+  dropping the app; detail pages keep their in‑app back arrows. _Needs a
+  customer + astrologer **APK rebuild** to reach devices._
+- **Offers screen** now shows offer‑type recharge plans under "View all offers".
+- **App launch crash fixed** (R8 shrinking disabled — see the R8 section below).
+
+### ProKerala astrology API — finish wiring before horoscope goes live
+- [ ] The `prokeralaAstrology` callable proxy is **written** (holds the
+  Client ID/Secret in Secret Manager, OAuth2 client‑credentials, path
+  whitelist) but **credentials are not set and it is not deployed yet**. To
+  finish: (1) `firebase functions:secrets:set PROKERALA_CLIENT_ID` and
+  `PROKERALA_CLIENT_SECRET` with the real (production, not sandbox) keys,
+  (2) deploy `prokeralaAstrology`, (3) test a live call, (4) point the app's
+  horoscope/kundli screens at it.
+
+---
+
 ## 🔒 SECURITY — flip on RIGHT BEFORE launch (not earlier)
 
 - [ ] **Enforce App Check on the callables.** App Check is *activated* in both apps but NOT
