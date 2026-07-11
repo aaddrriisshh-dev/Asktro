@@ -144,7 +144,14 @@ export async function settleConsultation(
     const customerRef = db.collection(Collections.users).doc(c.customerId);
     tx.set(
       customerRef,
-      { totalConsultations: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() },
+      {
+        totalConsultations: FieldValue.increment(1),
+        // Denormalized per-type usage seconds so the admin users table never has
+        // to scan the (unbounded) consultations collection to show usage. Nested
+        // map + merge deep-merges the FieldValue increment at usageSeconds.<type>.
+        usageSeconds: { [c.type as string]: FieldValue.increment(finalBilledSeconds) },
+        updatedAt: FieldValue.serverTimestamp(),
+      },
       { merge: true },
     );
 

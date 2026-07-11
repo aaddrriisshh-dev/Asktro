@@ -172,6 +172,18 @@ export async function expirePaused(config: GlobalConfig, nowMs: number): Promise
       if (net > 0) {
         writeAstrologerLedger(tx, { astrologerId: c.astrologerId, kind: 'earning', amount: net, refId: doc.id, note: `${c.type} consultation earning (timed out)` });
       }
+      // Mirror endConsultation's customer-side counters so a timed-out session
+      // still counts and its billed time shows in the admin usage table (which
+      // reads these denormalized fields instead of scanning consultations).
+      tx.set(
+        db.collection(Collections.users).doc(c.customerId),
+        {
+          totalConsultations: FieldValue.increment(1),
+          usageSeconds: { [c.type as string]: FieldValue.increment(c.billedSeconds ?? 0) },
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
     }),
   );
 }

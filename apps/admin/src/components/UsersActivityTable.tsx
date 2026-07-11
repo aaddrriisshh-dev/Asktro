@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { collection, getDocs } from 'firebase/firestore';
+import {
+  collection, query, orderBy, limit, startAfter, startAt, endAt,
+  getDocs, getCountFromServer, QueryDocumentSnapshot, DocumentData,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { callFn } from '@/lib/hooks';
 import { formatPaise, rupeesToPaise } from '@/lib/format';
@@ -26,6 +29,29 @@ const mins = (sec: number) => {
 };
 const fmtDate = (ms: number) => (ms ? new Date(ms).toLocaleDateString('en-GB') : '—');
 
+// Map a user doc to a row. Usage minutes come from the denormalized
+// `usageSeconds` counters maintained at billing settle-time (endConsultation /
+// timed-out sweep) — the table NEVER scans the unbounded consultations
+// collection, which is what used to OOM the browser at scale.
+function mapUser(doc: QueryDocumentSnapshot<DocumentData>): UserRow {
+  const u = doc.data() as {
+    name?: string; phone?: string; totalRecharge?: number; accountStatus?: string;
+    usageSeconds?: { chat?: number; voice?: number; video?: number };
+    updatedAt?: { toMillis?: () => number }; createdAt?: { toMillis?: () => number };
+  };
+  const us = u.usageSeconds ?? {};
+  return {
+    id: doc.id,
+    name: u.name ?? '',
+    phone: u.phone ?? '',
+    chatMin: us.chat ?? 0, voiceMin: us.voice ?? 0, videoMin: us.video ?? 0,
+    paid: (u.totalRecharge ?? 0) > 0,
+    amount: u.totalRecharge ?? 0,
+    status: u.accountStatus ?? 'active',
+    lastActive: u.updatedAt?.toMillis?.() ?? u.createdAt?.toMillis?.() ?? 0,
+  };
+}
+
 // ---- action icons ----------------------------------------------------------
 const svg = (p: React.ReactNode) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{p}</svg>
@@ -36,58 +62,80 @@ const icoPlus = svg(<><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12
 const icoSuspend = svg(<><circle cx="9" cy="7" r="4" /><path d="M17 11h6M1 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" /></>);
 const icoTrash = svg(<><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></>);
 
+const SEARCH_LIMIT = 50;
+
 export function UsersActivityTable() {
   const [rows, setRows] = useState<UserRow[] | null>(null);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchTerm, setSearchTerm] = useState(''); // committed (server-side) search
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(25);
+  const [total, setTotal] = useState<number | null>(null);
+  const [atEnd, setAtEnd] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
-  async function load() {
-    const [usersSnap, consSnap] = await Promise.all([
-      getDocs(collection(db, 'users')),
-      getDocs(collection(db, 'consultations')),
-    ]);
-    const secs = new Map<string, { chat: number; voice: number; video: number }>();
-    consSnap.forEach((doc) => {
-      const c = doc.data() as { customerId?: string; type?: string; billedSeconds?: number };
-      if (!c.customerId) return;
-      const cur = secs.get(c.customerId) ?? { chat: 0, voice: 0, video: 0 };
-      const s = c.billedSeconds ?? 0;
-      if (c.type === 'chat') cur.chat += s; else if (c.type === 'voice') cur.voice += s; else if (c.type === 'video') cur.video += s;
-      secs.set(c.customerId, cur);
-    });
-    const list: UserRow[] = usersSnap.docs.map((doc) => {
-      const u = doc.data() as {
-        name?: string; phone?: string; totalRecharge?: number; accountStatus?: string;
-        updatedAt?: { toMillis?: () => number }; createdAt?: { toMillis?: () => number };
-      };
-      const s = secs.get(doc.id) ?? { chat: 0, voice: 0, video: 0 };
-      return {
-        id: doc.id,
-        name: u.name ?? '',
-        phone: u.phone ?? '',
-        chatMin: s.chat, voiceMin: s.voice, videoMin: s.video,
-        paid: (u.totalRecharge ?? 0) > 0,
-        amount: u.totalRecharge ?? 0,
-        status: u.accountStatus ?? 'active',
-        lastActive: u.updatedAt?.toMillis?.() ?? u.createdAt?.toMillis?.() ?? 0,
-      };
-    }).filter((u) => u.status !== 'deleted')
-      .sort((a, b) => b.lastActive - a.lastActive);
-    setRows(list);
+  // pageCursors[i] = the doc to startAfter when loading page i (undefined for
+  // page 0). Filled in as the admin pages forward; prev pages reuse their cursor.
+  const pageCursors = useRef<Array<QueryDocumentSnapshot<DocumentData> | undefined>>([undefined]);
+
+  const searching = searchTerm.trim().length > 0;
+
+  // Total user count — one server-side aggregation, no docs downloaded.
+  useEffect(() => {
+    getCountFromServer(collection(db, 'users'))
+      .then((s) => setTotal(s.data().count))
+      .catch(() => setTotal(null));
+  }, []);
+
+  const loadBrowsePage = useCallback(async (p: number) => {
+    setRows(null); setErr(null);
+    try {
+      const after = pageCursors.current[p];
+      const parts = [orderBy('createdAt', 'desc'), limit(perPage + 1)];
+      const qy = after
+        ? query(collection(db, 'users'), orderBy('createdAt', 'desc'), startAfter(after), limit(perPage + 1))
+        : query(collection(db, 'users'), ...parts);
+      const snap = await getDocs(qy);
+      const docs = snap.docs;
+      const hasMore = docs.length > perPage;
+      const pageDocs = docs.slice(0, perPage);
+      // Remember the cursor for the NEXT page (last doc of this page).
+      pageCursors.current[p + 1] = pageDocs[pageDocs.length - 1];
+      setAtEnd(!hasMore);
+      setRows(pageDocs.map(mapUser).filter((u) => u.status !== 'deleted'));
+    } catch (e) {
+      setErr((e as Error).message); setRows([]);
+    }
+  }, [perPage]);
+
+  const runSearch = useCallback(async (term: string) => {
+    const t = term.trim();
+    setRows(null); setErr(null);
+    try {
+      // Server-side PREFIX search on the primary lookup keys (phone for digits,
+      // else name), bounded to SEARCH_LIMIT rows. Case-sensitive on name is a
+      // Firestore limitation; phone lookups are exact-prefix.
+      const field = /^\+?\d+$/.test(t) ? 'phone' : 'name';
+      const qy = query(collection(db, 'users'), orderBy(field), startAt(t), endAt(t + ''), limit(SEARCH_LIMIT));
+      const snap = await getDocs(qy);
+      setRows(snap.docs.map(mapUser).filter((u) => u.status !== 'deleted'));
+    } catch (e) {
+      setErr((e as Error).message); setRows([]);
+    }
+  }, []);
+
+  // Drive loading off committed search term + page + perPage.
+  useEffect(() => {
+    if (searching) runSearch(searchTerm);
+    else loadBrowsePage(page);
+  }, [searching, searchTerm, page, perPage, runSearch, loadBrowsePage]);
+
+  function submitSearch(term: string) {
+    pageCursors.current = [undefined];
+    setPage(0);
+    setSearchTerm(term);
   }
-
-  useEffect(() => { load().catch(() => setRows([])); }, []);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q || !rows) return rows ?? [];
-    return rows.filter((u) => u.name.toLowerCase().includes(q) || u.phone.includes(q) || u.id.includes(q));
-  }, [rows, search]);
-
-  const pageCount = Math.max(1, Math.ceil(filtered.length / perPage));
-  const shown = filtered.slice(page * perPage, page * perPage + perPage);
 
   async function credit(u: UserRow) {
     const input = prompt(`Credit how many ₹ to ${u.name || u.phone}'s wallet?`);
@@ -119,6 +167,9 @@ export function UsersActivityTable() {
     finally { setBusy(null); }
   }
 
+  const shown = rows ?? [];
+  const startIdx = searching ? 0 : page * perPage;
+
   return (
     <div className="card uat" style={{ marginTop: 22 }}>
       <div className="uat-head">
@@ -126,7 +177,13 @@ export function UsersActivityTable() {
           <h3 className="live-head" style={{ marginBottom: 2 }}><span className="live-dot" />Users activity</h3>
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>Every customer with their usage, payment status and quick actions.</p>
         </div>
-        <input className="input uat-search" placeholder="Search name or phone…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+        <input
+          className="input uat-search"
+          placeholder="Search phone or name, then Enter…"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submitSearch(searchInput); }}
+        />
       </div>
 
       <div style={{ overflowX: 'auto' }}>
@@ -140,6 +197,8 @@ export function UsersActivityTable() {
           <tbody>
             {rows === null ? (
               <tr><td colSpan={8} className="muted" style={{ padding: 20 }}>Loading…</td></tr>
+            ) : err ? (
+              <tr><td colSpan={8} className="muted" style={{ padding: 20 }}>Couldn’t load users: {err}</td></tr>
             ) : shown.length === 0 ? (
               <tr><td colSpan={8} className="muted" style={{ padding: 20 }}>No users found.</td></tr>
             ) : shown.map((u) => (
@@ -175,19 +234,29 @@ export function UsersActivityTable() {
         </table>
       </div>
 
-      {rows !== null && filtered.length > 0 && (
+      {rows !== null && (
         <div className="uat-foot">
-          <span className="muted">Showing {page * perPage + 1}–{Math.min(filtered.length, (page + 1) * perPage)} of {filtered.length}</span>
-          <div className="uat-pager">
-            <label className="muted">Rows
-              <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(0); }}>
-                <option value={25}>25</option><option value={100}>100</option><option value={200}>200</option><option value={500}>500</option>
-              </select>
-            </label>
-            <button className="uat-pg" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>‹</button>
-            <span className="uat-pgn">{page + 1} / {pageCount}</span>
-            <button className="uat-pg" disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}>›</button>
-          </div>
+          <span className="muted">
+            {searching
+              ? `${shown.length} match${shown.length === 1 ? '' : 'es'}${shown.length >= SEARCH_LIMIT ? ' (refine to narrow)' : ''}`
+              : `Showing ${shown.length ? startIdx + 1 : 0}–${startIdx + shown.length}${total !== null ? ` of ${total.toLocaleString('en-IN')}` : ''}`}
+          </span>
+          {searching ? (
+            <div className="uat-pager">
+              <button className="uat-pg" onClick={() => { setSearchInput(''); submitSearch(''); }}>Clear search</button>
+            </div>
+          ) : (
+            <div className="uat-pager">
+              <label className="muted">Rows
+                <select value={perPage} onChange={(e) => { pageCursors.current = [undefined]; setPage(0); setPerPage(Number(e.target.value)); }}>
+                  <option value={25}>25</option><option value={100}>100</option><option value={200}>200</option>
+                </select>
+              </label>
+              <button className="uat-pg" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>‹</button>
+              <span className="uat-pgn">Page {page + 1}</span>
+              <button className="uat-pg" disabled={atEnd} onClick={() => setPage((p) => p + 1)}>›</button>
+            </div>
+          )}
         </div>
       )}
     </div>
