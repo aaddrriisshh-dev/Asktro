@@ -27,26 +27,50 @@ import { writeAstrologerLedger } from '../wallet/ledger';
 const OPEN_STATUSES = ['waiting', 'active', 'paused'];
 const isCall = (type: unknown) => type === 'voice' || type === 'video';
 
-export const sweepStaleSessions = onSchedule('every 1 minutes', async () => {
-  const config = await getGlobalConfig();
-  const nowMs = Timestamp.now().toMillis();
+// Per-job scan ceiling. Raised from 200 now that each job drains its batch in
+// bounded-parallel chunks (below) rather than one transaction at a time.
+const SWEEP_LIMIT = 500;
+// Concurrent transactions per job. Bounded so a large batch drains fast without
+// spawning hundreds of simultaneous transactions.
+const SWEEP_CONCURRENCY = 40;
 
-  // Run every job even if a prior one throws (isolated failure domains).
-  const jobs: Array<[string, () => Promise<void>]> = [
-    ['billStaleActive', () => billStaleActive(config, nowMs)],
-    ['expirePaused', () => expirePaused(config, nowMs)],
-    ['expireWaiting', () => expireWaiting(config, nowMs)],
-    ['reconcileAvailability', () => reconcileAvailability()],
-    ['reconcileStaleOnline', () => reconcileStaleOnline(nowMs)],
-  ];
-  for (const [name, run] of jobs) {
-    try {
-      await run();
-    } catch (err) {
-      logger.error('sweepStaleSessions: job failed', { job: name, error: err instanceof Error ? err.message : String(err) });
-    }
+/** Run `fn` over `items` with bounded concurrency; a per-item failure is
+ *  isolated (logged, never aborts the batch). */
+async function forEachLimited<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  for (let i = 0; i < items.length; i += limit) {
+    await Promise.all(
+      items.slice(i, i + limit).map((it) =>
+        fn(it).catch((err) => logger.error('sweep item failed', { error: err instanceof Error ? err.message : String(err) })),
+      ),
+    );
   }
-});
+}
+
+export const sweepStaleSessions = onSchedule(
+  // 300s timeout (up from the 60s default) so a large backlog can't kill the run
+  // mid-way and skip the reconcile jobs.
+  { schedule: 'every 1 minutes', timeoutSeconds: 300, memory: '512MiB' },
+  async () => {
+    const config = await getGlobalConfig();
+    const nowMs = Timestamp.now().toMillis();
+
+    // Run the jobs CONCURRENTLY, each isolated — so a slow billStaleActive can
+    // never starve reconcileAvailability/reconcileStaleOnline (the old sequential
+    // loop blew the timeout before jobs 4-5 ran during correlated disconnects).
+    const jobs: Array<[string, () => Promise<void>]> = [
+      ['billStaleActive', () => billStaleActive(config, nowMs)],
+      ['expirePaused', () => expirePaused(config, nowMs)],
+      ['expireWaiting', () => expireWaiting(config, nowMs)],
+      ['reconcileAvailability', () => reconcileAvailability()],
+      ['reconcileStaleOnline', () => reconcileStaleOnline(nowMs)],
+    ];
+    await Promise.allSettled(
+      jobs.map(([name, run]) =>
+        run().catch((err) => logger.error('sweepStaleSessions: job failed', { job: name, error: err instanceof Error ? err.message : String(err) })),
+      ),
+    );
+  },
+);
 
 // --- 1. Disconnected active sessions → bill a short settle window, then PAUSE ---
 // A live client sends a heartbeat every ~10s. If we have NOT heard from it for
@@ -70,11 +94,11 @@ export async function billStaleActive(config: GlobalConfig, nowMs: number): Prom
     .collection(Collections.consultations)
     .where('status', '==', 'active')
     .where('lastTickAt', '<=', staleCutoff)
-    .limit(200)
+    .limit(SWEEP_LIMIT)
     .get();
 
-  for (const doc of activeStale.docs) {
-    await db.runTransaction(async (tx) => {
+  await forEachLimited(activeStale.docs, SWEEP_CONCURRENCY, (doc) =>
+    db.runTransaction(async (tx) => {
       const snap = await tx.get(doc.ref);
       if (!snap.exists) return;
       const c = snap.data()!;
@@ -96,8 +120,8 @@ export async function billStaleActive(config: GlobalConfig, nowMs: number): Prom
         networkStatus: 'reconnecting',
         updatedAt: FieldValue.serverTimestamp(),
       });
-    });
-  }
+    }),
+  );
 }
 
 // --- 2. Paused sessions past the session timeout → auto-end ---
@@ -107,11 +131,11 @@ export async function expirePaused(config: GlobalConfig, nowMs: number): Promise
     .collection(Collections.consultations)
     .where('status', '==', 'paused')
     .where('pausedAt', '<=', pausedCutoff)
-    .limit(200)
+    .limit(SWEEP_LIMIT)
     .get();
 
-  for (const doc of expired.docs) {
-    await db.runTransaction(async (tx) => {
+  await forEachLimited(expired.docs, SWEEP_CONCURRENCY, (doc) =>
+    db.runTransaction(async (tx) => {
       const snap = await tx.get(doc.ref);
       if (!snap.exists) return;
       const c = snap.data()!;
@@ -148,8 +172,8 @@ export async function expirePaused(config: GlobalConfig, nowMs: number): Promise
       if (net > 0) {
         writeAstrologerLedger(tx, { astrologerId: c.astrologerId, kind: 'earning', amount: net, refId: doc.id, note: `${c.type} consultation earning (timed out)` });
       }
-    });
-  }
+    }),
+  );
 }
 
 // --- 3. Waiting requests never accepted → expire and free the astrologer ---
@@ -160,11 +184,11 @@ async function expireWaiting(config: GlobalConfig, nowMs: number): Promise<void>
     .collection(Collections.consultations)
     .where('status', '==', 'waiting')
     .where('createdAt', '<=', waitingCutoff)
-    .limit(200)
+    .limit(SWEEP_LIMIT)
     .get();
 
-  for (const doc of staleWaiting.docs) {
-    await db.runTransaction(async (tx) => {
+  await forEachLimited(staleWaiting.docs, SWEEP_CONCURRENCY, (doc) =>
+    db.runTransaction(async (tx) => {
       const snap = await tx.get(doc.ref);
       if (!snap.exists) return;
       const c = snap.data()!;
@@ -184,8 +208,8 @@ async function expireWaiting(config: GlobalConfig, nowMs: number): Promise<void>
           { merge: true },
         );
       }
-    });
-  }
+    }),
+  );
 }
 
 // --- 5. Reconcile "ghost online" — presence heartbeat gone stale ---
@@ -201,11 +225,11 @@ async function reconcileStaleOnline(nowMs: number): Promise<void> {
   const online = await db
     .collection(Collections.astrologers)
     .where('onlineStatus', '==', true)
-    .limit(300)
+    .limit(SWEEP_LIMIT)
     .get();
 
-  for (const astro of online.docs) {
-    if (astro.data().isAI === true) continue; // AI personas are always available
+  await forEachLimited(online.docs, SWEEP_CONCURRENCY, async (astro) => {
+    if (astro.data().isAI === true) return; // AI personas are always available
     const pres = await db.collection('presence').doc(astro.id).get();
     const lastSeen = (pres.data()?.lastSeen as Timestamp | undefined)?.toMillis?.() ?? 0;
     if (nowMs - lastSeen > STALE_ONLINE_MS) {
@@ -214,7 +238,7 @@ async function reconcileStaleOnline(nowMs: number): Promise<void> {
         { merge: true },
       );
     }
-  }
+  });
 }
 
 // --- 4. Reconcile orphaned availability flags ---
@@ -224,21 +248,21 @@ async function reconcileAvailability(): Promise<void> {
   const busy = await db
     .collection(Collections.astrologers)
     .where('available', '==', false)
-    .limit(300)
+    .limit(SWEEP_LIMIT)
     .get();
 
-  for (const astro of busy.docs) {
-    if (astro.data().isAI === true) continue;
+  await forEachLimited(busy.docs, SWEEP_CONCURRENCY, async (astro) => {
+    if (astro.data().isAI === true) return;
     const open = await db
       .collection(Collections.consultations)
       .where('astrologerId', '==', astro.id)
       .where('status', 'in', OPEN_STATUSES)
       .limit(20)
       .get();
-    if (open.docs.some((d) => isCall(d.data().type))) continue; // genuinely on a call
+    if (open.docs.some((d) => isCall(d.data().type))) return; // genuinely on a call
     await astro.ref.set(
       { available: true, updatedAt: FieldValue.serverTimestamp() },
       { merge: true },
     );
-  }
+  });
 }
