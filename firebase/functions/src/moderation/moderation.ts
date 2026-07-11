@@ -79,11 +79,14 @@ export const reportContent = onCall(async (req) => {
     detail?: string;
   };
   if (!reportedId) badRequest('reportedId is required.');
+  // reportedId is a client-supplied uid — cap it so a giant/crafted value can't
+  // bloat the alert/report docs (Slack injection is neutralised at the sink).
+  const reported = String(reportedId).slice(0, 128);
   const r = REPORT_REASONS.includes(reason ?? '') ? reason! : 'other';
 
   await db.collection('reports').add({
     reporterId,
-    reportedId,
+    reportedId: reported,
     consultationId: consultationId ?? null,
     messageId: messageId ?? null,
     reason: r,
@@ -96,8 +99,8 @@ export const reportContent = onCall(async (req) => {
   await db.collection('alerts').add({
     kind: 'user_report',
     severity: 'warning',
-    message: `User ${reporterId} reported ${reportedId} (${r}).`,
-    refId: reportedId,
+    message: `User ${reporterId} reported ${reported} (${r}).`,
+    refId: reported,
     resolved: false,
     createdAt: FieldValue.serverTimestamp(),
   });

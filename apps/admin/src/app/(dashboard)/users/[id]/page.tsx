@@ -53,7 +53,7 @@ function SessionCard({ c, meId, astroName }: { c: Any; meId: string; astroName: 
     }
     setRefunding(true);
     try {
-      await callFn('refundConsultation', { consultationId: c.id, ...(amountPaise !== undefined ? { amountPaise } : {}), reason });
+      await callFn('refundConsultation', { consultationId: c.id, ...(amountPaise !== undefined ? { amountPaise } : {}), reason, opId: crypto.randomUUID() });
       setDidRefund(true);
       alert('Refund processed — the customer was credited and the astrologer’s accrual reversed.');
     } catch (e) {
@@ -156,7 +156,7 @@ export default function UserDetailPage() {
     if (kind === 'credit') {
       const v = prompt('Credit how many ₹ to this wallet?');
       if (!v) return;
-      try { await callFn('adjustWallet', { userId: id, amountPaise: rupeesToPaise(Number(v)), reason: 'Admin credit' }); alert('Credited.'); }
+      try { await callFn('adjustWallet', { userId: id, amountPaise: rupeesToPaise(Number(v)), reason: 'Admin credit', opId: crypto.randomUUID() }); alert('Credited.'); }
       catch (e) { alert('Failed: ' + (e as Error).message); }
     } else if (kind === 'suspend') {
       const next = user.accountStatus === 'blocked' ? 'active' : 'blocked';

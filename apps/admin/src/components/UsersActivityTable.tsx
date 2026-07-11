@@ -142,7 +142,7 @@ export function UsersActivityTable() {
     if (!input) return;
     setBusy(u.id);
     try {
-      await callFn('adjustWallet', { userId: u.id, amountPaise: rupeesToPaise(Number(input)), reason: 'Admin credit' });
+      await callFn('adjustWallet', { userId: u.id, amountPaise: rupeesToPaise(Number(input)), reason: 'Admin credit', opId: crypto.randomUUID() });
       alert('Credited.');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(null); }

@@ -24,9 +24,19 @@ export interface FailedCreditParams {
 }
 
 /** Persist a failed credit + raise an admin alert. Keyed by paymentId so repeat
- *  webhook retries for the same payment update one row instead of duplicating. */
-export async function recordFailedCredit(p: FailedCreditParams, err: unknown): Promise<void> {
+ *  webhook retries for the same payment update one row instead of duplicating.
+ *
+ *  `manualOnly` marks a dead-letter the retry job must NEVER auto-credit — used
+ *  for an amount mismatch, where crediting the full plan value is exactly the
+ *  wrong thing to do. Such rows are surfaced for a human to reconcile against
+ *  Razorpay, not retried. */
+export async function recordFailedCredit(
+  p: FailedCreditParams,
+  err: unknown,
+  opts: { manualOnly?: boolean } = {},
+): Promise<void> {
   const message = err instanceof Error ? err.message : String(err);
+  const manualOnly = opts.manualOnly === true;
   const ref = db.collection(DEAD_LETTER).doc(p.paymentId);
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -41,6 +51,7 @@ export async function recordFailedCredit(p: FailedCreditParams, err: unknown): P
         lastError: message,
         attempts: FieldValue.increment(1),
         resolved: false,
+        ...(manualOnly ? { manualOnly: true } : {}),
         ...(snap.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
         updatedAt: FieldValue.serverTimestamp(),
       },
@@ -48,16 +59,18 @@ export async function recordFailedCredit(p: FailedCreditParams, err: unknown): P
     );
     // Alert row (admin-readable). One per payment; refreshed on each failure.
     tx.set(db.collection('alerts').doc(`credit_${p.paymentId}`), {
-      kind: 'payment_credit_failed',
+      kind: manualOnly ? 'payment_amount_mismatch' : 'payment_credit_failed',
       severity: 'critical',
-      message: `Wallet credit failed for payment ${p.paymentId} (user ${p.userId}): ${message}`,
+      message: manualOnly
+        ? `MANUAL REVIEW: payment ${p.paymentId} (user ${p.userId}, order ${p.orderId}) was refused for an amount mismatch and will NOT be auto-credited: ${message}. Verify against Razorpay before crediting.`
+        : `Wallet credit failed for payment ${p.paymentId} (user ${p.userId}): ${message}`,
       refId: p.paymentId,
       resolved: false,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
   });
-  logger.error('recordFailedCredit', { paymentId: p.paymentId, userId: p.userId, orderId: p.orderId, error: message });
+  logger.error('recordFailedCredit', { paymentId: p.paymentId, userId: p.userId, orderId: p.orderId, manualOnly, error: message });
 }
 
 /**
@@ -74,6 +87,9 @@ export const reconcileFailedCredits = onSchedule('every 5 minutes', async () => 
 
   for (const doc of pending.docs) {
     const d = doc.data();
+    // Amount-mismatch dead-letters must never be auto-credited — leave them for
+    // a human to reconcile against Razorpay (the alert was already raised).
+    if (d.manualOnly === true) continue;
     if ((d.attempts ?? 0) > MAX_ATTEMPTS) {
       // Exhausted automated retries → escalate ONCE to a critical, unmissable
       // alert (idempotent via the fixed alert id) and log at error so external

@@ -150,6 +150,7 @@ export async function creditCapturedPayment(
       await recordFailedCredit(
         { userId: userId ?? 'unknown', paymentId, orderId: orderId ?? 'unknown', planId: planId ?? 'unknown', couponId },
         new Error(`webhook: captured amount ${entity.amount} != order amount ${orderAmountPaise}`),
+        { manualOnly: true }, // never auto-credit a mismatched capture — human reconciles it
       ).catch((re) => logger.error('webhook: recordFailedCredit ALSO failed', { paymentId, error: re instanceof Error ? re.message : String(re) }));
     }
     return { credited: false, deadLettered: true };

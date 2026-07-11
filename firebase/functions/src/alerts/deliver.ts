@@ -35,11 +35,16 @@ export const deliverAlert = onDocumentCreated(
       return;
     }
 
+    // Escape Slack control characters so attacker-influenced alert content (e.g.
+    // a user-supplied reported id inside a `user_report` message) can't inject
+    // `<!channel>`/`<!here>` pings or link syntax into the webhook text. Our own
+    // deliberate mention below is added AFTER escaping.
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const severity = String(a.severity ?? 'info');
     const emoji = severity === 'critical' ? '🔴' : severity === 'warning' ? '⚠️' : 'ℹ️';
-    const kind = String(a.kind ?? 'alert');
-    const message = String(a.message ?? '(no message)');
-    const refId = a.refId ? String(a.refId) : '';
+    const kind = esc(String(a.kind ?? 'alert'));
+    const message = esc(String(a.message ?? '(no message)'));
+    const refId = a.refId ? esc(String(a.refId)) : '';
 
     // Critical alerts (payment not credited, etc.) force-notify every member of
     // the channel with <!channel>; warnings stay quiet so the channel isn't spammy.

@@ -56,4 +56,22 @@ describe('creditCapturedPayment (webhook, emulator)', () => {
     const alert = await db.collection('alerts').doc('credit_payX').get();
     expect(alert.exists).toBe(true);
   });
+
+  it('an amount mismatch dead-letters as manualOnly and never credits the wallet', async () => {
+    const uid = 'u_wh_mm';
+    await seedUser(uid); await seedPlan('planMM'); await seedOrder('ordMM', uid, 'planMM');
+
+    // Captured amount (5000) != the order's bound amount (10000). This must be
+    // refused AND flagged manualOnly so the retry job can never auto-credit the
+    // full plan value later (the re-audit loophole).
+    const r = await creditCapturedPayment({ id: 'payMM', order_id: 'ordMM', amount: 5000, notes: {} });
+    expect(r.credited).toBe(false);
+    expect(r.deadLettered).toBe(true);
+
+    const dl = (await db.collection('failedWebhookCredits').doc('payMM').get()).data()!;
+    expect(dl.manualOnly).toBe(true); // retry job skips these
+    const u = (await db.collection('users').doc(uid).get()).data()!;
+    expect(u.walletBalance).toBe(0); // wallet untouched
+    expect(u.bonusBalance).toBe(0);
+  });
 });

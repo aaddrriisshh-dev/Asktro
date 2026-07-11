@@ -32,6 +32,8 @@ export const reportClientError = onCall(async (req) => {
   const now = Date.now();
   const prev = lastSeen.get(key);
   if (prev && now - prev < WINDOW_MS) return { ok: true, throttled: true };
+  // Bound the map so a stream of distinct messages can't grow it without limit.
+  if (lastSeen.size > 2000) lastSeen.clear();
   lastSeen.set(key, now);
 
   await db.collection('alerts').add({
