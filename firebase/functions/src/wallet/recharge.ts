@@ -12,6 +12,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertAuthed, badRequest, failedPrecondition, notFound } from '../common/errors';
+import { enforceRateLimit } from '../common/rateLimit';
 import {
   RAZORPAY_KEY_ID,
   RAZORPAY_KEY_SECRET,
@@ -26,6 +27,7 @@ export const createRechargeOrder = onCall(
   { secrets: [RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET] },
   async (req) => {
     const userId = assertAuthed(req);
+    await enforceRateLimit('createRechargeOrder', userId);
     const { planId, couponId } = (req.data ?? {}) as { planId?: string; couponId?: string };
     if (!planId) badRequest('planId is required.');
 
@@ -69,6 +71,7 @@ export const verifyRecharge = onCall(
   { secrets: [RAZORPAY_KEY_SECRET] },
   async (req) => {
     const userId = assertAuthed(req);
+    await enforceRateLimit('verifyRecharge', userId);
     // planId/couponId from the client are IGNORED — the authoritative plan is the
     // one recorded server-side against this order at creation time.
     const { orderId, paymentId, signature } = (req.data ?? {}) as {

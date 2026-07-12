@@ -18,6 +18,7 @@ export const Collections = {
   processedPayments: 'processedPayments', // idempotency keys for recharge
   processedAdminOps: 'processedAdminOps', // idempotency keys for manual money ops (refund / adjustWallet)
   counters: 'counters', // atomic sequence docs (e.g. human-readable ticket numbers)
+  rateLimits: 'rateLimits', // per-user fixed-window rate-limit counters (TTL on expireAt)
   dailyStats: 'dailyStats', // per-UTC-day analytics rollup for the admin dashboard
 } as const;
 

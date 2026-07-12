@@ -16,6 +16,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions/v2';
 import { assertAuthed, badRequest, failedPrecondition } from '../common/errors';
+import { enforceRateLimit } from '../common/rateLimit';
 
 export const PROKERALA_CLIENT_ID = defineSecret('PROKERALA_CLIENT_ID');
 export const PROKERALA_CLIENT_SECRET = defineSecret('PROKERALA_CLIENT_SECRET');
@@ -79,7 +80,8 @@ async function getToken(clientId: string, clientSecret: string): Promise<string>
 export const prokeralaAstrology = onCall(
   { secrets: [PROKERALA_CLIENT_ID, PROKERALA_CLIENT_SECRET] },
   async (req) => {
-    assertAuthed(req); // only signed-in app users
+    const uid = assertAuthed(req); // only signed-in app users
+    await enforceRateLimit('prokeralaAstrology', uid);
     const { path, params } = (req.data ?? {}) as { path?: string; params?: Record<string, string | number> };
     if (!path || !ALLOWED_PATHS.has(path)) {
       badRequest('Unsupported ProKerala path.');

@@ -316,4 +316,21 @@ app) but WITH proper ProGuard/R8 keep-rules for Firebase + Flutter, and **test t
 release APK on a real device** — a shrunk build that isn't device-tested can crash
 only in production. (Only re-enable once the keep-rules are verified on a phone.)
 
+## 🚦 RATE LIMITING — enable the TTL policy (one-time, owner)
+Per-user rate limiting is **live in code** (audit M2): `enforceRateLimit` guards
+`createConsultation`, `createRechargeOrder`, `verifyRecharge`, and
+`prokeralaAstrology` with generous, atomic, fixed-window caps (a real user never
+hits them; only scripted abuse does). Counters live in the `rateLimits`
+collection and each carries an `expireAt`.
+
+- [ ] **Enable a Firestore TTL policy** so those counter docs auto-delete and the
+  collection stays bounded: Firebase console → Firestore → **TTL** → *Create
+  policy* → collection `rateLimits`, timestamp field `expireAt`. (One-time. Until
+  it's on, docs still expire logically — the limiter ignores old windows — they
+  just aren't garbage-collected.)
+- Caps are in `functions/src/common/rateLimit.ts` (`RATE_RULES`); tune + redeploy
+  to change. Flip any action's `mode` to `'observe'` to log-only without blocking.
+
+---
+
 ## Add new pre-launch items below as they come up.

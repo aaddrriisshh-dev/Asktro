@@ -9,6 +9,7 @@ import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { getGlobalConfig } from '../common/config';
 import { assertAuthed, badRequest, failedPrecondition, notFound } from '../common/errors';
+import { enforceRateLimit } from '../common/rateLimit';
 import { canStartConsultation } from '../billing/engine';
 import { pricePerSecond } from '../common/money';
 import { ConsultationType } from '../common/types';
@@ -20,6 +21,7 @@ const VALID_TYPES: ConsultationType[] = ['chat', 'voice', 'video'];
 
 export const createConsultation = onCall(async (req) => {
   const customerId = assertAuthed(req);
+  await enforceRateLimit('createConsultation', customerId);
   const { astrologerId, type } = (req.data ?? {}) as {
     astrologerId?: string;
     type?: ConsultationType;
