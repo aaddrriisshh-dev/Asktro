@@ -333,4 +333,40 @@ collection and each carries an `expireAt`.
 
 ---
 
+## 💳 RAZORPAY LIVE KEYS — resume here (paused 2026‑07‑12)
+Razorpay integration is **fully coded, tested, and deployed** — the only thing
+missing is the correct **live key values** in Secret Manager.
+
+**State right now:**
+- `createRechargeOrder`, `verifyRecharge`, `razorpayWebhook` are deployed and
+  bound to secret **version 4**. The shared-account webhook guard is live
+  (ignores the other Asktro product's captures).
+- The secrets currently hold **stale/mismatched TEST values**, so a recharge
+  returns `401 BAD_REQUEST_ERROR "Authentication failed"`. Recharge is therefore
+  **intentionally non-functional until real keys are set** — fine pre-launch.
+- A **live webhook is already registered** in the Razorpay dashboard →
+  URL `https://asia-south1-asktro-tech-provate-limited.cloudfunctions.net/razorpayWebhook`,
+  event `payment.captured`.
+
+**⚠️ Shared account:** the Razorpay account is shared with another Asktro product
+(the WhatsApp platform), which runs on the **live** keys. **Do NOT click
+"Regenerate" on the LIVE key** — it invalidates the live pair and breaks that
+platform. Get the existing live Key Secret from whoever generated it.
+
+**To finish (≈10 min):**
+1. Obtain the live `rzp_live_…` **Key ID** + its matching **Key Secret**.
+2. `firebase functions:secrets:set RAZORPAY_KEY_ID` (paste live Key ID), answer `n`.
+3. `firebase functions:secrets:set RAZORPAY_KEY_SECRET` (paste live secret), answer `n`.
+4. Confirm `RAZORPAY_WEBHOOK_SECRET` matches the live webhook's secret (re-set if needed).
+5. Deploy the three wallet functions **one at a time** (409 → lands in background):
+   `createRechargeOrder`, `verifyRecharge`, `razorpayWebhook`.
+6. Test a real ₹10 recharge: checkout opens → wallet credits → Razorpay dashboard
+   + admin portal agree. Then flip `config/global.devPaymentsEnabled → false`.
+
+_(Test-mode alternative for a dry run without real money: regenerate the TEST key
+— safe, doesn't touch live — set both secrets to the test pair, redeploy, pay
+with a Razorpay test card.)_
+
+---
+
 ## Add new pre-launch items below as they come up.
