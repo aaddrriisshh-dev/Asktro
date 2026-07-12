@@ -168,6 +168,7 @@ class ProkeralaRepository {
     final data = await _svc.call('v2/astrology/auspicious-period', params: {
       'datetime': _nowIso(),
       'coordinates': coords,
+      'ayanamsa': 1,
       'la': 'en',
     },);
     if (data == null) return null;

@@ -570,6 +570,12 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
               ),
             ),
             _astroBanner(),
+            // The customer's own kundli, pinned at the top of the LIVE chat so
+            // the chart is the first thing they see (collapsible; open by default).
+            const Padding(
+              padding: EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+              child: ChatKundliCard(),
+            ),
             // Messages + the typing indicator live TOGETHER in the flexible
             // region, so the typing row can never steal fixed height from the
             // composer and overflow the column when the keyboard opens.

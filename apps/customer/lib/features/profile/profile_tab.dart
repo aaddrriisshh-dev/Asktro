@@ -12,6 +12,9 @@ import '../consultations/consultations_tab.dart';
 import '../search/search_screen.dart';
 import '../tools/horoscope_screen.dart';
 import '../tools/janam_kundli_screen.dart';
+import '../tools/kundali_match_screen.dart';
+import '../tools/panchang_screen.dart';
+import '../tools/auspicious_timings_screen.dart';
 import '../profile_setup/onboarding_style.dart';
 import 'cms_viewer_screen.dart';
 import 'edit_profile_screen.dart';
@@ -384,6 +387,21 @@ class ProfileTab extends ConsumerWidget {
             _freeTile(Icons.brightness_5_rounded, 'Janam Kundli', 'Your birth chart, instantly', () {
               Navigator.pop(context);
               _push(context, const JanamKundliScreen());
+            }),
+            const SizedBox(height: 10),
+            _freeTile(Icons.favorite_rounded, 'Kundali Match', 'Ashtakoota compatibility out of 36', () {
+              Navigator.pop(context);
+              _push(context, const KundaliMatchScreen());
+            }),
+            const SizedBox(height: 10),
+            _freeTile(Icons.calendar_month_rounded, 'Panchang', "Today's tithi, nakshatra & yoga", () {
+              Navigator.pop(context);
+              _push(context, const PanchangScreen());
+            }),
+            const SizedBox(height: 10),
+            _freeTile(Icons.schedule_rounded, 'Auspicious Timings', 'Rahu kaal & shubh muhurat today', () {
+              Navigator.pop(context);
+              _push(context, const AuspiciousTimingsScreen());
             }),
           ],
         ),

@@ -68,7 +68,19 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
       _self.place.text = p.birthPlace!;
       if (p.birthLat != null && p.birthLng != null) {
         _self.placeResult = PlaceResult(label: p.birthPlace!, lat: p.birthLat!, lon: p.birthLng!);
+      } else {
+        // Older profile with a place but no saved coordinates — geocode it so the
+        // "you" side is complete and the compatibility button can enable.
+        _resolveSelfCoords(p.birthPlace!);
       }
+    }
+  }
+
+  Future<void> _resolveSelfCoords(String place) async {
+    final hits = await _places.search(place);
+    final first = hits.isNotEmpty ? hits.first : null;
+    if (first?.lat != null && first?.lon != null && mounted) {
+      setState(() => _self.placeResult = PlaceResult(label: place, lat: first!.lat, lon: first.lon));
     }
   }
 
