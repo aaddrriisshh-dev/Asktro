@@ -127,11 +127,15 @@ export async function creditCapturedPayment(
   let couponId = (notes.couponId as string | undefined) || null;
   let orderAmountPaise: number | undefined;
 
+  let lookupOk = false;
+  let orderFound = false;
   if (orderId) {
     try {
       const orderSnap = await db.collection('rechargeOrders').doc(orderId).get();
+      lookupOk = true;
       const rec = orderSnap.data();
       if (rec) {
+        orderFound = true;
         userId = (rec.userId as string | undefined) ?? userId;
         planId = (rec.planId as string | undefined) ?? planId;
         couponId = (rec.couponId as string | null | undefined) ?? couponId;
@@ -140,6 +144,17 @@ export async function creditCapturedPayment(
     } catch (e) {
       logger.error('razorpayWebhook: order lookup failed', { orderId, paymentId, error: e instanceof Error ? e.message : String(e) });
     }
+  }
+
+  // Shared-account guard: this Razorpay account also serves another Asktro
+  // product, so we receive ITS payment.captured events too. A capture whose
+  // order isn't in our rechargeOrders (a definitive lookup that found nothing)
+  // is not ours — ignore it silently. We must NOT dead-letter/alert it as lost
+  // money. (A transient lookup ERROR leaves lookupOk=false and still falls
+  // through to the safe dead-letter path, so genuine faults aren't swallowed.)
+  if (orderId && lookupOk && !orderFound) {
+    logger.info('razorpayWebhook: ignoring capture for a non-Asktro order (shared account)', { orderId, paymentId });
+    return { credited: false, deadLettered: false };
   }
 
   // Defence in depth: the captured amount MUST match the amount we bound to the

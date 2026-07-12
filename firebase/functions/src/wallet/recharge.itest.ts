@@ -46,14 +46,28 @@ describe('creditCapturedPayment (webhook, emulator)', () => {
     expect(u.walletBalance).toBe(10000); // not 20000
   });
 
-  it('dead-letters a captured payment with no matching order (never silently lost)', async () => {
-    const r = await creditCapturedPayment({ id: 'payX', order_id: 'ordMissing', notes: {} });
+  it('IGNORES a capture whose order is not ours — shared Razorpay account (no dead-letter/alert)', async () => {
+    // The account also serves another Asktro product; its payments reach our
+    // webhook with an order_id that has no doc in OUR rechargeOrders. That is a
+    // definitive "not ours" and must be silently ignored, not dead-lettered.
+    const r = await creditCapturedPayment({ id: 'payForeign', order_id: 'ordForeign', notes: {} });
+    expect(r.credited).toBe(false);
+    expect(r.deadLettered).toBe(false);
+
+    const dl = await db.collection('failedWebhookCredits').doc('payForeign').get();
+    expect(dl.exists).toBe(false); // not dead-lettered
+    const alert = await db.collection('alerts').doc('credit_payForeign').get();
+    expect(alert.exists).toBe(false); // no false alarm
+  });
+
+  it('dead-letters a capture with NO order_id at all (genuinely unresolvable, never lost)', async () => {
+    const r = await creditCapturedPayment({ id: 'payNoOrder', notes: {} });
     expect(r.credited).toBe(false);
     expect(r.deadLettered).toBe(true);
 
-    const dl = await db.collection('failedWebhookCredits').doc('payX').get();
+    const dl = await db.collection('failedWebhookCredits').doc('payNoOrder').get();
     expect(dl.exists).toBe(true);
-    const alert = await db.collection('alerts').doc('credit_payX').get();
+    const alert = await db.collection('alerts').doc('credit_payNoOrder').get();
     expect(alert.exists).toBe(true);
   });
 
