@@ -7,9 +7,9 @@ import '../../app/providers.dart';
 import '../../data/place_search_service.dart';
 import '../profile_setup/onboarding_style.dart';
 
-/// Kundali Match (Ashtakoota Guna Milan). The signed-in user is one partner
-/// (from their saved birth details); they enter the other partner's birth
-/// details, and we show the ProKerala compatibility score + koota breakdown.
+/// Kundali Match (Ashtakoota Guna Milan). Two birth-detail cards — yours
+/// (pre-filled from your profile, editable) and your partner's — joined by a
+/// match glyph, then a compatibility score + koota breakdown from ProKerala.
 class KundaliMatchScreen extends ConsumerStatefulWidget {
   const KundaliMatchScreen({super.key});
 
@@ -17,14 +17,30 @@ class KundaliMatchScreen extends ConsumerStatefulWidget {
   ConsumerState<KundaliMatchScreen> createState() => _KundaliMatchScreenState();
 }
 
+/// One person's birth entry — name, date, time, place (+ resolved coordinates).
+class _Person {
+  _Person(this.role);
+  final String role;
+  final name = TextEditingController();
+  final place = TextEditingController();
+  DateTime? dob;
+  TimeOfDay? time;
+  PlaceResult? placeResult;
+  List<PlaceResult> suggestions = const [];
+
+  bool get complete => dob != null && placeResult != null;
+
+  void dispose() {
+    name.dispose();
+    place.dispose();
+  }
+}
+
 class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
-  final _name = TextEditingController();
-  final _place = TextEditingController();
+  final _self = _Person('you');
+  final _partner = _Person('partner');
   final _places = PlaceSearchService();
-  DateTime? _dob;
-  TimeOfDay? _time;
-  PlaceResult? _placeResult;
-  List<PlaceResult> _suggestions = const [];
+  bool _prefilled = false;
 
   bool _loading = false;
   Map<String, dynamic>? _result;
@@ -32,65 +48,83 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
 
   @override
   void dispose() {
-    _name.dispose();
-    _place.dispose();
+    _self.dispose();
+    _partner.dispose();
     super.dispose();
   }
 
-  bool get _canSubmit => _dob != null && _placeResult != null && !_loading;
+  void _prefillSelf() {
+    if (_prefilled) return;
+    final p = ref.read(myProfileProvider).valueOrNull;
+    if (p == null) return;
+    _prefilled = true;
+    _self.name.text = p.name;
+    if (p.birthDateMs != null) _self.dob = DateTime.fromMillisecondsSinceEpoch(p.birthDateMs!);
+    if (p.birthTimeKnown && p.birthTime != null && p.birthTime!.contains(':')) {
+      final parts = p.birthTime!.split(':');
+      _self.time = TimeOfDay(hour: int.tryParse(parts[0]) ?? 12, minute: int.tryParse(parts[1]) ?? 0);
+    }
+    if (p.birthPlace != null && p.birthPlace!.trim().isNotEmpty) {
+      _self.place.text = p.birthPlace!;
+      if (p.birthLat != null && p.birthLng != null) {
+        _self.placeResult = PlaceResult(label: p.birthPlace!, lat: p.birthLat!, lon: p.birthLng!);
+      }
+    }
+  }
 
-  Future<void> _pickDate() async {
+  Future<void> _pickDate(_Person who) async {
     final d = await showDatePicker(
       context: context,
-      initialDate: DateTime(1995, 1, 1),
+      initialDate: who.dob ?? DateTime(1995, 1, 1),
       firstDate: DateTime(1930),
       lastDate: DateTime.now(),
     );
-    if (d != null) setState(() => _dob = d);
+    if (d != null) setState(() => who.dob = d);
   }
 
-  Future<void> _pickTime() async {
-    final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 12, minute: 0));
-    if (t != null) setState(() => _time = t);
+  Future<void> _pickTime(_Person who) async {
+    final t = await showTimePicker(context: context, initialTime: who.time ?? const TimeOfDay(hour: 12, minute: 0));
+    if (t != null) setState(() => who.time = t);
   }
 
-  Future<void> _searchPlace(String q) async {
+  Future<void> _searchPlace(_Person who, String q) async {
     final hits = await _places.search(q);
-    if (mounted) setState(() => _suggestions = hits);
+    if (mounted) setState(() => who.suggestions = hits);
+  }
+
+  bool get _canSubmit => _self.complete && _partner.complete && !_loading;
+
+  String _isoOf(_Person who) {
+    final repo = ref.read(prokeralaRepositoryProvider)!;
+    final hhmm = who.time == null
+        ? null
+        : '${who.time!.hour.toString().padLeft(2, '0')}:${who.time!.minute.toString().padLeft(2, '0')}';
+    return repo.isoFor(who.dob!, hhmm);
   }
 
   Future<void> _match() async {
     final profile = ref.read(myProfileProvider).valueOrNull;
     final repo = ref.read(prokeralaRepositoryProvider);
-    if (profile == null || repo == null || _dob == null || _placeResult == null) return;
+    if (repo == null || !_self.complete || !_partner.complete) return;
     setState(() {
       _loading = true;
       _error = null;
       _result = null;
     });
 
-    final self = await repo.selfBirth(profile);
-    if (self == null) {
-      setState(() {
-        _loading = false;
-        _error = 'Add your own birth place in Edit Profile first.';
-      });
-      return;
-    }
+    final selfCoords = '${_self.placeResult!.lat},${_self.placeResult!.lon}';
+    final partnerCoords = '${_partner.placeResult!.lat},${_partner.placeResult!.lon}';
+    final selfIso = _isoOf(_self);
+    final partnerIso = _isoOf(_partner);
 
-    final partnerIso = repo.isoFor(
-        _dob!,
-        _time == null ? null : '${_time!.hour.toString().padLeft(2, '0')}:${_time!.minute.toString().padLeft(2, '0')}',);
-    final partnerCoords = '${_placeResult!.lat},${_placeResult!.lon}';
-
-    // ProKerala matching is girl + boy. Map by the user's gender.
-    final userIsGirl = profile.gender == 'female';
+    // ProKerala matching is girl + boy. Map "you" by your saved gender.
+    final selfIsGirl = profile?.gender == 'female';
     try {
       final data = await repo.kundliMatch(
-        girlDatetime: userIsGirl ? self.datetime : partnerIso,
-        girlCoordinates: userIsGirl ? self.coordinates : partnerCoords,
-        boyDatetime: userIsGirl ? partnerIso : self.datetime,
-        boyCoordinates: userIsGirl ? partnerCoords : self.coordinates,
+        girlDatetime: selfIsGirl ? selfIso : partnerIso,
+        girlCoordinates: selfIsGirl ? selfCoords : partnerCoords,
+        boyDatetime: selfIsGirl ? partnerIso : selfIso,
+        boyCoordinates: selfIsGirl ? partnerCoords : selfCoords,
       );
       if (!mounted) return;
       setState(() {
@@ -109,6 +143,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _prefillSelf();
     return Scaffold(
       backgroundColor: Ob.bgColor,
       appBar: AppBar(
@@ -119,22 +154,42 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
             style: GoogleFonts.cormorantGaramond(
                 fontSize: 24, fontWeight: FontWeight.w700, color: Ob.navy,),),
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(18, 8, 18, 32 + MediaQuery.of(context).padding.bottom),
-        children: [
-          _intro(),
-          const SizedBox(height: 16),
-          if (_result == null) ...[
-            _form(),
-            const SizedBox(height: 18),
-            _submitButton(),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, textAlign: TextAlign.center, style: Ob.note.copyWith(color: const Color(0xFFC0392B))),
-            ],
-          ] else
-            _resultView(_result!),
-        ],
+      // Celestial backdrop: a soft vertical wash with faint sparkles behind the
+      // whole flow, so the screen feels cosmic without hurting readability.
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF1ECFB), Color(0xFFFBF8FF), Color(0xFFFFFDF7)],
+          ),
+        ),
+        child: Stack(
+          children: [
+            const Positioned(top: 30, right: 26, child: Icon(Icons.auto_awesome, size: 16, color: Color(0x337E57C2))),
+            const Positioned(top: 120, left: 20, child: Icon(Icons.star_rounded, size: 12, color: Color(0x33E7B84B))),
+            const Positioned(top: 210, right: 40, child: Icon(Icons.star_rounded, size: 10, color: Color(0x337E57C2))),
+            ListView(
+              padding: EdgeInsets.fromLTRB(18, 8, 18, 32 + MediaQuery.of(context).padding.bottom),
+              children: [
+                _intro(),
+                const SizedBox(height: 18),
+                if (_result == null) ...[
+                  _personCard(_self, 'Your details', Icons.person_rounded, const Color(0xFF7E57C2)),
+                  _matchGlyph(),
+                  _personCard(_partner, "Partner's details", Icons.favorite_rounded, const Color(0xFFC96D8E)),
+                  const SizedBox(height: 20),
+                  _submitButton(),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(_error!, textAlign: TextAlign.center, style: Ob.note.copyWith(color: const Color(0xFFC0392B))),
+                  ],
+                ] else
+                  _resultView(_result!),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -170,7 +225,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
                       style: GoogleFonts.cormorantGaramond(
                           color: Colors.white, fontSize: 21, fontWeight: FontWeight.w700,),),
                   const SizedBox(height: 2),
-                  const Text('Enter your partner’s birth details to check compatibility out of 36 gunas.',
+                  const Text('Match two birth charts across 8 kootas — a compatibility score out of 36 gunas.',
                       style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 12.5, height: 1.35),),
                 ],
               ),
@@ -179,55 +234,103 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
         ),
       );
 
-  Widget _form() {
+  // The interlocking-rings glyph between the two people, signalling the match.
+  Widget _matchGlyph() => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          children: [
+            Container(width: 1.4, height: 16, color: const Color(0xFFD9CDF0)),
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF7E57C2), Color(0xFFC96D8E)],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: Ob.softShadow,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 22),
+            ),
+            Container(width: 1.4, height: 16, color: const Color(0xFFD9CDF0)),
+          ],
+        ),
+      );
+
+  Widget _personCard(_Person who, String title, IconData icon, Color accent) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: 0.25), width: 1.3),
         boxShadow: Ob.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Partner's details", style: Ob.sectionLabel),
+          Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(color: accent.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(9)),
+                child: Icon(icon, size: 17, color: accent),
+              ),
+              const SizedBox(width: 10),
+              Text(title, style: Ob.sectionLabel),
+              const Spacer(),
+              if (who.complete) Icon(Icons.check_circle_rounded, size: 18, color: accent),
+            ],
+          ),
           const SizedBox(height: 14),
           TextField(
-            controller: _name,
-            decoration: _dec('Name (optional)', Icons.person_outline_rounded),
+            controller: who.name,
+            decoration: _dec('Name (optional)', Icons.badge_outlined),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _pickerField('Date of birth', _dob == null ? null : DateFormat('d MMM yyyy').format(_dob!), Icons.calendar_today_rounded, _pickDate)),
+              Expanded(
+                child: _pickerField('Date of birth',
+                    who.dob == null ? null : DateFormat('d MMM yyyy').format(who.dob!),
+                    Icons.calendar_today_rounded, () => _pickDate(who),),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _pickerField('Time (optional)', _time?.format(context), Icons.schedule_rounded, _pickTime)),
+              Expanded(
+                child: _pickerField('Time (optional)', who.time?.format(context),
+                    Icons.schedule_rounded, () => _pickTime(who),),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _place,
+            controller: who.place,
             decoration: _dec('Birth place', Icons.place_outlined),
             onChanged: (v) {
-              _placeResult = null;
-              if (v.trim().length >= 2) _searchPlace(v);
+              who.placeResult = null;
+              if (v.trim().length >= 2) _searchPlace(who, v);
+              setState(() {});
             },
           ),
-          if (_placeResult == null && _suggestions.isNotEmpty)
+          if (who.placeResult == null && who.suggestions.isNotEmpty)
             Container(
               margin: const EdgeInsets.only(top: 6),
               decoration: BoxDecoration(
                   color: Ob.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Ob.border),),
               child: Column(
                 children: [
-                  for (final s in _suggestions.take(5))
+                  for (final s in who.suggestions.take(5))
                     ListTile(
                       dense: true,
                       title: Text(s.label, style: Ob.note.copyWith(color: Ob.navy)),
                       onTap: () => setState(() {
-                        _placeResult = s;
-                        _place.text = s.label;
-                        _suggestions = const [];
+                        who.placeResult = s;
+                        who.place.text = s.label;
+                        who.suggestions = const [];
                       }),
                     ),
                 ],
@@ -293,6 +396,13 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
     final kootas = data['koota'] is List
         ? List<Map<String, dynamic>>.from((data['koota'] as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)))
         : <Map<String, dynamic>>[];
+    final verdict = pct >= 0.75
+        ? 'Excellent match'
+        : pct >= 0.5
+            ? 'Good match'
+            : pct >= 0.3
+                ? 'Average match'
+                : 'Needs consideration';
 
     return Column(
       children: [
@@ -311,7 +421,13 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
           child: Column(
             children: [
               Text('Guna Milan', style: Ob.sectionLabel),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
+              Text(verdict,
+                  style: Ob.note.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: pct >= 0.5 ? const Color(0xFF2F9C63) : Ob.goldDeep,),),
+              const SizedBox(height: 10),
               Text('${total.toStringAsFixed(total == total.roundToDouble() ? 0 : 1)} / ${max.toStringAsFixed(0)}',
                   style: GoogleFonts.cormorantGaramond(fontSize: 44, fontWeight: FontWeight.w700, color: Ob.purpleDeep,),),
               const SizedBox(height: 10),
@@ -333,6 +449,8 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
         ),
         if (kootas.isNotEmpty) ...[
           const SizedBox(height: 16),
+          Align(alignment: Alignment.centerLeft, child: Text('Koota breakdown', style: Ob.sectionLabel)),
+          const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: Ob.softShadow),

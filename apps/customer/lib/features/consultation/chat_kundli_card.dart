@@ -7,9 +7,10 @@ import '../../data/prokerala_repository.dart';
 import '../profile_setup/onboarding_style.dart';
 import '../tools/janam_kundli_screen.dart';
 
-/// A compact, collapsible "Your Kundli" card pinned at the top of a consultation
-/// chat. Collapsed by default so it doesn't eat the chat; on tap it loads the
-/// customer's cached birth chart and offers a jump to the full kundli.
+/// "Your Kundli" card pinned at the top of a consultation chat. It loads the
+/// customer's birth chart eagerly and shows the rendered chart image straight
+/// away — so the very first thing in the chat is their kundli — with a compact
+/// collapse control and a jump to the full reading.
 class ChatKundliCard extends ConsumerStatefulWidget {
   const ChatKundliCard({super.key});
 
@@ -18,14 +19,24 @@ class ChatKundliCard extends ConsumerStatefulWidget {
 }
 
 class _ChatKundliCardState extends ConsumerState<ChatKundliCard> {
-  bool _open = false;
+  bool _open = true; // chart shown by default
   Future<KundliResult?>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start fetching immediately so the chart is on screen the moment the
+    // chat opens, not behind a tap.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureStarted());
+  }
 
   void _ensureStarted() {
     if (_future != null) return;
     final profile = ref.read(myProfileProvider).valueOrNull;
     final repo = ref.read(prokeralaRepositoryProvider);
-    if (profile != null && repo != null) _future = repo.janamKundli(profile);
+    if (profile != null && repo != null) {
+      setState(() => _future = repo.janamKundli(profile));
+    }
   }
 
   @override
@@ -69,11 +80,15 @@ class _ChatKundliCardState extends ConsumerState<ChatKundliCard> {
               ),
             ),
           ),
-          if (_open)
-            Padding(
+          AnimatedCrossFade(
+            firstChild: const SizedBox(width: double.infinity),
+            secondChild: Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
               child: _body(),
             ),
+            crossFadeState: _open ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
+          ),
         ],
       ),
     );
@@ -83,20 +98,25 @@ class _ChatKundliCardState extends ConsumerState<ChatKundliCard> {
     return FutureBuilder<KundliResult?>(
       future: _future,
       builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
+        if (_future == null || snap.connectionState == ConnectionState.waiting) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
             child: Center(child: CircularProgressIndicator(color: Ob.purple, strokeWidth: 2.4)),
           );
         }
-        final svg = snap.data?.chartSvg;
+        final result = snap.data;
+        final svg = result?.chartSvg;
         return Column(
           children: [
-            if (svg != null && svg.isNotEmpty)
+            if (svg != null && svg.isNotEmpty) ...[
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFCF6E7),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFFCF6E7), Color(0xFFF7EFD8)],
+                  ),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFEADFBE)),
                 ),
@@ -104,10 +124,26 @@ class _ChatKundliCardState extends ConsumerState<ChatKundliCard> {
                   aspectRatio: 1,
                   child: SvgPicture.string(svg, fit: BoxFit.contain),
                 ),
-              )
-            else
-              Text('Add your birth place in Edit Profile to see your chart.',
-                  textAlign: TextAlign.center, style: Ob.note,),
+              ),
+              if (result?.nakshatraName != null || result?.chandraRasi != null) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    if (result?.chandraRasi != null)
+                      Expanded(child: _chip(Icons.nightlight_round, 'Moon', result!.chandraRasi!)),
+                    if (result?.chandraRasi != null && result?.nakshatraName != null)
+                      const SizedBox(width: 8),
+                    if (result?.nakshatraName != null)
+                      Expanded(child: _chip(Icons.auto_awesome_rounded, 'Nakshatra', result!.nakshatraName!)),
+                  ],
+                ),
+              ],
+            ] else
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text('Add your birth place in Edit Profile to see your chart.',
+                    textAlign: TextAlign.center, style: Ob.note,),
+              ),
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
@@ -128,4 +164,32 @@ class _ChatKundliCardState extends ConsumerState<ChatKundliCard> {
       },
     );
   }
+
+  Widget _chip(IconData icon, String label, String value) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE9E1F8)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 15, color: Ob.purple),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label.toUpperCase(),
+                      style: Ob.note.copyWith(fontSize: 8.5, letterSpacing: 0.6, color: Ob.grey),),
+                  Text(value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Ob.note.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700, color: Ob.navy),),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
 }

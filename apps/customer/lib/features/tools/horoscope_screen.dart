@@ -189,6 +189,12 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
           const SizedBox(height: 18),
           _signStrip(),
           const SizedBox(height: 20),
+          _cosmicSnapshot(),
+          const SizedBox(height: 14),
+          _luckyGrid(),
+          const SizedBox(height: 22),
+          _readingHeader(),
+          const SizedBox(height: 12),
           if (_loading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
@@ -198,9 +204,182 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
             ..._richCards()
           else
             _plainCard(),
+          const SizedBox(height: 18),
+          _affirmationCard(),
         ],
       ),
     );
+  }
+
+  Widget _readingHeader() => Row(
+        children: [
+          Container(width: 4, height: 20, decoration: BoxDecoration(color: Ob.gold, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(width: 10),
+          Text('Your reading today',
+              style: GoogleFonts.cormorantGaramond(fontSize: 22, fontWeight: FontWeight.w700, color: Ob.navy),),
+        ],
+      );
+
+  // A grid of the sign's fixed correspondences — always on screen, so the page
+  // reads full and informative even while the live predictions load.
+  Widget _cosmicSnapshot() {
+    final t = _sign.traits;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFBF7FF), Color(0xFFF3ECFB)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE9E1F8)),
+        boxShadow: Ob.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.public_rounded, size: 17, color: Ob.purple),
+              const SizedBox(width: 8),
+              Text('Cosmic snapshot', style: Ob.sectionLabel.copyWith(fontSize: 15)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(child: _snapItem(Icons.local_fire_department_rounded, 'Element', t.element)),
+              _snapDivider(),
+              Expanded(child: _snapItem(Icons.brightness_7_rounded, 'Ruler', t.rulingPlanet)),
+              _snapDivider(),
+              Expanded(child: _snapItem(Icons.category_rounded, 'Quality', t.quality)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _snapDivider() => Container(width: 1, height: 34, color: const Color(0xFFE2D8F4));
+
+  Widget _snapItem(IconData icon, String label, String value) => Column(
+        children: [
+          Icon(icon, size: 20, color: Ob.goldDeep),
+          const SizedBox(height: 6),
+          Text(label.toUpperCase(),
+              style: Ob.note.copyWith(fontSize: 9.5, letterSpacing: 0.8, color: Ob.grey),),
+          const SizedBox(height: 2),
+          Text(value,
+              textAlign: TextAlign.center,
+              style: Ob.note.copyWith(fontSize: 13.5, fontWeight: FontWeight.w700, color: Ob.navy),),
+        ],
+      );
+
+  Widget _luckyGrid() {
+    final t = _sign.traits;
+    final items = [
+      (Icons.palette_rounded, 'Lucky Colour', t.luckyColor, Color(t.luckyColorHex)),
+      (Icons.tag_rounded, 'Lucky Number', t.luckyNumber, Ob.purple),
+      (Icons.event_rounded, 'Lucky Day', t.luckyDay, Ob.goldDeep),
+      (Icons.diamond_rounded, 'Gemstone', t.gemstone, const Color(0xFF3A7CA5)),
+    ];
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 2.7,
+      children: [for (final it in items) _luckyTile(it.$1, it.$2, it.$3, it.$4)],
+    );
+  }
+
+  Widget _luckyTile(IconData icon, String label, String value, Color accent) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Ob.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Ob.border),
+          boxShadow: Ob.softShadow,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(color: accent.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(11)),
+              child: Icon(icon, size: 19, color: accent),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(label.toUpperCase(),
+                      style: Ob.note.copyWith(fontSize: 9, letterSpacing: 0.5, color: Ob.grey),),
+                  const SizedBox(height: 1),
+                  Text(value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Ob.note.copyWith(fontSize: 14, fontWeight: FontWeight.w800, color: Ob.navy),),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _affirmationCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF322E63), Color(0xFF5E3FBE)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: Ob.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.format_quote_rounded, color: Color(0xFFF3D98A), size: 20),
+              SizedBox(width: 8),
+              Text("TODAY'S AFFIRMATION",
+                  style: TextStyle(color: Color(0xFFF3D98A), fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w700),),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(_affirmationFor(_sign.name),
+              style: GoogleFonts.cormorantGaramond(
+                  color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600, height: 1.35, fontStyle: FontStyle.italic,),),
+        ],
+      ),
+    );
+  }
+
+  String _affirmationFor(String sign) {
+    const map = {
+      'Aries': 'I lead with courage and let my energy open new doors.',
+      'Taurus': 'I am grounded, patient, and worthy of comfort and abundance.',
+      'Gemini': 'My curiosity is a gift; I speak my truth with ease.',
+      'Cancer': 'I honour my feelings and create safety wherever I go.',
+      'Leo': 'I shine authentically and my warmth uplifts everyone around me.',
+      'Virgo': 'I trust the process and find peace in doing my best.',
+      'Libra': 'I choose balance, and harmony flows to me effortlessly.',
+      'Scorpio': 'I embrace transformation and rise stronger each day.',
+      'Sagittarius': 'I welcome adventure and grow through every experience.',
+      'Capricorn': 'My discipline builds the future I dream of.',
+      'Aquarius': 'My ideas matter and I create positive change.',
+      'Pisces': 'I trust my intuition and let compassion guide me.',
+    };
+    return map[sign] ?? 'The universe is conspiring in my favour today.';
   }
 
   Widget _hero() {

@@ -5,6 +5,8 @@ import '../profile_setup/onboarding_style.dart';
 import 'horoscope_screen.dart';
 import 'janam_kundli_screen.dart';
 import 'kundali_match_screen.dart';
+import 'panchang_screen.dart';
+import 'auspicious_timings_screen.dart';
 
 /// A hub for the free astrology tools — everything the user can explore without
 /// spending from their wallet. Links the live ProKerala-backed features (daily
@@ -55,14 +57,14 @@ class FreeServicesScreen extends StatelessWidget {
             onTap: () => _push(context, const KundaliMatchScreen()),
           ),
           const SizedBox(height: 24),
-          _sectionTitle('Coming soon'),
+          _sectionTitle('More free services'),
           const SizedBox(height: 12),
           _serviceCard(
             context,
             icon: Icons.calendar_month_rounded,
             title: 'Panchang',
             subtitle: "Today's tithi, nakshatra, yoga & karana.",
-            soon: true,
+            onTap: () => _push(context, const PanchangScreen()),
           ),
           const SizedBox(height: 12),
           _serviceCard(
@@ -70,7 +72,7 @@ class FreeServicesScreen extends StatelessWidget {
             icon: Icons.schedule_rounded,
             title: 'Auspicious Timings',
             subtitle: 'Rahu kaal, gulika & the day’s shubh muhurat.',
-            soon: true,
+            onTap: () => _push(context, const AuspiciousTimingsScreen()),
           ),
         ],
       ),

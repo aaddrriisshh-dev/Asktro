@@ -130,6 +130,53 @@ class ProkeralaRepository {
     return (datetime: _birthDateTimeIso(p), coordinates: coords);
   }
 
+  // --- Panchang (today's almanac) -------------------------------------------
+  /// Today's panchang (tithi, nakshatra, yoga, karana, sunrise/sunset) for the
+  /// user's location (falls back to New Delhi). Cached once per day.
+  Future<Map<String, dynamic>?> panchang(UserProfile p) async {
+    final coords = await _coordinatesFor(p) ?? _defaultCoords;
+    final day = _todayKey();
+    final doc = _cache.doc('panchang_$day');
+    final snap = await doc.get();
+    final cached = snap.data();
+    if (cached != null && cached['data'] is Map) {
+      return Map<String, dynamic>.from(cached['data'] as Map);
+    }
+    final data = await _svc.call('v2/astrology/panchang/advanced', params: {
+      'datetime': _nowIso(),
+      'coordinates': coords,
+      'ayanamsa': 1,
+      'la': 'en',
+    },);
+    if (data == null) return null;
+    await doc.set({'data': data, 'cachedAt': FieldValue.serverTimestamp()});
+    return data;
+  }
+
+  // --- Auspicious timings (muhurat / rahu kaal etc.) ------------------------
+  /// Today's auspicious & inauspicious periods (rahu kaal, gulika, yamaganda,
+  /// abhijit muhurat) for the user's location. Cached once per day.
+  Future<Map<String, dynamic>?> auspiciousPeriod(UserProfile p) async {
+    final coords = await _coordinatesFor(p) ?? _defaultCoords;
+    final day = _todayKey();
+    final doc = _cache.doc('auspicious_$day');
+    final snap = await doc.get();
+    final cached = snap.data();
+    if (cached != null && cached['data'] is Map) {
+      return Map<String, dynamic>.from(cached['data'] as Map);
+    }
+    final data = await _svc.call('v2/astrology/auspicious-period', params: {
+      'datetime': _nowIso(),
+      'coordinates': coords,
+      'la': 'en',
+    },);
+    if (data == null) return null;
+    await doc.set({'data': data, 'cachedAt': FieldValue.serverTimestamp()});
+    return data;
+  }
+
+  static const _defaultCoords = '28.6139,77.2090'; // New Delhi
+
   String _todayKey() {
     final n = DateTime.now();
     String two(int x) => x.toString().padLeft(2, '0');

@@ -45,4 +45,72 @@ class ZodiacSign {
     ZodiacSign('Aquarius', '♒', 'Jan 20 – Feb 18'),
     ZodiacSign('Pisces', '♓', 'Feb 19 – Mar 20'),
   ];
+
+  /// Traditional Vedic/Western associations for this sign (element, ruling
+  /// planet, lucky colour/number/day/gem). Fixed per sign — used to enrich the
+  /// daily horoscope with a "cosmic snapshot".
+  ZodiacTraits get traits => ZodiacTraits._byName[name] ?? ZodiacTraits._byName['Aries']!;
+}
+
+/// Fixed astrological associations for a sign. These are the classical
+/// correspondences (not day-to-day predictions), so they're safe to hard-code.
+class ZodiacTraits {
+  const ZodiacTraits({
+    required this.element,
+    required this.rulingPlanet,
+    required this.quality,
+    required this.luckyColor,
+    required this.luckyColorHex,
+    required this.luckyNumber,
+    required this.luckyDay,
+    required this.gemstone,
+  });
+
+  final String element; // Fire / Earth / Air / Water
+  final String rulingPlanet;
+  final String quality; // Cardinal / Fixed / Mutable
+  final String luckyColor;
+  final int luckyColorHex;
+  final String luckyNumber;
+  final String luckyDay;
+  final String gemstone;
+
+  static const _byName = <String, ZodiacTraits>{
+    'Aries': ZodiacTraits(
+        element: 'Fire', rulingPlanet: 'Mars', quality: 'Cardinal',
+        luckyColor: 'Red', luckyColorHex: 0xFFD1495B, luckyNumber: '9', luckyDay: 'Tuesday', gemstone: 'Red Coral',),
+    'Taurus': ZodiacTraits(
+        element: 'Earth', rulingPlanet: 'Venus', quality: 'Fixed',
+        luckyColor: 'Green', luckyColorHex: 0xFF3E8E7E, luckyNumber: '6', luckyDay: 'Friday', gemstone: 'Diamond',),
+    'Gemini': ZodiacTraits(
+        element: 'Air', rulingPlanet: 'Mercury', quality: 'Mutable',
+        luckyColor: 'Yellow', luckyColorHex: 0xFFE0A100, luckyNumber: '5', luckyDay: 'Wednesday', gemstone: 'Emerald',),
+    'Cancer': ZodiacTraits(
+        element: 'Water', rulingPlanet: 'Moon', quality: 'Cardinal',
+        luckyColor: 'Silver', luckyColorHex: 0xFF8892A6, luckyNumber: '2', luckyDay: 'Monday', gemstone: 'Pearl',),
+    'Leo': ZodiacTraits(
+        element: 'Fire', rulingPlanet: 'Sun', quality: 'Fixed',
+        luckyColor: 'Gold', luckyColorHex: 0xFFC9992B, luckyNumber: '1', luckyDay: 'Sunday', gemstone: 'Ruby',),
+    'Virgo': ZodiacTraits(
+        element: 'Earth', rulingPlanet: 'Mercury', quality: 'Mutable',
+        luckyColor: 'Olive', luckyColorHex: 0xFF6B7A3A, luckyNumber: '5', luckyDay: 'Wednesday', gemstone: 'Emerald',),
+    'Libra': ZodiacTraits(
+        element: 'Air', rulingPlanet: 'Venus', quality: 'Cardinal',
+        luckyColor: 'Pink', luckyColorHex: 0xFFC96D8E, luckyNumber: '6', luckyDay: 'Friday', gemstone: 'Diamond',),
+    'Scorpio': ZodiacTraits(
+        element: 'Water', rulingPlanet: 'Mars', quality: 'Fixed',
+        luckyColor: 'Maroon', luckyColorHex: 0xFF7E2E3C, luckyNumber: '9', luckyDay: 'Tuesday', gemstone: 'Red Coral',),
+    'Sagittarius': ZodiacTraits(
+        element: 'Fire', rulingPlanet: 'Jupiter', quality: 'Mutable',
+        luckyColor: 'Amber', luckyColorHex: 0xFFC77E28, luckyNumber: '3', luckyDay: 'Thursday', gemstone: 'Yellow Sapphire',),
+    'Capricorn': ZodiacTraits(
+        element: 'Earth', rulingPlanet: 'Saturn', quality: 'Cardinal',
+        luckyColor: 'Indigo', luckyColorHex: 0xFF3F4C7A, luckyNumber: '8', luckyDay: 'Saturday', gemstone: 'Blue Sapphire',),
+    'Aquarius': ZodiacTraits(
+        element: 'Air', rulingPlanet: 'Saturn', quality: 'Fixed',
+        luckyColor: 'Sky Blue', luckyColorHex: 0xFF3A7CA5, luckyNumber: '8', luckyDay: 'Saturday', gemstone: 'Blue Sapphire',),
+    'Pisces': ZodiacTraits(
+        element: 'Water', rulingPlanet: 'Jupiter', quality: 'Mutable',
+        luckyColor: 'Sea Green', luckyColorHex: 0xFF2E8B7F, luckyNumber: '3', luckyDay: 'Thursday', gemstone: 'Yellow Sapphire',),
+  };
 }
