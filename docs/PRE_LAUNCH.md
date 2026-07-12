@@ -2,6 +2,33 @@
 
 ---
 
+## 🗓️ TOMORROW'S LIST (set 2026‑07‑12, do next session)
+
+1. **🔴 Money-logic + commission — discuss + LIVE test.** Agree the commission
+   model (flat vs per-astrologer, AI vs human, coupon/offer effect), then run a
+   real chat session and reconcile customer debit / astrologer credit / platform
+   cut to the paisa. _(The critical item — do this one properly.)_
+2. **Razorpay live keys.** Get the `rzp_live_…` Key ID + Key Secret from the
+   person who set up the WhatsApp platform (don't regenerate live). Set both
+   secrets → deploy the 3 wallet functions → ₹10 live test. _(Full steps in the
+   "RAZORPAY LIVE KEYS — resume here" section below.)_
+3. **Package ID rename** off `com.example.*` → real IDs (e.g.
+   `com.asktro.customer` / `com.asktro.astrologer`). Claude does the code; Adrish
+   re-registers both IDs in Firebase + drops in fresh `google-services.json`.
+4. **Agora voice/video calls** — re-add `agora_rtc_engine` (fix the AGP namespace
+   clash), build dial/answer screens, wire the token join. Its own focused effort
+   (token backend is already done + deployed).
+5. **Launch-day toggles** (flip at launch, in order, with a real build): App Check
+   enforcement, `devPaymentsEnabled → false`, R8 shrinking + keep-rules,
+   `minInstances` on hot functions.
+6. **Quick console step:** enable the Firestore TTL policy on `rateLimits.expireAt`
+   (30 seconds).
+
+_Owner-side, not blockers: legal text, Android release keystore, iOS APNs push,
+raise the ₹1,000 budget alert → ₹50,000._
+
+---
+
 ## 🔴 CRITICAL — VERIFY BEFORE LAUNCH (added 2026‑07‑11, do first tomorrow)
 
 **End-to-end money-logic validation on a real phone — needs a discussion + a live test.**
