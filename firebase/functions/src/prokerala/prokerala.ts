@@ -31,6 +31,7 @@ const ALLOWED_PATHS = new Set<string>([
   'v2/astrology/birth-details',
   'v2/astrology/kundli',
   'v2/astrology/kundli/advanced',
+  'v2/astrology/chart',           // rendered birth-chart SVG (the kundli image)
   'v2/astrology/panchang',
   'v2/astrology/panchang/advanced',
   'v2/astrology/porutham',        // marriage matching
@@ -104,6 +105,17 @@ export const prokeralaAstrology = onCall(
         cachedToken = null;
         token = await getToken(clientId, clientSecret);
         res = await doFetch(token);
+      }
+      // The chart endpoint returns an SVG image, not JSON — pass it through as a
+      // string the app can render/share. Everything else is JSON.
+      const contentType = res.headers.get('content-type') ?? '';
+      if (contentType.includes('svg') || contentType.includes('xml') || path === 'v2/astrology/chart') {
+        const svg = await res.text().catch(() => '');
+        if (!res.ok) {
+          logger.error('prokeralaAstrology upstream error (chart)', { path, status: res.status, body: svg.slice(0, 200) });
+          failedPrecondition('Astrology service is temporarily unavailable.');
+        }
+        return { ok: true, contentType: 'image/svg+xml', data: { svg } };
       }
       const json = (await res.json().catch(() => null)) as { data?: unknown; errors?: unknown } | null;
       if (!res.ok) {
