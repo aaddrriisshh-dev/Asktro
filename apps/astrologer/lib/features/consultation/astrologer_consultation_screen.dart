@@ -342,7 +342,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
               const SizedBox(height: 12),
               Expanded(
                 child: SingleChildScrollView(
-                  child: CustomerDetailsCard(profile: cust, initiallyExpanded: true),
+                  child: CustomerDetailsCard(profile: cust),
                 ),
               ),
               const SizedBox(height: 12),
@@ -401,7 +401,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
             ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-              child: CustomerDetailsCard(profile: cust, initiallyExpanded: true),
+              child: CustomerDetailsCard(profile: cust),
             ),
           ),
           Expanded(

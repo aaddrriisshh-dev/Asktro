@@ -12,6 +12,7 @@ import '../../data/messaging_service.dart';
 import 'consultation_controller.dart';
 import 'consultation_header.dart';
 import 'consultation_end.dart';
+import 'chat_kundli_card.dart';
 
 /// Whether the astrologer is currently typing (their typing doc exists & fresh).
 final _peerTypingProvider = StreamProvider.autoDispose.family<bool, ({String id, String peerId})>((ref, arg) {
@@ -125,29 +126,41 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
         // viewport edge — the source of the stray "N PIXELS" overflow strip.
         child: SafeArea(
           top: false,
-          child: messages.isEmpty
-              ? const EmptyState(
-                  icon: Icons.history_rounded,
-                  title: 'No messages',
-                  message: 'This consultation has no saved messages.',
-                )
-              : ListView.builder(
-                  reverse: true,
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  itemCount: messages.length,
-                  itemBuilder: (_, i) {
-                    final m = messages[i];
-                    final isRemedy = m['type'] == 'remedy';
-                    return _Bubble(
-                      text: (m['text'] ?? '') as String,
-                      imageUrl: m['image'] as String?,
-                      mine: m['senderId'] == uid,
-                      seen: m['seen'] == true,
-                      remedyTitle: isRemedy ? (m['title'] ?? 'Remedy') as String : null,
-                      remedyNote: isRemedy ? (m['note'] ?? '') as String : null,
-                    );
-                  },
-                ),
+          child: Column(
+            children: [
+              // The customer's own kundli, pinned at the top of every chat so
+              // they can reference it during the consult (collapsed by default).
+              const Padding(
+                padding: EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
+                child: ChatKundliCard(),
+              ),
+              Expanded(
+                child: messages.isEmpty
+                    ? const EmptyState(
+                        icon: Icons.history_rounded,
+                        title: 'No messages',
+                        message: 'This consultation has no saved messages.',
+                      )
+                    : ListView.builder(
+                        reverse: true,
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        itemCount: messages.length,
+                        itemBuilder: (_, i) {
+                          final m = messages[i];
+                          final isRemedy = m['type'] == 'remedy';
+                          return _Bubble(
+                            text: (m['text'] ?? '') as String,
+                            imageUrl: m['image'] as String?,
+                            mine: m['senderId'] == uid,
+                            seen: m['seen'] == true,
+                            remedyTitle: isRemedy ? (m['title'] ?? 'Remedy') as String : null,
+                            remedyNote: isRemedy ? (m['note'] ?? '') as String : null,
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

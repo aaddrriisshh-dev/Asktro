@@ -131,16 +131,22 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
           _mangalCard(r),
         ],
         if (yogas.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          _sectionHeader('Yogas in your chart'),
-          const SizedBox(height: 10),
-          _yogasCard(yogas),
+          const SizedBox(height: 16),
+          _CollapsibleSection(
+            title: 'Yogas in your chart',
+            icon: Icons.auto_awesome_rounded,
+            subtitle: '${yogas.length} found',
+            child: _yogasBody(yogas),
+          ),
         ],
         if (dasha.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          _sectionHeader('Planetary periods · Vimshottari Dasha'),
-          const SizedBox(height: 10),
-          _dashaCard(dasha),
+          const SizedBox(height: 12),
+          _CollapsibleSection(
+            title: 'Planetary periods',
+            icon: Icons.timelapse_rounded,
+            subtitle: 'Vimshottari Dasha',
+            child: _dashaBody(dasha),
+          ),
         ],
         if (p != null && !p.birthTimeKnown) ...[
           const SizedBox(height: 14),
@@ -153,7 +159,7 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
   }
 
   /// Compact identity card — name + birth details in a small horizontal strip
-  /// instead of a tall centred hero.
+  /// on a soft lavender gradient so it reads as a distinct, premium header.
   Widget _nameCard(UserProfile? p) {
     final date = p?.birthDate;
     final parts = <String>[];
@@ -164,7 +170,15 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: Ob.softShadow,),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF3ECFB), Color(0xFFFBF6FF)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Ob.selectedBorder.withValues(alpha: 0.5)),
+        boxShadow: Ob.softShadow,
+      ),
       child: Row(
         children: [
           Container(
@@ -198,7 +212,15 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: Ob.softShadow,),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFBF7FF), Color(0xFFF1ECFB)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE9E1F8)),
+        boxShadow: Ob.softShadow,
+      ),
       child: Column(
         children: [
           for (var i = 0; i < rows.length; i++)
@@ -206,7 +228,7 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
               decoration: BoxDecoration(
                 border: i == rows.length - 1
                     ? null
-                    : const Border(bottom: BorderSide(color: Color(0xFFF1ECFB))),
+                    : const Border(bottom: BorderSide(color: Color(0xFFE2D8F4))),
               ),
               padding: const EdgeInsets.symmetric(vertical: 13),
               child: Row(
@@ -228,15 +250,6 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
       ),
     );
   }
-
-  Widget _sectionHeader(String text) => Row(
-        children: [
-          const Text('✦', style: TextStyle(color: Ob.gold, fontSize: 15)),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: Ob.sectionLabel.copyWith(fontSize: 16))),
-        ],
-      );
-
 
   Widget _chartCard(String svg) {
     return Container(
@@ -262,9 +275,9 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
           ],),
           const SizedBox(height: 14),
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: const Color(0xFFFCF6E7), // warm parchment behind the chart
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: const Color(0xFFEADFBE)),
             ),
@@ -299,7 +312,11 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
     final bg = has ? const Color(0xFFFBF1E3) : const Color(0xFFE9F6EF);
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(18)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.35), width: 1.3),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -323,44 +340,39 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
     );
   }
 
-  Widget _yogasCard(List<Map<String, dynamic>> yogas) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: Ob.softShadow,),
-        child: Column(
-          children: [
-            for (final y in yogas.take(12))
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
-                      child: Text('✦', style: TextStyle(color: Ob.gold, fontSize: 13)),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('${y['name']}',
-                              style: Ob.option.copyWith(fontWeight: FontWeight.w700),),
-                          if (y['description'] != null && '${y['description']}'.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text('${y['description']}', style: Ob.note),
-                          ],
+  Widget _yogasBody(List<Map<String, dynamic>> yogas) => Column(
+        children: [
+          for (final y in yogas.take(12))
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 9),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Text('✦', style: TextStyle(color: Ob.gold, fontSize: 13)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${y['name']}',
+                            style: Ob.option.copyWith(fontWeight: FontWeight.w700),),
+                        if (y['description'] != null && '${y['description']}'.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text('${y['description']}', style: Ob.note),
                         ],
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-          ],
-        ),
+            ),
+        ],
       );
 
-  Widget _dashaCard(List<Map<String, String?>> dasha) {
+  Widget _dashaBody(List<Map<String, String?>> dasha) {
     final now = DateTime.now();
     int currentIdx = -1;
     for (var i = 0; i < dasha.length; i++) {
@@ -378,50 +390,45 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
       return [f(s), f(e)].where((x) => x.isNotEmpty).join(' – ');
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: Ob.softShadow,),
-      child: Column(
-        children: [
-          for (var i = 0; i < dasha.length; i++)
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 5),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-              decoration: BoxDecoration(
-                color: i == currentIdx ? Ob.lavenderChip : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                        color: i == currentIdx ? Ob.purple : const Color(0xFFD8CFEC),
-                        shape: BoxShape.circle,),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text('${dasha[i]['name']} Mahadasha',
-                        style: Ob.option.copyWith(
-                            fontWeight: i == currentIdx ? FontWeight.w800 : FontWeight.w600,),),
-                  ),
-                  if (i == currentIdx)
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                          color: Ob.purple, borderRadius: BorderRadius.circular(20),),
-                      child: const Text('Now',
-                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),),
-                    ),
-                  Text(range(dasha[i]), style: Ob.note),
-                ],
-              ),
+    return Column(
+      children: [
+        for (var i = 0; i < dasha.length; i++)
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            decoration: BoxDecoration(
+              color: i == currentIdx ? Ob.lavenderChip : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
             ),
-        ],
-      ),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                      color: i == currentIdx ? Ob.purple : const Color(0xFFD8CFEC),
+                      shape: BoxShape.circle,),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('${dasha[i]['name']} Mahadasha',
+                      style: Ob.option.copyWith(
+                          fontWeight: i == currentIdx ? FontWeight.w800 : FontWeight.w600,),),
+                ),
+                if (i == currentIdx)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: Ob.purple, borderRadius: BorderRadius.circular(20),),
+                    child: const Text('Now',
+                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),),
+                  ),
+                Text(range(dasha[i]), style: Ob.note),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
@@ -495,6 +502,85 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A tappable collapsible card (default collapsed) with a gradient header —
+/// used for the longer Yogas and Dasha sections so they don't create a long
+/// scroll. The astrologer/user opens only what they want to read.
+class _CollapsibleSection extends StatefulWidget {
+  const _CollapsibleSection({
+    required this.title,
+    required this.child,
+    this.subtitle,
+    this.icon,
+  });
+  final String title;
+  final String? subtitle;
+  final IconData? icon;
+  final Widget child;
+
+  @override
+  State<_CollapsibleSection> createState() => _CollapsibleSectionState();
+}
+
+class _CollapsibleSectionState extends State<_CollapsibleSection> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFBF7FF), Color(0xFFF2ECFB)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE6DDF6)),
+        boxShadow: Ob.softShadow,
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => setState(() => _open = !_open),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+              child: Row(
+                children: [
+                  if (widget.icon != null) ...[
+                    Icon(widget.icon, size: 18, color: Ob.purple),
+                    const SizedBox(width: 10),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.title,
+                            style: Ob.sectionLabel.copyWith(fontSize: 15.5),),
+                        if (widget.subtitle != null)
+                          Text(widget.subtitle!, style: Ob.note),
+                      ],
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _open ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: const Icon(Icons.keyboard_arrow_down_rounded, color: Ob.purple),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_open)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: widget.child,
+            ),
+        ],
       ),
     );
   }
