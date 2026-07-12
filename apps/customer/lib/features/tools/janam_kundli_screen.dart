@@ -109,37 +109,123 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
     final r = _result!;
     final yogas = r.yogas;
     final dasha = r.dashaPeriods;
+    final details = <List<String>>[
+      if (r.nakshatraName != null)
+        ['Nakshatra', r.nakshatraLord != null ? '${r.nakshatraName} · ${r.nakshatraLord}' : r.nakshatraName!],
+      if (r.chandraRasi != null) ['Moon sign (Chandra)', r.chandraRasi!],
+      if (r.sooryaRasi != null) ['Sun sign (Sūrya)', r.sooryaRasi!],
+      if (r.zodiac != null) ['Zodiac (Rāśi)', r.zodiac!],
+    ];
     return ListView(
-      padding: EdgeInsets.fromLTRB(18, 8, 18, 32 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(18, 6, 18, 32 + MediaQuery.of(context).padding.bottom),
       children: [
-        _hero(p),
-        const SizedBox(height: 20),
+        _nameCard(p),
+        const SizedBox(height: 16),
         if (r.chartSvg != null) _chartCard(r.chartSvg!) else _chartUnavailable(),
-        const SizedBox(height: 22),
-        _statGrid(r),
+        if (details.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _detailsCard(details),
+        ],
         if (r.hasMangalDosha != null) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           _mangalCard(r),
         ],
         if (yogas.isNotEmpty) ...[
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
           _sectionHeader('Yogas in your chart'),
           const SizedBox(height: 10),
           _yogasCard(yogas),
         ],
         if (dasha.isNotEmpty) ...[
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
           _sectionHeader('Planetary periods · Vimshottari Dasha'),
           const SizedBox(height: 10),
           _dashaCard(dasha),
         ],
         if (p != null && !p.birthTimeKnown) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           _timeCaveat(),
         ],
-        const SizedBox(height: 22),
+        const SizedBox(height: 20),
         _shareButton(p, r),
       ],
+    );
+  }
+
+  /// Compact identity card — name + birth details in a small horizontal strip
+  /// instead of a tall centred hero.
+  Widget _nameCard(UserProfile? p) {
+    final date = p?.birthDate;
+    final parts = <String>[];
+    if (date != null) parts.add(DateFormat('d MMM yyyy').format(date));
+    if (p != null && p.birthTimeKnown && p.birthTime != null) parts.add(p.birthTime!);
+    if (p != null && p.birthPlace != null && p.birthPlace!.isNotEmpty) parts.add(p.birthPlace!);
+    final line = parts.join('  ·  ');
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: Ob.softShadow,),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: const BoxDecoration(gradient: Ob.goldCircle, shape: BoxShape.circle),
+            child: const Icon(Icons.brightness_5_rounded, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(p?.name.isNotEmpty == true ? p!.name : 'Your Kundli',
+                    style: Ob.option.copyWith(fontWeight: FontWeight.w800, fontSize: 17),),
+                if (line.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(line, style: Ob.note),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Grouped birth-details card: nakshatra / moon / sun / zodiac as tidy rows
+  /// (values wrap and use a smaller weight so long text stays inside the card).
+  Widget _detailsCard(List<List<String>> rows) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: Ob.softShadow,),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++)
+            Container(
+              decoration: BoxDecoration(
+                border: i == rows.length - 1
+                    ? null
+                    : const Border(bottom: BorderSide(color: Color(0xFFF1ECFB))),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 5, child: Text(rows[i][0], style: Ob.note)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 6,
+                    child: Text(rows[i][1],
+                        textAlign: TextAlign.right,
+                        style: Ob.note.copyWith(
+                            fontSize: 13.5, fontWeight: FontWeight.w700, color: Ob.navy,),),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -151,31 +237,6 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
         ],
       );
 
-  Widget _hero(UserProfile? p) {
-    final date = p?.birthDate;
-    final parts = <String>[];
-    if (date != null) parts.add(DateFormat('d MMM yyyy').format(date));
-    if (p != null && p.birthTimeKnown && p.birthTime != null) parts.add(p.birthTime!);
-    if (p != null && p.birthPlace != null && p.birthPlace!.isNotEmpty) parts.add(p.birthPlace!);
-    final line = parts.join('  ·  ');
-    return Column(
-      children: [
-        Container(
-          width: 92,
-          height: 92,
-          decoration: const BoxDecoration(gradient: Ob.goldCircle, shape: BoxShape.circle),
-          child: const Icon(Icons.brightness_5_rounded, color: Colors.white, size: 42),
-        ),
-        const SizedBox(height: 12),
-        Text(p?.name.isNotEmpty == true ? p!.name : 'Your Kundli',
-            style: Ob.title.copyWith(fontSize: 26),),
-        if (line.isNotEmpty) ...[
-          const SizedBox(height: 3),
-          Text(line, style: Ob.note, textAlign: TextAlign.center),
-        ],
-      ],
-    );
-  }
 
   Widget _chartCard(String svg) {
     return Container(
@@ -230,55 +291,6 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
             color: Colors.white, borderRadius: BorderRadius.circular(22), boxShadow: Ob.softShadow,),
         child: Text('The chart image is temporarily unavailable — your details are shown below.',
             style: Ob.note, textAlign: TextAlign.center,),
-      );
-
-  Widget _statGrid(KundliResult r) {
-    final tiles = <Widget>[
-      if (r.nakshatraName != null)
-        _statTile(Icons.star_rounded, 'Nakshatra',
-            r.nakshatraLord != null ? '${r.nakshatraName}\n${r.nakshatraLord} lord' : r.nakshatraName!,),
-      if (r.chandraRasi != null) _statTile(Icons.nightlight_round, 'Moon sign', r.chandraRasi!),
-      if (r.sooryaRasi != null) _statTile(Icons.wb_sunny_rounded, 'Sun sign', r.sooryaRasi!),
-      if (r.zodiac != null) _statTile(Icons.brightness_5_rounded, 'Zodiac (Rāśi)', r.zodiac!),
-    ];
-    if (tiles.isEmpty) return const SizedBox.shrink();
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.55,
-      children: tiles,
-    );
-  }
-
-  Widget _statTile(IconData icon, String label, String value) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: Ob.softShadow,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(color: Ob.lavenderChip, borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, size: 19, color: Ob.purple),
-            ),
-            const SizedBox(height: 8),
-            Text(label, style: Ob.note),
-            const SizedBox(height: 2),
-            Text(value,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Ob.option.copyWith(fontWeight: FontWeight.w700, height: 1.15),),
-          ],
-        ),
       );
 
   Widget _mangalCard(KundliResult r) {
