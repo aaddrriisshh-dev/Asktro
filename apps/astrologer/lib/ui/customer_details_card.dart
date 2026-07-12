@@ -1,8 +1,11 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import 'celestial.dart';
 import 'customer_insight.dart';
+import '../data/customer_kundli_service.dart';
 
 /// The customer's complete details for the astrologer — shown on the incoming
 /// request screen and pinned as the first card in the chat. Collapsible so it
@@ -21,6 +24,14 @@ class CustomerDetailsCard extends StatefulWidget {
 
 class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
   late bool _expanded = widget.initiallyExpanded;
+  final _kundli = CustomerKundliService(FirebaseFunctions.instanceFor(region: 'asia-south1'));
+  Future<String?>? _chartFuture; // lazily started the first time the card expands
+
+  void _ensureChartStarted() {
+    if (_chartFuture != null) return;
+    final p = widget.profile;
+    if (p != null) _chartFuture = _kundli.chartSvg(p);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +123,7 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
                   _section('Birth chart · Kundli'),
                   _row('Sun sign', i.sunSign),
                   const SizedBox(height: 8),
-                  _chartPlaceholder(),
+                  _chartSection(),
                 ],
               ),
             ),
@@ -121,26 +132,57 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
     );
   }
 
-  // Wired placeholder — swap the inner content for the real chart widget once
-  // the kundli API is available. The layout/section already lives in the flow.
-  Widget _chartPlaceholder() => Container(
+  // The customer's live ProKerala birth chart, fetched on first expand and
+  // rendered as an SVG. Falls back to a friendly note if it can't be produced
+  // (e.g. no birth place on file).
+  Widget _chartSection() {
+    _ensureChartStarted();
+    return FutureBuilder<String?>(
+      future: _chartFuture,
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return _chartBox(child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 22),
+            child: Center(child: CircularProgressIndicator(color: Sky.purple, strokeWidth: 2.4)),
+          ),);
+        }
+        final svg = snap.data;
+        if (svg == null || svg.isEmpty) return _chartFallback();
+        return _chartBox(
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: SvgPicture.string(svg, fit: BoxFit.contain),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _chartBox({required Widget child}) => Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Sky.card,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Sky.line),
         ),
-        child: Column(
-          children: [
-            const Icon(Icons.auto_awesome_rounded, color: Sky.gold, size: 24),
-            const SizedBox(height: 6),
-            Text('Full birth chart',
-                style: Sky.label.copyWith(fontWeight: FontWeight.w800, color: Sky.ink),),
-            const SizedBox(height: 2),
-            Text('The kundli will render here once the chart service is connected.',
-                textAlign: TextAlign.center, style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3),),
-          ],
+        child: child,
+      );
+
+  Widget _chartFallback() => _chartBox(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              const Icon(Icons.auto_awesome_rounded, color: Sky.gold, size: 24),
+              const SizedBox(height: 6),
+              Text('Chart unavailable',
+                  style: Sky.label.copyWith(fontWeight: FontWeight.w800, color: Sky.ink),),
+              const SizedBox(height: 2),
+              Text('The customer has no birth place on file, or the chart service is momentarily unreachable.',
+                  textAlign: TextAlign.center, style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3),),
+            ],
+          ),
         ),
       );
 

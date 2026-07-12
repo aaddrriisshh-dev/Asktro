@@ -30,6 +30,8 @@ dependencies:
   # pubspec. Voice/video calls are staged for a dedicated phase.
   google_fonts: ^6.2.1
   cached_network_image: ^3.4.1
+  flutter_svg: ^2.0.10+1   # render the customer's ProKerala kundli chart in-chat
+  http: ^1.2.2             # geocode the customer's birth place for the chart
   intl: ^0.19.0
   permission_handler: ^11.3.1
   image_picker: ^1.1.2
