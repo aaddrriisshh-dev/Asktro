@@ -107,23 +107,49 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
 
   Widget _content(UserProfile? p) {
     final r = _result!;
+    final yogas = r.yogas;
+    final dasha = r.dashaPeriods;
     return ListView(
       padding: EdgeInsets.fromLTRB(18, 8, 18, 32 + MediaQuery.of(context).padding.bottom),
       children: [
         _hero(p),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         if (r.chartSvg != null) _chartCard(r.chartSvg!) else _chartUnavailable(),
-        const SizedBox(height: 18),
-        _detailsCard(r),
-        if (p != null && !p.birthTimeKnown) ...[
+        const SizedBox(height: 22),
+        _statGrid(r),
+        if (r.hasMangalDosha != null) ...[
           const SizedBox(height: 14),
+          _mangalCard(r),
+        ],
+        if (yogas.isNotEmpty) ...[
+          const SizedBox(height: 22),
+          _sectionHeader('Yogas in your chart'),
+          const SizedBox(height: 10),
+          _yogasCard(yogas),
+        ],
+        if (dasha.isNotEmpty) ...[
+          const SizedBox(height: 22),
+          _sectionHeader('Planetary periods · Vimshottari Dasha'),
+          const SizedBox(height: 10),
+          _dashaCard(dasha),
+        ],
+        if (p != null && !p.birthTimeKnown) ...[
+          const SizedBox(height: 16),
           _timeCaveat(),
         ],
-        const SizedBox(height: 20),
+        const SizedBox(height: 22),
         _shareButton(p, r),
       ],
     );
   }
+
+  Widget _sectionHeader(String text) => Row(
+        children: [
+          const Text('✦', style: TextStyle(color: Ob.gold, fontSize: 15)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: Ob.sectionLabel.copyWith(fontSize: 16))),
+        ],
+      );
 
   Widget _hero(UserProfile? p) {
     final date = p?.birthDate;
@@ -155,8 +181,12 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFDF7), Color(0xFFFBF4E4)], // soft parchment
+        ),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Ob.selectedBorder, width: 1.4),
         boxShadow: Ob.softShadow,
       ),
@@ -164,21 +194,31 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Icon(Icons.grid_on_rounded, size: 18, color: Ob.goldDeep),
+            const Icon(Icons.auto_awesome, size: 16, color: Ob.goldDeep),
             const SizedBox(width: 8),
-            Text('Birth Chart (Rāśi)',
+            Text('Birth Chart · Rāśi',
                 style: Ob.sectionLabel.copyWith(color: Ob.goldDeep),),
           ],),
-          const SizedBox(height: 12),
-          AspectRatio(
-            aspectRatio: 1,
-            child: SvgPicture.string(
-              svg,
-              fit: BoxFit.contain,
-              placeholderBuilder: (_) =>
-                  const Center(child: CircularProgressIndicator(color: Ob.purple)),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFEADFBE)),
+            ),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: SvgPicture.string(
+                svg,
+                fit: BoxFit.contain,
+                placeholderBuilder: (_) =>
+                    const Center(child: CircularProgressIndicator(color: Ob.purple)),
+              ),
             ),
           ),
+          const SizedBox(height: 6),
+          Center(child: Text('North Indian style', style: Ob.note)),
         ],
       ),
     );
@@ -192,56 +232,186 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
             style: Ob.note, textAlign: TextAlign.center,),
       );
 
-  Widget _detailsCard(KundliResult r) {
-    final rows = <List<String>>[
-      if (r.zodiac != null) ['Zodiac (Rāśi)', r.zodiac!],
+  Widget _statGrid(KundliResult r) {
+    final tiles = <Widget>[
       if (r.nakshatraName != null)
-        ['Nakshatra', r.nakshatraLord != null ? '${r.nakshatraName}  ·  ${r.nakshatraLord}' : r.nakshatraName!],
-      if (r.chandraRasi != null) ['Moon sign (Chandra)', r.chandraRasi!],
-      if (r.sooryaRasi != null) ['Sun sign (Sūrya)', r.sooryaRasi!],
-      if (r.hasMangalDosha != null)
-        ['Mangal Dosha', r.hasMangalDosha! ? 'Present' : 'Not present'],
+        _statTile(Icons.star_rounded, 'Nakshatra',
+            r.nakshatraLord != null ? '${r.nakshatraName}\n${r.nakshatraLord} lord' : r.nakshatraName!,),
+      if (r.chandraRasi != null) _statTile(Icons.nightlight_round, 'Moon sign', r.chandraRasi!),
+      if (r.sooryaRasi != null) _statTile(Icons.wb_sunny_rounded, 'Sun sign', r.sooryaRasi!),
+      if (r.zodiac != null) _statTile(Icons.brightness_5_rounded, 'Zodiac (Rāśi)', r.zodiac!),
     ];
+    if (tiles.isEmpty) return const SizedBox.shrink();
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.55,
+      children: tiles,
+    );
+  }
+
+  Widget _statTile(IconData icon, String label, String value) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: Ob.softShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(color: Ob.lavenderChip, borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, size: 19, color: Ob.purple),
+            ),
+            const SizedBox(height: 8),
+            Text(label, style: Ob.note),
+            const SizedBox(height: 2),
+            Text(value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Ob.option.copyWith(fontWeight: FontWeight.w700, height: 1.15),),
+          ],
+        ),
+      );
+
+  Widget _mangalCard(KundliResult r) {
+    final has = r.hasMangalDosha ?? false;
+    final color = has ? const Color(0xFFC9791F) : const Color(0xFF2F9C63);
+    final bg = has ? const Color(0xFFFBF1E3) : const Color(0xFFE9F6EF);
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 6),
-      decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(22), boxShadow: Ob.softShadow,),
-      child: Column(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(18)),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Your birth details', style: Ob.sectionLabel),
-          const SizedBox(height: 6),
-          if (rows.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Text('Details are being prepared.', style: Ob.note),
-            )
-          else
-            ...rows.map((e) => _detailRow(e[0], e[1])),
-          if (r.mangalDoshaDescription != null && (r.hasMangalDosha ?? false)) ...[
-            const SizedBox(height: 8),
-            Text(r.mangalDoshaDescription!, style: Ob.note),
-            const SizedBox(height: 8),
-          ],
+          Icon(has ? Icons.warning_amber_rounded : Icons.verified_rounded, color: color, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(has ? 'Mangal Dosha present' : 'No Mangal Dosha',
+                    style: Ob.option.copyWith(fontWeight: FontWeight.w700, color: color),),
+                if (r.mangalDoshaDescription != null) ...[
+                  const SizedBox(height: 4),
+                  Text(r.mangalDoshaDescription!, style: Ob.note),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _detailRow(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 9),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _yogasCard(List<Map<String, dynamic>> yogas) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: Ob.softShadow,),
+        child: Column(
           children: [
-            Expanded(flex: 5, child: Text(label, style: Ob.note)),
-            Expanded(
-                flex: 6,
-                child: Text(value,
-                    textAlign: TextAlign.right,
-                    style: Ob.option.copyWith(fontWeight: FontWeight.w600),),),
+            for (final y in yogas.take(12))
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Text('✦', style: TextStyle(color: Ob.gold, fontSize: 13)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('${y['name']}',
+                              style: Ob.option.copyWith(fontWeight: FontWeight.w700),),
+                          if (y['description'] != null && '${y['description']}'.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text('${y['description']}', style: Ob.note),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       );
+
+  Widget _dashaCard(List<Map<String, String?>> dasha) {
+    final now = DateTime.now();
+    int currentIdx = -1;
+    for (var i = 0; i < dasha.length; i++) {
+      final s = DateTime.tryParse(dasha[i]['start'] ?? '');
+      final e = DateTime.tryParse(dasha[i]['end'] ?? '');
+      if (s != null && e != null && now.isAfter(s) && now.isBefore(e)) {
+        currentIdx = i;
+        break;
+      }
+    }
+    String range(Map<String, String?> d) {
+      final s = DateTime.tryParse(d['start'] ?? '');
+      final e = DateTime.tryParse(d['end'] ?? '');
+      String f(DateTime? x) => x == null ? '' : DateFormat('MMM yyyy').format(x);
+      return [f(s), f(e)].where((x) => x.isNotEmpty).join(' – ');
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: Ob.softShadow,),
+      child: Column(
+        children: [
+          for (var i = 0; i < dasha.length; i++)
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              decoration: BoxDecoration(
+                color: i == currentIdx ? Ob.lavenderChip : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                        color: i == currentIdx ? Ob.purple : const Color(0xFFD8CFEC),
+                        shape: BoxShape.circle,),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('${dasha[i]['name']} Mahadasha',
+                        style: Ob.option.copyWith(
+                            fontWeight: i == currentIdx ? FontWeight.w800 : FontWeight.w600,),),
+                  ),
+                  if (i == currentIdx)
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: Ob.purple, borderRadius: BorderRadius.circular(20),),
+                      child: const Text('Now',
+                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),),
+                    ),
+                  Text(range(dasha[i]), style: Ob.note),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _timeCaveat() => Container(
         padding: const EdgeInsets.all(14),

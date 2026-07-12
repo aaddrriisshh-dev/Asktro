@@ -125,5 +125,40 @@ class KundliResult {
   bool? get hasMangalDosha => mangalDosha?['has_dosha'] as bool?;
   String? get mangalDoshaDescription => mangalDosha?['description'] as String?;
 
-  List<dynamic> get yogaDetails => data['yoga_details'] is List ? data['yoga_details'] as List : const [];
+  /// Yogas present in the chart, flattened to {name, description}. Handles both
+  /// a flat list and the grouped `yoga_list` shape ProKerala can return.
+  List<Map<String, dynamic>> get yogas {
+    final out = <Map<String, dynamic>>[];
+    final yd = data['yoga_details'];
+    if (yd is List) {
+      for (final group in yd) {
+        if (group is! Map) continue;
+        final list = group['yoga_list'];
+        if (list is List) {
+          for (final y in list) {
+            if (y is Map && y['name'] != null) {
+              out.add({'name': '${y['name']}', 'description': y['description']?.toString()});
+            }
+          }
+        } else if (group['name'] != null) {
+          out.add({'name': '${group['name']}', 'description': group['description']?.toString()});
+        }
+      }
+    }
+    return out;
+  }
+
+  /// Vimshottari Mahadasha periods as {name, start, end} (ISO date strings).
+  List<Map<String, String?>> get dashaPeriods {
+    final out = <Map<String, String?>>[];
+    final dp = data['dasha_periods'];
+    if (dp is List) {
+      for (final d in dp) {
+        if (d is Map && d['name'] != null) {
+          out.add({'name': '${d['name']}', 'start': d['start']?.toString(), 'end': d['end']?.toString()});
+        }
+      }
+    }
+    return out;
+  }
 }
