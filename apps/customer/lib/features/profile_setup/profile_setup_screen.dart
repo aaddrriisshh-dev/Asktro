@@ -40,6 +40,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   bool _pm = true;
   bool _timeUnknown = false;
   String? _birthPlace;
+  double? _birthLat;
+  double? _birthLng;
   String? _relationship;
   final Set<String> _languages = {};
 
@@ -95,6 +97,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       'birthTimeKnown': !_timeUnknown,
       'birthTime': _timeUnknown ? null : _birthTime24,
       'birthPlace': _birthPlace,
+      'birthLat': _birthLat,
+      'birthLng': _birthLng,
       'relationshipStatus': _relationship,
       'languages': _languages.toList(),
       if (_referral.text.trim().isNotEmpty) 'referredBy': _referral.text.trim().toUpperCase(),
@@ -581,7 +585,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           const SizedBox(height: 8),
           _stepHead('Where were you born?', 'Your birth place helps us calculate accurate planetary positions.'),
           const SizedBox(height: 22),
-          _CitySearchField(initial: _birthPlace, onSelected: (c) => setState(() => _birthPlace = c)),
+          _CitySearchField(
+            initial: _birthPlace,
+            onSelected: (p) => setState(() {
+              _birthPlace = p.label;
+              _birthLat = p.lat;
+              _birthLng = p.lon;
+            }),
+          ),
         ],
       ),
       footer: _footer('Next'),
@@ -882,7 +893,8 @@ class _WheelSpec {
 class _CitySearchField extends StatefulWidget {
   const _CitySearchField({this.initial, required this.onSelected});
   final String? initial;
-  final ValueChanged<String> onSelected;
+  // Carries the picked place with its lat/lon (free-typed text has null coords).
+  final ValueChanged<PlaceResult> onSelected;
 
   @override
   State<_CitySearchField> createState() => _CitySearchFieldState();
@@ -904,7 +916,7 @@ class _CitySearchFieldState extends State<_CitySearchField> {
   }
 
   void _onChanged(String v) {
-    widget.onSelected(v); // free text keeps the CTA usable
+    widget.onSelected(PlaceResult(label: v)); // free text keeps the CTA usable (no coords)
     setState(() => _query = v);
     _debounce?.cancel();
     final q = v.trim();
@@ -933,7 +945,7 @@ class _CitySearchFieldState extends State<_CitySearchField> {
       _query = p.label;
       _results = const [];
     });
-    widget.onSelected(p.label);
+    widget.onSelected(p); // carries lat/lon
     FocusScope.of(context).unfocus();
   }
 

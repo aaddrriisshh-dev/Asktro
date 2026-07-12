@@ -45,6 +45,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Timer? _placeDebounce;
   List<PlaceResult> _placeResults = const [];
   bool _placeLoading = false;
+  double? _birthLat;
+  double? _birthLng;
 
   bool _prefilled = false;
   bool _saving = false;
@@ -62,6 +64,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _name.text = p.name == 'Guest' ? '' : p.name;
     _email.text = p.email ?? '';
     _place.text = p.birthPlace ?? '';
+    _birthLat = p.birthLat;
+    _birthLng = p.birthLng;
     _gender = p.gender;
     _birthDate = p.birthDate;
     _timeKnown = p.birthTimeKnown;
@@ -99,6 +103,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         'birthTimeKnown': _timeKnown,
         'birthTime': _birthTime24(),
         'birthPlace': _place.text.trim(),
+        'birthLat': _birthLat,
+        'birthLng': _birthLng,
         'relationshipStatus': _relationship,
         'languages': _languages.toList(),
         'onboardingComplete': true,
@@ -196,6 +202,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   // ---- live city search ----
   void _onPlaceChanged(String v) {
+    // Typing free text invalidates the previously picked coordinates — they are
+    // only trustworthy for a place chosen from the geocoded suggestions.
+    _birthLat = null;
+    _birthLng = null;
     _placeDebounce?.cancel();
     final q = v.trim();
     if (q.length < 2) {
@@ -431,6 +441,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     onTap: () {
                       _place.text = r.label;
                       _place.selection = TextSelection.collapsed(offset: r.label.length);
+                      _birthLat = r.lat;
+                      _birthLng = r.lon;
                       setState(() => _placeResults = const []);
                       FocusScope.of(context).unfocus();
                     },

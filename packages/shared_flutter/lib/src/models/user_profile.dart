@@ -23,6 +23,8 @@ class UserProfile extends Equatable {
     this.birthTime,
     this.birthTimeKnown = true,
     this.birthPlace,
+    this.birthLat,
+    this.birthLng,
     this.languages = const [],
     this.relationshipStatus,
     this.onboardingComplete = false,
@@ -50,7 +52,14 @@ class UserProfile extends Equatable {
   final String? birthTime; // 'HH:mm' 24h, or null if unknown
   final bool birthTimeKnown;
   final String? birthPlace; // free-text city, country
+  final double? birthLat; // birth-place latitude (for ProKerala kundli/panchang)
+  final double? birthLng; // birth-place longitude
   final List<String> languages;
+
+  /// ProKerala needs "lat,lng" coordinates. Null until the birth place is
+  /// captured with a geocoded result (or backfilled on demand).
+  String? get birthCoordinates =>
+      (birthLat != null && birthLng != null) ? '$birthLat,$birthLng' : null;
   final String? relationshipStatus; // 'married' | 'single' | 'divorced' | 'in_relationship'
   final bool onboardingComplete;
 
@@ -85,6 +94,8 @@ class UserProfile extends Equatable {
         birthTime: m['birthTime'] as String?,
         birthTimeKnown: (m['birthTimeKnown'] ?? true) as bool,
         birthPlace: m['birthPlace'] as String?,
+        birthLat: (m['birthLat'] as num?)?.toDouble(),
+        birthLng: (m['birthLng'] as num?)?.toDouble(),
         languages: List<String>.from(m['languages'] ?? const []),
         relationshipStatus: m['relationshipStatus'] as String?,
         onboardingComplete: (m['onboardingComplete'] ?? false) as bool,
@@ -97,6 +108,7 @@ class UserProfile extends Equatable {
         referralCode, referredBy, totalConsultations, notificationEnabled,
         favouriteAstrologers, followingAstrologers, accountStatus,
         gender, birthDateMs, birthTime, birthTimeKnown, birthPlace,
+        birthLat, birthLng,
         languages, relationshipStatus, onboardingComplete,
       ];
 }
