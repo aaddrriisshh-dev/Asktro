@@ -11,6 +11,7 @@ import '../auth/auth_controller.dart';
 import '../consultations/consultations_tab.dart';
 import '../search/search_screen.dart';
 import '../tools/horoscope_screen.dart';
+import '../tools/janam_kundli_screen.dart';
 import '../profile_setup/onboarding_style.dart';
 import 'cms_viewer_screen.dart';
 import 'edit_profile_screen.dart';
@@ -380,9 +381,9 @@ class ProfileTab extends ConsumerWidget {
               _push(context, const HoroscopeScreen());
             }),
             const SizedBox(height: 10),
-            _freeTile(Icons.brightness_5_rounded, 'Janam Kundli', 'Your birth chart — coming soon', () {
+            _freeTile(Icons.brightness_5_rounded, 'Janam Kundli', 'Your birth chart, instantly', () {
               Navigator.pop(context);
-              _soon(context, 'Janam Kundli');
+              _push(context, const JanamKundliScreen());
             }),
           ],
         ),

@@ -10,6 +10,8 @@ import '../data/wallet_service_impl.dart';
 import '../data/rtc_token_service_impl.dart';
 import '../data/repositories.dart';
 import '../data/messaging_service.dart';
+import '../data/prokerala_service.dart';
+import '../data/prokerala_repository.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 /// Dependency injection via Riverpod. Firebase singletons are provided so they
@@ -39,6 +41,19 @@ final appLanguageProvider = StateProvider<String>((_) => 'en');
 
 final currentUidProvider = Provider<String?>((ref) {
   return ref.watch(authStateProvider).valueOrNull?.uid;
+});
+
+// ---- ProKerala astrology (proxy client + cached repository) ----
+final prokeralaServiceProvider =
+    Provider<ProkeralaService>((ref) => ProkeralaService(ref.watch(functionsProvider)));
+final prokeralaRepositoryProvider = Provider<ProkeralaRepository?>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return null;
+  return ProkeralaRepository(
+    ref.watch(prokeralaServiceProvider),
+    ref.watch(firestoreProvider),
+    uid,
+  );
 });
 
 // ---- Repositories ----

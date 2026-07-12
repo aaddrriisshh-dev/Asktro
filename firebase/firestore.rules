@@ -54,6 +54,14 @@ service cloud.firestore {
         'firstRechargeAt','chatGraceUsed'
       ]);
       allow delete: if false; // deletion only via Cloud Function
+
+      // Cached ProKerala readings (daily horoscope / kundli / panchang). These
+      // are non-sensitive astrology results the app caches so it doesn't re-hit
+      // the paid API. The user reads/writes only their own cache; the astrology
+      // tier never reads it (a customer shares a kundli into chat explicitly).
+      match /astro/{doc} {
+        allow read, write: if isSelf(userId);
+      }
     }
 
     // ============ customerProfiles (safe mirror for astrologers) ============
