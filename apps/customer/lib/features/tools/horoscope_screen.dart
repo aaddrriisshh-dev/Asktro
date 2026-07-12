@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../app/providers.dart';
-import '../../data/horoscope_service.dart';
 import '../profile_setup/onboarding_style.dart';
 import 'zodiac.dart';
 
@@ -25,11 +24,9 @@ class _Prediction {
 }
 
 class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
-  final _service = HoroscopeService();
   late ZodiacSign _sign;
   bool _loading = true;
-  List<_Prediction>? _predictions; // rich (ProKerala)
-  String? _fallbackText; // plain text (free API) when ProKerala is unavailable
+  List<_Prediction>? _predictions; // rich (ProKerala) — the only reading source
 
   @override
   void initState() {
@@ -43,9 +40,12 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
     setState(() {
       _loading = true;
       _predictions = null;
-      _fallbackText = null;
     });
 
+    // Predictions come ONLY from ProKerala. We deliberately do NOT substitute a
+    // third-party API or app-generated text — a user must never be shown a
+    // "reading" that didn't come from the astrology engine. If it can't load,
+    // we say so honestly.
     Map<String, dynamic>? data;
     final repo = ref.read(prokeralaRepositoryProvider);
     if (repo != null) {
@@ -56,19 +56,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
     if (!mounted) return;
 
     final preds = data != null ? _extract(data) : const <_Prediction>[];
-    if (preds.isNotEmpty) {
-      setState(() {
-        _predictions = preds;
-        _loading = false;
-      });
-      return;
-    }
-
-    // Fallback: the free text service (never fails — has a local reading).
-    final result = await _service.daily(_sign.name);
-    if (!mounted) return;
     setState(() {
-      _fallbackText = result.text;
+      _predictions = preds;
       _loading = false;
     });
   }
@@ -203,7 +192,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
           else if (_predictions != null && _predictions!.isNotEmpty)
             ..._richCards()
           else
-            _plainCard(),
+            _unavailableCard(),
           const SizedBox(height: 18),
           _affirmationCard(),
         ],
@@ -351,7 +340,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
             children: [
               Icon(Icons.format_quote_rounded, color: Color(0xFFF3D98A), size: 20),
               SizedBox(width: 8),
-              Text("TODAY'S AFFIRMATION",
+              Text('YOUR AFFIRMATION',
                   style: TextStyle(color: Color(0xFFF3D98A), fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w700),),
             ],
           ),
@@ -516,33 +505,38 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
     );
   }
 
-  Widget _plainCard() {
+  // Honest empty state — shown when ProKerala can't be reached. We never fill
+  // this with substitute text, so the user is never misled about the source.
+  Widget _unavailableCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFBF7FF), Color(0xFFF3ECFB)],
-        ),
+        color: Ob.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE9E1F8)),
+        border: Border.all(color: Ob.border),
         boxShadow: Ob.softShadow,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.auto_awesome, color: Ob.gold, size: 18),
-              const SizedBox(width: 8),
-              Text("Today's reading", style: Ob.sectionLabel),
-            ],
-          ),
+          const Icon(Icons.cloud_off_rounded, color: Ob.grey, size: 30),
+          const SizedBox(height: 10),
+          Text("Today's reading isn't available right now",
+              textAlign: TextAlign.center,
+              style: Ob.option.copyWith(fontWeight: FontWeight.w700, color: Ob.navy),),
+          const SizedBox(height: 4),
+          Text('Please check your connection and try again in a moment.',
+              textAlign: TextAlign.center, style: Ob.note,),
           const SizedBox(height: 14),
-          Text(_fallbackText ?? "We couldn't reach the stars just now.",
-              style: Ob.subtitle.copyWith(fontSize: 15, height: 1.6, color: Ob.navy),),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Ob.purpleDeep,
+              side: const BorderSide(color: Ob.selectedBorder),
+            ),
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Retry'),
+          ),
         ],
       ),
     );
