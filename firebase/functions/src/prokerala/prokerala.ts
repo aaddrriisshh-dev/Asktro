@@ -37,6 +37,7 @@ const ALLOWED_PATHS = new Set<string>([
   'v2/astrology/porutham',        // marriage matching
   'v2/astrology/kundli-matching',
   'v2/astrology/auspicious-period',
+  'v2/astrology/inauspicious-period', // rahu kaal, gulika, yamaganda
   'v2/astrology/nakshatra-porutham',
 ]);
 

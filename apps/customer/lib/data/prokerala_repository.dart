@@ -159,19 +159,29 @@ class ProkeralaRepository {
   Future<Map<String, dynamic>?> auspiciousPeriod(UserProfile p) async {
     final coords = await _coordinatesFor(p) ?? _defaultCoords;
     final day = _todayKey();
-    final doc = _cache.doc('auspicious_$day');
+    final doc = _cache.doc('auspicious_v2_$day');
     final snap = await doc.get();
     final cached = snap.data();
     if (cached != null && cached['data'] is Map) {
       return Map<String, dynamic>.from(cached['data'] as Map);
     }
-    final data = await _svc.call('v2/astrology/auspicious-period', params: {
+    final params = {
       'datetime': _nowIso(),
       'coordinates': coords,
       'ayanamsa': 1,
       'la': 'en',
-    },);
-    if (data == null) return null;
+    };
+    // Fetch auspicious (abhijit, amrit kaal, brahma muhurat) AND inauspicious
+    // (rahu kaal, gulika, yamaganda) together, so the day is complete.
+    final results = await Future.wait([
+      _svc.call('v2/astrology/auspicious-period', params: params),
+      _svc.call('v2/astrology/inauspicious-period', params: params),
+    ]);
+    if (results[0] == null && results[1] == null) return null;
+    final data = {
+      'auspicious': results[0]?['muhurat'] ?? results[0]?['inauspicious_period'] ?? results[0] ?? const [],
+      'inauspicious': results[1]?['muhurat'] ?? results[1]?['inauspicious_period'] ?? results[1] ?? const [],
+    };
     await doc.set({'data': data, 'cachedAt': FieldValue.serverTimestamp()});
     return data;
   }

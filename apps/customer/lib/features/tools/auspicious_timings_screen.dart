@@ -59,40 +59,43 @@ class _AuspiciousTimingsScreenState extends ConsumerState<AuspiciousTimingsScree
     return null;
   }
 
-  bool _isAuspicious(Map<String, dynamic> m) {
-    final type = '${m['type'] ?? m['nature'] ?? ''}'.toLowerCase();
-    final name = '${m['name'] ?? ''}'.toLowerCase();
-    if (type.contains('inauspicious') || type.contains('bad')) return false;
-    if (type.contains('auspicious') || type.contains('good')) return true;
-    // Fall back to the well-known inauspicious names.
-    const bad = ['rahu', 'gulika', 'yamaganda', 'varjyam', 'dur muhurat', 'dur muhurtam'];
-    return !bad.any(name.contains);
+  /// Formatted end time, with a date suffix when the window crosses midnight, so
+  /// "9:54 PM → 6:50 AM" reads "9:54 PM → 6:50 AM (13 Jul)".
+  String? _end(dynamic startRaw, dynamic endRaw) {
+    final e = _fmt(endRaw);
+    if (e == null) return null;
+    final sd = startRaw is String ? DateTime.tryParse(startRaw)?.toLocal() : null;
+    final ed = endRaw is String ? DateTime.tryParse(endRaw)?.toLocal() : null;
+    if (sd != null && ed != null && (ed.year != sd.year || ed.month != sd.month || ed.day != sd.day)) {
+      return '$e (${DateFormat('d MMM').format(ed)})';
+    }
+    return e;
   }
 
-  /// ProKerala returns a `muhurat` list; each entry may carry a `period` list of
-  /// {start,end} windows. Flatten to a simple list.
-  List<_Window> _parse(Map<String, dynamic> data) {
-    final out = <_Window>[];
-    final list = data['muhurat'] ?? data['muhurta'] ?? data['auspicious_period'] ?? data['period'];
-    if (list is List) {
-      for (final e in list) {
-        if (e is! Map) continue;
-        final m = Map<String, dynamic>.from(e);
-        final name = m['name']?.toString() ?? 'Period';
-        final desc = m['description']?.toString();
-        final auspicious = _isAuspicious(m);
-        final periods = m['period'];
-        if (periods is List && periods.isNotEmpty) {
-          for (final p in periods) {
-            if (p is Map) {
-              out.add(_Window(name, desc, _fmt(p['start']), _fmt(p['end']), auspicious));
-            }
-          }
-        } else {
-          out.add(_Window(name, desc, _fmt(m['start']), _fmt(m['end']), auspicious));
+  void _addFrom(dynamic list, bool auspicious, List<_Window> out) {
+    if (list is! List) return;
+    for (final e in list) {
+      if (e is! Map) continue;
+      final m = Map<String, dynamic>.from(e);
+      final name = m['name']?.toString() ?? 'Period';
+      final desc = m['description']?.toString();
+      final periods = m['period'];
+      if (periods is List && periods.isNotEmpty) {
+        for (final p in periods) {
+          if (p is Map) out.add(_Window(name, desc, _fmt(p['start']), _end(p['start'], p['end']), auspicious));
         }
+      } else {
+        out.add(_Window(name, desc, _fmt(m['start']), _end(m['start'], m['end']), auspicious));
       }
     }
+  }
+
+  /// Consumes the merged `{auspicious:[...], inauspicious:[...]}` payload the
+  /// repository builds from ProKerala's two muhurat endpoints.
+  List<_Window> _parse(Map<String, dynamic> data) {
+    final out = <_Window>[];
+    _addFrom(data['auspicious'], true, out);
+    _addFrom(data['inauspicious'], false, out);
     return out;
   }
 

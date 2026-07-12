@@ -51,6 +51,25 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
     return null;
   }
 
+  /// A "start → end" window that stays readable when the segment crosses
+  /// midnight: the end time gets a date suffix when it lands on a later day, so
+  /// "10:30 PM → 6:50 PM" reads "10:30 PM → 6:50 PM (13 Jul)" instead of looking
+  /// like the times are reversed.
+  String? _window(dynamic startRaw, dynamic endRaw) {
+    final s = _time(startRaw);
+    final e = _time(endRaw);
+    if (s == null && e == null) return null;
+    if (e == null) return s;
+    if (s == null) return e;
+    final sd = startRaw is String ? DateTime.tryParse(startRaw)?.toLocal() : null;
+    final ed = endRaw is String ? DateTime.tryParse(endRaw)?.toLocal() : null;
+    var end = e;
+    if (sd != null && ed != null && (ed.year != sd.year || ed.month != sd.month || ed.day != sd.day)) {
+      end = '$e (${DateFormat('d MMM').format(ed)})';
+    }
+    return '$s → $end';
+  }
+
   /// A panchang element (tithi/nakshatra/yoga/karana) as a list of segments,
   /// each {name, start, end}. Handles both a bare map and a list.
   List<Map<String, dynamic>> _segments(String key) {
@@ -217,9 +236,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
   Widget _segmentRow(Map<String, dynamic> seg) {
     final name = seg['name']?.toString() ?? '—';
     final lord = (seg['lord'] is Map ? (seg['lord']['name']) : seg['lord'])?.toString();
-    final start = _time(seg['start']);
-    final end = _time(seg['end']);
-    final window = (start != null || end != null) ? '${start ?? ''}${end != null ? ' → $end' : ''}'.trim() : null;
+    final window = _window(seg['start'], seg['end']);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
