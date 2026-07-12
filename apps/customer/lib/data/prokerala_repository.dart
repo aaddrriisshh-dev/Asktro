@@ -67,6 +67,40 @@ class ProkeralaRepository {
     return KundliResult(data: data, chartSvg: (chartSvg?.isNotEmpty ?? false) ? chartSvg : null);
   }
 
+  // --- Daily horoscope (rich, per sign per day) ------------------------------
+  /// Returns the ProKerala daily prediction `data` for [sign] (e.g. 'aries'),
+  /// cached once per sign per day. Null on failure (caller falls back).
+  Future<Map<String, dynamic>?> dailyHoroscope(String sign) async {
+    final signLc = sign.toLowerCase();
+    final day = _todayKey();
+    final doc = _cache.doc('horoscope_${signLc}_$day');
+    final snap = await doc.get();
+    final cached = snap.data();
+    if (cached != null && cached['data'] is Map) {
+      return Map<String, dynamic>.from(cached['data'] as Map);
+    }
+    final data = await _svc.call('v2/horoscope/daily/advanced', params: {
+      'datetime': _nowIso(),
+      'sign': signLc,
+    },);
+    if (data == null) return null;
+    await doc.set({'data': data, 'cachedAt': FieldValue.serverTimestamp()});
+    return data;
+  }
+
+  String _todayKey() {
+    final n = DateTime.now();
+    String two(int x) => x.toString().padLeft(2, '0');
+    return '${n.year}${two(n.month)}${two(n.day)}';
+  }
+
+  String _nowIso() {
+    final n = DateTime.now();
+    String two(int x) => x.toString().padLeft(2, '0');
+    return '${n.year.toString().padLeft(4, '0')}-${two(n.month)}-${two(n.day)}'
+        'T${two(n.hour)}:${two(n.minute)}:00+05:30';
+  }
+
   // --- helpers ---------------------------------------------------------------
 
   /// Birth coordinates as "lat,lng". Prefers the saved profile value; for older

@@ -25,12 +25,12 @@ void _comingSoon(BuildContext context, String title) {
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
-    builder: (_) => Container(
+    builder: (ctx) => Container(
       decoration: const BoxDecoration(
         color: Ob.bgColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 22, 24, 34),
+      padding: EdgeInsets.fromLTRB(24, 22, 24, 34 + MediaQuery.of(ctx).padding.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
