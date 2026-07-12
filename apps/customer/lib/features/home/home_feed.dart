@@ -7,6 +7,8 @@ import '../../app/providers.dart';
 import '../search/search_screen.dart';
 import '../tools/horoscope_screen.dart';
 import '../tools/janam_kundli_screen.dart';
+import '../tools/kundali_match_screen.dart';
+import '../tools/free_services_screen.dart';
 import '../settings/language_sheet.dart';
 import '../profile/support_screen.dart';
 import '../profile_setup/onboarding_style.dart';
@@ -339,10 +341,12 @@ class _ToolTabs extends StatelessWidget {
         children: [
           _tool(context, 'assets/onboarding/tool_horoscope.png', 'Daily\nHoroscope',
               () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HoroscopeScreen())),),
-          _tool(context, 'assets/onboarding/tool_match.png', 'Kundali\nMatch', () => _comingSoon(context, 'Kundali Match')),
+          _tool(context, 'assets/onboarding/tool_match.png', 'Kundali\nMatch',
+              () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KundaliMatchScreen())),),
           _tool(context, 'assets/onboarding/tool_kundali.png', 'Janam\nKundali',
               () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const JanamKundliScreen())),),
-          _tool(context, 'assets/onboarding/tool_free.png', 'Free\nServices', () => _comingSoon(context, 'Free Services')),
+          _tool(context, 'assets/onboarding/tool_free.png', 'Free\nServices',
+              () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FreeServicesScreen())),),
         ],
       ),
     );

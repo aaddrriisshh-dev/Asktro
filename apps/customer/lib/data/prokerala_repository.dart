@@ -88,6 +88,48 @@ class ProkeralaRepository {
     return data;
   }
 
+  // --- Kundali matching (guna milan) ----------------------------------------
+  /// Compatibility between two births. Coordinates are "lat,lng"; datetimes are
+  /// ISO8601 with the IST offset. Returns ProKerala's matching `data` (guna
+  /// milan score, koota breakdown, message) or null on failure.
+  Future<Map<String, dynamic>?> kundliMatch({
+    required String girlDatetime,
+    required String girlCoordinates,
+    required String boyDatetime,
+    required String boyCoordinates,
+  }) {
+    return _svc.call('v2/astrology/kundli-matching', params: {
+      'girl_dob': girlDatetime,
+      'girl_coordinates': girlCoordinates,
+      'boy_dob': boyDatetime,
+      'boy_coordinates': boyCoordinates,
+      'ayanamsa': 1,
+      'la': 'en',
+    },);
+  }
+
+  /// Builds an ISO8601 (IST) datetime from a date, an optional 'HH:mm' time
+  /// (noon if absent), for the matching form.
+  String isoFor(DateTime date, String? hhmm) {
+    var hh = 12, mm = 0;
+    if (hhmm != null && hhmm.contains(':')) {
+      final parts = hhmm.split(':');
+      hh = int.tryParse(parts[0]) ?? 12;
+      mm = int.tryParse(parts[1]) ?? 0;
+    }
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${date.year.toString().padLeft(4, '0')}-${two(date.month)}-${two(date.day)}'
+        'T${two(hh)}:${two(mm)}:00+05:30';
+  }
+
+  /// The signed-in user's own birth ISO + coordinates for matching (null if no
+  /// birth place is on file).
+  Future<({String datetime, String coordinates})?> selfBirth(UserProfile p) async {
+    final coords = await _coordinatesFor(p);
+    if (coords == null) return null;
+    return (datetime: _birthDateTimeIso(p), coordinates: coords);
+  }
+
   String _todayKey() {
     final n = DateTime.now();
     String two(int x) => x.toString().padLeft(2, '0');

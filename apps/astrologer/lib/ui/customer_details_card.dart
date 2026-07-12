@@ -162,9 +162,15 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
         width: double.infinity,
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          // Warm parchment tint (not plain white) so the chart reads like an
+          // almanac page and matches the customer app's kundli.
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFCF6E7), Color(0xFFF7EFD8)],
+          ),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Sky.line),
+          border: Border.all(color: const Color(0xFFE6D9B8)),
         ),
         child: child,
       );
