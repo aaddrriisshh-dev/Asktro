@@ -8,6 +8,7 @@ import {
 import { db } from '@/lib/firebase';
 import { formatPaise, formatDate, shortDay } from '@/lib/format';
 import { DailyChart } from '@/components/DailyChart';
+import { Metric } from '@/components/Metric';
 
 /** A single credited recharge (walletTransactions row, kind == 'recharge'). */
 interface Recharge {
@@ -189,10 +190,15 @@ export default function RechargesPage() {
     return out;
   }, [yearRows]);
 
+  const COMPARE_COLORS = ['c-purple', 'c-blue', 'c-amber', 'c-green', 'c-gold'];
+
   return (
     <div>
-      <h1>Recharges</h1>
-      <p className="muted" style={{ marginTop: -6, marginBottom: 16 }}>
+      <div className="live-head">
+        <span className="live-dot" />
+        <h1 style={{ margin: 0 }}>Recharges</h1>
+      </div>
+      <p className="muted" style={{ marginTop: 6, marginBottom: 16 }}>
         Every real customer recharge, live. Updates the instant a payment credits.
       </p>
 
@@ -218,15 +224,9 @@ export default function RechargesPage() {
       <div className="rch-split">
         {/* LEFT — live detail table for the selected period */}
         <div className="card">
-          <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 16 }}>
-            <div>
-              <div className="muted" style={{ fontSize: 12, letterSpacing: 0.5 }}>RECHARGES</div>
-              <strong style={{ fontSize: 22 }}>{rows.length}</strong>
-            </div>
-            <div>
-              <div className="muted" style={{ fontSize: 12, letterSpacing: 0.5 }}>TOTAL</div>
-              <strong style={{ fontSize: 22 }}>{formatPaise(total)}</strong>
-            </div>
+          <div className="metricgrid" style={{ marginBottom: 18 }}>
+            <Metric color="c-purple" label="Recharges (selected)" value={String(rows.length)} big />
+            <Metric color="c-green" label="Total collected" value={formatPaise(total)} big />
           </div>
 
           {error ? (
@@ -268,21 +268,17 @@ export default function RechargesPage() {
         {/* RIGHT — compare across periods + 30-day trend */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="card">
-            <h3 style={{ margin: '0 0 12px' }}>Compare</h3>
-            <table className="rch-compare">
-              <thead>
-                <tr><th>Period</th><th>Count</th><th>Total</th></tr>
-              </thead>
-              <tbody>
-                {compare.map((c) => (
-                  <tr key={c.key} className={c.key === 'sel' ? 'on' : ''}>
-                    <td>{c.label}</td>
-                    <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{c.count}</td>
-                    <td>{formatPaise(c.sum)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <h3 style={{ margin: '0 0 14px' }}>Compare periods</h3>
+            <div className="metricgrid" style={{ marginBottom: 0 }}>
+              {compare.map((c, i) => (
+                <Metric
+                  key={c.key}
+                  color={COMPARE_COLORS[i % COMPARE_COLORS.length]}
+                  label={`${c.label} · ${c.count} recharge${c.count === 1 ? '' : 's'}`}
+                  value={formatPaise(c.sum)}
+                />
+              ))}
+            </div>
           </div>
 
           <div className="card">
