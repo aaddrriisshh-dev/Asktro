@@ -272,8 +272,15 @@ function MoneyHeldOwed() {
     // only the numbers come back, so we never download the (growing) users or
     // payouts collections into the browser. The two run INDEPENDENTLY so one
     // failing (e.g. a permission denial) can't blank the whole panel forever.
-    getAggregateFromServer(collection(db, 'users'), { wallet: sum('walletBalance'), bonus: sum('bonusBalance') })
-      .then((a) => setHeld((a.data().wallet ?? 0) + (a.data().bonus ?? 0)))
+    // Two SEPARATE single-field sums (not one combined two-field aggregation):
+    // a multi-field sum needs a composite index Firestore won't auto-create and
+    // fails with failed-precondition, whereas each single-field sum uses the
+    // automatic single-field index that always exists.
+    Promise.all([
+      getAggregateFromServer(collection(db, 'users'), { v: sum('walletBalance') }),
+      getAggregateFromServer(collection(db, 'users'), { v: sum('bonusBalance') }),
+    ])
+      .then(([w, b]) => setHeld((w.data().v ?? 0) + (b.data().v ?? 0)))
       .catch(() => setHeld(null));
     getAggregateFromServer(query(collection(db, 'payouts'), where('status', 'in', ['pending', 'approved'])), { amt: sum('amount') })
       .then((a) => setOwed(a.data().amt ?? 0))
