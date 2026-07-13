@@ -315,38 +315,44 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
 
   Future<void> _showPaused() async {
     _pausedShown = true;
-    await showModalBottomSheet<void>(
+    // A CENTERED dialog (not a bottom sheet) so the buttons never fall into the
+    // phone's bottom gesture-bar / safe area and become un-tappable.
+    await showDialog<void>(
       context: context,
-      isDismissible: false,
-      enableDrag: false,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.pause_circle_filled_rounded, size: 56, color: AppColors.primary),
-            const SizedBox(height: AppSpacing.md),
-            Text('Consultation Paused', style: AppTypography.subtitle),
-            const SizedBox(height: AppSpacing.xs),
-            Text('Recharge now to continue exactly where you left off.',
-                style: AppTypography.caption, textAlign: TextAlign.center,),
-            const SizedBox(height: AppSpacing.xl),
-            PrimaryButton(
-              label: 'Recharge',
-              onPressed: () {
-                Navigator.pop(context);
-                _goRecharge();
-              },
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            SecondaryButton(
-              label: 'End Consultation',
-              onPressed: () {
-                Navigator.pop(context);
-                _end();
-              },
-            ),
-          ],
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.all(AppSpacing.xl),
+        backgroundColor: AppColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.dialog)),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.pause_circle_filled_rounded, size: 56, color: AppColors.primary),
+              const SizedBox(height: AppSpacing.md),
+              Text('Consultation Paused', style: AppTypography.subtitle, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.xs),
+              Text('Recharge now to continue exactly where you left off.',
+                  style: AppTypography.caption, textAlign: TextAlign.center,),
+              const SizedBox(height: AppSpacing.xl),
+              PrimaryButton(
+                label: 'Recharge',
+                onPressed: () {
+                  Navigator.pop(context);
+                  _goRecharge();
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SecondaryButton(
+                label: 'End Consultation',
+                onPressed: () {
+                  Navigator.pop(context);
+                  _end();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -29,8 +29,10 @@ Future<bool?> showLowBalanceDialog(
           opacity: anim.value.clamp(0, 1),
           child: Transform.scale(
             scale: 0.9 + 0.1 * curved.value,
-            child: Center(
-              child: _LowBalanceCard(remainingSec: remainingSec),
+            child: SafeArea(
+              child: Center(
+                child: _LowBalanceCard(remainingSec: remainingSec),
+              ),
             ),
           ),
         ),

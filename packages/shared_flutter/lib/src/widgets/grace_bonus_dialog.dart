@@ -27,7 +27,7 @@ Future<void> showGraceBonusDialog(
           opacity: anim.value.clamp(0, 1),
           child: Transform.scale(
             scale: 0.9 + 0.1 * curved.value,
-            child: Center(child: _GraceCard(minutes: minutes)),
+            child: SafeArea(child: Center(child: _GraceCard(minutes: minutes))),
           ),
         ),
       );
