@@ -9,10 +9,10 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../auth/auth_controller.dart';
 import '../consultations/consultations_tab.dart';
+import '../wallet/transactions_screen.dart';
 import '../search/search_screen.dart';
 import '../tools/horoscope_screen.dart';
 import '../tools/janam_kundli_screen.dart';
-import '../tools/kundali_match_screen.dart';
 import '../tools/panchang_screen.dart';
 import '../tools/auspicious_timings_screen.dart';
 import '../profile_setup/onboarding_style.dart';
@@ -46,6 +46,8 @@ class ProfileTab extends ConsumerWidget {
               _row(Icons.account_balance_wallet_rounded, 'My Wallet',
                   onTap: () => context.push('/recharge'),
                   trailing: _pill(Money.formatPaise(profile?.spendablePaise ?? 0)),),
+              _row(Icons.receipt_long_rounded, 'Transactions',
+                  onTap: () => _push(context, const TransactionsScreen()),),
               _row(Icons.chat_bubble_outline_rounded, 'My Sessions',
                   onTap: () => _push(context, const ConsultationsTab()),),
               _row(Icons.favorite_border_rounded, 'My Favourites',
@@ -387,11 +389,6 @@ class ProfileTab extends ConsumerWidget {
             _freeTile(Icons.brightness_5_rounded, 'Janam Kundli', 'Your birth chart, instantly', () {
               Navigator.pop(context);
               _push(context, const JanamKundliScreen());
-            }),
-            const SizedBox(height: 10),
-            _freeTile(Icons.favorite_rounded, 'Kundali Match', 'Ashtakoota compatibility out of 36', () {
-              Navigator.pop(context);
-              _push(context, const KundaliMatchScreen());
             }),
             const SizedBox(height: 10),
             _freeTile(Icons.calendar_month_rounded, 'Panchang', "Today's tithi, nakshatra & yoga", () {

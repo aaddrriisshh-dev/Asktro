@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../profile_setup/onboarding_style.dart';
 import 'horoscope_screen.dart';
 import 'janam_kundli_screen.dart';
-import 'kundali_match_screen.dart';
 import 'panchang_screen.dart';
 import 'auspicious_timings_screen.dart';
 
@@ -47,14 +46,6 @@ class FreeServicesScreen extends StatelessWidget {
             title: 'Janam Kundli',
             subtitle: 'Your birth chart, nakshatra, dosha, yogas & dasha.',
             onTap: () => _push(context, const JanamKundliScreen()),
-          ),
-          const SizedBox(height: 12),
-          _serviceCard(
-            context,
-            icon: Icons.favorite_rounded,
-            title: 'Kundali Match',
-            subtitle: 'Ashtakoota compatibility out of 36 gunas.',
-            onTap: () => _push(context, const KundaliMatchScreen()),
           ),
           const SizedBox(height: 24),
           _sectionTitle('More free services'),
