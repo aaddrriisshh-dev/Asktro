@@ -43,7 +43,9 @@ export function AstrologerFormModal({
     chatRate: rupees(a.chatRatePaise ?? a.ratePerMinutePaise),
     voiceRate: rupees(a.voiceRatePaise ?? a.ratePerMinutePaise),
     videoRate: rupees(a.videoRatePaise ?? a.ratePerMinutePaise),
-    commissionPercent: a.commissionPercent != null ? String(a.commissionPercent) : '',
+    // The form shows the ASTROLOGER'S share %. We store the platform cut
+    // (commissionPercent = 100 − share), so the billing engine is unchanged.
+    astrologerShare: a.commissionPercent != null ? String(100 - Number(a.commissionPercent)) : '',
     about: str(a.about),
     profilePhoto: str(a.profilePhoto),
     password: '',
@@ -74,7 +76,8 @@ export function AstrologerFormModal({
       // Keep the legacy single rate in sync (used as the fallback for anything
       // that reads the old field, e.g. AI personas) = the chat rate.
       const rate = chatRate;
-      const comm = f.commissionPercent ? Number(f.commissionPercent) : undefined;
+      // Input is the astrologer's share; store the platform cut (100 − share).
+      const comm = f.astrologerShare ? 100 - Number(f.astrologerShare) : undefined;
       if (mode === 'create') {
         const chosen = f.password.trim();
         const res = await callFn<{ tempPassword?: string | null }>('createAstrologer', {
@@ -142,7 +145,7 @@ export function AstrologerFormModal({
             <label className="af"><span>Chat rate (₹/min){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="25" value={f.chatRate} onChange={(e) => set('chatRate', e.target.value)} /></label>
             <label className="af"><span>Voice rate (₹/min)</span><input className="input" placeholder="29" value={f.voiceRate} onChange={(e) => set('voiceRate', e.target.value)} /></label>
             <label className="af"><span>Video rate (₹/min)</span><input className="input" placeholder="45" value={f.videoRate} onChange={(e) => set('videoRate', e.target.value)} /></label>
-            <label className="af"><span>Commission (%){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="40" value={f.commissionPercent} onChange={(e) => set('commissionPercent', e.target.value)} /></label>
+            <label className="af"><span>Astrologer share (%){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="65" value={f.astrologerShare} onChange={(e) => set('astrologerShare', e.target.value)} /></label>
           </div>
 
           {mode === 'create' && (
