@@ -36,6 +36,12 @@ service firebase.storage {
       allow write: if isAdmin() && isImage() && underMB(8);
     }
 
+    // Blog cover images: public read, admin write.
+    match /blog_images/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isImage() && underMB(8);
+    }
+
     // Admin-uploaded astrologer photos: public read, admin write.
     match /astrologer_photos/{fileName} {
       allow read: if isSignedIn();
