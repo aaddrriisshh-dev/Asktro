@@ -61,6 +61,13 @@ dependencies:
   # Native share sheet (referral invite -> WhatsApp / anywhere)
   share_plus: ^10.1.4
 
+# agora_rtc_engine still pins ffi ^1.1.2 (<2.0), which collides with share_plus
+# (and other modern plugins) that need ffi ^2. Force ffi 2.x for everyone — the
+# FFI surface Agora/iris use is stable across the 1→2 bump (2.0 only dropped
+# long-deprecated APIs), so this is the standard, safe resolution.
+dependency_overrides:
+  ffi: ^2.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
