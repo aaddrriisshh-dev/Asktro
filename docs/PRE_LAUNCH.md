@@ -8,10 +8,11 @@
    model (flat vs per-astrologer, AI vs human, coupon/offer effect), then run a
    real chat session and reconcile customer debit / astrologer credit / platform
    cut to the paisa. _(The critical item — do this one properly.)_
-2. **Razorpay live keys.** Get the `rzp_live_…` Key ID + Key Secret from the
-   person who set up the WhatsApp platform (don't regenerate live). Set both
-   secrets → deploy the 3 wallet functions → ₹10 live test. _(Full steps in the
-   "RAZORPAY LIVE KEYS — resume here" section below.)_
+2. ~~**Razorpay live keys.**~~ ✅ DONE 2026‑07‑13 — live keys (`rzp_live_…`,
+   secrets v6) set + deployed; ₹10 live test passed end-to-end (checkout →
+   signature → wallet credit → Razorpay dashboard captured). Remaining tidy-up:
+   flip `config/global.devPaymentsEnabled → false` (dummy path already
+   code-guarded).
 3. **Package ID rename** off `com.example.*` → real IDs (e.g.
    `com.asktro.customer` / `com.asktro.astrologer`). Claude does the code; Adrish
    re-registers both IDs in Firebase + drops in fresh `google-services.json`.
