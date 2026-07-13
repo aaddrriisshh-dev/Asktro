@@ -8,7 +8,6 @@ import { ActiveAstrologersCard, TotalAstrologersCard } from '@/components/Astrol
 import { PaidUsersCard, UnpaidUsersCard } from '@/components/PaidUnpaidCards';
 import { SupportTicketsCard } from '@/components/SupportTicketsCard';
 import { PayoutCard } from '@/components/PayoutCard';
-import { TestRecharge } from '@/components/TestRecharge';
 import { OperationsSection } from '@/components/OperationsSection';
 import { UsersActivityTable } from '@/components/UsersActivityTable';
 import { PanelProvider } from '@/lib/panels';
@@ -47,8 +46,6 @@ export default function DashboardPage() {
       </div>
 
       <OperationsSection showMoney={money} />
-
-      {money && <TestRecharge />}
 
       <UsersActivityTable />
     </div>
