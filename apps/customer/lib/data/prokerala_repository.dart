@@ -117,12 +117,16 @@ class ProkeralaRepository {
     required String girlCoordinates,
     required String boyDatetime,
     required String boyCoordinates,
+    String? selfName,
+    String? partnerName,
   }) {
     return _svc.purchaseKundliMatch(
       girlDob: girlDatetime,
       girlCoordinates: girlCoordinates,
       boyDob: boyDatetime,
       boyCoordinates: boyCoordinates,
+      selfName: selfName,
+      partnerName: partnerName,
     );
   }
 

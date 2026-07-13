@@ -28,6 +28,16 @@ interface MatchInput {
   girlCoordinates?: string;
   boyDob?: string;
   boyCoordinates?: string;
+  selfName?: string;
+  partnerName?: string;
+}
+
+/** Denormalized fields for the admin-readable `kundliMatches` sales record. */
+export interface MatchMeta {
+  selfName: string;
+  partnerName: string;
+  totalPoints: number;
+  maxPoints: number;
 }
 
 export const purchaseKundliMatch = onCall(
@@ -36,7 +46,8 @@ export const purchaseKundliMatch = onCall(
     const uid = assertAuthed(req);
     await enforceRateLimit('purchaseKundliMatch', uid);
 
-    const { girlDob, girlCoordinates, boyDob, boyCoordinates } = (req.data ?? {}) as MatchInput;
+    const { girlDob, girlCoordinates, boyDob, boyCoordinates, selfName, partnerName } =
+      (req.data ?? {}) as MatchInput;
     if (!girlDob || !girlCoordinates || !boyDob || !boyCoordinates) {
       badRequest('Both partners’ birth details are required.');
     }
@@ -82,7 +93,15 @@ export const purchaseKundliMatch = onCall(
       failedPrecondition('The astrology service is temporarily unavailable. You have not been charged.');
     }
 
-    const result = await applyMatchCharge(uid, key, data as Record<string, unknown>);
+    const gm = (data as Record<string, unknown>)['guna_milan'] as Record<string, unknown> | undefined;
+    const meta: MatchMeta = {
+      selfName: (selfName ?? '').toString().slice(0, 60),
+      partnerName: (partnerName ?? '').toString().slice(0, 60),
+      totalPoints: Number(gm?.['total_points'] ?? (data as Record<string, unknown>)['total_points'] ?? 0),
+      maxPoints: Number(gm?.['maximum_points'] ?? (data as Record<string, unknown>)['maximum_points'] ?? 36),
+    };
+
+    const result = await applyMatchCharge(uid, key, data as Record<string, unknown>, meta);
     logger.info('kundliMatch purchased', { uid, key, charged: result.charged });
     return { ...result, pricePaise: KUNDLI_MATCH_PRICE_PAISE };
   },
@@ -99,6 +118,7 @@ export async function applyMatchCharge(
   uid: string,
   key: string,
   data: Record<string, unknown>,
+  meta?: MatchMeta,
 ): Promise<{ data: unknown; charged: boolean; alreadyPurchased: boolean; newBalancePaise?: number }> {
   const userRef = db.collection(Collections.users).doc(uid);
   const cacheRef = userRef.collection('astro').doc(`match_${key}`);
@@ -139,6 +159,21 @@ export async function applyMatchCharge(
       data,
       key,
       pricePaise: KUNDLI_MATCH_PRICE_PAISE,
+      purchasedAt: FieldValue.serverTimestamp(),
+    });
+    // Denormalized, ADMIN-readable sales record for the portal's "Kundali
+    // Downloads" — the per-user cache above is private (rules), so the portal
+    // reads this instead. Customer name/phone come off the user doc we already read.
+    tx.set(db.collection('kundliMatches').doc(), {
+      userId: uid,
+      userName: (u.name as string) ?? null,
+      userPhone: (u.phone as string) ?? null,
+      selfName: meta?.selfName || null,
+      partnerName: meta?.partnerName || null,
+      totalPoints: meta?.totalPoints ?? null,
+      maxPoints: meta?.maxPoints ?? null,
+      pricePaise: KUNDLI_MATCH_PRICE_PAISE,
+      matchKey: key,
       purchasedAt: FieldValue.serverTimestamp(),
     });
     return { data, charged: true, alreadyPurchased: false, newBalancePaise: spendable - KUNDLI_MATCH_PRICE_PAISE };

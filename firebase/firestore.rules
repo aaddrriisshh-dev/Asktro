@@ -274,6 +274,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ============ kundliMatches (admin sales log for paid ₹49 reports) ========
+    // Denormalized, PII-light record written by purchaseKundliMatch (admin SDK).
+    // Only admins read it; clients never touch it (they have their own private
+    // copy under users/{uid}/astro).
+    match /kundliMatches/{id} {
+      allow read: if isAdmin();
+      allow write: if false; // functions only (admin SDK bypasses rules)
+    }
+
     // ================= support tickets =================
     match /supportTickets/{id} {
       allow read: if isAdmin()

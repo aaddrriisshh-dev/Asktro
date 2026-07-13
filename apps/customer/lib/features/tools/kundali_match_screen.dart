@@ -166,6 +166,8 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
         girlCoordinates: selfIsGirl ? selfCoords : partnerCoords,
         boyDatetime: selfIsGirl ? partnerIso : selfIso,
         boyCoordinates: selfIsGirl ? partnerCoords : selfCoords,
+        selfName: _self.name.text.trim().isEmpty ? (profile?.name ?? '') : _self.name.text.trim(),
+        partnerName: _partner.name.text.trim(),
       );
       if (!mounted) return;
       final data = res['data'];

@@ -16,7 +16,7 @@ export const ROLE_LABEL: Record<string, string> = {
 //        auditing session transcripts) + Payouts as view-only.
 const ROLE_ROUTES: Record<AdminRole, string[] | '*'> = {
   super: '*',
-  ops: ['/', '/users', '/astrologers', '/phone-sessions', '/video-sessions', '/plans', '/banners', '/coupons', '/broadcast', '/reports', '/cms', '/audit', '/payouts', '/pricing', '/support', '/moderation'],
+  ops: ['/', '/users', '/astrologers', '/phone-sessions', '/video-sessions', '/plans', '/banners', '/coupons', '/broadcast', '/reports', '/kundali-downloads', '/cms', '/audit', '/payouts', '/pricing', '/support', '/moderation'],
   astrology: ['/astrologers', '/phone-sessions', '/video-sessions', '/payouts', '/audit'],
 };
 

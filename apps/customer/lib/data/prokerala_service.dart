@@ -44,6 +44,8 @@ class ProkeralaService {
     required String girlCoordinates,
     required String boyDob,
     required String boyCoordinates,
+    String? selfName,
+    String? partnerName,
   }) async {
     final res = await _fn
         .httpsCallable(
@@ -55,6 +57,8 @@ class ProkeralaService {
       'girlCoordinates': girlCoordinates,
       'boyDob': boyDob,
       'boyCoordinates': boyCoordinates,
+      if (selfName != null) 'selfName': selfName,
+      if (partnerName != null) 'partnerName': partnerName,
     });
     return Map<String, dynamic>.from(res.data);
   }
