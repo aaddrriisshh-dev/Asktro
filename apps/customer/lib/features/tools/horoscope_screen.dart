@@ -62,27 +62,40 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
     });
   }
 
-  /// Defensively flatten ProKerala's daily prediction into aspect cards,
-  /// handling both a `predictions` list and a map-of-aspects shape.
+  /// Defensively flatten ProKerala's daily prediction into aspect cards.
+  /// The advanced endpoint nests readings under `daily_predictions` (an array,
+  /// one entry per sign) → `predictions[]`; older/basic shapes used a
+  /// `daily_prediction` map. Handle both, plus a bare top level.
   List<_Prediction> _extract(Map<String, dynamic> data) {
-    final container = (data['daily_prediction'] is Map)
-        ? Map<String, dynamic>.from(data['daily_prediction'] as Map)
-        : data;
+    Map<String, dynamic> container;
+    final dp = data['daily_predictions'] ?? data['daily_prediction'];
+    if (dp is List && dp.isNotEmpty && dp.first is Map) {
+      container = Map<String, dynamic>.from(dp.first as Map);
+    } else if (dp is Map) {
+      container = Map<String, dynamic>.from(dp);
+    } else {
+      container = data;
+    }
     final out = <_Prediction>[];
 
     void add(String key, String? text) {
-      final t = text?.trim();
-      if (t == null || t.isEmpty) return;
+      final t = _clean(text);
+      if (t.isEmpty) return;
       out.add(_Prediction(_labelFor(key), _iconFor(key), t));
     }
 
     final preds = container['predictions'] ?? container['prediction'];
     if (preds is List) {
       for (final p in preds) {
-        if (p is Map) {
-          final key = '${p['type'] ?? p['name'] ?? p['id'] ?? 'general'}';
-          add(key, (p['prediction'] ?? p['description'] ?? p['text'])?.toString());
-        }
+        if (p is! Map) continue;
+        final key = '${p['type'] ?? p['name'] ?? p['id'] ?? 'general'}';
+        // Lead with the main prediction, then append ProKerala's insight,
+        // seek and challenge lines so the reading is complete.
+        final parts = <Object?>[
+          p['prediction'] ?? p['description'] ?? p['text'],
+          p['insight'], p['seek'], p['challenge'],
+        ].map(_clean).where((s) => s.isNotEmpty).toList();
+        add(key, parts.join('\n\n'));
       }
     } else if (preds is Map) {
       preds.forEach((k, v) {
@@ -96,6 +109,20 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
       add('general', preds);
     }
     return out;
+  }
+
+  /// Trim + decode the handful of HTML entities ProKerala emits (e.g. `&#039;`).
+  String _clean(Object? v) {
+    final s = v?.toString().trim() ?? '';
+    if (s.isEmpty) return s;
+    return s
+        .replaceAll('&#039;', '\'')
+        .replaceAll('&#39;', '\'')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&nbsp;', ' ');
   }
 
   String _labelFor(String key) {
