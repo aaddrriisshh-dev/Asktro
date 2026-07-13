@@ -3,6 +3,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import 'match_koota.dart';
+
 /// Builds and shares a printable PDF of a Kundali Match (Ashtakoota Guna Milan)
 /// report from the ProKerala matching payload. Defensive about the exact shape.
 class MatchReportPdf {
@@ -29,10 +31,7 @@ class MatchReportPdf {
                 ? 'Average match'
                 : 'Needs consideration';
     final message = (data['message'] is Map ? data['message']['description'] : data['message'])?.toString();
-    final kootas = data['koota'] is List
-        ? List<Map<String, dynamic>>.from(
-            (data['koota'] as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)),)
-        : <Map<String, dynamic>>[];
+    final kootas = kootaRows(data);
 
     final doc = pw.Document();
     doc.addPage(
@@ -115,20 +114,20 @@ class MatchReportPdf {
 
   static pw.Widget _kootaTable(List<Map<String, dynamic>> kootas) {
     final rows = <List<String>>[
-      ['Koota', 'Points', 'Meaning'],
+      ['Koota', 'You', 'Partner'],
       for (final k in kootas)
         [
           '${k['name'] ?? '—'}',
-          '${(k['obtained_points'] as num?)?.toString() ?? '—'} / ${(k['maximum_points'] as num?)?.toString() ?? '—'}',
-          '${k['description'] ?? ''}',
+          '${k['girl'] ?? '—'}',
+          '${k['boy'] ?? '—'}',
         ],
     ];
     return pw.TableHelper.fromTextArray(
       headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
       headerDecoration: const pw.BoxDecoration(color: _navy),
       cellStyle: const pw.TextStyle(fontSize: 9.5, color: _navy),
-      cellAlignments: {0: pw.Alignment.centerLeft, 1: pw.Alignment.center, 2: pw.Alignment.centerLeft},
-      columnWidths: {0: const pw.FlexColumnWidth(2), 1: const pw.FlexColumnWidth(1.4), 2: const pw.FlexColumnWidth(5)},
+      cellAlignments: {0: pw.Alignment.centerLeft, 1: pw.Alignment.centerLeft, 2: pw.Alignment.centerLeft},
+      columnWidths: {0: const pw.FlexColumnWidth(2), 1: const pw.FlexColumnWidth(3), 2: const pw.FlexColumnWidth(3)},
       border: pw.TableBorder.all(color: const PdfColor.fromInt(0xFFECE6FA)),
       rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
       oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFBF9FF)),

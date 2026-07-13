@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import '../../app/providers.dart';
 import '../../data/place_search_service.dart';
 import '../profile_setup/onboarding_style.dart';
+import 'match_koota.dart';
 import 'match_report_pdf.dart';
 
 /// Kundali Match (Ashtakoota Guna Milan). Two birth-detail cards — yours
@@ -493,9 +494,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
     final max = ((gm?['maximum_points'] ?? data['maximum_points']) as num?)?.toDouble() ?? 36;
     final pct = max > 0 ? (total / max) : 0.0;
     final message = (data['message'] is Map ? data['message']['description'] : null)?.toString();
-    final kootas = data['koota'] is List
-        ? List<Map<String, dynamic>>.from((data['koota'] as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)))
-        : <Map<String, dynamic>>[];
+    final kootas = kootaRows(data);
     final verdict = pct >= 0.75
         ? 'Excellent match'
         : pct >= 0.5
@@ -565,18 +564,20 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text('${kootas[i]['name'] ?? 'Koota'}', style: Ob.option.copyWith(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 5),
                         Row(
                           children: [
-                            Expanded(child: Text('${kootas[i]['name'] ?? 'Koota'}', style: Ob.option.copyWith(fontWeight: FontWeight.w700))),
-                            Text('${(kootas[i]['obtained_points'] as num?)?.toString() ?? '—'} / ${(kootas[i]['maximum_points'] as num?)?.toString() ?? '—'}',
-                                style: Ob.note.copyWith(fontWeight: FontWeight.w800, color: Ob.purpleDeep),),
+                            Expanded(
+                              child: Text('You:  ${kootas[i]['girl'] ?? '—'}',
+                                  style: Ob.note.copyWith(fontSize: 12.5, color: Ob.grey, height: 1.3),),
+                            ),
+                            Expanded(
+                              child: Text('Partner:  ${kootas[i]['boy'] ?? '—'}',
+                                  style: Ob.note.copyWith(fontSize: 12.5, color: Ob.grey, height: 1.3),),
+                            ),
                           ],
                         ),
-                        if ((kootas[i]['description'] as String?)?.trim().isNotEmpty ?? false) ...[
-                          const SizedBox(height: 4),
-                          Text('${kootas[i]['description']}',
-                              style: Ob.note.copyWith(fontSize: 12.5, color: Ob.grey, height: 1.35),),
-                        ],
                       ],
                     ),
                   ),
