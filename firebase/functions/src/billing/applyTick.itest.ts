@@ -35,17 +35,17 @@ async function seedSession(
   uid: string,
   agoMs: number,
   nowMs: number,
-  opts: { wallet?: number; anyBonus?: number; chatBonus?: number; eligible?: boolean; astroAgoMs?: number } = {},
+  opts: { wallet?: number; anyBonus?: number; chatBonus?: number; eligible?: boolean; astroAgoMs?: number; type?: string; chatGraceUsed?: boolean } = {},
 ) {
   await db.collection('users').doc(uid).set({
     walletBalance: opts.wallet ?? 0,
     bonusBalance: opts.anyBonus ?? 0,
     chatBonusBalance: opts.chatBonus ?? 0,
-    chatGraceUsed: false,
+    chatGraceUsed: opts.chatGraceUsed ?? false,
   });
   const t = Timestamp.fromMillis(nowMs - agoMs);
   await db.collection('consultations').doc(cid).set({
-    customerId: uid, astrologerId: 'a1', type: 'chat', chatCreditEligible: opts.eligible ?? true,
+    customerId: uid, astrologerId: 'a1', type: opts.type ?? 'chat', chatCreditEligible: opts.eligible ?? true,
     status: 'active', pricePerMinute: 900, billedSeconds: 0, totalCharged: 0,
     lastTickAt: t, customerLastTickAt: t,
     // Only set the astrologer presence when a test needs it (human session).
@@ -120,6 +120,34 @@ describe('applyTick (emulator)', () => {
     const out = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'customer'));
     expect(out!.billedSeconds).toBe(15);   // clamped, NOT 90
     expect(out!.chargedPaise).toBe(225);
+  });
+
+  it('GRACE (chat): a one-time free minute is granted on exhaustion, session continues', async () => {
+    const uid = 'u_grace_chat'; const cid = 'c_grace_chat';
+    const T = Date.now();
+    // 150p spendable (any-bonus), 15s wants 225p → exhausts. graceMinutes=1.
+    await seedSession(cid, uid, 15_000, T, { anyBonus: 150, type: 'chat', chatGraceUsed: false });
+    const cfg = { ...CONFIG, graceMinutes: 1 };
+    const out = await db.runTransaction((tx) => applyTick(tx, cid, cfg, T, undefined, 'customer'));
+    expect(out!.graceGranted).toBe(true);
+    expect(out!.status).not.toBe('paused'); // grace keeps it alive
+
+    const u = (await db.collection('users').doc(uid).get()).data()!;
+    expect(u.chatGraceUsed).toBe(true); // burned once, per user, forever
+  });
+
+  it('GRACE (voice/video): NO free minute — the session pauses on exhaustion', async () => {
+    const T = Date.now();
+    const cfg = { ...CONFIG, graceMinutes: 1 };
+    for (const type of ['voice', 'video']) {
+      const uid = `u_grace_${type}`; const cid = `c_grace_${type}`;
+      await seedSession(cid, uid, 15_000, T, { anyBonus: 150, type, eligible: false, chatGraceUsed: false });
+      const out = await db.runTransaction((tx) => applyTick(tx, cid, cfg, T, undefined, 'customer'));
+      expect(out!.graceGranted).toBe(false); // calls get nothing
+      expect(out!.status).toBe('paused');
+      const u = (await db.collection('users').doc(uid).get()).data()!;
+      expect(u.chatGraceUsed).toBe(false); // untouched — chat's lifetime grace stays available
+    }
   });
 
   it('symmetry: an astrologer drop halts billing even while the customer keeps ticking', async () => {

@@ -37,6 +37,7 @@ export const createAstrologer = onCall(async (req) => {
     name?: string; email?: string; phone?: string; password?: string;
     experience?: number; languages?: string[]; expertise?: string[];
     about?: string; ratePerMinutePaise?: number; commissionPercent?: number;
+    chatRatePaise?: number; voiceRatePaise?: number; videoRatePaise?: number;
     profilePhoto?: string; isAI?: boolean; risingStar?: boolean;
   };
   if (!d.name || !d.email) badRequest('name and email are required.');
@@ -75,6 +76,11 @@ export const createAstrologer = onCall(async (req) => {
       languages: d.languages ?? [],
       expertise: d.expertise ?? [],
       ...(typeof d.ratePerMinutePaise === 'number' ? { ratePerMinutePaise: d.ratePerMinutePaise } : {}),
+      // Per-type rates (chat/voice/video). Each falls back to ratePerMinutePaise
+      // at billing time if unset, so older astrologers keep working.
+      ...(typeof d.chatRatePaise === 'number' ? { chatRatePaise: d.chatRatePaise } : {}),
+      ...(typeof d.voiceRatePaise === 'number' ? { voiceRatePaise: d.voiceRatePaise } : {}),
+      ...(typeof d.videoRatePaise === 'number' ? { videoRatePaise: d.videoRatePaise } : {}),
       // NOTE: commissionPercent, earnings and pendingPayout are NOT on the public
       // directory doc — they live in private/financials (below), readable only by
       // the astrologer themselves and admins, so no customer/competitor can read
@@ -142,7 +148,7 @@ export const updateAstrologer = onCall(async (req) => {
   const { astrologerId, ...rest } = (req.data ?? {}) as { astrologerId?: string } & Record<string, unknown>;
   if (!astrologerId) badRequest('astrologerId is required.');
 
-  const allowed = ['name', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'profilePhoto', 'isAI', 'featured', 'risingStar'];
+  const allowed = ['name', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'chatRatePaise', 'voiceRatePaise', 'videoRatePaise', 'profilePhoto', 'isAI', 'featured', 'risingStar'];
   const patch: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
   for (const k of allowed) if (k in rest) patch[k] = rest[k];
 

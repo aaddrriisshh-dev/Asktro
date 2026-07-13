@@ -122,13 +122,13 @@ export async function applyTick(
   const newChatBonus = chatBonus0 - chatConsumed;
   const newAnyBonus = anyBonus0 - (consumedBonus - chatConsumed);
 
-  // One grace minute when the balance runs out. CHAT: once per USER
-  // (`chatGraceUsed`) — closing/reopening the app will NOT re-grant it.
-  // VOICE/VIDEO: once per call (`graceGranted` on the consultation). The grace
+  // One grace minute when the balance runs out — CHAT ONLY, once per USER
+  // (`chatGraceUsed`), so closing/reopening the app never re-grants it. VOICE &
+  // VIDEO get NO grace: when their balance hits ₹0 the session pauses (the
+  // low-balance "Recharge now" warning fires ~1 min before that). The grace
   // credit lands in the any-type bonus so it is spendable on this same session.
   const graceMinutes = config.graceMinutes ?? 0;
-  const graceAllowed = isChat ? user.chatGraceUsed !== true : c.graceGranted !== true;
-  const grantGrace = result.exhausted && graceAllowed && graceMinutes > 0;
+  const grantGrace = isChat && result.exhausted && user.chatGraceUsed !== true && graceMinutes > 0;
   const graceBonus = grantGrace ? graceMinutes * (c.pricePerMinute as number) : 0;
   const willPause = result.exhausted && !grantGrace;
 

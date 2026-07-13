@@ -116,13 +116,21 @@ export const createConsultation = onCall(async (req) => {
       }
     }
 
-    // Per-astrologer rate, snapshotted onto the session below so a later admin
-    // change never re-rates an in-progress consultation. Falls back to the
-    // global base rate only when an astrologer has none set (e.g. AI personas).
+    // Per-astrologer, PER-TYPE rate, snapshotted onto the session below so a
+    // later admin change never re-rates an in-progress consultation. Each type
+    // (chat/voice/video) has its own rate; each falls back to the astrologer's
+    // legacy single `ratePerMinutePaise`, then to the global base rate (e.g. AI
+    // personas or astrologers onboarded before per-type pricing).
+    const typeRateField =
+      type === 'voice' ? 'voiceRatePaise' : type === 'video' ? 'videoRatePaise' : 'chatRatePaise';
+    const typeRate = astrologer[typeRateField] as number | undefined;
+    const legacyRate = astrologer.ratePerMinutePaise as number | undefined;
     const price =
-      typeof astrologer.ratePerMinutePaise === 'number' && astrologer.ratePerMinutePaise > 0
-        ? astrologer.ratePerMinutePaise
-        : config.consultationPricePerMinutePaise;
+      typeof typeRate === 'number' && typeRate > 0
+        ? typeRate
+        : typeof legacyRate === 'number' && legacyRate > 0
+          ? legacyRate
+          : config.consultationPricePerMinutePaise;
 
     // The one-time free CHAT credit (chatBonusBalance) is usable ONLY with AI or
     // base-rate astrologers. Premium human astrologers charge from the first
