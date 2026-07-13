@@ -98,9 +98,18 @@ export async function prokeralaGet(
       token = await getToken(clientId, clientSecret);
       res = await doFetch(token);
     }
-    const json = (await res.json().catch(() => null)) as { data?: unknown } | null;
+    // Read the body as text first so we can log ProKerala's exact error on a
+    // failure (a bad-request reason, an auth message, a rate-limit note, etc.).
+    const raw = await res.text().catch(() => '');
+    let json: { data?: unknown } | null = null;
+    try { json = raw ? (JSON.parse(raw) as { data?: unknown }) : null; } catch { json = null; }
     if (!res.ok || !json) {
-      logger.error('prokeralaGet upstream error', { path, status: res.status });
+      logger.error('prokeralaGet upstream error', {
+        path,
+        status: res.status,
+        body: raw.slice(0, 600),
+        params,
+      });
       return null;
     }
     return (json.data ?? json) as Record<string, unknown>;
