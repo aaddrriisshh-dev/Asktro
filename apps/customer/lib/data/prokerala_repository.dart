@@ -82,6 +82,7 @@ class ProkeralaRepository {
     final data = await _svc.call('v2/horoscope/daily/advanced', params: {
       'datetime': _nowIso(),
       'sign': signLc,
+      'type': 'all', // required by the advanced endpoint (general,health,love,…)
     },);
     if (data == null) return null;
     await doc.set({'data': data, 'cachedAt': FieldValue.serverTimestamp()});

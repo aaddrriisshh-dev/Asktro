@@ -130,8 +130,16 @@ export const prokeralaAstrology = onCall(
       failedPrecondition('ProKerala is not configured yet (credentials not set).');
     }
 
+    const effectiveParams: Record<string, string | number> = { ...(params ?? {}) };
+    // The advanced daily horoscope REQUIRES a `type` (all | general |
+    // general,health,love). Default it to `all` so older app builds that omit
+    // it still work — otherwise ProKerala 400s on an empty `type`.
+    if (path === 'v2/horoscope/daily/advanced' && !effectiveParams.type) {
+      effectiveParams.type = 'all';
+    }
+
     const qs = new URLSearchParams();
-    for (const [k, v] of Object.entries(params ?? {})) qs.set(k, String(v));
+    for (const [k, v] of Object.entries(effectiveParams)) qs.set(k, String(v));
     const url = `${API_BASE}${path}${qs.toString() ? `?${qs.toString()}` : ''}`;
 
     const doFetch = async (token: string) =>
