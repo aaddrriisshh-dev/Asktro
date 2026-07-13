@@ -14,6 +14,7 @@ export type NetworkStatus = 'ok' | 'reconnecting';
 export type TxnKind =
   | 'recharge'
   | 'consultation'
+  | 'kundli_match'
   | 'refund'
   | 'bonus'
   | 'coupon'

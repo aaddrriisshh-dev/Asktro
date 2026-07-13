@@ -74,6 +74,43 @@ async function getToken(clientId: string, clientSecret: string): Promise<string>
 }
 
 /**
+ * Server-side ProKerala GET for INTERNAL callers (paid features that charge the
+ * wallet themselves and don't go through the whitelisted client proxy). Returns
+ * the JSON `data` object, or null on any failure — the caller decides what to do
+ * (e.g. NOT charge). Reuses the same in-instance token cache as the proxy.
+ */
+export async function prokeralaGet(
+  path: string,
+  params: Record<string, string | number>,
+  clientId: string,
+  clientSecret: string,
+): Promise<Record<string, unknown> | null> {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) qs.set(k, String(v));
+  const url = `${API_BASE}${path}${qs.toString() ? `?${qs.toString()}` : ''}`;
+  const doFetch = async (token: string) =>
+    fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+  try {
+    let token = await getToken(clientId, clientSecret);
+    let res = await doFetch(token);
+    if (res.status === 401) {
+      cachedToken = null;
+      token = await getToken(clientId, clientSecret);
+      res = await doFetch(token);
+    }
+    const json = (await res.json().catch(() => null)) as { data?: unknown } | null;
+    if (!res.ok || !json) {
+      logger.error('prokeralaGet upstream error', { path, status: res.status });
+      return null;
+    }
+    return (json.data ?? json) as Record<string, unknown>;
+  } catch (e) {
+    logger.error('prokeralaGet failed', { path, error: e instanceof Error ? e.message : String(e) });
+    return null;
+  }
+}
+
+/**
  * Callable proxy. Input: { path: 'v2/horoscope/daily', params: {...} }.
  * `params` become the query string. Returns ProKerala's JSON `data` untouched.
  */

@@ -33,6 +33,7 @@ export const RATE_RULES: Record<string, RateRule> = {
   createRechargeOrder: { limit: 15, windowSec: 3600, mode: 'block' }, // 15 / hour
   verifyRecharge: { limit: 30, windowSec: 3600, mode: 'block' }, // 30 / hour
   prokeralaAstrology: { limit: 60, windowSec: 60, mode: 'block' }, // 60 / min
+  purchaseKundliMatch: { limit: 20, windowSec: 3600, mode: 'block' }, // 20 / hour
 };
 
 const TTL_BUFFER_SEC = 120; // keep the doc a little past the window before TTL reclaim
