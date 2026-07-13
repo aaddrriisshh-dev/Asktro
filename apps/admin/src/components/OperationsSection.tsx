@@ -264,34 +264,41 @@ function AstrologerSupply() {
 
 // ================================================================ 6. Money held & owed
 function MoneyHeldOwed() {
-  const [d, setD] = useState<{ held: number; owed: number } | null>(null);
+  // undefined = still loading, null = this figure's query failed (e.g. denied).
+  const [held, setHeld] = useState<number | null | undefined>(undefined);
+  const [owed, setOwed] = useState<number | null | undefined>(undefined);
   useEffect(() => {
-    (async () => {
-      // Server-side SUM aggregations — the totals are computed by Firestore and
-      // only the numbers come back, so we never download the (growing) users or
-      // payouts collections into the browser.
-      const [heldAgg, owedAgg] = await Promise.all([
-        getAggregateFromServer(collection(db, 'users'), { wallet: sum('walletBalance'), bonus: sum('bonusBalance') }),
-        getAggregateFromServer(query(collection(db, 'payouts'), where('status', 'in', ['pending', 'approved'])), { amt: sum('amount') }),
-      ]);
-      const held = (heldAgg.data().wallet ?? 0) + (heldAgg.data().bonus ?? 0);
-      const owed = owedAgg.data().amt ?? 0;
-      setD({ held, owed });
-    })().catch(() => setD(null)); // leave in loading, never show a misleading ₹0 held/owed
+    // Server-side SUM aggregations — the totals are computed by Firestore and
+    // only the numbers come back, so we never download the (growing) users or
+    // payouts collections into the browser. The two run INDEPENDENTLY so one
+    // failing (e.g. a permission denial) can't blank the whole panel forever.
+    getAggregateFromServer(collection(db, 'users'), { wallet: sum('walletBalance'), bonus: sum('bonusBalance') })
+      .then((a) => setHeld((a.data().wallet ?? 0) + (a.data().bonus ?? 0)))
+      .catch(() => setHeld(null));
+    getAggregateFromServer(query(collection(db, 'payouts'), where('status', 'in', ['pending', 'approved'])), { amt: sum('amount') })
+      .then((a) => setOwed(a.data().amt ?? 0))
+      .catch(() => setOwed(null));
   }, []);
-  if (!d) return <Skel h={120} />;
+  if (held === undefined || owed === undefined) return <Skel h={120} />;
+  const denied = held === null && owed === null;
   return (
     <div className="mho">
       <div className="mho-fig c-blue">
         <span className="mho-label">Customer wallet balance held</span>
-        <strong>{formatPaise(d.held)}</strong>
+        <strong>{held === null ? '—' : formatPaise(held)}</strong>
         <span className="mho-hint">Money customers have loaded but not yet spent — a liability on your books.</span>
       </div>
       <div className="mho-fig c-bronze">
         <span className="mho-label">Pending payouts owed</span>
-        <strong>{formatPaise(d.owed)}</strong>
+        <strong>{owed === null ? '—' : formatPaise(owed)}</strong>
         <span className="mho-hint">Earnings you still owe astrologers (requested or approved, not yet paid).</span>
       </div>
+      {denied && (
+        <p className="mho-hint" style={{ gridColumn: '1 / -1', color: '#b45309', marginTop: 4 }}>
+          Couldn&apos;t load these figures — they require a <strong>Super</strong> or <strong>Ops</strong> admin role.
+          If you were just granted that role, sign out and back in to refresh your access.
+        </p>
+      )}
     </div>
   );
 }

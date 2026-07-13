@@ -249,7 +249,7 @@ export function UsersActivityTable() {
             <div className="uat-pager">
               <label className="muted">Rows
                 <select value={perPage} onChange={(e) => { pageCursors.current = [undefined]; setPage(0); setPerPage(Number(e.target.value)); }}>
-                  <option value={25}>25</option><option value={100}>100</option><option value={200}>200</option>
+                  <option value={10}>10</option><option value={25}>25</option><option value={100}>100</option><option value={200}>200</option>
                 </select>
               </label>
               <button className="uat-pg" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>‹</button>
