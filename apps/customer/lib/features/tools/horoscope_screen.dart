@@ -399,60 +399,117 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
   }
 
   Widget _hero() {
+    final t = _sign.traits;
     return Container(
-      padding: const EdgeInsets.all(18),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF322E63), Color(0xFF5E3FBE)],
+          colors: [Color(0xFF2A2652), Color(0xFF4A2FA6), Color(0xFF7E57C2)],
         ),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: Ob.softShadow,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: const [BoxShadow(color: Color(0x3325104F), blurRadius: 26, offset: Offset(0, 12))],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: 74,
-            height: 74,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0x55FFFFFF)),
-            ),
-            alignment: Alignment.center,
-            child: Text(_sign.symbol, style: const TextStyle(fontSize: 38, color: Colors.white)),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('✦  TODAY',
-                    style: TextStyle(
-                        color: Color(0xFFF3D98A),
-                        fontSize: 11,
-                        letterSpacing: 2,
-                        fontWeight: FontWeight.w700,),),
-                const SizedBox(height: 3),
-                Text(_sign.name,
-                    style: GoogleFonts.cormorantGaramond(
-                        color: Colors.white, fontSize: 30, fontWeight: FontWeight.w700, height: 1.05,),),
-                Text(_sign.dates,
-                    style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 13),),
-              ],
-            ),
+          // Faint constellation sparkles for a celestial feel.
+          Positioned(right: 4, top: 0, child: Icon(Icons.auto_awesome_rounded, size: 16, color: Colors.white.withValues(alpha: 0.22))),
+          Positioned(right: 52, top: 22, child: Icon(Icons.auto_awesome_rounded, size: 9, color: Colors.white.withValues(alpha: 0.16))),
+          Positioned(right: 26, bottom: 6, child: Icon(Icons.circle, size: 4, color: Colors.white.withValues(alpha: 0.28))),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 82,
+                    height: 82,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(colors: [Colors.white.withValues(alpha: 0.20), Colors.white.withValues(alpha: 0.02)]),
+                      border: Border.all(color: Ob.gold, width: 2),
+                    ),
+                    child: Text(_sign.symbol, style: const TextStyle(fontSize: 44, color: Color(0xFFF3D98A))),
+                  ),
+                  const SizedBox(width: 18),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('✦  YOUR SIGN TODAY',
+                            style: TextStyle(color: Color(0xFFF3D98A), fontSize: 10.5, letterSpacing: 2, fontWeight: FontWeight.w700),),
+                        const SizedBox(height: 5),
+                        Text(_sign.name,
+                            style: GoogleFonts.cormorantGaramond(
+                                color: Colors.white, fontSize: 34, fontWeight: FontWeight.w700, height: 1.0,),),
+                        const SizedBox(height: 3),
+                        Text(_sign.dates, style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _heroChip(_elementIcon(t.element), t.element),
+                  const SizedBox(width: 10),
+                  Flexible(child: _heroChip(Icons.brightness_7_rounded, 'Ruled by ${t.rulingPlanet}')),
+                ],
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
+  IconData _elementIcon(String el) {
+    switch (el.toLowerCase()) {
+      case 'fire':
+        return Icons.local_fire_department_rounded;
+      case 'earth':
+        return Icons.eco_rounded;
+      case 'air':
+        return Icons.air_rounded;
+      case 'water':
+        return Icons.water_drop_rounded;
+      default:
+        return Icons.auto_awesome_rounded;
+    }
+  }
+
+  Widget _heroChip(IconData icon, String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: const Color(0xFFF3D98A)),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),),
+            ),
+          ],
+        ),
+      );
+
   Widget _signStrip() {
     return SizedBox(
-      height: 62,
+      height: 74,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         itemCount: ZodiacSign.all.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (_, i) {
@@ -461,16 +518,24 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
           return GestureDetector(
             onTap: () => _select(s),
             child: Container(
-              width: 56,
+              width: 62,
               decoration: BoxDecoration(
-                color: sel ? Ob.selectedFill : Ob.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: sel ? Ob.selectedBorder : Ob.border, width: sel ? 1.6 : 1),
-                boxShadow: sel ? null : Ob.softShadow,
+                gradient: sel ? Ob.goldGradient : null,
+                color: sel ? null : Ob.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: sel ? Colors.transparent : Ob.border),
+                boxShadow: sel ? Ob.goldShadow : Ob.softShadow,
               ),
-              alignment: Alignment.center,
-              child: Text(s.symbol,
-                  style: TextStyle(fontSize: 26, color: sel ? Ob.goldDeep : Ob.purple),),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(s.symbol, style: TextStyle(fontSize: 25, color: sel ? Colors.white : Ob.purple)),
+                  const SizedBox(height: 3),
+                  Text(s.name.length > 4 ? s.name.substring(0, 3) : s.name,
+                      style: Ob.note.copyWith(
+                          fontSize: 9.5, fontWeight: FontWeight.w700, color: sel ? Colors.white : Ob.grey,),),
+                ],
+              ),
             ),
           );
         },
