@@ -53,6 +53,9 @@ dependencies:
   # Downloadable Kundali Match report (generate + share/save a PDF)
   pdf: ^3.11.1
   printing: ^5.13.2
+  # Save the PDF straight to the phone's Files (SAF save dialog; no storage
+  # permission needed). Used for the plain "Download" action.
+  flutter_file_dialog: ^3.0.2
   permission_handler: ^11.3.1
   image_picker: ^1.1.2
   shared_preferences: ^2.3.2

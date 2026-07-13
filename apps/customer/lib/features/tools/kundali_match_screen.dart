@@ -12,6 +12,7 @@ import '../../data/place_search_service.dart';
 import '../profile_setup/onboarding_style.dart';
 import 'match_koota.dart';
 import 'match_report_pdf.dart';
+import 'previous_matches_screen.dart';
 
 /// Kundali Match (Ashtakoota Guna Milan). Two birth-detail cards — yours
 /// (pre-filled from your profile, editable) and your partner's — joined by a
@@ -53,7 +54,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
   static const _pricePaise = 4900; // ₹49 — must match the server price
 
   bool _loading = false;
-  bool _downloading = false;
+  bool _busy = false;
   Map<String, dynamic>? _result;
   String? _error;
 
@@ -211,15 +212,24 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
     }
   }
 
-  Future<void> _downloadReport(Map<String, dynamic> data) async {
-    if (_downloading) return;
-    setState(() => _downloading = true);
+  /// Build the PDF and either save it to the phone's Files (share:false) or save
+  /// + open the share sheet (share:true).
+  Future<void> _saveReport(Map<String, dynamic> data, {required bool share}) async {
+    if (_busy) return;
+    setState(() => _busy = true);
     try {
-      await MatchReportPdf.shareReport(
+      final saved = await MatchReportPdf.generate(
         data: data,
         selfName: _self.name.text,
         partnerName: _partner.name.text,
+        share: share,
       );
+      if (!mounted) return;
+      if (!share && saved != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Saved: $saved')),
+        );
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -227,7 +237,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _downloading = false);
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -243,6 +253,27 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
         title: Text('Kundali Match',
             style: GoogleFonts.cormorantGaramond(
                 fontSize: 24, fontWeight: FontWeight.w700, color: Ob.navy,),),
+        actions: [
+          if (_result != null) ...[
+            IconButton(
+              tooltip: 'Download',
+              icon: const Icon(Icons.download_rounded),
+              onPressed: _busy ? null : () => _saveReport(_result!, share: false),
+            ),
+            IconButton(
+              tooltip: 'Share',
+              icon: const Icon(Icons.ios_share_rounded),
+              onPressed: _busy ? null : () => _saveReport(_result!, share: true),
+            ),
+          ],
+          IconButton(
+            tooltip: 'Previous reports',
+            icon: const Icon(Icons.history_rounded),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const PreviousMatchesScreen()),
+            ),
+          ),
+        ],
       ),
       // Celestial backdrop: a soft vertical wash with faint sparkles behind the
       // whole flow, so the screen feels cosmic without hurting readability.
@@ -492,111 +523,181 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
     final gm = data['guna_milan'] is Map ? Map<String, dynamic>.from(data['guna_milan'] as Map) : null;
     final total = ((gm?['total_points'] ?? data['total_points']) as num?)?.toDouble() ?? 0;
     final max = ((gm?['maximum_points'] ?? data['maximum_points']) as num?)?.toDouble() ?? 36;
-    final pct = max > 0 ? (total / max) : 0.0;
-    final message = (data['message'] is Map ? data['message']['description'] : null)?.toString();
+    final pct = (max > 0 ? (total / max) : 0.0).clamp(0.0, 1.0);
+    final message = (data['message'] is Map ? data['message']['description'] : null)?.toString().trim();
     final kootas = kootaRows(data);
-    final verdict = pct >= 0.75
-        ? 'Excellent match'
-        : pct >= 0.5
-            ? 'Good match'
-            : pct >= 0.3
-                ? 'Average match'
-                : 'Needs consideration';
+    final v = matchVerdict(total, max);
+    final good = pct >= 0.5;
+    final accent = good ? const Color(0xFF3FBE86) : Ob.gold;
+    final tStr = total == total.roundToDouble() ? total.toStringAsFixed(0) : total.toStringAsFixed(1);
+    final selfName = _self.name.text.trim().isEmpty ? 'You' : _self.name.text.trim();
+    final partnerName = _partner.name.text.trim().isEmpty ? 'Partner' : _partner.name.text.trim();
 
     return Column(
       children: [
+        // ===== Hero score card — cosmic gradient with a gold score ring =====
         Container(
-          padding: const EdgeInsets.all(22),
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(24, 26, 24, 26),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: pct >= 0.5 ? const [Color(0xFFE9F6EF), Color(0xFFFBF6FF)] : const [Color(0xFFFBF1E3), Color(0xFFFBF6FF)],
+              colors: [Color(0xFF2E2B5F), Color(0xFF5E3FBE), Color(0xFF7E57C2)],
             ),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Ob.selectedBorder.withValues(alpha: 0.5)),
-            boxShadow: Ob.softShadow,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: const [BoxShadow(color: Color(0x3325104F), blurRadius: 30, offset: Offset(0, 14))],
           ),
           child: Column(
             children: [
-              Text('Guna Milan', style: Ob.sectionLabel),
-              const SizedBox(height: 6),
-              Text(verdict,
-                  style: Ob.note.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: pct >= 0.5 ? const Color(0xFF2F9C63) : Ob.goldDeep,),),
-              const SizedBox(height: 10),
-              Text('${total.toStringAsFixed(total == total.roundToDouble() ? 0 : 1)} / ${max.toStringAsFixed(0)}',
-                  style: GoogleFonts.cormorantGaramond(fontSize: 44, fontWeight: FontWeight.w700, color: Ob.purpleDeep,),),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: LinearProgressIndicator(
-                  value: pct.clamp(0, 1),
-                  minHeight: 10,
-                  backgroundColor: const Color(0xFFEDE6FA),
-                  valueColor: AlwaysStoppedAnimation(pct >= 0.5 ? const Color(0xFF2F9C63) : Ob.gold),
+              Text('$selfName  ✦  $partnerName',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cormorantGaramond(fontSize: 23, fontWeight: FontWeight.w700, color: Colors.white),),
+              const SizedBox(height: 4),
+              Text('ASHTAKOOTA GUNA MILAN',
+                  style: Ob.note.copyWith(color: Ob.gold, fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.w700),),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: 138,
+                height: 138,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 138,
+                      height: 138,
+                      child: CircularProgressIndicator(
+                        value: pct,
+                        strokeWidth: 9,
+                        backgroundColor: Colors.white.withValues(alpha: 0.16),
+                        valueColor: AlwaysStoppedAnimation(accent),
+                      ),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(tStr,
+                            style: GoogleFonts.cormorantGaramond(fontSize: 50, fontWeight: FontWeight.w700, color: Colors.white, height: 1),),
+                        Text('of ${max.toStringAsFixed(0)} gunas',
+                            style: Ob.note.copyWith(color: Colors.white.withValues(alpha: 0.7), fontSize: 11.5),),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              if (message != null) ...[
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(999)),
+                child: Text(v.verdict, style: Ob.note.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+              ),
+            ],
+          ),
+        ),
+
+        // ===== What this means + full ProKerala message =====
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), boxShadow: Ob.softShadow),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const Icon(Icons.auto_awesome_rounded, size: 16, color: Ob.gold),
+                const SizedBox(width: 7),
+                Text('What this means', style: Ob.sectionLabel),
+              ],),
+              const SizedBox(height: 10),
+              Text(v.summary, style: Ob.subtitle.copyWith(color: Ob.navy, height: 1.55)),
+              if (message != null && message.isNotEmpty) ...[
                 const SizedBox(height: 14),
-                Text(message, textAlign: TextAlign.center, style: Ob.subtitle.copyWith(color: Ob.navy, height: 1.5)),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: Ob.lavender, borderRadius: BorderRadius.circular(14)),
+                  child: Text(message, style: Ob.subtitle.copyWith(color: Ob.navy, height: 1.55)),
+                ),
               ],
             ],
           ),
         ),
+
+        // ===== The 8 kootas — rich cards with You/Partner + meaning =====
         if (kootas.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Align(alignment: Alignment.centerLeft, child: Text('Koota breakdown', style: Ob.sectionLabel)),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: Ob.softShadow),
-            child: Column(
-              children: [
-                for (var i = 0; i < kootas.length; i++)
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      border: i == kootas.length - 1 ? null : const Border(bottom: BorderSide(color: Color(0xFFF1ECFB))),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${kootas[i]['name'] ?? 'Koota'}', style: Ob.option.copyWith(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text('You:  ${kootas[i]['girl'] ?? '—'}',
-                                  style: Ob.note.copyWith(fontSize: 12.5, color: Ob.grey, height: 1.3),),
-                            ),
-                            Expanded(
-                              child: Text('Partner:  ${kootas[i]['boy'] ?? '—'}',
-                                  style: Ob.note.copyWith(fontSize: 12.5, color: Ob.grey, height: 1.3),),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+          const SizedBox(height: 20),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Row(children: [
+              Text('The 8 Kootas', style: Ob.sectionLabel),
+              const SizedBox(width: 8),
+              Text('Ashtakoota breakdown', style: Ob.note.copyWith(color: Ob.grey)),
+            ],),
+          ),
+          const SizedBox(height: 12),
+          for (final k in kootas)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Ob.border),
+                boxShadow: Ob.softShadow,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: Text('${k['name'] ?? 'Koota'}', style: Ob.option.copyWith(fontWeight: FontWeight.w700))),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
+                        decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(999)),
+                        child: Text('${k['max'] ?? '—'} ${(k['max'] == 1) ? 'guna' : 'gunas'}',
+                            style: Ob.note.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11),),
+                      ),
+                    ],
                   ),
-              ],
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(child: _attrChip('You', '${k['girl'] ?? '—'}')),
+                    const SizedBox(width: 10),
+                    Expanded(child: _attrChip('Partner', '${k['boy'] ?? '—'}')),
+                  ],),
+                  if ((k['meaning'] as String?)?.isNotEmpty ?? false) ...[
+                    const SizedBox(height: 12),
+                    Text('${k['meaning']}', style: Ob.note.copyWith(color: Ob.grey, height: 1.45, fontSize: 12.5)),
+                  ],
+                ],
+              ),
             ),
-          ),
         ],
-        const SizedBox(height: 18),
-        // The paid deliverable: a downloadable / shareable PDF report.
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: Ob.purple, padding: const EdgeInsets.symmetric(vertical: 14)),
-            onPressed: _downloading ? null : () => _downloadReport(data),
-            icon: _downloading
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2))
-                : const Icon(Icons.download_rounded, size: 19),
-            label: Text(_downloading ? 'Preparing report…' : 'Download full report (PDF)'),
-          ),
+
+        // ===== Download controls =====
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: Ob.purple, padding: const EdgeInsets.symmetric(vertical: 14)),
+                onPressed: _busy ? null : () => _saveReport(data, share: false),
+                icon: _busy
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2))
+                    : const Icon(Icons.download_rounded, size: 19),
+                label: const Text('Download'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: Ob.goldDeep, padding: const EdgeInsets.symmetric(vertical: 14)),
+                onPressed: _busy ? null : () => _saveReport(data, share: true),
+                icon: const Icon(Icons.ios_share_rounded, size: 18),
+                label: const Text('Download & Share'),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         SizedBox(
@@ -614,4 +715,18 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
       ],
     );
   }
+
+  Widget _attrChip(String label, String value) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(color: Ob.lavender, borderRadius: BorderRadius.circular(14)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label.toUpperCase(),
+                style: Ob.note.copyWith(fontSize: 10, letterSpacing: 0.6, color: Ob.purpleDeep, fontWeight: FontWeight.w800),),
+            const SizedBox(height: 3),
+            Text(value, style: Ob.option.copyWith(fontWeight: FontWeight.w600, fontSize: 14)),
+          ],
+        ),
+      );
 }

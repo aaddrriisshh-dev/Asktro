@@ -156,8 +156,15 @@ export async function applyMatchCharge(
       note: 'Kundali Match report',
     });
     tx.set(cacheRef, {
+      // `type` + the partners' names + score let the app list past reports
+      // ("Previous Match Reports") without re-reading the admin-only record.
+      type: 'match',
       data,
       key,
+      selfName: meta?.selfName || null,
+      partnerName: meta?.partnerName || null,
+      totalPoints: meta?.totalPoints ?? null,
+      maxPoints: meta?.maxPoints ?? null,
       pricePaise: KUNDLI_MATCH_PRICE_PAISE,
       purchasedAt: FieldValue.serverTimestamp(),
     });
