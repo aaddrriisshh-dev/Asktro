@@ -228,6 +228,12 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+    match /blogs/{blogId} {
+      // Signed-in users read PUBLISHED blogs; admins also read drafts. Authored
+      // in the admin portal. Content only — nothing sensitive here.
+      allow read: if isSignedIn() && (resource.data.published == true || isAdmin());
+      allow write: if isAdmin();
+    }
     match /coupons/{couponId} {
       // Signed-in users may browse ACTIVE coupons (Offers screen + app-open
       // popup). Full validity/audience/usage is still enforced server-side at

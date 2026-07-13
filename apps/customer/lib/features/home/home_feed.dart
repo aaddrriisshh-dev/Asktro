@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../blogs/blogs.dart';
 import '../search/search_screen.dart';
 import '../tools/horoscope_screen.dart';
 import '../tools/janam_kundli_screen.dart';
@@ -84,6 +85,8 @@ class HomeFeed extends ConsumerWidget {
                 title: 'Rising Stars',
                 provider: _risingStarsProvider,
                 onlyRisingStars: true,),
+            const SizedBox(height: 4),
+            const RecentBlogsSection(),
             const SizedBox(height: 24),
           ],
         ),
