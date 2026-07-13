@@ -226,7 +226,7 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
       );
       if (!mounted) return;
       if (!share && saved != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved: $saved')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download complete — saved to $saved')));
       }
     } catch (_) {
       if (mounted) {
@@ -290,10 +290,10 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: FilledButton.icon(
-                      style: FilledButton.styleFrom(backgroundColor: Ob.goldDeep, padding: const EdgeInsets.symmetric(vertical: 14)),
+                      style: FilledButton.styleFrom(backgroundColor: Ob.goldDeep, padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6)),
                       onPressed: _busy ? null : () => _save(share: true),
-                      icon: const Icon(Icons.ios_share_rounded, size: 18),
-                      label: const Text('Download & Share'),
+                      icon: const Icon(Icons.ios_share_rounded, size: 17),
+                      label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Download & Share', maxLines: 1, softWrap: false)),
                     ),
                   ),
                 ],

@@ -1,5 +1,6 @@
-import 'dart:typed_data';
+import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -8,21 +9,29 @@ import 'package:printing/printing.dart';
 
 import 'match_koota.dart';
 
-/// Builds a printable, branded PDF of a Kundali Match (Ashtakoota Guna Milan)
-/// report from the ProKerala matching payload, and either saves it to the
+/// Builds a branded, celestial-styled PDF of a Kundali Match (Ashtakoota Guna
+/// Milan) report from the ProKerala matching payload, and either saves it to the
 /// phone's Files or opens the share sheet. Defensive about the exact shape.
 class MatchReportPdf {
-  static const _navy = PdfColor.fromInt(0xFF322E63);
+  static const _navy = PdfColor.fromInt(0xFF2E2B5F);
+  static const _purpleDeep = PdfColor.fromInt(0xFF5E3FBE);
   static const _purple = PdfColor.fromInt(0xFF7E57C2);
-  static const _gold = PdfColor.fromInt(0xFFB8942A);
+  static const _gold = PdfColor.fromInt(0xFFD4AF37);
+  static const _goldDeep = PdfColor.fromInt(0xFFB8942A);
   static const _green = PdfColor.fromInt(0xFF2F9C63);
   static const _muted = PdfColor.fromInt(0xFF7A7693);
   static const _lav = PdfColor.fromInt(0xFFF3EFFF);
   static const _line = PdfColor.fromInt(0xFFE2D8F4);
+  static const _bgTop = PdfColor.fromInt(0xFFF6F2FF);
+  static const _white = PdfColors.white;
+
+  static const _downloads = MethodChannel('asktro/downloads');
 
   /// Generate the report. When [share] is true it opens the share sheet and
-  /// returns null; otherwise it saves to the phone's Files and returns the saved
-  /// path (or null if the user cancelled the save).
+  /// returns null. Otherwise it downloads straight to the phone's Downloads
+  /// (silent, with a "Download complete" notification) and returns a short label
+  /// like "Downloads". On older Android / iOS / any failure it falls back to the
+  /// system save dialog.
   static Future<String?> generate({
     required Map<String, dynamic> data,
     required String selfName,
@@ -34,6 +43,18 @@ class MatchReportPdf {
     if (share) {
       await Printing.sharePdf(bytes: bytes, filename: fileName);
       return null;
+    }
+    if (Platform.isAndroid) {
+      try {
+        final saved = await _downloads.invokeMethod<String>('saveToDownloads', {
+          'bytes': bytes,
+          'fileName': fileName,
+          'mime': 'application/pdf',
+        });
+        if (saved != null) return 'Downloads';
+      } catch (_) {
+        // Fall through to the system save dialog.
+      }
     }
     return FlutterFileDialog.saveFile(
       params: SaveFileDialogParams(
@@ -63,8 +84,23 @@ class MatchReportPdf {
     final doc = pw.Document();
     doc.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.fromLTRB(36, 40, 36, 40),
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.fromLTRB(32, 30, 32, 34),
+          // Soft celestial wash behind everything (kept light for readability).
+          buildBackground: (ctx) => pw.FullPage(
+            ignoreMargins: true,
+            child: pw.Container(
+              decoration: const pw.BoxDecoration(
+                gradient: pw.LinearGradient(
+                  begin: pw.Alignment.topCenter,
+                  end: pw.Alignment.bottomCenter,
+                  colors: [_bgTop, _white],
+                ),
+              ),
+            ),
+          ),
+        ),
         build: (ctx) => [
           _header(selfName, partnerName),
           pw.SizedBox(height: 18),
@@ -80,7 +116,11 @@ class MatchReportPdf {
             pw.Container(
               width: double.infinity,
               padding: const pw.EdgeInsets.all(12),
-              decoration: pw.BoxDecoration(color: _lav, borderRadius: pw.BorderRadius.circular(8)),
+              decoration: pw.BoxDecoration(
+                color: _lav,
+                borderRadius: pw.BorderRadius.circular(10),
+                border: pw.Border.all(color: _line),
+              ),
               child: pw.Text(message, style: const pw.TextStyle(fontSize: 11, lineSpacing: 3, color: _navy)),
             ),
           ],
@@ -102,34 +142,48 @@ class MatchReportPdf {
     return doc.save();
   }
 
+  /// A deep navy→purple celestial header band with the gold ASKTRO wordmark.
   static pw.Widget _header(String selfName, String partnerName) {
     final a = selfName.trim().isEmpty ? 'You' : selfName.trim();
     final b = partnerName.trim().isEmpty ? 'Partner' : partnerName.trim();
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text('ASKTRO', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _gold, letterSpacing: 2)),
-        pw.SizedBox(height: 4),
-        pw.Text('Kundali Match Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: _navy)),
-        pw.SizedBox(height: 6),
-        pw.Text('$a  &  $b', style: const pw.TextStyle(fontSize: 13, color: _purple)),
-        pw.SizedBox(height: 2),
-        pw.Text('Ashtakoota Guna Milan · generated ${DateFormat('d MMM yyyy').format(DateTime.now())}',
-            style: const pw.TextStyle(fontSize: 9, color: _muted),),
-        pw.SizedBox(height: 10),
-        pw.Divider(color: _line, thickness: 1),
-      ],
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.fromLTRB(22, 20, 22, 20),
+      decoration: pw.BoxDecoration(
+        gradient: const pw.LinearGradient(
+          begin: pw.Alignment.topLeft,
+          end: pw.Alignment.bottomRight,
+          colors: [_navy, _purpleDeep, _purple],
+        ),
+        borderRadius: pw.BorderRadius.circular(18),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('✦  ASKTRO',
+              style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _gold, letterSpacing: 3),),
+          pw.SizedBox(height: 8),
+          pw.Text('Kundali Match Report',
+              style: pw.TextStyle(fontSize: 25, fontWeight: pw.FontWeight.bold, color: _white),),
+          pw.SizedBox(height: 6),
+          pw.Text('$a  &  $b', style: const pw.TextStyle(fontSize: 13, color: PdfColor.fromInt(0xFFE6DBFF))),
+          pw.SizedBox(height: 2),
+          pw.Text('Ashtakoota Guna Milan · generated ${DateFormat('d MMM yyyy').format(DateTime.now())}',
+              style: const pw.TextStyle(fontSize: 9, color: PdfColor.fromInt(0xFFB9AEE0)),),
+        ],
+      ),
     );
   }
 
+  /// A verdict card with the score inside a gold ring.
   static pw.Widget _scoreBox(double total, double max, String verdict, double pct) {
     final tStr = total == total.roundToDouble() ? total.toStringAsFixed(0) : total.toStringAsFixed(1);
     return pw.Container(
       width: double.infinity,
       padding: const pw.EdgeInsets.all(18),
       decoration: pw.BoxDecoration(
-        color: const PdfColor.fromInt(0xFFF6F2FF),
-        borderRadius: pw.BorderRadius.circular(12),
+        color: _white,
+        borderRadius: pw.BorderRadius.circular(14),
         border: pw.Border.all(color: _line),
       ),
       child: pw.Row(
@@ -140,21 +194,39 @@ class MatchReportPdf {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Text('GUNA MILAN', style: const pw.TextStyle(fontSize: 10, color: _muted, letterSpacing: 1)),
-              pw.SizedBox(height: 4),
+              pw.SizedBox(height: 5),
               pw.Text(verdict,
-                  style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: pct >= 0.5 ? _green : _gold),),
+                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: pct >= 0.5 ? _green : _goldDeep),),
             ],
           ),
-          pw.Text('$tStr / ${max.toStringAsFixed(0)}',
-              style: pw.TextStyle(fontSize: 30, fontWeight: pw.FontWeight.bold, color: _purple),),
+          pw.Container(
+            width: 84,
+            height: 84,
+            alignment: pw.Alignment.center,
+            decoration: pw.BoxDecoration(
+              shape: pw.BoxShape.circle,
+              color: _bgTop,
+              border: pw.Border.all(color: _gold, width: 2.5),
+            ),
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Text(tStr, style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: _purpleDeep)),
+                pw.Text('of ${max.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 9, color: _muted)),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  static pw.Widget _section(String title) => pw.Text(
-        title,
-        style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: _navy),
+  static pw.Widget _section(String title) => pw.Row(
+        children: [
+          pw.Container(width: 4, height: 14, decoration: pw.BoxDecoration(color: _gold, borderRadius: pw.BorderRadius.circular(2))),
+          pw.SizedBox(width: 8),
+          pw.Text(title, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: _navy)),
+        ],
       );
 
   static pw.Widget _kootaTable(List<Map<String, dynamic>> kootas) {
@@ -169,7 +241,7 @@ class MatchReportPdf {
         ],
     ];
     return pw.TableHelper.fromTextArray(
-      headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+      headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: _white),
       headerDecoration: const pw.BoxDecoration(color: _navy),
       cellStyle: const pw.TextStyle(fontSize: 9.5, color: _navy),
       cellAlignments: {
@@ -184,8 +256,8 @@ class MatchReportPdf {
         2: const pw.FlexColumnWidth(3),
         3: const pw.FlexColumnWidth(3),
       },
-      border: pw.TableBorder.all(color: const PdfColor.fromInt(0xFFECE6FA)),
-      rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
+      border: pw.TableBorder.all(color: _line),
+      rowDecoration: const pw.BoxDecoration(color: _white),
       oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFBF9FF)),
       data: rows,
     );
@@ -225,7 +297,7 @@ class MatchReportPdf {
           style: const pw.TextStyle(fontSize: 8, color: _muted),
         ),
         pw.SizedBox(height: 4),
-        pw.Text('© Asktro — guidance written in the stars', style: const pw.TextStyle(fontSize: 8, color: _gold)),
+        pw.Text('© Asktro — guidance written in the stars', style: const pw.TextStyle(fontSize: 8, color: _goldDeep)),
       ],
     );
   }
