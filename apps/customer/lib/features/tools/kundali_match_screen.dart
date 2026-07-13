@@ -1,11 +1,14 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/providers.dart';
 import '../../data/place_search_service.dart';
 import '../profile_setup/onboarding_style.dart';
+import 'match_report_pdf.dart';
 
 /// Kundali Match (Ashtakoota Guna Milan). Two birth-detail cards — yours
 /// (pre-filled from your profile, editable) and your partner's — joined by a
@@ -42,7 +45,10 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
   final _places = PlaceSearchService();
   bool _prefilled = false;
 
+  static const _pricePaise = 4900; // ₹49 — must match the server price
+
   bool _loading = false;
+  bool _downloading = false;
   Map<String, dynamic>? _result;
   String? _error;
 
@@ -114,10 +120,33 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
     return repo.isoFor(who.dob!, hhmm);
   }
 
-  Future<void> _match() async {
+  int get _spendable => ref.read(myProfileProvider).valueOrNull?.spendablePaise ?? 0;
+
+  /// Send the user to Recharge and wait until they come back (go_router push
+  /// resolves on pop). The wallet stream refreshes the balance on return.
+  Future<void> _goRecharge() async {
+    await context.push('/recharge');
+  }
+
+  /// Paid flow: check ₹49 balance → (recharge if short, then return) → charge +
+  /// fetch the full report on the server. The client never deducts — the server
+  /// function does, atomically, and only if ProKerala returned a report.
+  Future<void> _checkCompatibility() async {
     final profile = ref.read(myProfileProvider).valueOrNull;
     final repo = ref.read(prokeralaRepositoryProvider);
     if (repo == null || !_self.complete || !_partner.complete) return;
+
+    // Balance gate BEFORE charging: if short, take them to recharge and return.
+    if (_spendable < _pricePaise) {
+      setState(() => _error = null);
+      await _goRecharge();
+      if (!mounted) return;
+      if (_spendable < _pricePaise) {
+        setState(() => _error = 'Add at least ₹49 to your wallet, then tap “Check compatibility” again.');
+        return;
+      }
+    }
+
     setState(() {
       _loading = true;
       _error = null;
@@ -132,24 +161,54 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
     // ProKerala matching is girl + boy. Map "you" by your saved gender.
     final selfIsGirl = profile?.gender == 'female';
     try {
-      final data = await repo.kundliMatch(
+      final res = await repo.purchaseMatch(
         girlDatetime: selfIsGirl ? selfIso : partnerIso,
         girlCoordinates: selfIsGirl ? selfCoords : partnerCoords,
         boyDatetime: selfIsGirl ? partnerIso : selfIso,
         boyCoordinates: selfIsGirl ? partnerCoords : selfCoords,
       );
       if (!mounted) return;
+      final data = res['data'];
       setState(() {
         _loading = false;
-        _result = data;
-        if (data == null) _error = "We couldn't check compatibility right now.";
+        _result = data is Map ? Map<String, dynamic>.from(data) : null;
+        if (_result == null) _error = "We couldn't generate your report right now. You were not charged.";
       });
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      if (e.message == 'INSUFFICIENT_BALANCE') {
+        await _goRecharge();
+        if (mounted) setState(() => _error = 'Please add ₹49 to your wallet, then tap “Check compatibility” again.');
+      } else {
+        setState(() => _error = 'The astrology service is momentarily unavailable. You were not charged.');
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = "We couldn't check compatibility right now.";
+        _error = 'Something went wrong. If money was deducted it will reflect in Transactions.';
       });
+    }
+  }
+
+  Future<void> _downloadReport(Map<String, dynamic> data) async {
+    if (_downloading) return;
+    setState(() => _downloading = true);
+    try {
+      await MatchReportPdf.shareReport(
+        data: data,
+        selfName: _self.name.text,
+        partnerName: _partner.name.text,
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Couldn't generate the report file.")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
     }
   }
 
@@ -237,8 +296,19 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
                       style: GoogleFonts.cormorantGaramond(
                           color: Colors.white, fontSize: 21, fontWeight: FontWeight.w700,),),
                   const SizedBox(height: 2),
-                  const Text('Match two birth charts across 8 kootas — a compatibility score out of 36 gunas.',
+                  const Text('A complete 8-koota compatibility report, scored out of 36 gunas — with a downloadable PDF.',
                       style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 12.5, height: 1.35),),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0x33F3D98A),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: const Color(0x55F3D98A)),
+                    ),
+                    child: const Text('Full report · just ₹49',
+                        style: TextStyle(color: Color(0xFFF3D98A), fontSize: 11.5, fontWeight: FontWeight.w800),),
+                  ),
                 ],
               ),
             ),
@@ -390,11 +460,11 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
         child: FilledButton.icon(
           style: FilledButton.styleFrom(
               backgroundColor: Ob.purple, padding: const EdgeInsets.symmetric(vertical: 15),),
-          onPressed: _canSubmit ? _match : null,
+          onPressed: _canSubmit ? _checkCompatibility : null,
           icon: _loading
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2))
               : const Icon(Icons.favorite_rounded, size: 18),
-          label: Text(_loading ? 'Matching…' : 'Check compatibility'),
+          label: Text(_loading ? 'Generating your report…' : 'Check compatibility · ₹49'),
         ),
       );
 
@@ -474,11 +544,21 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
                     decoration: BoxDecoration(
                       border: i == kootas.length - 1 ? null : const Border(bottom: BorderSide(color: Color(0xFFF1ECFB))),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: Text('${kootas[i]['name'] ?? 'Koota'}', style: Ob.option.copyWith(fontWeight: FontWeight.w600))),
-                        Text('${(kootas[i]['obtained_points'] as num?)?.toString() ?? '—'} / ${(kootas[i]['maximum_points'] as num?)?.toString() ?? '—'}',
-                            style: Ob.note.copyWith(fontWeight: FontWeight.w700, color: Ob.purpleDeep),),
+                        Row(
+                          children: [
+                            Expanded(child: Text('${kootas[i]['name'] ?? 'Koota'}', style: Ob.option.copyWith(fontWeight: FontWeight.w700))),
+                            Text('${(kootas[i]['obtained_points'] as num?)?.toString() ?? '—'} / ${(kootas[i]['maximum_points'] as num?)?.toString() ?? '—'}',
+                                style: Ob.note.copyWith(fontWeight: FontWeight.w800, color: Ob.purpleDeep),),
+                          ],
+                        ),
+                        if ((kootas[i]['description'] as String?)?.trim().isNotEmpty ?? false) ...[
+                          const SizedBox(height: 4),
+                          Text('${kootas[i]['description']}',
+                              style: Ob.note.copyWith(fontSize: 12.5, color: Ob.grey, height: 1.35),),
+                        ],
                       ],
                     ),
                   ),
@@ -487,6 +567,19 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
           ),
         ],
         const SizedBox(height: 18),
+        // The paid deliverable: a downloadable / shareable PDF report.
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: Ob.purple, padding: const EdgeInsets.symmetric(vertical: 14)),
+            onPressed: _downloading ? null : () => _downloadReport(data),
+            icon: _downloading
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2))
+                : const Icon(Icons.download_rounded, size: 19),
+            label: Text(_downloading ? 'Preparing report…' : 'Download full report (PDF)'),
+          ),
+        ),
+        const SizedBox(height: 10),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(

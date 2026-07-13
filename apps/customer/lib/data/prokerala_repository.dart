@@ -108,6 +108,24 @@ class ProkeralaRepository {
     },);
   }
 
+  /// The PAID Kundali Match (₹49). Delegates to the server function that charges
+  /// the wallet and returns the full report; rethrows on error (e.g.
+  /// INSUFFICIENT_BALANCE) so the screen can route to recharge. Returns the raw
+  /// callable payload ({ data, charged, alreadyPurchased, pricePaise }).
+  Future<Map<String, dynamic>> purchaseMatch({
+    required String girlDatetime,
+    required String girlCoordinates,
+    required String boyDatetime,
+    required String boyCoordinates,
+  }) {
+    return _svc.purchaseKundliMatch(
+      girlDob: girlDatetime,
+      girlCoordinates: girlCoordinates,
+      boyDob: boyDatetime,
+      boyCoordinates: boyCoordinates,
+    );
+  }
+
   /// Builds an ISO8601 (IST) datetime from a date, an optional 'HH:mm' time
   /// (noon if absent), for the matching form.
   String isoFor(DateTime date, String? hhmm) {

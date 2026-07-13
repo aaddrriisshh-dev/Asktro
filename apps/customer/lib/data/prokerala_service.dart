@@ -32,4 +32,30 @@ class ProkeralaService {
       return null;
     }
   }
+
+  /// The PAID Kundali Match. Calls the server function that atomically charges
+  /// the wallet (₹49) and returns the full report. Unlike [call], this does NOT
+  /// swallow errors — it rethrows the `FirebaseFunctionsException` so the UI can
+  /// react (e.g. code 'failed-precondition' with message 'INSUFFICIENT_BALANCE'
+  /// → route to recharge). Returns the raw callable payload
+  /// ({ data, charged, alreadyPurchased, pricePaise }).
+  Future<Map<String, dynamic>> purchaseKundliMatch({
+    required String girlDob,
+    required String girlCoordinates,
+    required String boyDob,
+    required String boyCoordinates,
+  }) async {
+    final res = await _fn
+        .httpsCallable(
+          'purchaseKundliMatch',
+          options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+        )
+        .call<Map<String, dynamic>>({
+      'girlDob': girlDob,
+      'girlCoordinates': girlCoordinates,
+      'boyDob': boyDob,
+      'boyCoordinates': boyCoordinates,
+    });
+    return Map<String, dynamic>.from(res.data);
+  }
 }
