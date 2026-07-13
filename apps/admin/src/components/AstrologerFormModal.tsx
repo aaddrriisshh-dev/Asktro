@@ -15,6 +15,7 @@ function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () 
 
 const str = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v));
 const arr = (v: unknown) => (Array.isArray(v) ? (v as string[]) : []);
+const rupees = (paise: unknown) => (typeof paise === 'number' ? String(paise / 100) : '');
 
 /**
  * One form for both creating and editing an astrologer. In `edit` mode every
@@ -37,7 +38,11 @@ export function AstrologerFormModal({
     phone: str(a.phone),
     email: str(a.email),
     experience: a.experience != null ? String(a.experience) : '',
-    ratePerMinute: typeof a.ratePerMinutePaise === 'number' ? String(a.ratePerMinutePaise / 100) : '',
+    // Per-type rates in ₹. Each defaults to the astrologer's existing per-type
+    // value, else their legacy single rate — so older records pre-fill sensibly.
+    chatRate: rupees(a.chatRatePaise ?? a.ratePerMinutePaise),
+    voiceRate: rupees(a.voiceRatePaise ?? a.ratePerMinutePaise),
+    videoRate: rupees(a.videoRatePaise ?? a.ratePerMinutePaise),
     commissionPercent: a.commissionPercent != null ? String(a.commissionPercent) : '',
     about: str(a.about),
     profilePhoto: str(a.profilePhoto),
@@ -62,14 +67,21 @@ export function AstrologerFormModal({
     }
     setBusy(true);
     try {
-      const rate = f.ratePerMinute ? Math.round(Number(f.ratePerMinute) * 100) : undefined;
+      const paise = (v: string) => (v ? Math.round(Number(v) * 100) : undefined);
+      const chatRate = paise(f.chatRate);
+      const voiceRate = paise(f.voiceRate);
+      const videoRate = paise(f.videoRate);
+      // Keep the legacy single rate in sync (used as the fallback for anything
+      // that reads the old field, e.g. AI personas) = the chat rate.
+      const rate = chatRate;
       const comm = f.commissionPercent ? Number(f.commissionPercent) : undefined;
       if (mode === 'create') {
         const chosen = f.password.trim();
         const res = await callFn<{ tempPassword?: string | null }>('createAstrologer', {
           name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim() || undefined,
           experience: Number(f.experience) || 0,
-          ratePerMinutePaise: rate, commissionPercent: comm,
+          ratePerMinutePaise: rate, chatRatePaise: chatRate, voiceRatePaise: voiceRate, videoRatePaise: videoRate,
+          commissionPercent: comm,
           about: f.about.trim(), profilePhoto: f.profilePhoto.trim() || undefined,
           expertise, languages, isAI, risingStar,
           ...(chosen ? { password: chosen } : {}),
@@ -88,6 +100,9 @@ export function AstrologerFormModal({
           experience: Number(f.experience) || 0,
           expertise, languages, isAI, risingStar,
           ...(rate != null ? { ratePerMinutePaise: rate } : {}),
+          ...(chatRate != null ? { chatRatePaise: chatRate } : {}),
+          ...(voiceRate != null ? { voiceRatePaise: voiceRate } : {}),
+          ...(videoRate != null ? { videoRatePaise: videoRate } : {}),
           ...(comm != null ? { commissionPercent: comm } : {}),
           ...(f.profilePhoto.trim() ? { profilePhoto: f.profilePhoto.trim() } : {}),
         };
@@ -124,7 +139,9 @@ export function AstrologerFormModal({
                 disabled={mode === 'edit'} onChange={(e) => set('email', e.target.value)} />
             </label>
             <label className="af"><span>Experience (years)</span><input className="input" placeholder="10" value={f.experience} onChange={(e) => set('experience', e.target.value)} /></label>
-            <label className="af"><span>Price per minute (₹){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="15" value={f.ratePerMinute} onChange={(e) => set('ratePerMinute', e.target.value)} /></label>
+            <label className="af"><span>Chat rate (₹/min){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="25" value={f.chatRate} onChange={(e) => set('chatRate', e.target.value)} /></label>
+            <label className="af"><span>Voice rate (₹/min)</span><input className="input" placeholder="29" value={f.voiceRate} onChange={(e) => set('voiceRate', e.target.value)} /></label>
+            <label className="af"><span>Video rate (₹/min)</span><input className="input" placeholder="45" value={f.videoRate} onChange={(e) => set('videoRate', e.target.value)} /></label>
             <label className="af"><span>Commission (%){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="40" value={f.commissionPercent} onChange={(e) => set('commissionPercent', e.target.value)} /></label>
           </div>
 

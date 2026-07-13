@@ -26,6 +26,9 @@ class Astrologer extends Equatable {
     this.earnings = 0,
     this.pendingPayout = 0,
     this.ratePerMinutePaise = 900,
+    this.chatRatePaise,
+    this.voiceRatePaise,
+    this.videoRatePaise,
     this.commissionPercent = 20,
     this.isAI = false,
     this.quickReplies = const [],
@@ -52,8 +55,23 @@ class Astrologer extends Equatable {
   final AstrologerStatus status;
   final int earnings; // paise, lifetime gross (astrologer-side display)
   final int pendingPayout; // paise, accrued net earnings not yet paid out
-  final int ratePerMinutePaise; // this astrologer's price per minute
+  final int ratePerMinutePaise; // legacy single rate / fallback for the 3 below
+  // Per-type rates (paise/min). Null → falls back to ratePerMinutePaise.
+  final int? chatRatePaise;
+  final int? voiceRatePaise;
+  final int? videoRatePaise;
   final num commissionPercent; // platform cut %; astrologer keeps (100 - this)%
+
+  /// Price per minute (paise) for a given consultation type, with fallback to
+  /// the legacy single rate. Mirror of the server's per-type pricing.
+  int rateForTypePaise(ConsultationType type) {
+    final r = switch (type) {
+      ConsultationType.voice => voiceRatePaise,
+      ConsultationType.video => videoRatePaise,
+      ConsultationType.chat => chatRatePaise,
+    };
+    return (r != null && r > 0) ? r : ratePerMinutePaise;
+  }
   final bool isAI; // AI persona vs a human astrologer
   final List<String> quickReplies;
   final Map<String, dynamic> availability;
@@ -98,6 +116,9 @@ class Astrologer extends Equatable {
       earnings: ((m['earnings'] ?? 0) as num).toInt(),
       pendingPayout: ((m['pendingPayout'] ?? 0) as num).toInt(),
       ratePerMinutePaise: ((m['ratePerMinutePaise'] ?? 900) as num).toInt(),
+      chatRatePaise: (m['chatRatePaise'] as num?)?.toInt(),
+      voiceRatePaise: (m['voiceRatePaise'] as num?)?.toInt(),
+      videoRatePaise: (m['videoRatePaise'] as num?)?.toInt(),
       commissionPercent: (m['commissionPercent'] ?? 20) as num,
       isAI: (m['isAI'] ?? false) as bool,
       quickReplies: List<String>.from(m['quickReplies'] ?? const []),
@@ -110,6 +131,7 @@ class Astrologer extends Equatable {
         id, name, profilePhoto, about, experience, languages, expertise, rating,
         totalReviews, totalConsultations, followers, responseTimeSec,
         onlineStatus, available, verified, featured, risingStar, status, earnings,
-        pendingPayout, ratePerMinutePaise, commissionPercent, isAI, quickReplies, availability,
+        pendingPayout, ratePerMinutePaise, chatRatePaise, voiceRatePaise, videoRatePaise,
+        commissionPercent, isAI, quickReplies, availability,
       ];
 }
