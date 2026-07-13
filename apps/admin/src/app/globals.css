@@ -1054,6 +1054,16 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .drawer-muted { color: var(--muted); padding: 20px; text-align: center; }
 
+/* Recharges screen: live table (left) beside the compare + trend panel (right) */
+.rch-split { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .rch-split { grid-template-columns: 1fr; } }
+.rch-compare { width: 100%; border-collapse: collapse; }
+.rch-compare th, .rch-compare td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #efeafc; font-size: 13.5px; }
+.rch-compare th { color: var(--muted); font-weight: 600; font-size: 11.5px; letter-spacing: 0.4px; text-transform: uppercase; }
+.rch-compare td:last-child, .rch-compare th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.rch-compare tr:last-child td { border-bottom: 0; }
+.rch-compare tr.on td { background: color-mix(in srgb, var(--primary) 8%, #fff); font-weight: 600; }
+
 /* Proportion bar with legend (roster splits) */
 .barbd-track {
   display: flex; height: 18px; border-radius: 999px; overflow: hidden;
