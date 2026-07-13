@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,10 +32,12 @@ class _Person {
   TimeOfDay? time;
   PlaceResult? placeResult;
   List<PlaceResult> suggestions = const [];
+  Timer? searchDebounce;
 
   bool get complete => dob != null && placeResult != null;
 
   void dispose() {
+    searchDebounce?.cancel();
     name.dispose();
     place.dispose();
   }
@@ -105,9 +109,21 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
     if (t != null) setState(() => who.time = t);
   }
 
-  Future<void> _searchPlace(_Person who, String q) async {
-    final hits = await _places.search(q);
-    if (mounted) setState(() => who.suggestions = hits);
+  /// Debounced place lookup — Nominatim's usage policy expects human-paced,
+  /// ~1/sec querying; firing on every keystroke gets the app rate-limited and
+  /// then it stops returning results entirely. Wait 450ms after typing stops.
+  void _searchPlace(_Person who, String raw) {
+    who.searchDebounce?.cancel();
+    final q = raw.trim();
+    if (q.length < 2) {
+      setState(() => who.suggestions = const []);
+      return;
+    }
+    who.searchDebounce = Timer(const Duration(milliseconds: 450), () async {
+      final hits = await _places.search(q);
+      if (!mounted || q != who.place.text.trim()) return;
+      setState(() => who.suggestions = hits);
+    });
   }
 
   bool get _canSubmit => _self.complete && _partner.complete && !_loading;
@@ -395,9 +411,9 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
             controller: who.place,
             decoration: _dec('Birth place', Icons.place_outlined),
             onChanged: (v) {
-              who.placeResult = null;
-              if (v.trim().length >= 2) _searchPlace(who, v);
-              setState(() {});
+              // Typing invalidates any previously picked coordinates.
+              setState(() => who.placeResult = null);
+              _searchPlace(who, v);
             },
           ),
           if (who.placeResult == null && who.suggestions.isNotEmpty)
