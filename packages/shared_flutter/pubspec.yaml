@@ -13,6 +13,10 @@ dependencies:
   google_fonts: ^6.2.1
   equatable: ^2.0.5
   intl: ^0.19.0
+  # Voice/video calling. 6.x declares a proper Android module namespace, which
+  # the old removed version lacked (AGP 8/9 rejected the shared io.agora.rtc
+  # namespace). Lives here so both apps share one engine + version.
+  agora_rtc_engine: ^6.6.3
 
 dev_dependencies:
   flutter_test:

@@ -71,6 +71,8 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Asktro needs access to your photos so you can share an image with your astrologer in chat.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Asktro needs camera access so you can take and share a photo with your astrologer in chat.</string>
+	<string>Asktro needs camera access so you can take and share a photo with your astrologer in chat, and for video calls.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Asktro needs microphone access for voice and video calls with your astrologer.</string>
 </dict>
 </plist>
