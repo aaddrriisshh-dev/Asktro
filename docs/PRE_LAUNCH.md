@@ -2,31 +2,59 @@
 
 ---
 
-## 🗓️ TOMORROW'S LIST (set 2026‑07‑12, do next session)
+## ✅ DONE THIS SESSION (2026‑07‑14) — Agora calls, promo pillar, welcome offer
 
-1. **🔴 Money-logic + commission — discuss + LIVE test.** Agree the commission
-   model (flat vs per-astrologer, AI vs human, coupon/offer effect), then run a
-   real chat session and reconcile customer debit / astrologer credit / platform
-   cut to the paisa. _(The critical item — do this one properly.)_
-2. ~~**Razorpay live keys.**~~ ✅ DONE 2026‑07‑13 — live keys (`rzp_live_…`,
-   secrets v6) set + deployed; ₹10 live test passed end-to-end (checkout →
-   signature → wallet credit → Razorpay dashboard captured). Remaining tidy-up:
-   flip `config/global.devPaymentsEnabled → false` (dummy path already
-   code-guarded).
+Big features landed since the last update. All committed on branch
+`claude/asktro-session-handoff-o1ggo8`; customer app rebuild in progress to ship.
+
+- **Agora voice + video calling — DONE & TESTED on real phones.** `agora_rtc_engine`
+  re-added (AGP namespace clash resolved), shared `CallEngine` + `CallVideoView`,
+  customer + astrologer dial/answer screens, token join wired. Backend
+  `generateAgoraToken` live (secrets set; RTC minutes confirmed consumed). Fixed
+  the `-3 ERR_NOT_READY` bug (speaker set AFTER join). **Billing gated on audio
+  connect, not on accept.** In-call: app-wide incoming ring (any screen),
+  compliant longer locked-phone ring, in-call Kundli/chart overlay without
+  dropping the call. **100% store-compliant** (no full-screen-intent, no
+  VoIP/CallKit). _Store-compliance audit still to run tomorrow — see remaining._
+- **Razorpay live — DONE.** Live keys set + deployed; ₹10 live test passed
+  end-to-end (checkout → signature → wallet credit → dashboard captured). Only
+  tidy-up left: flip `config/global.devPaymentsEnabled → false` at launch.
+- **Promo pillar / Welcome Offer — DONE.** First-recharge "Triple Dhamaka" offer
+  for unpaid users (dismissible, every home open): pay ₹29.50 (₹25 + GST) → ₹50
+  in wallet, or decline → celebratory popup revealing the ₹27 signup credit.
+  `rechargePlans/promo_welcome` seeded; `firstRechargeOnly` gate deployed
+  (`createRechargeOrder` rev 00005) — enforced server-side, can't be farmed.
+- **Astrologer earnings** on Completed consultations tab (per-session + Today's
+  earnings). **Blog** cover-image upload + publish + reader/card UI polish +
+  manual Views field.
+
+---
+
+## 🗓️ TOMORROW'S LIST (set 2026‑07‑14, do next session)
+
+**Plan for tomorrow: audit what we've built, then close anything major still open.**
+
+1. **🔴 Money-logic + commission — discuss + LIVE test.** _(STILL the critical item.)_
+   Agree the commission model (flat vs per-astrologer, AI vs human, coupon/offer
+   effect), then run a real chat session AND a real call and reconcile customer
+   debit / astrologer credit / platform cut to the paisa.
+2. **🔍 Audit the new features** (Adrish's on-device feedback first):
+   - **Voice/video calls** end-to-end + a fresh **store-compliance pass** (nothing
+     an Apple/Google reviewer could flag — ring behaviour, permissions copy,
+     background modes).
+   - **Welcome offer**: real first-recharge on a fresh account → confirm ₹50
+     credited, `firstRechargeOnly` blocks a second use, "No thanks" reward reads
+     right. Then confirm a paid user never sees the offer again.
 3. **Package ID rename** off `com.example.*` → real IDs (e.g.
    `com.asktro.customer` / `com.asktro.astrologer`). Claude does the code; Adrish
    re-registers both IDs in Firebase + drops in fresh `google-services.json`.
-4. **Agora voice/video calls** — re-add `agora_rtc_engine` (fix the AGP namespace
-   clash), build dial/answer screens, wire the token join. Its own focused effort
-   (token backend is already done + deployed).
-5. **Launch-day toggles** (flip at launch, in order, with a real build): App Check
+4. **Launch-day toggles** (flip at launch, in order, with a real build): App Check
    enforcement, `devPaymentsEnabled → false`, R8 shrinking + keep-rules,
    `minInstances` on hot functions.
-6. **Quick console step:** enable the Firestore TTL policy on `rateLimits.expireAt`
-   (30 seconds).
+5. **Quick console step:** enable the Firestore TTL policy on `rateLimits.expireAt`.
 
 _Owner-side, not blockers: legal text, Android release keystore, iOS APNs push,
-raise the ₹1,000 budget alert → ₹50,000._
+raise the ₹1,000 budget alert → ₹50,000, iOS custom ring `.caf` + Podfile mic macro._
 
 ---
 
@@ -361,39 +389,21 @@ collection and each carries an `expireAt`.
 
 ---
 
-## 💳 RAZORPAY LIVE KEYS — resume here (paused 2026‑07‑12)
-Razorpay integration is **fully coded, tested, and deployed** — the only thing
-missing is the correct **live key values** in Secret Manager.
+## 💳 RAZORPAY LIVE — ✅ DONE (2026‑07‑13)
+Razorpay integration is fully coded, tested, and deployed on **live** keys.
 
-**State right now:**
-- `createRechargeOrder`, `verifyRecharge`, `razorpayWebhook` are deployed and
-  bound to secret **version 4**. The shared-account webhook guard is live
-  (ignores the other Asktro product's captures).
-- The secrets currently hold **stale/mismatched TEST values**, so a recharge
-  returns `401 BAD_REQUEST_ERROR "Authentication failed"`. Recharge is therefore
-  **intentionally non-functional until real keys are set** — fine pre-launch.
-- A **live webhook is already registered** in the Razorpay dashboard →
-  URL `https://asia-south1-asktro-tech-provate-limited.cloudfunctions.net/razorpayWebhook`,
-  event `payment.captured`.
+- Live keys (`rzp_live_…`, secrets **v6**) set + deployed on `createRechargeOrder`,
+  `verifyRecharge`, `razorpayWebhook`. Shared-account webhook guard live.
+- **₹10 live recharge passed end-to-end** (checkout → signature → wallet credit →
+  Razorpay dashboard captured + admin portal agree).
+- Live webhook registered → `payment.captured` →
+  `https://asia-south1-asktro-tech-provate-limited.cloudfunctions.net/razorpayWebhook`.
+- **Only remaining tidy-up:** flip `config/global.devPaymentsEnabled → false` at
+  launch (dummy path is already code-guarded, so this is cosmetic).
 
-**⚠️ Shared account:** the Razorpay account is shared with another Asktro product
-(the WhatsApp platform), which runs on the **live** keys. **Do NOT click
-"Regenerate" on the LIVE key** — it invalidates the live pair and breaks that
-platform. Get the existing live Key Secret from whoever generated it.
-
-**To finish (≈10 min):**
-1. Obtain the live `rzp_live_…` **Key ID** + its matching **Key Secret**.
-2. `firebase functions:secrets:set RAZORPAY_KEY_ID` (paste live Key ID), answer `n`.
-3. `firebase functions:secrets:set RAZORPAY_KEY_SECRET` (paste live secret), answer `n`.
-4. Confirm `RAZORPAY_WEBHOOK_SECRET` matches the live webhook's secret (re-set if needed).
-5. Deploy the three wallet functions **one at a time** (409 → lands in background):
-   `createRechargeOrder`, `verifyRecharge`, `razorpayWebhook`.
-6. Test a real ₹10 recharge: checkout opens → wallet credits → Razorpay dashboard
-   + admin portal agree. Then flip `config/global.devPaymentsEnabled → false`.
-
-_(Test-mode alternative for a dry run without real money: regenerate the TEST key
-— safe, doesn't touch live — set both secrets to the test pair, redeploy, pay
-with a Razorpay test card.)_
+**⚠️ Shared account (keep this warning):** the Razorpay account is shared with
+another Asktro product (the WhatsApp platform) on the **same live** keys. **Never
+click "Regenerate" on the LIVE key** — it breaks that platform too.
 
 ---
 
