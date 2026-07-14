@@ -37,7 +37,10 @@ class MainActivity : FlutterActivity() {
                 description = "New chat / call requests from customers"
                 setSound(soundUri, attrs)
                 enableVibration(true)
-                vibrationPattern = longArrayOf(0, 500, 500, 500)
+                // Pulse for ~7s alongside the ~10s ringtone, so an incoming call
+                // is noticeable on a locked phone (still a standard heads-up
+                // notification — no full-screen-intent / restricted APIs).
+                vibrationPattern = longArrayOf(0, 800, 400, 800, 400, 800, 400, 800, 400, 800, 400, 800)
                 setShowBadge(true)
             }
             manager.createNotificationChannel(channel)
