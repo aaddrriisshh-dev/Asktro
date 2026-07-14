@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../app/router.dart';
 import '../../data/astrologer_repository.dart';
 import '../../ui/celestial.dart';
 import '../../ui/customer_insight.dart';
@@ -84,7 +85,8 @@ class _IncomingCallGateState extends ConsumerState<IncomingCallGate> {
   }
 
   void _showChatRequestBanner(SessionRow row) {
-    final messenger = ScaffoldMessenger.maybeOf(context);
+    final navContext = rootNavigatorKey.currentContext;
+    final messenger = navContext == null ? null : ScaffoldMessenger.maybeOf(navContext);
     if (messenger == null) return;
     messenger.showSnackBar(SnackBar(
       duration: const Duration(seconds: 6),
@@ -98,7 +100,7 @@ class _IncomingCallGateState extends ConsumerState<IncomingCallGate> {
       action: SnackBarAction(
         label: 'View',
         textColor: Sky.purple,
-        onPressed: () => Navigator.of(context, rootNavigator: true).push(
+        onPressed: () => rootNavigatorKey.currentState?.push(
           MaterialPageRoute<void>(
             builder: (_) => AstrologerConsultationScreen(consultationId: row.c.id, self: widget.self),
           ),
@@ -110,7 +112,7 @@ class _IncomingCallGateState extends ConsumerState<IncomingCallGate> {
   Future<void> _ring(SessionRow row) async {
     _ringing = true;
     // A transparent route so the dimmed app shows behind the sliding card.
-    await Navigator.of(context, rootNavigator: true).push(
+    await rootNavigatorKey.currentState?.push(
       PageRouteBuilder<void>(
         opaque: false,
         barrierColor: Colors.transparent,
