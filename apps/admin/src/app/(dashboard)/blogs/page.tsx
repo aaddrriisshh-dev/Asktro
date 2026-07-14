@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatDate } from '@/lib/format';
 import { ImageUpload } from '@/components/ImageUpload';
 
-const empty = { title: '', excerpt: '', content: '', coverImage: '', published: true };
+const empty = { title: '', excerpt: '', content: '', coverImage: '', views: '', published: true };
 
 /** Blogs / "Asktro Journal" management — authored here, shown on the app home.
  *  Direct Firestore writes (admin-gated by rules), same pattern as banners. */
@@ -27,6 +27,7 @@ export default function BlogsPage() {
       excerpt: (b.excerpt as string) ?? '',
       content: (b.content as string) ?? '',
       coverImage: (b.coverImage as string) ?? '',
+      views: b.views != null ? String(b.views) : '',
       published: b.published !== false,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -47,6 +48,7 @@ export default function BlogsPage() {
         excerpt: f.excerpt.trim(),
         content: f.content.trim(),
         coverImage: f.coverImage.trim(),
+        views: f.views.trim() ? Math.max(0, Math.round(Number(f.views) || 0)) : 0,
         published: f.published,
         author: adminName || null,
         updatedAt: serverTimestamp(),
@@ -85,7 +87,13 @@ export default function BlogsPage() {
             value={f.excerpt} onChange={(e) => set('excerpt', e.target.value)} />
         </label>
 
-        <p className="af-label">Cover image</p>
+        <label className="af" style={{ marginTop: 12 }}><span>Views (shown as an eye-count on the app card)</span>
+          <input className="input" type="number" min={0} placeholder="e.g. 141950"
+            value={f.views} onChange={(e) => set('views', e.target.value)} />
+          <span className="muted" style={{ fontSize: 12 }}>Optional. Leave blank or 0 to hide the eye-count.</span>
+        </label>
+
+        <p className="af-label" style={{ marginTop: 12 }}>Cover image</p>
         <ImageUpload folder="blog_images" value={f.coverImage} onChange={(url) => set('coverImage', url)} shape="wide" />
 
         <label className="af" style={{ marginTop: 12 }}><span>Content *</span>
