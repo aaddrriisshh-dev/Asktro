@@ -64,18 +64,22 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
     return '${v ~/ 60}:${(v % 60).toString().padLeft(2, '0')}';
   }
 
-  /// Join the Agora channel once the astrologer accepts; leave on terminal.
+  /// Join the channel as soon as we start ringing (so the astrologer can detect
+  /// us and billing can begin exactly when they connect); leave on terminal.
   void _ensureCall(Consultation c) {
+    if ((c.status == ConsultationStatus.waiting || c.status == ConsultationStatus.active) &&
+        _call == null &&
+        !_callJoinStarted) {
+      _callJoinStarted = true;
+      _joinCall(c);
+    }
     if (c.status == ConsultationStatus.active) {
       _activeSince ??= DateTime.now();
       _uiTick ??= Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() {});
       });
-      if (_call == null && !_callJoinStarted) {
-        _callJoinStarted = true;
-        _joinCall(c);
-      }
-    } else if (c.status.isTerminal && _call != null) {
+    }
+    if (c.status.isTerminal && _call != null) {
       _call!.removeListener(_onCallChanged);
       _call!.leave();
       _call = null;

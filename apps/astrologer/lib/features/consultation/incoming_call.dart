@@ -198,6 +198,22 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen>
     if (_acting) return;
     setState(() => _acting = true);
     await _stop();
+    if (!mounted) return;
+    final isCall = widget.row.c.type != ConsultationType.chat;
+    if (isCall) {
+      // A call defers billing until the audio connects, so we DON'T activate
+      // here — just open the call screen in auto-join mode. It activates the
+      // meter itself once the customer's audio is in the channel.
+      Navigator.of(context).pop(); // close the ring
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+          builder: (_) => AstrologerConsultationScreen(
+              consultationId: widget.row.c.id, self: widget.self, autoJoinCall: true,),
+        ),
+      );
+      return;
+    }
+    // Chat: activate on accept (unchanged).
     final res = await ref.read(consultationServiceProvider).accept(widget.row.c.id);
     if (!mounted) return;
     Navigator.of(context).pop(); // close the ring
@@ -358,7 +374,11 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen>
                               _action(
                                 label: 'Accept',
                                 color: Sky.green,
-                                icon: Icons.chat_bubble_rounded,
+                                icon: switch (type) {
+                                  ConsultationType.voice => Icons.call_rounded,
+                                  ConsultationType.video => Icons.videocam_rounded,
+                                  ConsultationType.chat => Icons.chat_bubble_rounded,
+                                },
                                 onTap: _acting ? null : _accept,
                               ),
                             ],

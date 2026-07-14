@@ -18,9 +18,19 @@ import 'consultation_details_screen.dart';
 /// backend-driven; this screen sends the heartbeat while active and never shows
 /// the customer's wallet — only session time + session earnings.
 class AstrologerConsultationScreen extends ConsumerStatefulWidget {
-  const AstrologerConsultationScreen({super.key, required this.consultationId, required this.self});
+  const AstrologerConsultationScreen({
+    super.key,
+    required this.consultationId,
+    required this.self,
+    this.autoJoinCall = false,
+  });
   final String consultationId;
   final Astrologer self;
+
+  /// Set when opened straight from the incoming-call ring: the astrologer has
+  /// already tapped Accept, so jump into the call view and join audio without
+  /// showing the waiting screen. Billing still waits for the audio to connect.
+  final bool autoJoinCall;
 
   @override
   ConsumerState<AstrologerConsultationScreen> createState() => _State();
@@ -33,12 +43,20 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   DateTime? _activeSince;
   bool _accepting = false;
 
-  // Voice/video media session (null for chats). Joined once the session goes
-  // active; torn down when it ends or the screen is disposed.
+  // Voice/video media session (null for chats). Joined once the astrologer
+  // accepts the call; billing (activate) is deferred until the audio connects.
   CallEngine? _call;
   bool _callJoinStarted = false;
+  bool _acceptedCall = false; // astrologer accepted a call (may still be connecting)
+  bool _activateSent = false; // guard so billing is activated at most once
 
   String get _id => widget.consultationId;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoJoinCall) _acceptedCall = true;
+  }
 
   @override
   void dispose() {
@@ -54,18 +72,46 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
     if (mounted) setState(() {});
   }
 
-  /// Join (or tear down) the Agora voice channel to match the session state.
-  /// A call joins once it goes active; it leaves on any terminal state.
+  /// Join the Agora voice channel once the astrologer has accepted, and start
+  /// billing (activate) only when the customer's audio actually connects — so a
+  /// call that never connects is never charged. Leaves on any terminal state.
   void _ensureCall(Consultation c) {
     if (c.type == ConsultationType.chat) return;
-    if (c.status == ConsultationStatus.active && _call == null && !_callJoinStarted) {
+    final wantJoin = _acceptedCall || c.status == ConsultationStatus.active;
+    if (wantJoin && _call == null && !_callJoinStarted) {
       _callJoinStarted = true;
       _joinCall(c);
-    } else if (c.status.isTerminal && _call != null) {
+    }
+    // The customer is in the channel → begin billing now (waiting → active).
+    if (c.status == ConsultationStatus.waiting &&
+        _acceptedCall &&
+        (_call?.remoteJoined ?? false) &&
+        !_activateSent) {
+      _activateSent = true;
+      _activateOnConnect();
+    }
+    if (c.status.isTerminal && _call != null) {
       _call!.removeListener(_onCallChanged);
       _call!.leave();
       _call = null;
     }
+  }
+
+  /// Mark a call accepted without starting billing — audio join begins, and
+  /// `_ensureCall` activates the meter once the customer connects.
+  void _acceptCall() {
+    setState(() => _acceptedCall = true);
+  }
+
+  Future<void> _activateOnConnect() async {
+    final r = await ref.read(consultationServiceProvider).accept(_id);
+    r.when(
+      success: (_) {},
+      failure: (f) {
+        _activateSent = false; // allow a retry on the next connect tick
+        _toast('Could not start the session: ${f.message}');
+      },
+    );
   }
 
   Future<void> _joinCall(Consultation c) async {
@@ -364,7 +410,9 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
       data: (c) {
         _ensureHeartbeat(c.status);
         _ensureCall(c);
-        if (c.status == ConsultationStatus.waiting) return _waitingView(c);
+        // A call the astrologer has accepted jumps straight to the call view
+        // (showing "Connecting…") even while the session is still `waiting`.
+        if (c.status == ConsultationStatus.waiting && !_acceptedCall) return _waitingView(c);
         if (c.status.isTerminal) return _summaryView(c);
         return c.type == ConsultationType.chat ? _chatView(c) : _callView(c);
       },
@@ -394,7 +442,16 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              GoldButton(label: 'Accept consultation', icon: Icons.check_rounded, loading: _accepting, onPressed: _accepting ? null : _accept),
+              GoldButton(
+                label: 'Accept consultation',
+                icon: Icons.check_rounded,
+                loading: _accepting,
+                // Chats activate on accept; calls defer billing until the audio
+                // connects, so we only mark the call accepted here.
+                onPressed: _accepting
+                    ? null
+                    : (c.type == ConsultationType.chat ? _accept : _acceptCall),
+              ),
               const SizedBox(height: 10),
               GhostButton(label: 'Decline', color: Sky.ink2, onPressed: _decline),
               const SizedBox(height: 6),
