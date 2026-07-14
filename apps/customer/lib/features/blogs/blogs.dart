@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -372,14 +373,26 @@ class BlogReaderScreen extends StatelessWidget {
       if (blog.createdAt != null) DateFormat('d MMM yyyy').format(blog.createdAt!),
     ].join('  ·  ');
 
-    return Scaffold(
+    final topPad = MediaQuery.of(context).padding.top;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Light status-bar strip with dark icons — time/battery stay readable and
+      // article content never scrolls under them.
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Scaffold(
       backgroundColor: Ob.bgColor,
       body: Stack(
         children: [
           CustomScrollView(
             slivers: [
               SliverToBoxAdapter(
-                child: SizedBox(height: 236, width: double.infinity, child: _cover(blog.coverImage)),
+                child: Padding(
+                  padding: EdgeInsets.only(top: topPad),
+                  child: SizedBox(height: 236, width: double.infinity, child: _cover(blog.coverImage)),
+                ),
               ),
               SliverToBoxAdapter(
                 // Rounded content sheet pulled up over the image bottom — no
@@ -421,9 +434,18 @@ class BlogReaderScreen extends StatelessWidget {
               ),
             ],
           ),
+          // Opaque status-bar backdrop — article content scrolls *under* this,
+          // so the system time/battery/wifi icons always sit on the page colour.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: topPad,
+            child: Container(color: Ob.bgColor),
+          ),
           // Floating back button — always visible, never a full-width bar.
           Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
+            top: topPad + 8,
             left: 12,
             child: Material(
               color: Colors.black.withValues(alpha: 0.38),
@@ -439,6 +461,7 @@ class BlogReaderScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
