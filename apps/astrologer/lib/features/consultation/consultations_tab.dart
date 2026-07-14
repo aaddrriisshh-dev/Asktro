@@ -38,6 +38,17 @@ class _ConsultationsTabState extends ConsumerState<ConsultationsTab> {
     ];
     final list = buckets[_tab];
 
+    // Today's take-home: sum of net earnings across sessions completed today.
+    final now = DateTime.now();
+    bool isToday(int? ms) {
+      if (ms == null) return false;
+      final d = DateTime.fromMillisecondsSinceEpoch(ms);
+      return d.year == now.year && d.month == now.month && d.day == now.day;
+    }
+    final todayDone = buckets[2].where((r) => isToday(r.createdAtMs)).toList();
+    final todayEarned =
+        self == null ? 0 : todayDone.fold<int>(0, (sum, r) => sum + self.netOf(r.c.totalCharged));
+
     return SkyScaffold(
       child: SafeArea(
         bottom: false,
@@ -53,6 +64,8 @@ class _ConsultationsTabState extends ConsumerState<ConsultationsTab> {
               ),
             ),
             _segmented(buckets.map((b) => b.length).toList()),
+            // On the Completed tab, headline today's take-home + session count.
+            if (_tab == 2 && buckets[2].isNotEmpty) _todayEarnings(todayEarned, todayDone.length),
             Expanded(
               child: list.isEmpty
                   ? _empty()
@@ -131,6 +144,44 @@ class _ConsultationsTabState extends ConsumerState<ConsultationsTab> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _todayEarnings(int paise, int count) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFF4D9), Color(0xFFF3E7C9)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Sky.gold.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(color: Sky.gold.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.savings_rounded, color: Sky.gold, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Today's earnings", style: Sky.label.copyWith(fontSize: 12, color: Sky.ink2)),
+              const SizedBox(height: 1),
+              Text(Money.formatPaise(paise), style: Sky.h1.copyWith(fontSize: 22, color: Sky.purpleDeep)),
+            ],
+          ),
+          const Spacer(),
+          Text('$count session${count == 1 ? '' : 's'}',
+              style: Sky.label.copyWith(fontSize: 12, color: Sky.ink2),),
         ],
       ),
     );
@@ -215,7 +266,10 @@ class _ConsultCard extends ConsumerWidget {
     final lang = cust?.languages.isNotEmpty ?? false ? cust!.languages.first : null;
 
     // Inbox summary (last message + unread) for ongoing chats only.
-    final selfId = ref.watch(selfProvider).valueOrNull?.id ?? '';
+    final self = ref.watch(selfProvider).valueOrNull;
+    final selfId = self?.id ?? '';
+    // The astrologer's NET take-home for this session (after commission).
+    final earned = self != null ? self.netOf(c.totalCharged) : 0;
     final active = c.status == ConsultationStatus.active;
     final ongoing = active || c.status == ConsultationStatus.paused;
     final summary = (c.type == ConsultationType.chat && ongoing && selfId.isNotEmpty)
@@ -319,8 +373,20 @@ class _ConsultCard extends ConsumerWidget {
             children: [
               if (lang != null) Pill(lang, color: Sky.purple),
               const Spacer(),
-              if (c.status.isTerminal && c.duration > 0)
-                Text(Money.formatDurationLong(c.duration), style: Sky.label.copyWith(fontSize: 12))
+              if (c.status.isTerminal && c.duration > 0) ...[
+                Text(Money.formatDurationLong(c.duration),
+                    style: Sky.label.copyWith(fontSize: 12, color: Sky.ink2),),
+                const SizedBox(width: 10),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.account_balance_wallet_rounded, size: 13, color: Sky.green),
+                    const SizedBox(width: 4),
+                    Text(Money.formatPaise(earned),
+                        style: Sky.label.copyWith(fontSize: 13, color: Sky.green, fontWeight: FontWeight.w800),),
+                  ],
+                ),
+              ]
               else if (c.status == ConsultationStatus.waiting)
                 Text('Tap to accept →', style: Sky.label.copyWith(fontSize: 12, color: Sky.gold, fontWeight: FontWeight.w700))
               else
