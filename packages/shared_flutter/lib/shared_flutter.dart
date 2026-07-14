@@ -35,3 +35,8 @@ export 'src/utils/result.dart';
 
 // Service interfaces
 export 'src/services/service_interfaces.dart';
+export 'src/services/call_engine.dart';
+
+// Agora RTC types re-exported so screens can drive the call engine without a
+// direct dependency on the plugin.
+export 'package:agora_rtc_engine/agora_rtc_engine.dart' show RtcEngine;

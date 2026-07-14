@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
@@ -32,14 +33,60 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   DateTime? _activeSince;
   bool _accepting = false;
 
+  // Voice/video media session (null for chats). Joined once the session goes
+  // active; torn down when it ends or the screen is disposed.
+  CallEngine? _call;
+  bool _callJoinStarted = false;
+
   String get _id => widget.consultationId;
 
   @override
   void dispose() {
     _heartbeat?.cancel();
     _uiTick?.cancel();
+    _call?.removeListener(_onCallChanged);
+    _call?.leave();
     _input.dispose();
     super.dispose();
+  }
+
+  void _onCallChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Join (or tear down) the Agora voice channel to match the session state.
+  /// A call joins once it goes active; it leaves on any terminal state.
+  void _ensureCall(Consultation c) {
+    if (c.type == ConsultationType.chat) return;
+    if (c.status == ConsultationStatus.active && _call == null && !_callJoinStarted) {
+      _callJoinStarted = true;
+      _joinCall(c);
+    } else if (c.status.isTerminal && _call != null) {
+      _call!.removeListener(_onCallChanged);
+      _call!.leave();
+      _call = null;
+    }
+  }
+
+  Future<void> _joinCall(Consultation c) async {
+    final mic = await Permission.microphone.request();
+    if (!mic.isGranted) {
+      _toast('Microphone permission is needed to take calls.');
+      return;
+    }
+    if (!mounted) return;
+    final engine = CallEngine()..addListener(_onCallChanged);
+    _call = engine;
+    final tok = await ref.read(rtcTokenServiceProvider).tokenFor(c.id);
+    tok.when(
+      success: (cred) => engine.joinVoice(
+        appId: cred.appId,
+        token: cred.token,
+        channel: cred.channel,
+        uid: cred.uid,
+      ),
+      failure: (f) => _toast('Could not connect the call: ${f.message}'),
+    );
   }
 
   void _ensureHeartbeat(ConsultationStatus status) {
@@ -316,6 +363,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
       error: (_, __) => const SkyScaffold(child: ErrorStateView()),
       data: (c) {
         _ensureHeartbeat(c.status);
+        _ensureCall(c);
         if (c.status == ConsultationStatus.waiting) return _waitingView(c);
         if (c.status.isTerminal) return _summaryView(c);
         return c.type == ConsultationType.chat ? _chatView(c) : _callView(c);
@@ -627,10 +675,15 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
     );
   }
 
-  // ---- voice / video (clean UI shell; real calling is staged) ----
+  // ---- voice / video call ----
   Widget _callView(Consultation c) {
     final cust = ref.watch(customerProvider(c.customerId)).valueOrNull;
     final video = c.type == ConsultationType.video;
+    final call = _call;
+    final muted = call?.muted ?? false;
+    final speaker = call?.speakerOn ?? false;
+    // "Connecting…" until the customer's audio is actually in the channel.
+    final connecting = call == null || !call.isLive;
     return Scaffold(
       backgroundColor: Sky.purpleDeep,
       body: Stack(
@@ -649,7 +702,10 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                 const SizedBox(height: 16),
                 Text(cust?.name ?? 'Customer', style: Sky.h1.copyWith(color: Colors.white, fontSize: 24)),
                 const SizedBox(height: 8),
-                Text('${video ? 'Video' : 'Voice'} · ${Money.formatDuration(c.billedSeconds)}',
+                Text(
+                    connecting
+                        ? 'Connecting…'
+                        : '${video ? 'Video' : 'Voice'} · ${Money.formatDuration(c.billedSeconds)}',
                     style: Sky.body.copyWith(color: Colors.white70),),
                 const SizedBox(height: 6),
                 Text('Earned ${Money.formatPaise(widget.self.netOf(c.totalCharged))}',
@@ -667,9 +723,12 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _callBtn(Icons.mic_rounded, Colors.white24, () {}),
+                    _callBtn(muted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                        muted ? Sky.red : Colors.white24, () => call?.toggleMute(),),
                     const SizedBox(width: 16),
-                    _callBtn(Icons.volume_up_rounded, Colors.white24, () {}),
+                    _callBtn(Icons.volume_up_rounded,
+                        speaker ? Sky.gold : Colors.white24, () => call?.toggleSpeaker(),),
+                    // Camera control is wired in the video phase; voice calls omit it.
                     if (video) ...[const SizedBox(width: 16), _callBtn(Icons.videocam_rounded, Colors.white24, () {})],
                     const SizedBox(width: 16),
                     _callBtn(Icons.call_end_rounded, Sky.red, _confirmEnd),

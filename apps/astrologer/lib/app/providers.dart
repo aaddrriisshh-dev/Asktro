@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../data/astrologer_repository.dart';
+import '../data/rtc_token_service_impl.dart';
 
 final firebaseAuthProvider = Provider<FirebaseAuth>((_) => FirebaseAuth.instance);
 final firestoreProvider = Provider<FirebaseFirestore>((_) => FirebaseFirestore.instance);
@@ -21,6 +22,10 @@ final astrologerRepositoryProvider =
 final consultationServiceProvider = Provider<AstrologerConsultationService>(
   (ref) => AstrologerConsultationService(ref.watch(functionsProvider), ref.watch(firestoreProvider)),
 );
+
+/// Mints the Agora voice/video token for the astrologer side of a call.
+final rtcTokenServiceProvider =
+    Provider<RtcTokenService>((ref) => RtcTokenServiceImpl(ref.watch(functionsProvider)));
 
 /// The signed-in astrologer's own profile (drives approval gating + dashboard).
 final selfProvider = StreamProvider<Astrologer?>((ref) {

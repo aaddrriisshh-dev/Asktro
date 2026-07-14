@@ -6,12 +6,14 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../../data/messaging_service.dart';
 import '../consultation/chat_consultation_screen.dart';
+import '../consultation/call_consultation_screen.dart';
 import '../moderation/moderation_actions.dart';
 
-/// Voice/video calling is not shipped yet (the Agora RTC engine is intentionally
-/// absent from pubspec). While false, the app offers CHAT only — no call
-/// affordances are shown. Flip to true when the dedicated calls phase ships.
-const bool kCallsEnabled = false;
+/// Voice calling is live. Video ships in the next phase — its button stays
+/// hidden until then. Calls are offered only for HUMAN astrologers (an AI
+/// persona has no one to answer), gated further below by `!a.isAI`.
+const bool kCallsEnabled = true;
+const bool kVideoEnabled = false;
 
 final _astrologerProvider =
     StreamProvider.autoDispose.family<Astrologer, String>((ref, id) {
@@ -31,10 +33,10 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
 
   Future<void> _startConsultation(Astrologer a, ConsultationType type) async {
     if (_starting) return;
-    // Voice/video calls are staged for a later build; chat is available now.
-    if (type != ConsultationType.chat) {
+    // Video calling ships after voice; steer to chat/voice for now.
+    if (type == ConsultationType.video) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Voice & video calls are coming soon. Please use Chat for now.'),
+        content: Text('Video calls are coming soon. Try a voice call or chat for now.'),
       ),);
       return;
     }
@@ -50,7 +52,9 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
           'astrologerId': a.id,
         },);
         Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => ChatConsultationScreen(consultationId: start.consultationId, astrologer: a),
+          builder: (_) => type == ConsultationType.voice
+              ? CallConsultationScreen(consultationId: start.consultationId, astrologer: a)
+              : ChatConsultationScreen(consultationId: start.consultationId, astrologer: a),
         ),);
       },
       failure: (f) {
@@ -123,6 +127,9 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
         data: (a) => _StickyBar(
           consultable: a.isConsultable,
           starting: _starting,
+          // Calls are only for human astrologers — an AI persona can't answer.
+          showVoice: kCallsEnabled && !a.isAI,
+          showVideo: kVideoEnabled && !a.isAI,
           onChat: () => _startConsultation(a, ConsultationType.chat),
           onVoice: () => _startConsultation(a, ConsultationType.voice),
           onVideo: () => _startConsultation(a, ConsultationType.video),
@@ -273,12 +280,16 @@ class _StickyBar extends StatelessWidget {
   const _StickyBar({
     required this.consultable,
     required this.starting,
+    required this.showVoice,
+    required this.showVideo,
     required this.onChat,
     required this.onVoice,
     required this.onVideo,
   });
   final bool consultable;
   final bool starting;
+  final bool showVoice;
+  final bool showVideo;
   final VoidCallback onChat;
   final VoidCallback onVoice;
   final VoidCallback onVideo;
@@ -300,14 +311,13 @@ class _StickyBar extends StatelessWidget {
                 : Row(
                     children: [
                       Expanded(child: _btn(Icons.chat_bubble_outline_rounded, 'Chat', onChat)),
-                      // Voice/Video are NOT shipped yet (no RTC engine). We hide
-                      // the affordances entirely rather than show non-functional
-                      // "coming soon" buttons — cleaner UX and avoids an Apple
-                      // "advertised-but-broken feature" rejection. Flip
-                      // kCallsEnabled to true when the calls phase ships.
-                      if (kCallsEnabled) ...[
+                      // Voice for human astrologers; video follows in its own
+                      // phase. An AI persona shows Chat only (no one to answer).
+                      if (showVoice) ...[
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(child: _btn(Icons.call_outlined, 'Voice', onVoice)),
+                      ],
+                      if (showVideo) ...[
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(child: _btn(Icons.videocam_outlined, 'Video', onVideo)),
                       ],
