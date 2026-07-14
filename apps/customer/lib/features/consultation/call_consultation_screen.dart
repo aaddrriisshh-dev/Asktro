@@ -239,6 +239,9 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
     if (mounted) Navigator.of(context).maybePop();
   }
 
+  // One flat call-screen colour (no gradient, no split).
+  static const Color _bg = Color(0xFF5E3FBE);
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(consultationControllerProvider(_id));
@@ -251,85 +254,108 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFF2A1E52),
+      backgroundColor: _bg,
       body: async.when(
-        loading: () => const _CallShell(child: Center(child: CircularProgressIndicator(color: Colors.white))),
-        error: (_, __) => _CallShell(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Text('Connection lost.', style: TextStyle(color: Colors.white, fontSize: 16)),
-                const SizedBox(height: 16),
-                SecondaryButton(label: 'Go back', onPressed: () => Navigator.of(context).maybePop()),
-              ],),
-            ),
+        loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
+        error: (_, __) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Connection lost.', style: TextStyle(color: Colors.white, fontSize: 16)),
+              const SizedBox(height: 16),
+              SecondaryButton(label: 'Go back', onPressed: () => Navigator.of(context).maybePop()),
+            ],),
           ),
         ),
         data: (s) {
           _ensureCall(s.consultation);
           final c = s.consultation;
-          if (c.status == ConsultationStatus.waiting) return _ringingView();
-          return _inCallView(c);
+          return SafeArea(
+            child: c.status == ConsultationStatus.waiting ? _ringingBody() : _inCallBody(c),
+          );
         },
       ),
     );
   }
 
-  Widget _ringingView() {
+  Widget _ringingBody() {
     final a = widget.astrologer;
-    return _CallShell(
-      child: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 40),
-            _Pulse(child: _avatar(a, 128)),
-            const SizedBox(height: 22),
-            Text(a.name,
-                style: AppTypography.title.copyWith(color: Colors.white), textAlign: TextAlign.center,),
-            const SizedBox(height: 8),
-            Text('Calling…', style: AppTypography.body.copyWith(color: Colors.white70)),
-            const Spacer(),
-            _callBtn(Icons.call_end_rounded, AppColors.error, _cancelRinging, size: 68),
-            const SizedBox(height: 12),
-            Text('Cancel', style: AppTypography.caption.copyWith(color: Colors.white70)),
-            const SizedBox(height: 30),
-          ],
+    return Stack(
+      children: [
+        // Identity centred in the safe area.
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _Pulse(child: _avatar(a, 128)),
+              const SizedBox(height: 26),
+              Text(a.name,
+                  style: AppTypography.title.copyWith(color: Colors.white),
+                  textAlign: TextAlign.center,),
+              const SizedBox(height: 8),
+              Text('Calling…', style: AppTypography.body.copyWith(color: Colors.white70)),
+            ],
+          ),
         ),
-      ),
+        // Cancel pinned to the bottom.
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 36),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _callBtn(Icons.call_end_rounded, AppColors.error, _cancelRinging, size: 68),
+                const SizedBox(height: 12),
+                Text('Cancel', style: AppTypography.caption.copyWith(color: Colors.white70)),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _inCallView(Consultation c) {
+  Widget _inCallBody(Consultation c) {
     final a = widget.astrologer;
     final call = _call;
     final connecting = call == null || !call.isLive;
     final muted = call?.muted ?? false;
     final speaker = call?.speakerOn ?? false;
-    return _CallShell(
-      child: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 40),
-            _avatar(a, 120),
-            const SizedBox(height: 20),
-            Text(a.name,
-                style: AppTypography.title.copyWith(color: Colors.white), textAlign: TextAlign.center,),
-            const SizedBox(height: 8),
-            Text(connecting ? 'Connecting…' : _mmss(_elapsed),
-                style: AppTypography.body.copyWith(color: Colors.white70),),
-            if (call?.errorMessage != null) ...[
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(call!.errorMessage!,
-                    textAlign: TextAlign.center,
-                    style: AppTypography.caption.copyWith(color: AppColors.warning),),
-              ),
+    return Stack(
+      children: [
+        // Identity + timer centred in the safe area.
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _avatar(a, 122),
+              const SizedBox(height: 22),
+              Text(a.name,
+                  style: AppTypography.title.copyWith(color: Colors.white),
+                  textAlign: TextAlign.center,),
+              const SizedBox(height: 8),
+              Text(connecting ? 'Connecting…' : _mmss(_elapsed),
+                  style: AppTypography.body.copyWith(color: Colors.white70),),
+              if (call?.errorMessage != null) ...[
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(call!.errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: AppTypography.caption.copyWith(color: AppColors.warning),),
+                ),
+              ],
             ],
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          ),
+        ),
+        // Controls pinned to the bottom.
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 40),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 _callBtn(muted ? Icons.mic_off_rounded : Icons.mic_rounded,
                     muted ? AppColors.error : Colors.white24, () => call?.toggleMute(),),
@@ -340,10 +366,9 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
                     speaker ? AppColors.primary : Colors.white24, () => call?.toggleSpeaker(),),
               ],
             ),
-            const SizedBox(height: 34),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -365,26 +390,6 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
           child: Icon(icon, color: Colors.white, size: size * 0.42),
         ),
       );
-}
-
-/// Shared celestial background for the ringing + in-call states.
-class _CallShell extends StatelessWidget {
-  const _CallShell({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF8A63D2), Color(0xFF5E3FBE), Color(0xFF2A1E52)],
-        ),
-      ),
-      child: child,
-    );
-  }
 }
 
 /// Gentle pulsing halo used behind the ringing avatar.
