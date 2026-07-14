@@ -64,8 +64,18 @@ class CallEngine extends ChangeNotifier {
           remoteJoined = false;
           notifyListeners();
         },
+        // Surfaces WHY a join fails (invalid token, uid clash, rejected, …) so
+        // the UI can show it instead of an endless "Connecting…".
+        onConnectionStateChanged: (RtcConnection connection,
+            ConnectionStateType state, ConnectionChangedReasonType reason,) {
+          if (state == ConnectionStateType.connectionStateFailed) {
+            phase = CallPhase.failed;
+            errorMessage = 'Connection failed (${reason.name})';
+            notifyListeners();
+          }
+        },
         onError: (ErrorCodeType err, String msg) {
-          errorMessage = msg;
+          errorMessage = 'Agora ${err.name}: $msg';
           notifyListeners();
         },
       ),);

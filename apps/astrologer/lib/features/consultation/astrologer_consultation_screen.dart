@@ -707,6 +707,15 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                         ? 'Connecting…'
                         : '${video ? 'Video' : 'Voice'} · ${Money.formatDuration(c.billedSeconds)}',
                     style: Sky.body.copyWith(color: Colors.white70),),
+                if (call?.errorMessage != null) ...[
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(call!.errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: Sky.label.copyWith(color: Sky.goldSoft),),
+                  ),
+                ],
                 const SizedBox(height: 6),
                 Text('Earned ${Money.formatPaise(widget.self.netOf(c.totalCharged))}',
                     style: Sky.label.copyWith(color: Sky.goldSoft, fontWeight: FontWeight.w700),),

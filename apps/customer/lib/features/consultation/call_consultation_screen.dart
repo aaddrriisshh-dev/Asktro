@@ -318,6 +318,15 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
             const SizedBox(height: 8),
             Text(connecting ? 'Connecting…' : _mmss(_elapsed),
                 style: AppTypography.body.copyWith(color: Colors.white70),),
+            if (call?.errorMessage != null) ...[
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(call!.errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.caption.copyWith(color: AppColors.warning),),
+              ),
+            ],
             const Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
