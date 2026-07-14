@@ -262,6 +262,40 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
     ),);
   }
 
+  /// Show the customer's full profile + kundli chart as an overlay sheet, so the
+  /// astrologer can read them WITHOUT dropping the live voice/video call.
+  Future<void> _showCustomerSheet(UserProfile? cust) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Sky.card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, controller) => Column(
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(color: Sky.line, borderRadius: BorderRadius.circular(99)),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: controller,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                child: CustomerDetailsCard(profile: cust),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _quickNote(Consultation c) async {
     final current = await ref.read(astrologerRepositoryProvider).watchPrivateNote(widget.self.id, c.customerId).first;
     if (!mounted) return;
@@ -790,7 +824,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _floatBtn(Icons.auto_awesome_rounded, 'Kundli', () => _openDetails(c)),
+                    _floatBtn(Icons.auto_awesome_rounded, 'Kundli', () => _showCustomerSheet(cust)),
                     const SizedBox(width: 22),
                     _floatBtn(Icons.lock_rounded, 'Notes', () => _quickNote(c)),
                   ],
@@ -870,7 +904,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _floatBtn(Icons.auto_awesome_rounded, 'Kundli', () => _openDetails(c)),
+                      _floatBtn(Icons.auto_awesome_rounded, 'Kundli', () => _showCustomerSheet(cust)),
                       const SizedBox(width: 18),
                       _floatBtn(Icons.lock_rounded, 'Notes', () => _quickNote(c)),
                     ],
