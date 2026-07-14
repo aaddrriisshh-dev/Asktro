@@ -9,11 +9,11 @@ import '../consultation/chat_consultation_screen.dart';
 import '../consultation/call_consultation_screen.dart';
 import '../moderation/moderation_actions.dart';
 
-/// Voice calling is live. Video ships in the next phase — its button stays
-/// hidden until then. Calls are offered only for HUMAN astrologers (an AI
-/// persona has no one to answer), gated further below by `!a.isAI`.
+/// Voice and video calling are live. Calls are offered only for HUMAN
+/// astrologers (an AI persona has no one to answer), gated further below by
+/// `!a.isAI`.
 const bool kCallsEnabled = true;
-const bool kVideoEnabled = false;
+const bool kVideoEnabled = true;
 
 final _astrologerProvider =
     StreamProvider.autoDispose.family<Astrologer, String>((ref, id) {
@@ -33,13 +33,6 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
 
   Future<void> _startConsultation(Astrologer a, ConsultationType type) async {
     if (_starting) return;
-    // Video calling ships after voice; steer to chat/voice for now.
-    if (type == ConsultationType.video) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Video calls are coming soon. Try a voice call or chat for now.'),
-      ),);
-      return;
-    }
     setState(() => _starting = true);
     final res = await ref.read(consultationServiceProvider).create(astrologerId: a.id, type: type);
     if (!mounted) return;
@@ -52,9 +45,9 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
           'astrologerId': a.id,
         },);
         Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => type == ConsultationType.voice
-              ? CallConsultationScreen(consultationId: start.consultationId, astrologer: a)
-              : ChatConsultationScreen(consultationId: start.consultationId, astrologer: a),
+          builder: (_) => type == ConsultationType.chat
+              ? ChatConsultationScreen(consultationId: start.consultationId, astrologer: a)
+              : CallConsultationScreen(consultationId: start.consultationId, astrologer: a),
         ),);
       },
       failure: (f) {

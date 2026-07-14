@@ -20,6 +20,7 @@ export 'src/widgets/state_views.dart';
 export 'src/widgets/low_balance_dialog.dart';
 export 'src/widgets/grace_bonus_dialog.dart';
 export 'src/widgets/animated_balance.dart';
+export 'src/widgets/call_video_view.dart';
 
 // Models
 export 'src/models/enums.dart';

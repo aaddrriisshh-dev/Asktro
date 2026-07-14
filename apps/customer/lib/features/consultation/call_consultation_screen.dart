@@ -87,21 +87,30 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
   }
 
   Future<void> _joinCall(Consultation c) async {
+    final video = c.type == ConsultationType.video;
     final mic = await Permission.microphone.request();
     if (!mic.isGranted) {
       _toast('Microphone permission is needed for the call.');
       return;
+    }
+    if (video) {
+      final cam = await Permission.camera.request();
+      if (!cam.isGranted) {
+        _toast('Camera permission is needed for a video call.');
+        return;
+      }
     }
     if (!mounted) return;
     final engine = CallEngine()..addListener(_onCallChanged);
     _call = engine;
     final tok = await ref.read(rtcTokenServiceProvider).tokenFor(c.id);
     tok.when(
-      success: (cred) => engine.joinVoice(
+      success: (cred) => engine.join(
         appId: cred.appId,
         token: cred.token,
         channel: cred.channel,
         uid: cred.uid,
+        video: video,
       ),
       failure: (f) => _toast('Could not connect the call: ${f.message}'),
     );
@@ -321,14 +330,76 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
   }
 
   Widget _inCallBody(Consultation c) {
+    final video = c.type == ConsultationType.video;
     final a = widget.astrologer;
     final call = _call;
     final connecting = call == null || !call.isLive;
     final muted = call?.muted ?? false;
     final speaker = call?.speakerOn ?? false;
+    final cameraOn = call?.cameraOn ?? true;
+
+    // Control row — same for both, with camera controls only on video.
+    final controls = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _callBtn(muted ? Icons.mic_off_rounded : Icons.mic_rounded,
+            muted ? AppColors.error : Colors.white24, () => call?.toggleMute(),),
+        const SizedBox(width: 16),
+        if (video) ...[
+          _callBtn(cameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded,
+              cameraOn ? Colors.white24 : AppColors.error, () => call?.toggleCamera(),),
+          const SizedBox(width: 16),
+        ],
+        _callBtn(Icons.call_end_rounded, AppColors.error, () => _end(), size: 68),
+        const SizedBox(width: 16),
+        if (video)
+          _callBtn(Icons.cameraswitch_rounded, Colors.white24, () => call?.switchCamera())
+        else
+          _callBtn(Icons.volume_up_rounded,
+              speaker ? AppColors.primary : Colors.white24, () => call?.toggleSpeaker(),),
+      ],
+    );
+
+    if (video && call != null) {
+      // Full-screen video with the identity + status overlaid at the top.
+      return Stack(
+        children: [
+          Positioned.fill(child: CallVideoView(call: call)),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x99000000), Color(0x00000000)],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(a.name, style: AppTypography.subtitle.copyWith(color: Colors.white)),
+                  const SizedBox(height: 2),
+                  Text(connecting ? 'Connecting…' : _mmss(_elapsed),
+                      style: AppTypography.caption.copyWith(color: Colors.white70),),
+                ],
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(padding: const EdgeInsets.only(bottom: 40), child: controls),
+          ),
+        ],
+      );
+    }
+
+    // Voice: centred identity + timer.
     return Stack(
       children: [
-        // Identity + timer centred in the safe area.
         Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -353,24 +424,9 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
             ],
           ),
         ),
-        // Controls pinned to the bottom.
         Align(
           alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 40),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _callBtn(muted ? Icons.mic_off_rounded : Icons.mic_rounded,
-                    muted ? AppColors.error : Colors.white24, () => call?.toggleMute(),),
-                const SizedBox(width: 20),
-                _callBtn(Icons.call_end_rounded, AppColors.error, () => _end(), size: 68),
-                const SizedBox(width: 20),
-                _callBtn(Icons.volume_up_rounded,
-                    speaker ? AppColors.primary : Colors.white24, () => call?.toggleSpeaker(),),
-              ],
-            ),
-          ),
+          child: Padding(padding: const EdgeInsets.only(bottom: 40), child: controls),
         ),
       ],
     );

@@ -115,21 +115,30 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   }
 
   Future<void> _joinCall(Consultation c) async {
+    final video = c.type == ConsultationType.video;
     final mic = await Permission.microphone.request();
     if (!mic.isGranted) {
       _toast('Microphone permission is needed to take calls.');
       return;
+    }
+    if (video) {
+      final cam = await Permission.camera.request();
+      if (!cam.isGranted) {
+        _toast('Camera permission is needed for a video call.');
+        return;
+      }
     }
     if (!mounted) return;
     final engine = CallEngine()..addListener(_onCallChanged);
     _call = engine;
     final tok = await ref.read(rtcTokenServiceProvider).tokenFor(c.id);
     tok.when(
-      success: (cred) => engine.joinVoice(
+      success: (cred) => engine.join(
         appId: cred.appId,
         token: cred.token,
         channel: cred.channel,
         uid: cred.uid,
+        video: video,
       ),
       failure: (f) => _toast('Could not connect the call: ${f.message}'),
     );
@@ -741,6 +750,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
     final speaker = call?.speakerOn ?? false;
     // "Connecting…" until the customer's audio is actually in the channel.
     final connecting = call == null || !call.isLive;
+    if (video && call != null) return _videoCallView(c, cust, call, connecting);
     return Scaffold(
       backgroundColor: Sky.purpleDeep,
       body: Stack(
@@ -802,6 +812,86 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                 ),
                 const SizedBox(height: 30),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Full-screen video call: customer's camera fills the screen, astrologer's
+  // self-preview picture-in-picture, with the same session controls.
+  Widget _videoCallView(Consultation c, UserProfile? cust, CallEngine call, bool connecting) {
+    final muted = call.muted;
+    final cameraOn = call.cameraOn;
+    return Scaffold(
+      backgroundColor: Sky.purpleDeep,
+      body: Stack(
+        children: [
+          Positioned.fill(child: CallVideoView(call: call)),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 22),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xAA000000), Color(0x00000000)],
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(cust?.name ?? 'Customer', style: Sky.h2.copyWith(color: Colors.white)),
+                    const SizedBox(height: 2),
+                    Text(
+                      connecting
+                          ? 'Connecting…'
+                          : 'Video · ${Money.formatDuration(c.billedSeconds)}  ·  earned ${Money.formatPaise(widget.self.netOf(c.totalCharged))}',
+                      style: Sky.label.copyWith(color: Colors.white70, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _floatBtn(Icons.auto_awesome_rounded, 'Kundli', () => _openDetails(c)),
+                      const SizedBox(width: 18),
+                      _floatBtn(Icons.lock_rounded, 'Notes', () => _quickNote(c)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _callBtn(muted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                          muted ? Sky.red : Colors.white24, () => call.toggleMute(),),
+                      const SizedBox(width: 14),
+                      _callBtn(cameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded,
+                          cameraOn ? Colors.white24 : Sky.red, () => call.toggleCamera(),),
+                      const SizedBox(width: 14),
+                      _callBtn(Icons.call_end_rounded, Sky.red, _confirmEnd),
+                      const SizedBox(width: 14),
+                      _callBtn(Icons.cameraswitch_rounded, Colors.white24, () => call.switchCamera()),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
