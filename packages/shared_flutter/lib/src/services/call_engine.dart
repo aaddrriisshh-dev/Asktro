@@ -41,10 +41,18 @@ class CallEngine extends ChangeNotifier {
     try {
       final engine = createAgoraRtcEngine();
       _engine = engine;
-      await engine.initialize(RtcEngineContext(appId: appId));
+      await engine.initialize(RtcEngineContext(
+        appId: appId,
+        channelProfile: ChannelProfileType.channelProfileCommunication,
+      ),);
 
       engine.registerEventHandler(RtcEngineEventHandler(
-        onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
+        onJoinChannelSuccess: (RtcConnection connection, int elapsed) async {
+          // The audio session only exists AFTER joining, so the speaker route
+          // must be applied here — calling it before join returns -3 (NOT_READY).
+          try {
+            await engine.setEnableSpeakerphone(speakerOn);
+          } catch (_) {/* non-fatal */}
           // We're in the channel; stay "connecting" until the peer appears.
           if (phase == CallPhase.connecting && remoteJoined) {
             phase = CallPhase.connected;
@@ -81,10 +89,8 @@ class CallEngine extends ChangeNotifier {
       ),);
 
       await engine.enableAudio();
-      // Voice call: default to the earpiece like a normal phone call; the user
-      // can flip to speaker with the in-call button.
-      await engine.setEnableSpeakerphone(false);
-
+      // Voice call: earpiece by default (speakerOn == false); the actual route
+      // is applied in onJoinChannelSuccess once the channel exists.
       await engine.joinChannel(
         token: token,
         channelId: channel,
