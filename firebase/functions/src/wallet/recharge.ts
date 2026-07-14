@@ -36,6 +36,16 @@ export const createRechargeOrder = onCall(
     const plan = planSnap.data()!;
     if (plan.active === false) failedPrecondition('This recharge plan is no longer available.');
 
+    // First-recharge-only promo plans (e.g. the welcome "Triple Dhamaka" offer):
+    // reject once the user has ever recharged, so the introductory bonus can't be
+    // farmed. Enforced server-side — the client can never bypass it.
+    if (plan.firstRechargeOnly === true) {
+      const uSnap = await db.collection(Collections.users).doc(userId).get();
+      const u = uSnap.data() ?? {};
+      const alreadyRecharged = (u.totalRecharge ?? 0) > 0 || u.firstRechargeAt != null;
+      if (alreadyRecharged) failedPrecondition('This offer is only available on your first recharge.');
+    }
+
     const amountPaise: number = plan.amount ?? plan.walletCredit;
     const order = await createOrder(
       RAZORPAY_KEY_ID.value(),
