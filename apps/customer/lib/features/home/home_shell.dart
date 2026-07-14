@@ -13,6 +13,7 @@ import '../consultations/consultations_tab.dart';
 import '../wallet/wallet_tab.dart';
 import '../wallet/offers_screen.dart';
 import '../wallet/promo_popup.dart';
+import '../promo/welcome_offer.dart';
 import '../notifications/notifications_tab.dart';
 import '../profile/profile_tab.dart';
 
@@ -51,7 +52,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _maybeShowOfferPopup();
+      _maybeShowWelcomeOrOffer();
       _setupPushTapHandlers();
     });
   }
@@ -136,6 +137,23 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     } else if (dl.startsWith('asktro://')) {
       context.push('/${dl.substring('asktro://'.length)}');
     }
+  }
+
+  // On app open: a user who has NOT recharged yet sees the "Triple Dhamaka"
+  // welcome offer (every launch, dismissible). Everyone else gets the usual
+  // coupon popup. Waits briefly for the profile stream to have data first.
+  Future<void> _maybeShowWelcomeOrOffer() async {
+    var profile = ref.read(myProfileProvider).valueOrNull;
+    for (var i = 0; i < 10 && profile == null && mounted; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      profile = ref.read(myProfileProvider).valueOrNull;
+    }
+    if (!mounted) return;
+    if (profile != null && !profile.hasRecharged) {
+      await showWelcomeOffer(context, chatCreditPaise: profile.chatBonusBalance);
+      return;
+    }
+    await _maybeShowOfferPopup();
   }
 
   // On app open, surface the newest active coupon once per launch. Silent if

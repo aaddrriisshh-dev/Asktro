@@ -11,6 +11,7 @@ class UserProfile extends Equatable {
     this.walletBalance = 0,
     this.bonusBalance = 0,
     this.chatBonusBalance = 0,
+    this.totalRecharge = 0,
     this.referralCode = '',
     this.referredBy,
     this.totalConsultations = 0,
@@ -38,6 +39,7 @@ class UserProfile extends Equatable {
   final int walletBalance; // paise
   final int bonusBalance; // paise (any-type bonus: referral, grace)
   final int chatBonusBalance; // paise (chat-only welcome credit — free chat minutes)
+  final int totalRecharge; // paise, cumulative recharged — 0 means never recharged
   final String referralCode;
   final String? referredBy;
   final int totalConsultations;
@@ -70,6 +72,10 @@ class UserProfile extends Equatable {
   /// Spendable for a CHAT — includes the chat-only welcome credit.
   int get spendableForChatPaise => walletBalance + bonusBalance + chatBonusBalance;
 
+  /// True once the user has made at least one recharge (drives the welcome offer,
+  /// which is only shown to users who haven't paid yet).
+  bool get hasRecharged => totalRecharge > 0;
+
   DateTime? get birthDate =>
       birthDateMs == null ? null : DateTime.fromMillisecondsSinceEpoch(birthDateMs!);
 
@@ -82,6 +88,7 @@ class UserProfile extends Equatable {
         walletBalance: ((m['walletBalance'] ?? 0) as num).toInt(),
         bonusBalance: ((m['bonusBalance'] ?? 0) as num).toInt(),
         chatBonusBalance: ((m['chatBonusBalance'] ?? 0) as num).toInt(),
+        totalRecharge: ((m['totalRecharge'] ?? 0) as num).toInt(),
         referralCode: (m['referralCode'] ?? '') as String,
         referredBy: m['referredBy'] as String?,
         totalConsultations: ((m['totalConsultations'] ?? 0) as num).toInt(),
@@ -104,7 +111,7 @@ class UserProfile extends Equatable {
   @override
   List<Object?> get props => [
         id, name, phone, email, profilePhoto, walletBalance, bonusBalance,
-        chatBonusBalance,
+        chatBonusBalance, totalRecharge,
         referralCode, referredBy, totalConsultations, notificationEnabled,
         favouriteAstrologers, followingAstrologers, accountStatus,
         gender, birthDateMs, birthTime, birthTimeKnown, birthPlace,
