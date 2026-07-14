@@ -132,12 +132,12 @@ class RecentBlogsSection extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
           SizedBox(
-            height: 262,
+            height: 232,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 18),
               itemCount: blogs.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (_, i) => _BlogCard(blog: blogs[i]),
             ),
           ),
@@ -158,10 +158,10 @@ class _BlogCard extends StatelessWidget {
         MaterialPageRoute<void>(builder: (_) => BlogReaderScreen(blog: blog)),
       ),
       child: Container(
-        width: 262,
+        width: 216,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: const Color(0xFFD8C9F2), width: 1.3),
           boxShadow: Ob.softShadow,
         ),
@@ -172,41 +172,41 @@ class _BlogCard extends StatelessWidget {
             Stack(
               children: [
                 SizedBox(
-                  height: 132,
+                  height: 112,
                   width: double.infinity,
                   child: _cover(blog.coverImage),
                 ),
                 if (blog.views > 0)
-                  Positioned(top: 10, right: 10, child: _viewsPill(blog.views)),
+                  Positioned(top: 9, right: 9, child: _viewsPill(blog.views)),
               ],
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(blog.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Ob.option.copyWith(fontWeight: FontWeight.w700, height: 1.25, fontSize: 15),),
-                    const SizedBox(height: 5),
+                        style: Ob.option.copyWith(fontWeight: FontWeight.w700, height: 1.22, fontSize: 13.5),),
+                    const SizedBox(height: 4),
                     Expanded(
                       child: Text(blog.excerpt,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: Ob.note.copyWith(color: Ob.grey, height: 1.35, fontSize: 12.5),),
+                          style: Ob.note.copyWith(color: Ob.grey, height: 1.3, fontSize: 11.5),),
                     ),
                     Row(
                       children: [
-                        Text('Read more', style: Ob.note.copyWith(color: Ob.purpleDeep, fontWeight: FontWeight.w800, fontSize: 12.5)),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.arrow_forward_rounded, size: 14, color: Ob.purpleDeep),
+                        Text('Read more', style: Ob.note.copyWith(color: Ob.purpleDeep, fontWeight: FontWeight.w800, fontSize: 11.5)),
+                        const SizedBox(width: 3),
+                        const Icon(Icons.arrow_forward_rounded, size: 13, color: Ob.purpleDeep),
                         const Spacer(),
-                        const Icon(Icons.schedule_rounded, size: 13, color: Ob.grey),
+                        const Icon(Icons.schedule_rounded, size: 12, color: Ob.grey),
                         const SizedBox(width: 3),
                         Text('${blog.readMinutes} min',
-                            style: Ob.note.copyWith(color: Ob.grey, fontWeight: FontWeight.w600, fontSize: 11.5),),
+                            style: Ob.note.copyWith(color: Ob.grey, fontWeight: FontWeight.w600, fontSize: 10.5),),
                       ],
                     ),
                   ],
