@@ -126,31 +126,17 @@ class _BlogCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Ob.border),
+          border: Border.all(color: const Color(0xFFD8C9F2), width: 1.3),
           boxShadow: Ob.softShadow,
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                SizedBox(
-                  height: 132,
-                  width: double.infinity,
-                  child: _cover(blog.coverImage),
-                ),
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                    decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(999)),
-                    child: Text('${blog.readMinutes} min read',
-                        style: Ob.note.copyWith(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 10),),
-                  ),
-                ),
-              ],
+            SizedBox(
+              height: 132,
+              width: double.infinity,
+              child: _cover(blog.coverImage),
             ),
             Expanded(
               child: Padding(
@@ -174,6 +160,11 @@ class _BlogCard extends StatelessWidget {
                         Text('Read more', style: Ob.note.copyWith(color: Ob.purpleDeep, fontWeight: FontWeight.w800, fontSize: 12.5)),
                         const SizedBox(width: 4),
                         const Icon(Icons.arrow_forward_rounded, size: 14, color: Ob.purpleDeep),
+                        const Spacer(),
+                        const Icon(Icons.schedule_rounded, size: 13, color: Ob.grey),
+                        const SizedBox(width: 3),
+                        Text('${blog.readMinutes} min',
+                            style: Ob.note.copyWith(color: Ob.grey, fontWeight: FontWeight.w600, fontSize: 11.5),),
                       ],
                     ),
                   ],
@@ -218,41 +209,67 @@ class BlogReaderScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Ob.bgColor,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 236,
-            pinned: true,
-            backgroundColor: Ob.navy,
-            foregroundColor: Colors.white,
-            flexibleSpace: FlexibleSpaceBar(background: _cover(blog.coverImage)),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 32 + MediaQuery.of(context).padding.bottom),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(blog.title,
-                      style: GoogleFonts.cormorantGaramond(fontSize: 29, fontWeight: FontWeight.w700, color: Ob.navy, height: 1.2),),
-                  const SizedBox(height: 8),
-                  Text(meta, style: Ob.note.copyWith(color: Ob.grey)),
-                  const SizedBox(height: 18),
-                  Text(blog.content, style: Ob.subtitle.copyWith(color: Ob.navy, height: 1.7, fontSize: 15.5)),
-                  const SizedBox(height: 28),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(backgroundColor: Ob.goldDeep, padding: const EdgeInsets.symmetric(vertical: 14)),
-                      onPressed: () => Share.share(
-                        '${blog.title}\n\n${blog.excerpt.isEmpty ? '' : '${blog.excerpt}\n\n'}Read more on Asktro ✦',
-                        subject: blog.title,
-                      ),
-                      icon: const Icon(Icons.ios_share_rounded, size: 18),
-                      label: const Text('Share this article'),
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: SizedBox(height: 236, width: double.infinity, child: _cover(blog.coverImage)),
+              ),
+              SliverToBoxAdapter(
+                // Rounded content sheet pulled up over the image bottom — no
+                // pinned bar, so nothing tucks under a coloured header on scroll.
+                child: Transform.translate(
+                  offset: const Offset(0, -20),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Ob.bgColor,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+                    ),
+                    padding: EdgeInsets.fromLTRB(20, 24, 20, 32 + MediaQuery.of(context).padding.bottom),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(blog.title,
+                            style: GoogleFonts.cormorantGaramond(fontSize: 29, fontWeight: FontWeight.w700, color: Ob.navy, height: 1.2),),
+                        const SizedBox(height: 8),
+                        Text(meta, style: Ob.note.copyWith(color: Ob.grey)),
+                        const SizedBox(height: 18),
+                        Text(blog.content, style: Ob.subtitle.copyWith(color: Ob.navy, height: 1.7, fontSize: 15.5)),
+                        const SizedBox(height: 28),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            style: FilledButton.styleFrom(backgroundColor: Ob.goldDeep, padding: const EdgeInsets.symmetric(vertical: 14)),
+                            onPressed: () => Share.share(
+                              '${blog.title}\n\n${blog.excerpt.isEmpty ? '' : '${blog.excerpt}\n\n'}Read more on Asktro ✦',
+                              subject: blog.title,
+                            ),
+                            icon: const Icon(Icons.ios_share_rounded, size: 18),
+                            label: const Text('Share this article'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
+              ),
+            ],
+          ),
+          // Floating back button — always visible, never a full-width bar.
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 12,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.38),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => Navigator.of(context).maybePop(),
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+                ),
               ),
             ),
           ),
