@@ -39,12 +39,17 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
       AnimationController(vsync: this, duration: const Duration(milliseconds: 850))..forward();
   late final AnimationController _float =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))..repeat(reverse: true);
+  // Particles fall top→bottom on a ONE-WAY loop (no reverse), so they never
+  // travel back upward. Whole-number fall speeds keep the loop reset seamless.
+  late final AnimationController _fall =
+      AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
   bool _showBreakup = false;
 
   @override
   void dispose() {
     _entrance.dispose();
     _float.dispose();
+    _fall.dispose();
     super.dispose();
   }
 
@@ -79,7 +84,7 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
               ),
               child: Stack(
                 children: [
-                  Positioned.fill(child: _FallingParticles(controller: _float)),
+                  Positioned.fill(child: _FallingParticles(controller: _fall)),
                   SafeArea(
                     top: false,
                     child: Padding(
@@ -473,19 +478,22 @@ class _FallingParticles extends StatelessWidget {
   static List<_P> _build() {
     const starGlyphs = ['✦', '✧', '⋆', '✦'];
     const starColors = [Color(0xFFE7B93C), Color(0xFFB79BE6), Color(0xFFEAD079), Color(0xFF8A63D2)];
+    // speed MUST be a whole number of screen-traversals per controller cycle so
+    // the one-way loop wraps seamlessly (base 1→0 leaves prog unchanged). 1 = a
+    // slow fall, 2 = roughly twice as fast; phase staggers the vertical spread.
     final out = <_P>[];
     for (var i = 0; i < 11; i++) {
       final k = _rng.nextInt(4);
       out.add(_P(_PType.star, _rng.nextDouble(), 10 + _rng.nextDouble() * 13, _rng.nextDouble(),
-          0.7 + _rng.nextDouble() * 0.7, starGlyphs[k], starColors[k],),);
+          (1 + _rng.nextInt(2)).toDouble(), starGlyphs[k], starColors[k],),);
     }
     for (var i = 0; i < 8; i++) {
       out.add(_P(_PType.coin, _rng.nextDouble(), 13 + _rng.nextDouble() * 9, _rng.nextDouble(),
-          0.7 + _rng.nextDouble() * 0.6, '', const Color(0xFFE9BE48),),);
+          (1 + _rng.nextInt(2)).toDouble(), '', const Color(0xFFE9BE48),),);
     }
     for (var i = 0; i < 9; i++) {
       out.add(_P(_PType.dot, _rng.nextDouble(), 3 + _rng.nextDouble() * 4, _rng.nextDouble(),
-          0.8 + _rng.nextDouble() * 0.6, '', _rng.nextBool() ? const Color(0xFFD4AF37) : const Color(0xFFB79BE6),),);
+          (1 + _rng.nextInt(2)).toDouble(), '', _rng.nextBool() ? const Color(0xFFD4AF37) : const Color(0xFFB79BE6),),);
     }
     return out;
   }
@@ -497,7 +505,7 @@ class _FallingParticles extends StatelessWidget {
       return AnimatedBuilder(
         animation: controller,
         builder: (context, _) {
-          final base = controller.value; // 0..1..0 (reverse) — still fine for drift
+          final base = controller.value; // 0→1 one-way (repeat, no reverse): a steady downward fall
           return Stack(
             children: [
               for (final p in _parts) _draw(p, w, h, base),
