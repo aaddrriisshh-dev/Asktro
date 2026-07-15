@@ -199,6 +199,12 @@ class ProductCard extends StatelessWidget {
 }
 
 /// A continuously-scrolling "claim strip" marquee (dark band, gold accents).
+///
+/// The phrase row is laid out once at its natural width, measured after the
+/// first frame, then two copies are translated left by that measured width so
+/// the loop is seamless with a constant pixel-per-second speed regardless of
+/// how long the phrase list is. (The earlier version forced each copy into a
+/// screen-width box, so long content overflowed and overlapped.)
 class ClaimMarquee extends StatefulWidget {
   const ClaimMarquee({super.key, required this.phrases});
   final List<String> phrases;
@@ -208,8 +214,32 @@ class ClaimMarquee extends StatefulWidget {
 }
 
 class _ClaimMarqueeState extends State<ClaimMarquee> with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(seconds: 18))..repeat();
+  late final AnimationController _c = AnimationController(vsync: this)..repeat();
+  final GlobalKey _rowKey = GlobalKey();
+  double _rowWidth = 0;
+
+  static const double _pxPerSecond = 45; // steady, readable scroll speed
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  void _measure() {
+    final ctx = _rowKey.currentContext;
+    if (ctx == null) return;
+    final w = ctx.size?.width ?? 0;
+    if (w > 0 && (w - _rowWidth).abs() > 0.5) {
+      setState(() {
+        _rowWidth = w;
+        _c.duration = Duration(milliseconds: (w / _pxPerSecond * 1000).round());
+        _c
+          ..reset()
+          ..repeat();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -217,9 +247,9 @@ class _ClaimMarqueeState extends State<ClaimMarquee> with SingleTickerProviderSt
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final row = Row(
+  Widget _buildRow({Key? key}) {
+    return Row(
+      key: key,
       mainAxisSize: MainAxisSize.min,
       children: [
         for (final p in widget.phrases) ...[
@@ -228,30 +258,39 @@ class _ClaimMarqueeState extends State<ClaimMarquee> with SingleTickerProviderSt
         ],
       ],
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Re-measure in case phrase content / text scale changed.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
     return Container(
       height: 34,
       decoration: const BoxDecoration(
         gradient: LinearGradient(colors: [Color(0xFF241A0E), Color(0xFF3A2C16), Color(0xFF241A0E)]),
       ),
       clipBehavior: Clip.hardEdge,
-      child: LayoutBuilder(builder: (context, box) {
-        return AnimatedBuilder(
-          animation: _c,
-          builder: (context, _) {
-            return OverflowBox(
-              alignment: Alignment.centerLeft,
-              minWidth: 0, maxWidth: double.infinity,
-              child: Transform.translate(
-                offset: Offset(-_c.value * box.maxWidth, 0),
-                child: Row(children: [
-                  SizedBox(width: box.maxWidth, child: Center(child: row)),
-                  SizedBox(width: box.maxWidth, child: Center(child: row)),
-                ],),
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          final dx = _rowWidth == 0 ? 0.0 : -_c.value * _rowWidth;
+          return OverflowBox(
+            alignment: Alignment.centerLeft,
+            minWidth: 0,
+            maxWidth: double.infinity,
+            child: Transform.translate(
+              offset: Offset(dx, 0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildRow(key: _rowKey),
+                  _buildRow(),
+                ],
               ),
-            );
-          },
-        );
-      },),
+            ),
+          );
+        },
+      ),
     );
   }
 }

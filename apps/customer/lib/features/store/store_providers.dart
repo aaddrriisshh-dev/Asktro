@@ -41,16 +41,20 @@ class StoreRepository {
   }
 
   /// All active products (bounded) — the store home derives Best Sellers, New
-  /// Launches and the All-Products grid from this single stream (no extra
-  /// indexes, no extra reads).
+  /// Launches and the All-Products grid from this single stream. Uses only a
+  /// single-field equality filter (auto-indexed) and sorts by sortOrder on the
+  /// client, so it never depends on a composite index being built.
   Stream<List<StoreProduct>> watchActiveProducts({int limit = 60}) {
     return _db
         .collection('storeProducts')
         .where('active', isEqualTo: true)
-        .orderBy('sortOrder')
         .limit(limit)
         .snapshots()
-        .map((s) => s.docs.map(StoreProduct.fromDoc).toList());
+        .map((s) {
+      final list = s.docs.map(StoreProduct.fromDoc).toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      return list;
+    });
   }
 
   Future<StoreProduct?> fetchProduct(String id) async {
