@@ -124,6 +124,10 @@ async function cropToBlob(src: string, area: { x: number; y: number; width: numb
   canvas.height = h;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas unsupported');
+  // Flatten onto white first — otherwise transparent PNG areas become black when
+  // exported to JPEG (which has no alpha channel).
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, w, h);
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, w, h);
   return new Promise((resolve, reject) => {
