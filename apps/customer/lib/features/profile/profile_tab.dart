@@ -78,6 +78,8 @@ class ProfileTab extends ConsumerWidget {
                           .read(userRepositoryProvider)
                           .updateProfile(profile.id, {'notificationEnabled': v}),
                     ),),
+              _row(Icons.shopping_bag_outlined, 'My Orders',
+                  onTap: () => context.push('/store/orders'),),
               _row(Icons.headset_mic_rounded, 'Help & Support',
                   onTap: () => _push(context, const SupportScreen()),),
               _row(Icons.privacy_tip_outlined, 'Privacy Policy',

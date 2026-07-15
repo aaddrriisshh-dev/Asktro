@@ -14,6 +14,14 @@ import '../features/profile_setup/profile_setup_screen.dart';
 import '../features/astrologer/astrologer_profile_screen.dart';
 import '../features/wallet/offers_screen.dart';
 import '../features/wallet/recharge_screen.dart';
+import '../features/store/store_models.dart';
+import '../features/store/store_home_screen.dart';
+import '../features/store/store_category_screen.dart';
+import '../features/store/product_detail_screen.dart';
+import '../features/store/cart_screen.dart';
+import '../features/store/checkout_screen.dart';
+import '../features/store/order_detail_screen.dart';
+import '../features/store/my_orders_screen.dart';
 
 /// Whether onboarding has been completed (persisted locally).
 final onboardingDoneProvider = StateProvider<bool>((_) => false);
@@ -127,6 +135,33 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),
+
+      // ---- Asktro Mall (store) ----
+      GoRoute(path: '/store', builder: (_, __) => const StoreHomeScreen()),
+      GoRoute(
+        path: '/store/category/:id',
+        builder: (_, s) => StoreCategoryScreen(
+          categoryId: s.pathParameters['id']!,
+          categoryName: s.extra as String?,
+        ),
+      ),
+      GoRoute(
+        path: '/store/product/:id',
+        builder: (_, s) => ProductDetailScreen(
+          productId: s.pathParameters['id']!,
+          product: s.extra as StoreProduct?,
+        ),
+      ),
+      GoRoute(path: '/store/cart', builder: (_, __) => const CartScreen()),
+      GoRoute(path: '/store/checkout', builder: (_, __) => const CheckoutScreen()),
+      GoRoute(path: '/store/orders', builder: (_, __) => const MyOrdersScreen()),
+      GoRoute(
+        path: '/store/order/:id',
+        builder: (_, s) => OrderDetailScreen(
+          orderId: s.pathParameters['id']!,
+          justPlaced: s.uri.queryParameters['placed'] == '1',
+        ),
+      ),
     ],
     errorBuilder: (_, __) => const Scaffold(
       body: Center(child: Text('Page not found')),

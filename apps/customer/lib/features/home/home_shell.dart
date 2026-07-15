@@ -14,6 +14,7 @@ import '../wallet/wallet_tab.dart';
 import '../wallet/offers_screen.dart';
 import '../wallet/promo_popup.dart';
 import '../promo/welcome_offer.dart';
+import '../store/store_home_screen.dart';
 import '../notifications/notifications_tab.dart';
 import '../profile/profile_tab.dart';
 
@@ -30,6 +31,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ConsultationsTab(),
     WalletTab(),
     NotificationsTab(),
+    StoreHomeScreen(embedded: true),
     ProfileTab(),
   ];
 
@@ -254,6 +256,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                   selectedIcon: _BellIcon(count: unread.valueOrNull ?? 0, filled: true),
                   label: 'Alerts',
                 ),
+                const NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Mall'),
                 const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
               ],
             ),

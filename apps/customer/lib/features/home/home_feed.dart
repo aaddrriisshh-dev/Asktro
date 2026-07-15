@@ -5,6 +5,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 import '../blogs/blogs.dart';
+import '../store/store_rail.dart';
 import '../search/search_screen.dart';
 import '../tools/horoscope_screen.dart';
 import '../tools/janam_kundli_screen.dart';
@@ -85,6 +86,8 @@ class HomeFeed extends ConsumerWidget {
                 title: 'Rising Stars',
                 provider: _risingStarsProvider,
                 onlyRisingStars: true,),
+            const SizedBox(height: 4),
+            const StoreRail(),
             const SizedBox(height: 4),
             const RecentBlogsSection(),
             const SizedBox(height: 24),
@@ -215,7 +218,7 @@ class HomeFeed extends ConsumerWidget {
         children: [
           // Profile photo + a little hamburger badge → opens the Profile page.
           GestureDetector(
-            onTap: () => ref.read(homeTabProvider.notifier).state = 4,
+            onTap: () => ref.read(homeTabProvider.notifier).state = 5,
             child: SizedBox(
               width: 50,
               height: 48,
