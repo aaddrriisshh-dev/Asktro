@@ -18,18 +18,16 @@ class StoreRail extends ConsumerWidget {
     if (cats.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      padding: const EdgeInsets.only(top: 11, bottom: 12),
-      decoration: BoxDecoration(
-        gradient: Mall.gheeGradient,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: const Color(0xFFB4821E).withValues(alpha: 0.5), blurRadius: 22, offset: const Offset(0, 10))],
-        border: Border.all(color: const Color(0xFFDCAA46).withValues(alpha: 0.35), width: 2),
-      ),
+      width: double.infinity,
+      // Full-bleed gold band — no border, no rounded card, no shadow. It reaches
+      // both screen edges and blends into the feed like a native store section.
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.only(top: 14, bottom: 14),
+      decoration: const BoxDecoration(gradient: Mall.gheeGradient),
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 const Text('🪔', style: TextStyle(fontSize: 18)),
@@ -66,12 +64,12 @@ class StoreRail extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 11),
+          const SizedBox(height: 12),
           SizedBox(
             height: 82,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: cats.length + 1,
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, i) {

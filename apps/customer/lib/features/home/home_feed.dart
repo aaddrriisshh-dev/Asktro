@@ -407,7 +407,8 @@ class _HomeBanners extends ConsumerStatefulWidget {
 }
 
 class _HomeBannersState extends ConsumerState<_HomeBanners> {
-  final _controller = PageController(viewportFraction: 0.9);
+  // Full-width banners (no centered peek) so the strip fills to both edges.
+  final _controller = PageController(viewportFraction: 1);
   int _page = 0;
 
   @override
@@ -868,7 +869,7 @@ class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 22, 12, 10),
+          padding: const EdgeInsets.fromLTRB(16, 22, 12, 10),
           child: Row(
             children: [
               const Icon(Icons.auto_awesome, size: 17, color: Ob.gold),
