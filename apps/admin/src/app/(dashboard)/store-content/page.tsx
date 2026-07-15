@@ -5,6 +5,7 @@ import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, serverTime
 import { db } from '@/lib/firebase';
 import { useCollection, Row } from '@/lib/hooks';
 import { ImageUpload } from '@/components/ImageUpload';
+import { MallNav } from '@/components/MallNav';
 
 /** Asktro Mall storefront content — testimonials, video reels and FAQs that
  *  render on the store home. Direct Firestore writes (admin-gated by rules),
@@ -13,6 +14,7 @@ export default function StoreContentPage() {
   const [tab, setTab] = useState<'testimonials' | 'videos' | 'faqs' | 'reviews'>('testimonials');
   return (
     <div>
+      <MallNav />
       <h1 style={{ marginBottom: 2 }}>Store Content</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>
         Testimonials, videos, FAQs &amp; product reviews shown on the Asktro Mall storefront. Updates go live in the app instantly — no rebuild.

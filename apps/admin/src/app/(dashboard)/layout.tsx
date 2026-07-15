@@ -24,10 +24,7 @@ const NAV = [
   { href: '/recharges', label: 'Recharges', icon: I(<><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /><circle cx="8" cy="15" r="1.4" /></>) },
   { href: '/banners', label: 'Banners Management', icon: I(<><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></>) },
   { href: '/blogs', label: 'Blogs', icon: I(<><path d="M4 4h11a2 2 0 0 1 2 2v14l-4-2-4 2V6a2 2 0 0 0-2-2H4z" /><path d="M8 8h5M8 12h5" /></>) },
-  { href: '/home-content', label: 'Home Content', icon: I(<><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M9 22V12h6v10" /></>) },
-  { href: '/store', label: 'Store Catalog', icon: I(<><path d="M3 9l1-5h16l1 5" /><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" /><path d="M9 22V12h6v10" /></>) },
-  { href: '/store-orders', label: 'Store Orders', icon: I(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /><path d="M8 14h5" /></>) },
-  { href: '/store-content', label: 'Store Content', icon: I(<><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></>) },
+  { href: '/mall', label: 'Asktro Mall', icon: I(<><path d="M3 9l1-5h16l1 5" /><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" /><path d="M9 22V12h6v10" /></>) },
   { href: '/coupons', label: 'Coupons Management', icon: I(<path d="M20 12a2 2 0 0 1 2-2V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v3a2 2 0 0 1 0 4v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3a2 2 0 0 1-2-2z" />) },
   { href: '/broadcast', label: 'Push Notifications', icon: I(<><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></>) },
   { href: '/reports', label: 'Reports', icon: I(<><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></>) },
@@ -107,7 +104,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </button>
         <nav className="sidebar__nav">
           {nav.map((n) => {
-            const active = pathname === n.href;
+            // The single "Asktro Mall" entry stays highlighted across all of its
+            // sub-pages (catalog, orders, content, home content).
+            const mallPaths = ['/mall', '/store', '/store-orders', '/store-content', '/home-content'];
+            const active = n.href === '/mall'
+              ? mallPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+              : pathname === n.href;
             return (
               <Link key={n.href} href={n.href} className={`sidebar__link${active ? ' active' : ''}`} title={n.label}>
                 <span className="sidebar__ico">{n.icon}</span>

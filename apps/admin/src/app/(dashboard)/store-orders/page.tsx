@@ -5,6 +5,7 @@ import { arrayUnion, doc, orderBy, serverTimestamp, updateDoc } from 'firebase/f
 import { db } from '@/lib/firebase';
 import { useCollection, Row } from '@/lib/hooks';
 import { formatPaise, formatDate } from '@/lib/format';
+import { MallNav } from '@/components/MallNav';
 
 const STATUS_FLOW = ['pending_payment', 'confirmed', 'shipped', 'delivered'] as const;
 const STATUS_LABEL: Record<string, string> = {
@@ -31,6 +32,7 @@ export default function StoreOrdersPage() {
 
   return (
     <div>
+      <MallNav />
       <h1 style={{ marginBottom: 2 }}>Store Orders</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>
         {paid.length} paid orders · {formatPaise(revenue)} gross · manage fulfilment below.
