@@ -69,7 +69,7 @@ function HeroBanners() {
           Tall / near-square images work best (they fill the full-width hero). Text is optional — a fully-designed image can carry it all.
         </p>
         <div style={{ marginBottom: 12 }}>
-          <ImageUpload folder="store_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" aspect={1.5} label="Banner image" />
+          <ImageUpload folder="store_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" aspect={1.25} label="Banner image" />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <label className="af"><span>Headline (optional)</span>
