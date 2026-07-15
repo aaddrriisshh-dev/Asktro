@@ -127,26 +127,47 @@ class CallEngine extends ChangeNotifier {
     }
   }
 
+  // In-call controls are best-effort: the native engine can return an error
+  // code (e.g. toggled mid-reconnect, just as the channel drops, or an op the
+  // device/profile doesn't support), which the plugin surfaces as a thrown
+  // AgoraRtcException. Swallowing it here keeps a stray control tap from
+  // becoming a fatal unhandled async error (Crashlytics AgoraRtcException).
   Future<void> toggleMute() async {
     muted = !muted;
     notifyListeners();
-    await _engine?.muteLocalAudioStream(muted);
+    try {
+      await _engine?.muteLocalAudioStream(muted);
+    } catch (e) {
+      debugPrint('CallEngine.toggleMute failed: $e');
+    }
   }
 
   Future<void> toggleSpeaker() async {
     speakerOn = !speakerOn;
     notifyListeners();
-    await _engine?.setEnableSpeakerphone(speakerOn);
+    try {
+      await _engine?.setEnableSpeakerphone(speakerOn);
+    } catch (e) {
+      debugPrint('CallEngine.toggleSpeaker failed: $e');
+    }
   }
 
   Future<void> toggleCamera() async {
     cameraOn = !cameraOn;
     notifyListeners();
-    await _engine?.enableLocalVideo(cameraOn);
+    try {
+      await _engine?.enableLocalVideo(cameraOn);
+    } catch (e) {
+      debugPrint('CallEngine.toggleCamera failed: $e');
+    }
   }
 
   Future<void> switchCamera() async {
-    await _engine?.switchCamera();
+    try {
+      await _engine?.switchCamera();
+    } catch (e) {
+      debugPrint('CallEngine.switchCamera failed: $e');
+    }
   }
 
   /// Leave the channel and free native resources. Safe to call more than once.
