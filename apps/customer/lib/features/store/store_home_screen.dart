@@ -7,6 +7,11 @@ import 'store_providers.dart';
 import 'store_theme.dart';
 import 'store_widgets.dart';
 
+/// The ground a section "band" sits on. Cream/white/ghee-gold give the
+/// storefront a warm rhythm so each section reads as its own zone; the glowing
+/// ghee-gold band spotlights the featured rails (Best Sellers, Combo Deals).
+enum _Ground { white, cream, gold }
+
 /// Asktro Mall — the storefront. A warm boutique: blended header, a full-bleed
 /// hero image, category chips, an auto-scrolling claim strip, Best Sellers, New
 /// Launches, and the full All-Products grid. Reached from the home rail's "Visit
@@ -47,7 +52,7 @@ class StoreHomeScreen extends ConsumerWidget {
             if (bestSellers.isNotEmpty)
               SliverToBoxAdapter(
                 child: _railBand(context, ref, 'Most Loved', 'Best Sellers', bestSellers,
-                    onViewAll: () => context.push('/store/products/best'),),
+                    ground: _Ground.gold, onViewAll: () => context.push('/store/products/best'),),
               ),
             if (newLaunches.isNotEmpty)
               SliverToBoxAdapter(
@@ -58,7 +63,7 @@ class StoreHomeScreen extends ConsumerWidget {
             if (combos.isNotEmpty)
               SliverToBoxAdapter(
                 child: _railBand(context, ref, 'Save More', 'Combo Deals', combos,
-                    ribbon: (text: 'COMBO', color: Mall.offInk),
+                    ribbon: (text: 'COMBO', color: Mall.offInk), ground: _Ground.gold,
                     onViewAll: () => context.push('/store/products/combo'),),
               ),
             if (cats.isNotEmpty)
@@ -148,29 +153,65 @@ class StoreHomeScreen extends ConsumerWidget {
   // ---- section "bands": a full-bleed white block on the warm ground, split
   // by a cream gap + hairlines, so each section reads as its own zone. ----
 
-  static Widget _band(Widget child) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(color: Mall.hair),
-            bottom: BorderSide(color: Mall.hair),
-          ),
-        ),
-        padding: const EdgeInsets.only(top: 14, bottom: 14),
-        child: child,
-      );
+  static Widget _band(Widget child, {_Ground ground = _Ground.white}) {
+    const BoxDecoration white = BoxDecoration(
+      color: Colors.white,
+      border: Border(top: BorderSide(color: Mall.hair), bottom: BorderSide(color: Mall.hair)),
+    );
+    const BoxDecoration cream = BoxDecoration(
+      color: Color(0xFFFBF5E9),
+      border: Border(top: BorderSide(color: Color(0xFFEADDBF)), bottom: BorderSide(color: Color(0xFFEADDBF))),
+    );
+    const BoxDecoration gold = BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFFDF4DD), Color(0xFFF7E7B7), Color(0xFFF0D691)],
+        stops: [0, 0.55, 1],
+      ),
+      border: Border(top: BorderSide(color: Color(0xFFE7CD8A)), bottom: BorderSide(color: Color(0xFFE7CD8A))),
+    );
+    final deco = switch (ground) {
+      _Ground.white => white,
+      _Ground.cream => cream,
+      _Ground.gold => gold,
+    };
+    // The featured (gold) band carries a faint ✦ watermark top-right.
+    final content = ground == _Ground.gold
+        ? Stack(
+            children: [
+              const Positioned(
+                right: 14,
+                top: 4,
+                child: IgnorePointer(
+                  child: Text('✦', style: TextStyle(fontSize: 58, color: Color(0x47E7C878), height: 1)),
+                ),
+              ),
+              child,
+            ],
+          )
+        : child;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: deco,
+      padding: const EdgeInsets.only(top: 14, bottom: 14),
+      child: content,
+    );
+  }
 
   Widget _railBand(BuildContext context, WidgetRef ref, String eyebrow, String title, List<StoreProduct> items,
-      {({String text, Color color})? ribbon, VoidCallback? onViewAll,}) {
-    return _band(Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _sectionHeader(eyebrow, title, onViewAll: onViewAll),
-        _rail(context, ref, items, ribbon: ribbon),
-      ],
-    ),);
+      {({String text, Color color})? ribbon, VoidCallback? onViewAll, _Ground ground = _Ground.white,}) {
+    return _band(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _sectionHeader(eyebrow, title, onViewAll: onViewAll),
+          _rail(context, ref, items, ribbon: ribbon),
+        ],
+      ),
+      ground: ground,
+    );
   }
 
   Widget _categoryBand(BuildContext context, List<StoreCategory> cats) {
@@ -195,7 +236,7 @@ class StoreHomeScreen extends ConsumerWidget {
           ),
         ),
       ],
-    ),);
+    ), ground: _Ground.cream,);
   }
 
   Widget _allProductsBand(BuildContext context, WidgetRef ref, List<StoreProduct> preview, int total) {
@@ -254,7 +295,7 @@ class StoreHomeScreen extends ConsumerWidget {
           ),
         ),
       ],
-    ),);
+    ), ground: _Ground.cream,);
   }
 
   Widget _videoBand(BuildContext context, List<StoreVideo> items) {
@@ -295,7 +336,7 @@ class StoreHomeScreen extends ConsumerWidget {
           child: Column(children: [for (final f in items) FaqTile(faq: f)]),
         ),
       ],
-    ),);
+    ), ground: _Ground.cream,);
   }
 }
 
@@ -414,7 +455,13 @@ class _Hero extends StatelessWidget {
                 const SizedBox(height: 5),
                 const Text('Blessed by\nour Pandits',
                     style: TextStyle(fontFamily: 'serif', fontSize: 25, fontWeight: FontWeight.w700, color: Colors.white, height: 1.05),),
-                const SizedBox(height: 11),
+                const SizedBox(height: 8),
+                const SizedBox(
+                  width: 168,
+                  child: Text('Energised & lab-certified, chosen for your stars.',
+                      style: TextStyle(fontSize: 10.5, height: 1.35, color: Color(0xFFFBEECB), fontWeight: FontWeight.w500),),
+                ),
+                const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                   decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFF4D281), Color(0xFFDCA63E)]), borderRadius: BorderRadius.circular(18)),
