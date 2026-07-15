@@ -42,6 +42,12 @@ service firebase.storage {
       allow write: if isAdmin() && isImage() && underMB(8);
     }
 
+    // AstroMall product + category images — admin-authored in the portal.
+    match /store_images/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isImage() && underMB(8);
+    }
+
     // Admin-uploaded astrologer photos: public read, admin write.
     match /astrologer_photos/{fileName} {
       allow read: if isSignedIn();

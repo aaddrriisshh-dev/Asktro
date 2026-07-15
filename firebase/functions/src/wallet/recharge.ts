@@ -21,6 +21,7 @@ import {
 import { createOrder, verifyPaymentSignature, verifyWebhookSignature } from './razorpay';
 import { creditRecharge, autoResumePausedSession } from './creditRecharge';
 import { recordFailedCredit } from './reconcile';
+import { tryConfirmStoreCapture } from '../store/store';
 import { logger } from 'firebase-functions/v2';
 
 export const createRechargeOrder = onCall(
@@ -229,7 +230,11 @@ export const razorpayWebhook = onRequest(
     }
 
     if ((rawReq.body?.event as string | undefined) === 'payment.captured') {
-      await creditCapturedPayment(rawReq.body?.payload?.payment?.entity ?? {});
+      const entity = rawReq.body?.payload?.payment?.entity ?? {};
+      // Store-order capture? Confirm it and stop. Otherwise fall through to the
+      // recharge/wallet path (which is left completely unchanged).
+      const isStore = await tryConfirmStoreCapture(entity);
+      if (!isStore) await creditCapturedPayment(entity);
     }
     res.status(200).send('ok');
   },

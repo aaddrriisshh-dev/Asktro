@@ -20,6 +20,10 @@ export const Collections = {
   counters: 'counters', // atomic sequence docs (e.g. human-readable ticket numbers)
   rateLimits: 'rateLimits', // per-user fixed-window rate-limit counters (TTL on expireAt)
   dailyStats: 'dailyStats', // per-UTC-day analytics rollup for the admin dashboard
+  storeCategories: 'storeCategories', // AstroMall product categories
+  storeProducts: 'storeProducts', // AstroMall physical products
+  storeOrders: 'storeOrders', // AstroMall orders (physical-goods purchases)
+  storeOrderBindings: 'storeOrderBindings', // razorpayOrderId -> storeOrderId (webhook resolution)
 } as const;
 
 export const ConfigDoc = { path: 'config/global' } as const;

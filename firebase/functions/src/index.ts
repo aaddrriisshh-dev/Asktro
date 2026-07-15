@@ -40,6 +40,9 @@ export { generateAgoraToken } from './agora/token';
 export { prokeralaAstrology } from './prokerala/prokerala';
 export { purchaseKundliMatch } from './astrology/kundliMatch';
 
+// ---- AstroMall store (physical-goods checkout) ----
+export { createStoreOrder, verifyStoreOrder } from './store/store';
+
 // ---- Auth / account lifecycle ----
 export { onAuthUserCreate } from './auth/onAuthUserCreate';
 export { onCustomerSignup } from './auth/onUserCreate';
