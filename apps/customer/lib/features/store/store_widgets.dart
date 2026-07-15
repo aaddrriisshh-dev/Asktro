@@ -295,6 +295,274 @@ class _ClaimMarqueeState extends State<ClaimMarquee> with SingleTickerProviderSt
   }
 }
 
+/// A little gold star row used on testimonials.
+class StarRow extends StatelessWidget {
+  const StarRow({super.key, required this.rating, this.size = 14});
+  final double rating;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < 5; i++)
+          Icon(
+            i < rating.round() ? Icons.star_rounded : Icons.star_outline_rounded,
+            size: size,
+            color: const Color(0xFFE0A92E),
+          ),
+      ],
+    );
+  }
+}
+
+/// A single social-proof card (avatar, name+place, stars, quote).
+class TestimonialCard extends StatelessWidget {
+  const TestimonialCard({super.key, required this.t});
+  final StoreTestimonial t;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 268,
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
+      decoration: BoxDecoration(
+        color: Mall.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFECE1C8)),
+        boxShadow: [BoxShadow(color: const Color(0xFF5A3C0A).withValues(alpha: 0.12), blurRadius: 18, offset: const Offset(0, 8))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: const BoxDecoration(shape: BoxShape.circle),
+                clipBehavior: Clip.antiAlias,
+                child: MallImage(url: t.avatar, size: 22, radius: 21),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(t.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Mall.ink),),
+                    if (t.location.isNotEmpty)
+                      Text(t.location, style: const TextStyle(fontSize: 11, color: Mall.warmGrey)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.format_quote_rounded, size: 22, color: Mall.goldLine),
+            ],
+          ),
+          const SizedBox(height: 10),
+          StarRow(rating: t.rating),
+          const SizedBox(height: 8),
+          Text(
+            t.quote,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12.5, height: 1.4, color: Color(0xFF5A4B2E)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A "why us" video thumbnail card with a play glyph + duration chip.
+class VideoCard extends StatelessWidget {
+  const VideoCard({super.key, required this.video, required this.onTap});
+  final StoreVideo video;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 232,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                children: [
+                  AspectRatio(
+                    aspectRatio: 16 / 10,
+                    child: MallImage(url: video.thumb, size: 40, radius: 16, fit: BoxFit.cover),
+                  ),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black.withValues(alpha: 0.35)],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Positioned.fill(
+                    child: Center(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(color: Color(0xE6FFFFFF), shape: BoxShape.circle),
+                        child: Padding(
+                          padding: EdgeInsets.all(9),
+                          child: Icon(Icons.play_arrow_rounded, color: Mall.goldInk, size: 24),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (video.duration.isNotEmpty)
+                    Positioned(
+                      right: 8, bottom: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.62), borderRadius: BorderRadius.circular(6)),
+                        child: Text(video.duration, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(video.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Mall.ink, height: 1.25),),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// An expandable FAQ row (celestial-warm, no divider noise).
+class FaqTile extends StatefulWidget {
+  const FaqTile({super.key, required this.faq});
+  final StoreFaq faq;
+
+  @override
+  State<FaqTile> createState() => _FaqTileState();
+}
+
+class _FaqTileState extends State<FaqTile> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Mall.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEDE3CC)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _open = !_open),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(15, 14, 12, 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(widget.faq.question,
+                        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Mall.ink),),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedRotation(
+                    turns: _open ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: const Icon(Icons.keyboard_arrow_down_rounded, color: Mall.goldInk),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox(width: double.infinity),
+            secondChild: Padding(
+              padding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(widget.faq.answer,
+                    style: const TextStyle(fontSize: 12.5, height: 1.5, color: Color(0xFF6A5A3C)),),
+              ),
+            ),
+            crossFadeState: _open ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 180),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A larger, image-led category card for the "Shop by Category" grid.
+class StoreCategoryCard extends StatelessWidget {
+  const StoreCategoryCard({super.key, required this.category, required this.onTap});
+  final StoreCategory category;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Mall.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFECE1C8)),
+          boxShadow: [BoxShadow(color: const Color(0xFF5A3C0A).withValues(alpha: 0.10), blurRadius: 14, offset: const Offset(0, 6))],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(center: Alignment(0, -0.3), radius: 0.95, colors: [Colors.white, Color(0xFFF4ECDC)]),
+                ),
+                child: category.image.isNotEmpty
+                    ? MallImage(url: category.image, size: 34, radius: 0, fit: BoxFit.cover)
+                    : Center(
+                        child: category.emoji.isNotEmpty
+                            ? Text(category.emoji, style: const TextStyle(fontSize: 30))
+                            : const Icon(Icons.spa_rounded, size: 28, color: Mall.deep),
+                      ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+              child: Text(category.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Mall.titleBrown),),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Round category tile (rail + store chips).
 class CategoryTile extends StatelessWidget {
   const CategoryTile({super.key, required this.category, required this.onTap, this.selected = false, this.size = 58});

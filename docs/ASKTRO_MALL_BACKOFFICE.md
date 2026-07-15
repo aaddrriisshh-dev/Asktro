@@ -229,3 +229,89 @@ discounts engine, orders expansion + GST invoice, customers view, analytics.
 Shiprocket integration (serviceability → AWB → label → manifest → webhook tracking → NDR/RTO/returns), behind a `ShippingProvider` interface.
 
 Each phase ships portal + app together, with previews for approval before build.
+
+---
+
+## 6. Audit additions (gaps found on review — 2026-07)
+
+The blueprint above is a solid Shopify-grade spine. Reviewing it against the Indian
+D2C market **and** Asktro's own ecosystem surfaced the following missing pieces.
+Grouped by why they matter.
+
+### 6A. Ecosystem tie-ins (Asktro's unfair advantage — no competitor store has these)
+1. **Pay with Asktro Wallet.** Users already keep a wallet balance for consultations.
+   Let them **check out with wallet balance** (full or part) and/or **earn wallet
+   cashback** on Mall purchases. This recycles money inside the platform and makes the
+   store dramatically stickier. Server-side: reuse the wallet ledger; add a `walletPaise`
+   line to the order total, debited atomically at checkout.
+2. **Consultation → product cross-sell.** After a call/chat, the astrologer (or a portal
+   ops rule) can **recommend a product** to that user; it surfaces as "Recommended for
+   you / by your astrologer" on home + as a nudge. And every product page gets a
+   **"Talk to an astrologer about this"** CTA that deep-links into consultation. This is
+   the flywheel: consultations sell products, products sell consultations.
+3. **Buy-for-your-sign / chart-aware picks.** Use the birth data we already hold to show
+   "Gemstone for your Rashi" style curation. (Phase C personalization; data already exists.)
+
+### 6B. Revenue levers the draft omitted
+4. **Wishlist / Save for later** — per-user favourites; drives re-engagement + "back in
+   stock" and "price dropped" nudges. Model: `users/{uid}/wishlist/{productId}`.
+5. **Abandoned-cart recovery** — persist the cart server-side; a scheduled function nudges
+   (push/WhatsApp) after N hours. Single biggest recovered-revenue lever in D2C.
+6. **Back-in-stock notify** — "Notify me" on out-of-stock variants → captured list →
+   auto push when restocked. Feeds off the inventory we already track.
+7. **Store search + filters + sort** — the storefront has a search icon but no engine.
+   Needs product search (title/tag), filters (category, price, rating, in-stock) and sort
+   (popularity/price/newest). At catalog scale, back it with a search index
+   (Typesense/Algolia) rather than Firestore queries.
+
+### 6C. India commerce/compliance must-haves
+8. **COD decision.** COD is ~50–60% of Indian D2C orders. Current checkout is Razorpay-only.
+   Either enable COD (with a COD fee + serviceability check via Shiprocket) or make a
+   deliberate prepaid-only call. Flag in Settings; wire in Deliveries (Phase D).
+9. **Customer returns & refund flow.** Not just RTO. A customer **requests a return** from
+   the app → ops approves → **reverse pickup** (Shiprocket) → **refund to Asktro Wallet or
+   source**. Ties to 6A#1 (wallet refund is instant + keeps money in-platform).
+10. **Transactional notifications.** Branded **order-placed / shipped / out-for-delivery /
+    delivered** messages over **push + WhatsApp/SMS** (India expects WhatsApp). Templated,
+    triggered by order status transitions.
+11. **GST invoice numbering + sales/GST report.** Sequential, per-financial-year invoice
+    numbers (legal requirement); a **GST/sales report** export (by HSN, by period) for
+    filing. Invoice is frozen at order time (already noted in §3.11) — add the numbering
+    sequence + reporting.
+
+### 6D. Operational polish (make "nothing static" safe + easy)
+12. **Announcement bar** — a dismissible top strip ("Free shipping over ₹499", "Navratri
+    sale live") as a Settings field, separate from the marquee claim strip.
+13. **Draft → Preview → Publish** for the Storefront Builder — edit a `home_draft`, preview
+    in a phone pane, then publish (copy draft→live or flip a `publishedVersionId`). Stops a
+    half-edited home from going live. (Research-backed; strongly recommended.)
+14. **Reusable asset uploader** — one image/video component → Storage → returns
+    `{url, thumb, w, h, blurhash}`, with a **Storage-triggered thumbnail/blurhash function**
+    so the app gets instant placeholders. Used by banners, media, testimonials, categories.
+15. **Store-scoped roles + audit log.** A `store-manager` sub-role (orders/inventory yes,
+    pricing/settings no); every catalog/price change written to the existing **audit log**.
+16. **Sparse-integer `position`** (100, 200, 300…) on every ordered list so a reorder
+    rewrites one field, not the whole collection. Cloud Functions own all rollups (ratings,
+    collection materialization, category-path propagation, inventory decrements).
+
+### 6E. Nice-to-haves (later)
+17. **Product Q&A** ("Ask a question") distinct from reviews.
+18. **Recently viewed** + **"You may also like"** (related already in §3.5; add recently-viewed).
+19. **Shareable product deep-links** (Firebase Dynamic Links / share sheet) for WhatsApp virality.
+20. **Gift options** (gift wrap, message) — low priority for this category.
+
+### Data-model deltas these add
+```
+users/{uid}/wishlist/{productId}         addedAt
+users/{uid}/cart                          items[], updatedAt   (server-persisted for recovery)
+storeStockNotify/{id}                     uid, productId, variantId, createdAt, notifiedAt
+storeReturns/{id}                         orderId, uid, items[], reason, status, refundMode(wallet|source), refundPaise, timeline[]
+storeRecommendations/{id}                 uid, productId, source(astrologer|rule), sessionId, createdAt
+config/store  += codEnabled, codFeePaise, announcement{text,active}, invoiceSeq, walletPayEnabled, cashbackPercent
+storeOrders/{id} += walletPaise, codPaise, invoiceNo, notifications[]
+```
+
+**Net:** items **1, 2, 9, 10, 13, 14** are the highest-leverage — they are what make Asktro
+Mall *not* a generic store clone. I recommend folding **1 (wallet pay), 2 (consult
+cross-sell), 13 (draft/publish), 14 (asset pipeline)** into the phase plan now, and
+scheduling **9, 10** with Deliveries (Phase D) and **4–8** into Phase C.

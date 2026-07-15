@@ -48,6 +48,7 @@ class StoreProduct {
     this.ratingCount = 0,
     this.bestSeller = false,
     this.newLaunch = false,
+    this.combo = false,
     this.createdAtMs,
   });
 
@@ -65,6 +66,7 @@ class StoreProduct {
   final int ratingCount;
   final bool bestSeller;
   final bool newLaunch;
+  final bool combo;
   final int? createdAtMs;
 
   String? get image => images.isNotEmpty ? images.first : null;
@@ -90,7 +92,98 @@ class StoreProduct {
       ratingCount: ((m['ratingCount'] ?? 0) as num).toInt(),
       bestSeller: (m['bestSeller'] ?? false) as bool,
       newLaunch: (m['newLaunch'] ?? false) as bool,
+      combo: (m['combo'] ?? false) as bool,
       createdAtMs: (m['createdAt'] as Timestamp?)?.millisecondsSinceEpoch,
+    );
+  }
+}
+
+/// A homepage social-proof card (portal-managed: `storeTestimonials`).
+class StoreTestimonial {
+  const StoreTestimonial({
+    required this.id,
+    required this.name,
+    this.location = '',
+    this.avatar = '',
+    this.rating = 5,
+    this.quote = '',
+    this.sortOrder = 0,
+  });
+
+  final String id;
+  final String name;
+  final String location;
+  final String avatar;
+  final double rating;
+  final String quote;
+  final int sortOrder;
+
+  factory StoreTestimonial.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
+    final m = d.data() ?? {};
+    return StoreTestimonial(
+      id: d.id,
+      name: (m['name'] ?? '') as String,
+      location: (m['location'] ?? '') as String,
+      avatar: (m['avatar'] ?? '') as String,
+      rating: ((m['rating'] ?? 5) as num).toDouble(),
+      quote: (m['quote'] ?? '') as String,
+      sortOrder: ((m['sortOrder'] ?? 0) as num).toInt(),
+    );
+  }
+}
+
+/// A "why us" / how-to reel (portal-managed: `storeVideos`).
+class StoreVideo {
+  const StoreVideo({
+    required this.id,
+    required this.title,
+    this.thumb = '',
+    this.url = '',
+    this.duration = '',
+    this.sortOrder = 0,
+  });
+
+  final String id;
+  final String title;
+  final String thumb;
+  final String url;
+  final String duration;
+  final int sortOrder;
+
+  factory StoreVideo.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
+    final m = d.data() ?? {};
+    return StoreVideo(
+      id: d.id,
+      title: (m['title'] ?? '') as String,
+      thumb: (m['thumb'] ?? '') as String,
+      url: (m['url'] ?? '') as String,
+      duration: (m['duration'] ?? '') as String,
+      sortOrder: ((m['sortOrder'] ?? 0) as num).toInt(),
+    );
+  }
+}
+
+/// A store FAQ entry (portal-managed: `storeFaqs`).
+class StoreFaq {
+  const StoreFaq({
+    required this.id,
+    required this.question,
+    required this.answer,
+    this.sortOrder = 0,
+  });
+
+  final String id;
+  final String question;
+  final String answer;
+  final int sortOrder;
+
+  factory StoreFaq.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
+    final m = d.data() ?? {};
+    return StoreFaq(
+      id: d.id,
+      question: (m['question'] ?? '') as String,
+      answer: (m['answer'] ?? '') as String,
+      sortOrder: ((m['sortOrder'] ?? 0) as num).toInt(),
     );
   }
 }

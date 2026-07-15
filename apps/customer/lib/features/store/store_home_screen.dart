@@ -27,6 +27,11 @@ class StoreHomeScreen extends ConsumerWidget {
     final best = products.where((p) => p.bestSeller).toList();
     final bestSellers = (best.isEmpty ? products.take(8).toList() : best);
     final newLaunches = products.where((p) => p.newLaunch).toList();
+    final combos = products.where((p) => p.combo).toList();
+
+    final testimonials = ref.watch(storeTestimonialsProvider).valueOrNull ?? const [];
+    final videos = ref.watch(storeVideosProvider).valueOrNull ?? const [];
+    final faqs = ref.watch(storeFaqsProvider).valueOrNull ?? const [];
 
     return Scaffold(
       backgroundColor: const Color(0xFFFBF5E9),
@@ -46,12 +51,34 @@ class StoreHomeScreen extends ConsumerWidget {
               SliverToBoxAdapter(child: _sectionHeader('Just In', 'New Launches')),
               SliverToBoxAdapter(child: _rail(context, ref, newLaunches, ribbon: (text: 'NEW', color: Mall.green))),
             ],
+            if (combos.isNotEmpty) ...[
+              SliverToBoxAdapter(child: _sectionHeader('Save More', 'Combo Deals')),
+              SliverToBoxAdapter(child: _rail(context, ref, combos, ribbon: (text: 'COMBO', color: Mall.offInk))),
+            ],
+            if (cats.isNotEmpty) ...[
+              SliverToBoxAdapter(child: _sectionHeader('Find your fit', 'Shop by Category', viewAll: false)),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.82,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) => StoreCategoryCard(
+                      category: cats[i],
+                      onTap: () => context.push('/store/category/${cats[i].id}', extra: cats[i].name),
+                    ),
+                    childCount: cats.length,
+                  ),
+                ),
+              ),
+            ],
             SliverToBoxAdapter(child: _sectionHeader('Browse our collection', 'All Products', viewAll: false)),
             if (products.isEmpty)
               const SliverToBoxAdapter(child: _Empty())
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(12, 2, 12, 26),
+                padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.66,
@@ -62,6 +89,58 @@ class StoreHomeScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+            if (testimonials.isNotEmpty) ...[
+              SliverToBoxAdapter(child: _sectionHeader('In their words', 'What Our Customers Say', viewAll: false)),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 176,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
+                    itemCount: testimonials.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (_, i) => TestimonialCard(t: testimonials[i]),
+                  ),
+                ),
+              ),
+            ],
+            if (videos.isNotEmpty) ...[
+              SliverToBoxAdapter(child: _sectionHeader('Watch & learn', 'Guides & Stories', viewAll: false)),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 208,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
+                    itemCount: videos.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (_, i) => VideoCard(
+                      video: videos[i],
+                      onTap: () => ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(const SnackBar(
+                          content: Text('Video player coming soon'),
+                          duration: Duration(milliseconds: 1100),
+                          behavior: SnackBarBehavior.floating,
+                        ),),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            if (faqs.isNotEmpty) ...[
+              SliverToBoxAdapter(child: _sectionHeader('Good to know', 'Frequently Asked', viewAll: false)),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) => FaqTile(faq: faqs[i]),
+                    childCount: faqs.length,
+                  ),
+                ),
+              ),
+            ],
+            const SliverToBoxAdapter(child: SizedBox(height: 22)),
           ],
         ),
       ),

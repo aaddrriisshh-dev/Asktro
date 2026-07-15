@@ -57,6 +57,39 @@ class StoreRepository {
     });
   }
 
+  /// Homepage testimonials (active), sorted client-side.
+  Stream<List<StoreTestimonial>> watchTestimonials() {
+    return _db
+        .collection('storeTestimonials')
+        .where('active', isEqualTo: true)
+        .limit(30)
+        .snapshots()
+        .map((s) => s.docs.map(StoreTestimonial.fromDoc).toList()
+          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)),);
+  }
+
+  /// "Why us" / how-to videos (active), sorted client-side.
+  Stream<List<StoreVideo>> watchVideos() {
+    return _db
+        .collection('storeVideos')
+        .where('active', isEqualTo: true)
+        .limit(30)
+        .snapshots()
+        .map((s) => s.docs.map(StoreVideo.fromDoc).toList()
+          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)),);
+  }
+
+  /// Store FAQs (active), sorted client-side.
+  Stream<List<StoreFaq>> watchFaqs() {
+    return _db
+        .collection('storeFaqs')
+        .where('active', isEqualTo: true)
+        .limit(40)
+        .snapshots()
+        .map((s) => s.docs.map(StoreFaq.fromDoc).toList()
+          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)),);
+  }
+
   Future<StoreProduct?> fetchProduct(String id) async {
     final d = await _db.collection('storeProducts').doc(id).get();
     return d.exists ? StoreProduct.fromDoc(d) : null;
@@ -194,6 +227,18 @@ final storeFeaturedProvider = StreamProvider<List<StoreProduct>>(
 
 final storeAllProductsProvider = StreamProvider<List<StoreProduct>>(
   (ref) => ref.watch(storeRepositoryProvider).watchActiveProducts(),
+);
+
+final storeTestimonialsProvider = StreamProvider<List<StoreTestimonial>>(
+  (ref) => ref.watch(storeRepositoryProvider).watchTestimonials(),
+);
+
+final storeVideosProvider = StreamProvider<List<StoreVideo>>(
+  (ref) => ref.watch(storeRepositoryProvider).watchVideos(),
+);
+
+final storeFaqsProvider = StreamProvider<List<StoreFaq>>(
+  (ref) => ref.watch(storeRepositoryProvider).watchFaqs(),
 );
 
 final storeProductsByCategoryProvider =
