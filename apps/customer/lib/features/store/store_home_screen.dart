@@ -532,9 +532,10 @@ class _BannerCarouselState extends State<_BannerCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 320,
-      width: double.infinity,
+    // 3:2 — the exact frame the admin crops banners to, so what they frame in
+    // the portal is precisely what shows here (no surprise clipping).
+    return AspectRatio(
+      aspectRatio: 3 / 2,
       child: Stack(
         children: [
           PageView.builder(

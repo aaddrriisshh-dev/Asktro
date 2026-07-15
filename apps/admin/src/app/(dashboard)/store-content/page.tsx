@@ -181,7 +181,7 @@ function VideosTab() {
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 16, marginTop: 12, alignItems: 'end' }}>
           <div>
             <p className="af-label">Thumbnail</p>
-            <ImageUpload folder="store_images" value={f.thumb} onChange={(url) => set('thumb', url)} shape="square" label="Thumb" />
+            <ImageUpload folder="store_images" value={f.thumb} onChange={(url) => set('thumb', url)} shape="wide" aspect={1.6} label="Thumb" />
           </div>
           <label className="af"><span>Sort order</span>
             <input className="input" type="number" placeholder="0" value={f.sortOrder} onChange={(e) => set('sortOrder', e.target.value)} />
