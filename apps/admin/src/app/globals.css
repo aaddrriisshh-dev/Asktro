@@ -1550,3 +1550,19 @@ tbody tr:last-child td { border-bottom: none; }
 .mall-card-h h3 { margin: 0; font-size: 16px; }
 .mall-link { font-size: 13px; font-weight: 700; color: #b07d16; text-decoration: none; white-space: nowrap; }
 .mall-link:hover { text-decoration: underline; }
+
+/* Hero tools column (date filter + alerts, right-aligned) */
+.mall-hero__tools { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+/* Date-range chip themed onto the emerald hero */
+.mall-theme .mall-hero .dfilter-chip {
+  background: rgba(230, 205, 130, 0.16); border-color: rgba(230, 205, 130, 0.42); color: #f4ecc9;
+  padding: 6px 14px; font-size: 12px;
+}
+.mall-theme .mall-hero .dfilter-chip:hover { background: rgba(230, 205, 130, 0.28); }
+
+/* KPI delta comparison chip */
+.mall-kpi__d { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+.mall-kpi__d.up { color: #1e9e63; background: #e3f5ec; }
+.mall-kpi__d.down { color: #c4562e; background: #fbe6dd; }
+.mall-kpi__d.flat { color: #8a744e; background: #f3ecda; }
+.mall-kpi__dsub { font-weight: 600; opacity: 0.7; }
