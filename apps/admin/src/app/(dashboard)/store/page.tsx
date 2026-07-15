@@ -11,6 +11,7 @@ const emptyCat = { name: '', emoji: '', blurb: '', image: '', sortOrder: '', act
 const emptyProd = {
   title: '', description: '', categoryId: '', priceRupees: '', mrpRupees: '',
   stock: '', sku: '', sortOrder: '', active: true, images: [] as string[],
+  bestSeller: false, newLaunch: false, combo: false, rating: '', ratingCount: '',
 };
 
 /** AstroMall catalog — categories + products. Direct Firestore writes
@@ -174,6 +175,9 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
       stock: p.stock != null ? String(p.stock) : '', sku: (p.sku as string) ?? '',
       sortOrder: p.sortOrder != null ? String(p.sortOrder) : '', active: p.active !== false,
       images: Array.isArray(p.images) ? (p.images as string[]) : [],
+      bestSeller: p.bestSeller === true, newLaunch: p.newLaunch === true, combo: p.combo === true,
+      rating: p.rating != null ? String(p.rating) : '',
+      ratingCount: p.ratingCount != null ? String(p.ratingCount) : '',
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -194,6 +198,9 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
         stock: f.stock.trim() ? Math.max(0, Math.round(Number(f.stock) || 0)) : 100,
         sku: f.sku.trim(), images: f.images.filter(Boolean),
         sortOrder: f.sortOrder.trim() ? Math.round(Number(f.sortOrder) || 0) : shown.length,
+        bestSeller: f.bestSeller, newLaunch: f.newLaunch, combo: f.combo,
+        rating: f.rating.trim() ? Math.min(5, Math.max(0, Number(f.rating) || 4.8)) : 4.8,
+        ratingCount: f.ratingCount.trim() ? Math.max(0, Math.round(Number(f.ratingCount) || 0)) : 0,
         active: f.active, updatedAt: serverTimestamp(),
       };
       if (editId) await updateDoc(doc(db, 'storeProducts', editId), payload);
@@ -247,6 +254,27 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
           {imgSlots.map((i) => (
             <ImageUpload key={i} folder="store_images" value={f.images[i] ?? ''} onChange={(url) => setImage(i, url)} shape="square" label="Photo" />
           ))}
+        </div>
+
+        <p className="af-label" style={{ marginTop: 16 }}>Merchandising (which storefront rails this appears in)</p>
+        <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 14 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <input type="checkbox" checked={f.bestSeller} onChange={(e) => set('bestSeller', e.target.checked)} /> ⭐ Best Seller
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <input type="checkbox" checked={f.newLaunch} onChange={(e) => set('newLaunch', e.target.checked)} /> 🆕 New Launch
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <input type="checkbox" checked={f.combo} onChange={(e) => set('combo', e.target.checked)} /> 🎁 Combo Deal
+          </label>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+          <label className="af"><span>Rating (0–5, shown on card)</span>
+            <input className="input" type="number" min={0} max={5} step={0.1} placeholder="4.8" value={f.rating} onChange={(e) => set('rating', e.target.value)} />
+          </label>
+          <label className="af"><span>Rating count</span>
+            <input className="input" type="number" min={0} placeholder="0" value={f.ratingCount} onChange={(e) => set('ratingCount', e.target.value)} />
+          </label>
         </div>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 14 }}>
