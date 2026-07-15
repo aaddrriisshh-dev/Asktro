@@ -6,7 +6,6 @@ import { db } from '@/lib/firebase';
 import { useCollection, Row } from '@/lib/hooks';
 import { formatPaise } from '@/lib/format';
 import { ImageUpload } from '@/components/ImageUpload';
-import { MallNav } from '@/components/MallNav';
 
 const emptyCat = { name: '', emoji: '', blurb: '', image: '', sortOrder: '', active: true, parentId: '' };
 const emptyProd = {
@@ -34,7 +33,6 @@ export default function StorePage() {
 
   return (
     <div>
-      <MallNav />
       <h1 style={{ marginBottom: 2 }}>Store Catalog</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>
         Manage AstroMall categories &amp; products. Photos and prices update the app instantly — no rebuild.

@@ -4,11 +4,10 @@ import Link from 'next/link';
 import { limit, orderBy } from 'firebase/firestore';
 import { useCollection } from '@/lib/hooks';
 import { formatPaise } from '@/lib/format';
-import { MallNav } from '@/components/MallNav';
 
 /** Asktro Mall — the e-commerce back-office home. Glanceable KPIs + jump-off
- *  cards into each store section. The whole Mall lives under its own menu
- *  (MallNav), separate from the main operations sidebar. */
+ *  cards into each store section. The whole Mall lives under its own left-hand
+ *  menu (see the ghee-gold sidebar), separate from the main operations console. */
 export default function MallDashboardPage() {
   const { rows: products } = useCollection('storeProducts');
   const { rows: cats } = useCollection('storeCategories');
@@ -22,11 +21,10 @@ export default function MallDashboardPage() {
 
   return (
     <div>
-      <MallNav />
 
-      <h1 style={{ marginBottom: 2 }}>Dashboard</h1>
+      <h1 style={{ marginBottom: 2 }}>Asktro Mall</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-        Your e-commerce store at a glance. Manage everything from the tabs above.
+        Your e-commerce store at a glance. Use the menu on the left to manage every section.
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginTop: 18 }}>

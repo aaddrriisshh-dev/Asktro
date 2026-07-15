@@ -14,8 +14,22 @@ const I = (p: ReactNode) => (
 
 // Sidebar in the numbered order from the product spec. Items 1–12 first, then
 // the operational areas (Payouts, Pricing, Support) and Admin Management.
+const DASH_ICON = I(<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></>);
+const STORE_ICON = I(<><path d="M3 9l1-5h16l1 5" /><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" /><path d="M9 22V12h6v10" /></>);
+
+// The Asktro Mall section has its OWN sidebar menu — a portal-inside-the-portal.
+const MALL_NAV = [
+  { href: '/mall', label: 'Dashboard', icon: DASH_ICON },
+  { href: '/store', label: 'Catalog', icon: STORE_ICON },
+  { href: '/store-orders', label: 'Orders', icon: I(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /><path d="M8 14h5" /></>) },
+  { href: '/store-content', label: 'Content', icon: I(<><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></>) },
+  { href: '/home-content', label: 'Home Screen', icon: I(<><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M9 22V12h6v10" /></>) },
+  { href: '/', label: '‹ Back to App Console', icon: I(<><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></>) },
+];
+
 const NAV = [
-  { href: '/', label: 'Dashboard', icon: I(<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></>) },
+  { href: '/mall', label: 'Asktro Mall Dashboard', icon: STORE_ICON },
+  { href: '/', label: 'App Dashboard', icon: DASH_ICON },
   { href: '/users', label: 'Customer Management', icon: I(<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /></>) },
   { href: '/astrologers', label: 'Astrologer Management', icon: I(<path d="M12 2.5l2.2 6.4 6.8.3-5.3 4.2 1.8 6.6L12 16.9 6.5 20l1.8-6.6L3 9.2l6.8-.3z" />) },
   { href: '/phone-sessions', label: 'Phone Sessions', icon: I(<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" />) },
@@ -24,7 +38,6 @@ const NAV = [
   { href: '/recharges', label: 'Recharges', icon: I(<><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /><circle cx="8" cy="15" r="1.4" /></>) },
   { href: '/banners', label: 'Banners Management', icon: I(<><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></>) },
   { href: '/blogs', label: 'Blogs', icon: I(<><path d="M4 4h11a2 2 0 0 1 2 2v14l-4-2-4 2V6a2 2 0 0 0-2-2H4z" /><path d="M8 8h5M8 12h5" /></>) },
-  { href: '/mall', label: 'Asktro Mall', icon: I(<><path d="M3 9l1-5h16l1 5" /><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" /><path d="M9 22V12h6v10" /></>) },
   { href: '/coupons', label: 'Coupons Management', icon: I(<path d="M20 12a2 2 0 0 1 2-2V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v3a2 2 0 0 1 0 4v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3a2 2 0 0 1-2-2z" />) },
   { href: '/broadcast', label: 'Push Notifications', icon: I(<><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></>) },
   { href: '/reports', label: 'Reports', icon: I(<><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></>) },
@@ -62,7 +75,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return <div style={{ display: 'grid', placeItems: 'center', height: '100vh' }}>Loading…</div>;
   }
 
-  const nav = NAV.filter((n) => canSee(adminRole, n.href));
+  // The Mall is a portal-inside-the-portal: on any store route the whole left
+  // menu swaps to the Mall's own nav (and the section takes the ghee-gold look).
+  const mallPaths = ['/mall', '/store', '/store-orders', '/store-content', '/home-content'];
+  const isMall = mallPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const nav = (isMall ? MALL_NAV : NAV).filter((n) => canSee(adminRole, n.href));
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -77,7 +94,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <span className="topbar__word">Asktro<span className="brand-tld">.in</span></span>
       </header>
       {mobileOpen && <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} aria-hidden />}
-      <aside className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}${mobileOpen ? ' sidebar--open' : ''}`}>
+      <aside className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}${mobileOpen ? ' sidebar--open' : ''}${isMall ? ' sidebar--mall' : ''}`}>
         <button className="sidebar__close" onClick={() => setMobileOpen(false)} aria-label="Close menu">×</button>
         <div className="sidebar__brand">
           <div className="brand-row">
@@ -87,7 +104,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
           <span className="brand-tag">Guidance written in the stars</span>
         </div>
-        <p className="sidebar__eyebrow">Operations Console</p>
+        <p className="sidebar__eyebrow">{isMall ? 'Asktro Mall' : 'Operations Console'}</p>
         <button
           className="sidebar__toggle"
           onClick={() => setCollapsed((c) => !c)}
@@ -104,12 +121,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </button>
         <nav className="sidebar__nav">
           {nav.map((n) => {
-            // The single "Asktro Mall" entry stays highlighted across all of its
-            // sub-pages (catalog, orders, content, home content).
-            const mallPaths = ['/mall', '/store', '/store-orders', '/store-content', '/home-content'];
-            const active = n.href === '/mall'
-              ? mallPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`))
-              : pathname === n.href;
+            const active = pathname === n.href;
             return (
               <Link key={n.href} href={n.href} className={`sidebar__link${active ? ' active' : ''}`} title={n.label}>
                 <span className="sidebar__ico">{n.icon}</span>
@@ -126,7 +138,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
       </aside>
-      <main className="main">{children}</main>
+      <main className={`main${isMall ? ' mall-theme' : ''}`}>{children}</main>
     </div>
   );
 }

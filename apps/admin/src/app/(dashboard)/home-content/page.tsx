@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { MallNav } from '@/components/MallNav';
 
 /** Icon keys the app knows how to render (see trust_banner.dart `_iconFor`). */
 const ICONS: { key: string; label: string }[] = [
@@ -121,7 +120,6 @@ export default function HomeContentPage() {
 
   return (
     <div style={{ maxWidth: 720 }}>
-      <MallNav />
       <h1 style={{ marginBottom: 2 }}>Home Content — Trust Band</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>
         The &ldquo;Why people trust Asktro&rdquo; assurance strip on the home screen, just below the

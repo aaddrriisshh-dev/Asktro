@@ -1434,3 +1434,31 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* full-screen centered hero art (gift / mandala) — sits above the bottom text */
 .promo-art--hero { position: absolute; top: 11%; left: 0; right: 0; height: 42%; z-index: 1; pointer-events: none; background-repeat: no-repeat; background-position: center; background-size: contain; }
+
+/* ============================================================
+   Asktro Mall — ghee-gold theme for the store portal-in-portal.
+   The celestial background stays; only the Mall sidebar + section
+   take on the warm store identity used in the app.
+   ============================================================ */
+.sidebar--mall {
+  background: linear-gradient(180deg, #4a3410 0%, #5a3d0c 60%, #3f2c08 100%);
+  color: #ecd9a8;
+  border-color: rgba(235, 198, 110, 0.42);
+  box-shadow: 8px 0 26px rgba(58, 40, 8, 0.30), inset -3px 0 9px rgba(0, 0, 0, 0.14);
+}
+.sidebar--mall .sidebar__ico { color: #cba85e; }
+.sidebar--mall .sidebar__link { color: #e7d3a0; }
+.sidebar--mall .sidebar__link:hover { background: rgba(255, 240, 200, 0.08); color: #fff6df; border-color: rgba(235, 198, 110, 0.4); }
+.sidebar--mall .sidebar__link:hover .sidebar__ico { color: #f4dd94; }
+.sidebar--mall .sidebar__link.active { background: rgba(240, 205, 130, 0.20); color: #fff3d0; border-color: rgba(240, 205, 130, 0.6); }
+.sidebar--mall .sidebar__link.active .sidebar__ico { color: #f4dd94; }
+.sidebar--mall .sidebar__email { color: #cbb98e; }
+.sidebar--mall .sidebar__toggle { background: #6a4718; }
+.sidebar--mall .sidebar__toggle:hover { background: #7a5320; }
+
+/* Mall content area: swap the purple accent for ghee-gold. */
+.mall-theme { --primary: #b07d16; --primary-dark: #9a6b12; --accent: #f7ebcf; }
+.mall-theme h1, .mall-theme h2, .mall-theme h3 { color: #5a3d0c; }
+.mall-theme .btn { background: linear-gradient(135deg, #e0a83a, #c8871a); }
+.mall-theme .btn:hover { box-shadow: 0 10px 24px rgba(150, 100, 20, 0.32); }
+.mall-theme .btn.secondary { background: #fff; color: #9a6b12; border-color: rgba(212, 175, 55, 0.4); }
