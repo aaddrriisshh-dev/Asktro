@@ -57,6 +57,7 @@ class StoreProduct {
     this.newLaunch = false,
     this.combo = false,
     this.specs = const [],
+    this.bundleItems = const [],
     this.createdAtMs,
   });
 
@@ -76,6 +77,9 @@ class StoreProduct {
   final bool newLaunch;
   final bool combo;
   final List<ProductSpec> specs;
+
+  /// For a combo/bundle product: the individual products it contains.
+  final List<BundleItem> bundleItems;
   final int? createdAtMs;
 
   String? get image => images.isNotEmpty ? images.first : null;
@@ -106,9 +110,30 @@ class StoreProduct {
           .map((e) => ProductSpec.fromMap(Map<String, dynamic>.from(e as Map)))
           .where((s) => s.label.isNotEmpty)
           .toList(),
+      bundleItems: ((m['bundleItems'] ?? const []) as List)
+          .map((e) => BundleItem.fromMap(Map<String, dynamic>.from(e as Map)))
+          .where((b) => b.title.isNotEmpty)
+          .toList(),
       createdAtMs: (m['createdAt'] as Timestamp?)?.millisecondsSinceEpoch,
     );
   }
+}
+
+/// One item inside a combo/bundle — a reference to another product (denormalised
+/// title + image so the combo page needs no extra reads).
+class BundleItem {
+  const BundleItem({required this.productId, required this.title, this.image = '', this.qty = 1});
+  final String productId;
+  final String title;
+  final String image;
+  final int qty;
+
+  factory BundleItem.fromMap(Map<String, dynamic> m) => BundleItem(
+        productId: (m['productId'] ?? '') as String,
+        title: (m['title'] ?? '') as String,
+        image: (m['image'] ?? '') as String,
+        qty: ((m['qty'] ?? 1) as num).toInt(),
+      );
 }
 
 /// A single product specification row (e.g. Origin → Nepal).

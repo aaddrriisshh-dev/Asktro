@@ -14,6 +14,7 @@ const emptyProd = {
   bestSeller: false, newLaunch: false, combo: false, rating: '', ratingCount: '',
   weightGrams: '', hsn: '', gstRate: '', dimL: '', dimB: '', dimH: '',
   specs: [] as { k: string; v: string }[],
+  bundleItems: [] as { productId: string; title: string; image: string; qty: number }[],
 };
 
 const numOr0 = (s: string) => (s.trim() ? Math.max(0, Number(s) || 0) : 0);
@@ -193,6 +194,16 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
   const setSpec = (i: number, key: 'k' | 'v', val: string) =>
     setF((s) => ({ ...s, specs: s.specs.map((sp, j) => (j === i ? { ...sp, [key]: val } : sp)) }));
 
+  function addBundleItem(pid: string) {
+    const prod = prods.find((x) => x.id === pid);
+    if (!prod) return;
+    const image = Array.isArray(prod.images) && prod.images[0] ? (prod.images[0] as string) : '';
+    setF((s) => ({ ...s, bundleItems: [...s.bundleItems, { productId: pid, title: (prod.title as string) ?? '', image, qty: 1 }] }));
+  }
+  const setBundleQty = (i: number, q: number) =>
+    setF((s) => ({ ...s, bundleItems: s.bundleItems.map((b, j) => (j === i ? { ...b, qty: Math.max(1, q) } : b)) }));
+  const removeBundle = (i: number) => setF((s) => ({ ...s, bundleItems: s.bundleItems.filter((_, j) => j !== i) }));
+
   function edit(p: Row) {
     setEditId(p.id);
     setF({
@@ -212,6 +223,10 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
       dimL: dimOf(p, 'l'), dimB: dimOf(p, 'b'), dimH: dimOf(p, 'h'),
       specs: Array.isArray(p.specs)
         ? (p.specs as { k: string; v: string }[]).map((s) => ({ k: s.k ?? '', v: s.v ?? '' }))
+        : [],
+      bundleItems: Array.isArray(p.bundleItems)
+        ? (p.bundleItems as { productId: string; title: string; image: string; qty: number }[])
+            .map((b) => ({ productId: b.productId ?? '', title: b.title ?? '', image: b.image ?? '', qty: b.qty ?? 1 }))
         : [],
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -241,6 +256,9 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
         gstRate: f.gstRate.trim() ? Math.max(0, Number(f.gstRate) || 0) : 0,
         dimsCm: { l: numOr0(f.dimL), b: numOr0(f.dimB), h: numOr0(f.dimH) },
         specs: f.specs.filter((s) => s.k.trim()).map((s) => ({ k: s.k.trim(), v: s.v.trim() })),
+        bundleItems: f.combo
+          ? f.bundleItems.filter((b) => b.productId).map((b) => ({ productId: b.productId, title: b.title, image: b.image, qty: Math.max(1, b.qty || 1) }))
+          : [],
         active: f.active, updatedAt: serverTimestamp(),
       };
       if (editId) await updateDoc(doc(db, 'storeProducts', editId), payload);
@@ -250,7 +268,7 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
     finally { setBusy(false); }
   }
 
-  const imgSlots = [0, 1, 2, 3];
+  const imgSlots = [0, 1, 2, 3, 4, 5, 6, 7];
 
   return (
     <>
@@ -308,6 +326,28 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
             <input type="checkbox" checked={f.combo} onChange={(e) => set('combo', e.target.checked)} /> 🎁 Combo Deal
           </label>
         </div>
+
+        {f.combo && (
+          <div style={{ marginTop: 12, padding: 14, border: '1px dashed #e0b95f', borderRadius: 12, background: '#fffaf0' }}>
+            <p className="af-label" style={{ marginTop: 0 }}>🎁 Combo contents — the products this bundle contains</p>
+            {f.bundleItems.length === 0 && <p className="muted" style={{ fontSize: 13, margin: '0 0 8px' }}>Add 2–3 products below. Set this combo&apos;s own price/photos above; these are what&apos;s inside it.</p>}
+            {f.bundleItems.map((b, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 96px auto', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 14 }}>{b.title}</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                  ×<input className="input" type="number" min={1} value={b.qty} onChange={(e) => setBundleQty(i, Math.round(Number(e.target.value) || 1))} />
+                </label>
+                <button className="btn sm secondary" onClick={() => removeBundle(i)}>✕</button>
+              </div>
+            ))}
+            <select className="input" value="" onChange={(e) => { if (e.target.value) addBundleItem(e.target.value); }}>
+              <option value="">+ Add a product to this combo…</option>
+              {prods.filter((x) => x.id !== editId && !x.combo).map((x) => (
+                <option key={x.id} value={x.id}>{x.title as string}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
           <label className="af"><span>Rating (0–5, shown on card)</span>
             <input className="input" type="number" min={0} max={5} step={0.1} placeholder="4.8" value={f.rating} onChange={(e) => set('rating', e.target.value)} />

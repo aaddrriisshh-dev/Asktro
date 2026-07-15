@@ -200,6 +200,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 Text(p.description, style: const TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF6A5F4A))),
                 const SizedBox(height: 18),
               ],
+              if (p.bundleItems.isNotEmpty) ...[
+                _bundle(p),
+                const SizedBox(height: 18),
+              ],
               if (p.specs.isNotEmpty) ...[
                 _specsTable(p),
                 const SizedBox(height: 18),
@@ -216,6 +220,58 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               const SizedBox(height: 22),
               _reviews(p),
               const SizedBox(height: 90),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _bundle(StoreProduct p) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text('🎁 ', style: TextStyle(fontSize: 15)),
+            Text('This combo includes ${p.bundleItems.length} items',
+                style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Mall.navy),),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFAF0),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Mall.goldLine),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < p.bundleItems.length; i++)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+                  decoration: BoxDecoration(
+                    border: i == 0 ? null : const Border(top: BorderSide(color: Color(0xFFF0E6CC))),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44, height: 44,
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                        clipBehavior: Clip.antiAlias,
+                        child: MallImage(url: p.bundleItems[i].image, size: 22, radius: 10),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(p.bundleItems[i].title,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Mall.ink),),
+                      ),
+                      if (p.bundleItems[i].qty > 1)
+                        Text('×${p.bundleItems[i].qty}',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Mall.goldInk),),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
