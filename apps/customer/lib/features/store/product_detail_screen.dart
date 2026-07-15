@@ -21,7 +21,6 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
-  int _qty = 1;
   int _imgIndex = 0;
   final _pageCtrl = PageController();
   StoreProduct? _p;
@@ -50,27 +49,36 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     super.dispose();
   }
 
-  void _addToCart({bool goCart = false}) {
-    final p = _p;
-    if (p == null) return;
-    ref.read(cartProvider.notifier).add(p, qty: _qty);
-    if (goCart) {
-      context.push('/store/cart');
+  /// How many of THIS product are currently in the cart.
+  int _qtyInCart(StoreProduct p) =>
+      ref.watch(cartProvider).where((c) => c.product.id == p.id).fold<int>(0, (n, c) => n + c.qty);
+
+  void _setQty(StoreProduct p, int qty) {
+    final n = ref.read(cartProvider.notifier);
+    if (qty <= 0) {
+      n.remove(p.id);
+    } else if (_qtyInCart(p) == 0) {
+      n.add(p); // first unit — insert the line
     } else {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Text('$_qty × ${p.title} added'),
-          duration: const Duration(milliseconds: 1400),
-          behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(label: 'View cart', onPressed: () => context.push('/store/cart')),
-        ),);
+      n.setQty(p.id, qty);
     }
+  }
+
+  void _snack(String msg) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(msg),
+        duration: const Duration(milliseconds: 1400),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(label: 'View cart', onPressed: () => context.push('/store/cart')),
+      ),);
   }
 
   @override
   Widget build(BuildContext context) {
     final p = _p;
+    final qty = p == null ? 0 : _qtyInCart(p);
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5FF),
       appBar: const MallAppBar(title: 'Product Detail'),
@@ -78,12 +86,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           ? const Center(child: CircularProgressIndicator(color: Mall.deep))
           : p == null
               ? const Center(child: Text('This product is no longer available.', style: TextStyle(color: Mall.warmGrey)))
-              : _body(p),
-      bottomNavigationBar: p == null ? null : _stickyBar(p),
+              : _body(p, qty),
+      bottomNavigationBar: p == null ? null : _stickyBar(p, qty),
     );
   }
 
-  Widget _body(StoreProduct p) {
+  Widget _body(StoreProduct p, int qty) {
     final imgs = p.images.isEmpty ? <String?>[null] : p.images;
     return ListView(
       padding: EdgeInsets.zero,
@@ -155,12 +163,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             children: [
               Text(p.title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: Mall.navy)),
               const SizedBox(height: 6),
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.star_rounded, size: 17, color: Color(0xFFE0A92E)),
-                  SizedBox(width: 4),
-                  Text('4.8', style: TextStyle(fontWeight: FontWeight.w700, color: Mall.ink, fontSize: 13)),
-                  Text('  ·  Trusted, energised & certified', style: TextStyle(color: Mall.warmGrey, fontSize: 12.5)),
+                  const Icon(Icons.star_rounded, size: 17, color: Color(0xFFE0A92E)),
+                  const SizedBox(width: 4),
+                  Text(p.rating.toStringAsFixed(1),
+                      style: const TextStyle(fontWeight: FontWeight.w700, color: Mall.ink, fontSize: 13),),
+                  if (p.ratingCount > 0)
+                    Text('  (${p.ratingCount})', style: const TextStyle(color: Mall.warmGrey, fontSize: 12.5)),
+                  const Text('  ·  Trusted, energised & certified', style: TextStyle(color: Mall.warmGrey, fontSize: 12.5)),
                 ],
               ),
               const SizedBox(height: 12),
@@ -175,9 +186,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Text('Select quantity', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF5A4A2A))),
+                    Text(qty > 0 ? 'In your cart' : 'Add to cart',
+                        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF5A4A2A)),),
                     const Spacer(),
-                    _stepper(),
+                    _stepper(p, qty),
                   ],
                 ),
               ),
@@ -205,7 +217,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     );
   }
 
-  Widget _stepper() {
+  Widget _stepper(StoreProduct p, int qty) {
+    final canAdd = qty < 10 && p.inStock;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -215,27 +228,29 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _stepBtn(Icons.remove, () { if (_qty > 1) setState(() => _qty--); }),
+          _stepBtn(Icons.remove, qty > 0 ? () => _setQty(p, qty - 1) : null),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text('$_qty', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Mall.navy)),
+            child: Text('$qty', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Mall.navy)),
           ),
-          _stepBtn(Icons.add, () { if (_qty < 10) setState(() => _qty++); }),
+          _stepBtn(Icons.add, canAdd ? () => _setQty(p, qty + 1) : null),
         ],
       ),
     );
   }
 
-  Widget _stepBtn(IconData icon, VoidCallback onTap) => InkWell(
+  Widget _stepBtn(IconData icon, VoidCallback? onTap) => InkWell(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
           decoration: const BoxDecoration(color: Color(0xFFFFFAF0)),
-          child: Icon(icon, size: 18, color: Mall.goldInk),
+          child: Icon(icon, size: 18, color: onTap == null ? Mall.mrp : Mall.goldInk),
         ),
       );
 
-  Widget _stickyBar(StoreProduct p) {
+  Widget _stickyBar(StoreProduct p, int qty) {
+    final inCart = qty > 0;
+    final enabled = p.inStock;
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
@@ -248,16 +263,30 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           children: [
             Expanded(child: PriceRow(product: p)),
             GestureDetector(
-              onTap: p.inStock ? () => _addToCart(goCart: true) : null,
+              onTap: !enabled
+                  ? null
+                  : inCart
+                      ? () => context.push('/store/cart')
+                      : () {
+                          _setQty(p, 1);
+                          _snack('${p.title} added');
+                        },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
                 decoration: BoxDecoration(
-                  gradient: p.inStock ? Mall.goldButton : null,
-                  color: p.inStock ? null : Mall.mrp,
+                  gradient: enabled ? Mall.goldButton : null,
+                  color: enabled ? null : Mall.mrp,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Text(p.inStock ? 'Add to Cart' : 'Out of stock',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(inCart ? Icons.shopping_cart_rounded : Icons.add_shopping_cart_rounded, size: 17, color: Colors.white),
+                    const SizedBox(width: 7),
+                    Text(!enabled ? 'Out of stock' : (inCart ? 'Go to Cart ($qty)' : 'Add to Cart'),
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),),
+                  ],
+                ),
               ),
             ),
           ],
