@@ -111,14 +111,14 @@ The "safe to point 10k users at it" brief is complete:
   counters, message-participant denormalization, sendBroadcast rewrite,
   walletTransactions TTL.
 
-### ProKerala astrology API — finish wiring before horoscope goes live
-- [ ] The `prokeralaAstrology` callable proxy is **written** (holds the
-  Client ID/Secret in Secret Manager, OAuth2 client‑credentials, path
-  whitelist) but **credentials are not set and it is not deployed yet**. To
-  finish: (1) `firebase functions:secrets:set PROKERALA_CLIENT_ID` and
-  `PROKERALA_CLIENT_SECRET` with the real (production, not sandbox) keys,
-  (2) deploy `prokeralaAstrology`, (3) test a live call, (4) point the app's
-  horoscope/kundli screens at it.
+### ProKerala astrology API — ✅ LIVE (production credentials)
+- [x] The `prokeralaAstrology` callable proxy is deployed and running on
+  **live/production** ProKerala credentials (`PROKERALA_CLIENT_ID` /
+  `PROKERALA_CLIENT_SECRET` in Secret Manager — no sandbox/test keys anywhere;
+  the code has zero hardcoded creds and hits `api.prokerala.com` directly).
+  Confirmed working on-device: Janam Kundli, Horoscope, Panchang, Auspicious
+  Timings, Kundali Match, and the in-call Kundli card all render. Nothing left
+  here.
 
 ---
 
