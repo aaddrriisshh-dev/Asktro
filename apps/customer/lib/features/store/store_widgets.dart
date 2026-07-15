@@ -214,7 +214,13 @@ class ClaimMarquee extends StatefulWidget {
 }
 
 class _ClaimMarqueeState extends State<ClaimMarquee> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this)..repeat();
+  // Needs a valid duration BEFORE repeat() — a null-duration repeat() throws
+  // (in release that surfaces as a gray error box that swallows the page). The
+  // real, width-based duration is applied in _measure() once we know the width.
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 12),
+  )..repeat();
   final GlobalKey _rowKey = GlobalKey();
   double _rowWidth = 0;
 
