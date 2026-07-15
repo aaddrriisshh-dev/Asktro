@@ -324,6 +324,23 @@ class ShippingAddress {
       );
 }
 
+/// A saved delivery address in the customer's address book.
+class SavedAddress {
+  const SavedAddress({required this.id, required this.address, this.lastUsedMs});
+  final String id;
+  final ShippingAddress address;
+  final int? lastUsedMs;
+
+  factory SavedAddress.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
+    final m = d.data() ?? {};
+    return SavedAddress(
+      id: d.id,
+      address: ShippingAddress.fromMap(m),
+      lastUsedMs: (m['lastUsedAt'] as Timestamp?)?.millisecondsSinceEpoch,
+    );
+  }
+}
+
 /// A placed order, as read back for the customer's "My Orders".
 class StoreOrder {
   const StoreOrder({

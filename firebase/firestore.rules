@@ -28,6 +28,11 @@ service cloud.firestore {
     }
 
     // ================= users =================
+    // A user's saved delivery addresses (store address book) — private to them.
+    match /users/{userId}/shippingAddresses/{addrId} {
+      allow read, write: if isSelf(userId);
+    }
+
     match /users/{userId} {
       // Only the user themselves and money-trusted admins (super/ops) may read
       // the real profile — it holds phone/email AND live wallet/recharge/spend.

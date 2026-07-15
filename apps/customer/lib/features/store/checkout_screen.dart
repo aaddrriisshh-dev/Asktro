@@ -39,6 +39,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   StoreOrderDraft? _draft;
   bool _processing = false;
 
+  /// The saved-address doc currently loaded into the form (null = a new one).
+  String? _selectedId;
+
   static const _shipFeePaise = 4900;
   static const _freeOverPaise = 49900;
 
@@ -84,6 +87,32 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     super.dispose();
   }
 
+  void _loadAddress(SavedAddress a) {
+    setState(() {
+      _selectedId = a.id;
+      _name.text = a.address.name;
+      _phone.text = a.address.phone;
+      _line1.text = a.address.line1;
+      _line2.text = a.address.line2;
+      _city.text = a.address.city;
+      _state.text = a.address.state;
+      _pincode.text = a.address.pincode;
+      _landmark.text = a.address.landmark;
+    });
+  }
+
+  void _newAddress() {
+    setState(() {
+      _selectedId = null;
+      _line1.clear();
+      _line2.clear();
+      _city.clear();
+      _state.clear();
+      _pincode.clear();
+      _landmark.clear();
+    });
+  }
+
   ShippingAddress _address() => ShippingAddress(
         name: _name.text.trim(),
         phone: _phone.text.trim(),
@@ -105,6 +134,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_kAddrKey, jsonEncode(addr.toMap()));
     } catch (_) {}
+    // Save/refresh the address in the customer's address book.
+    final uid = ref.read(currentUidProvider);
+    if (uid != null) {
+      try {
+        _selectedId = await ref.read(storeRepositoryProvider).saveAddress(uid, addr, id: _selectedId);
+      } catch (_) {}
+    }
     try {
       final draft = await ref.read(storeServiceProvider).createOrder(items: items, address: addr);
       if (!mounted) return;
@@ -176,6 +212,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           children: [
             const _SectionTitle('Delivery address'),
             const SizedBox(height: 10),
+            _addressBook(),
             Row(children: [
               Expanded(child: _field(_name, 'Full name', required: true)),
               const SizedBox(width: 10),
@@ -232,6 +269,82 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _addressBook() {
+    final saved = ref.watch(myStoreAddressesProvider).valueOrNull ?? const <SavedAddress>[];
+    if (saved.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 96,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: saved.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (_, i) => i == saved.length ? _newAddressCard() : _savedAddressCard(saved[i]),
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text('Tap a saved address to fill the form, or add a new one.',
+            style: TextStyle(fontSize: 11, color: Mall.warmGrey),),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  Widget _savedAddressCard(SavedAddress a) {
+    final sel = _selectedId == a.id;
+    return GestureDetector(
+      onTap: () => _loadAddress(a),
+      child: Container(
+        width: 214,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: sel ? Mall.deep : const Color(0xFFE8E1F0), width: sel ? 1.6 : 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(sel ? Icons.radio_button_checked : Icons.radio_button_unchecked, size: 15, color: sel ? Mall.deep : Mall.mrp),
+              const SizedBox(width: 6),
+              Expanded(child: Text(a.address.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Mall.ink))),
+            ],),
+            const SizedBox(height: 5),
+            Text('${a.address.line1}, ${a.address.city} ${a.address.pincode}',
+                maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: Mall.warmGrey, height: 1.3),),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _newAddressCard() {
+    final sel = _selectedId == null;
+    return GestureDetector(
+      onTap: _newAddress,
+      child: Container(
+        width: 120,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: sel ? Mall.cream : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: sel ? Mall.deep : const Color(0xFFE8E1F0), width: sel ? 1.6 : 1),
+        ),
+        child: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add_location_alt_outlined, color: Mall.goldInk),
+            SizedBox(height: 4),
+            Text('New address', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Mall.goldInk)),
+          ],
         ),
       ),
     );

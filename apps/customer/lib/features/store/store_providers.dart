@@ -122,6 +122,30 @@ class StoreRepository {
           (d) => d.exists ? StoreOrder.fromDoc(d) : null,
         );
   }
+
+  // ---- Address book ----
+  CollectionReference<Map<String, dynamic>> _addrCol(String uid) =>
+      _db.collection('users').doc(uid).collection('shippingAddresses');
+
+  Stream<List<SavedAddress>> watchAddresses(String uid) {
+    return _addrCol(uid).limit(25).snapshots().map(
+          (s) => s.docs.map(SavedAddress.fromDoc).toList()
+            ..sort((a, b) => (b.lastUsedMs ?? 0).compareTo(a.lastUsedMs ?? 0)),
+        );
+  }
+
+  /// Upsert an address (new when [id] is null) and stamp it as most-recently used.
+  Future<String> saveAddress(String uid, ShippingAddress a, {String? id}) async {
+    final data = {...a.toMap(), 'lastUsedAt': FieldValue.serverTimestamp()};
+    if (id != null) {
+      await _addrCol(uid).doc(id).set(data, SetOptions(merge: true));
+      return id;
+    }
+    final ref = await _addrCol(uid).add({...data, 'createdAt': FieldValue.serverTimestamp()});
+    return ref.id;
+  }
+
+  Future<void> deleteAddress(String uid, String id) => _addrCol(uid).doc(id).delete();
 }
 
 /// Result of createStoreOrder — everything Razorpay checkout needs.
@@ -285,3 +309,9 @@ final myOrdersProvider = StreamProvider<List<StoreOrder>>((ref) {
 final storeOrderProvider = StreamProvider.family<StoreOrder?, String>(
   (ref, id) => ref.watch(storeRepositoryProvider).watchOrder(id),
 );
+
+final myStoreAddressesProvider = StreamProvider<List<SavedAddress>>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return const Stream.empty();
+  return ref.watch(storeRepositoryProvider).watchAddresses(uid);
+});
