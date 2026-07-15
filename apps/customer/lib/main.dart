@@ -45,8 +45,13 @@ Future<void> main() async {
     }
   }
 
-  // Route Flutter + async errors to Crashlytics (Part 7).
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  // Route Flutter + async errors to Crashlytics (Part 7). A RenderFlex/render
+  // overflow is a layout warning, not a crash — record it NON-fatal so a stray
+  // few-pixel overflow never counts against crash-free users; else fatal.
+  FlutterError.onError = (FlutterErrorDetails details) {
+    final isOverflow = details.exception.toString().contains('overflowed');
+    FirebaseCrashlytics.instance.recordFlutterError(details, fatal: !isOverflow);
+  };
   PlatformDispatcher.instance.onError = (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     return true;

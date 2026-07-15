@@ -40,7 +40,13 @@ Future<void> main() async {
     }
   }
 
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  // A RenderFlex/RenderObject overflow is a layout warning, not a crash. Record
+  // it (so it stays visible) but NON-fatal, so a stray few-pixel overflow never
+  // counts against crash-free users. Everything else stays fatal.
+  FlutterError.onError = (FlutterErrorDetails details) {
+    final isOverflow = details.exception.toString().contains('overflowed');
+    FirebaseCrashlytics.instance.recordFlutterError(details, fatal: !isOverflow);
+  };
   PlatformDispatcher.instance.onError = (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     return true;
