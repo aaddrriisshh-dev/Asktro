@@ -57,6 +57,28 @@ class StoreRepository {
     });
   }
 
+  /// Storefront hero banners (active), sorted client-side.
+  Stream<List<StoreBanner>> watchBanners() {
+    return _db
+        .collection('storeBanners')
+        .where('active', isEqualTo: true)
+        .limit(15)
+        .snapshots()
+        .map((s) => s.docs.map(StoreBanner.fromDoc).toList()
+          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)),);
+  }
+
+  /// Editable claim-strip phrases (homeSections/storeClaims); empty = use default.
+  Stream<List<String>> watchClaims() {
+    return _db.collection('homeSections').doc('storeClaims').snapshots().map((d) {
+      final m = d.data() ?? {};
+      if ((m['active'] ?? true) == false) return const <String>[];
+      return List<String>.from((m['phrases'] ?? const []) as List)
+          .where((p) => p.trim().isNotEmpty)
+          .toList();
+    });
+  }
+
   /// Homepage testimonials (active), sorted client-side.
   Stream<List<StoreTestimonial>> watchTestimonials() {
     return _db
@@ -276,6 +298,14 @@ final storeSubcategoriesProvider = Provider.family<List<StoreCategory>, String>(
 
 final storeAllProductsProvider = StreamProvider<List<StoreProduct>>(
   (ref) => ref.watch(storeRepositoryProvider).watchActiveProducts(),
+);
+
+final storeBannersProvider = StreamProvider<List<StoreBanner>>(
+  (ref) => ref.watch(storeRepositoryProvider).watchBanners(),
+);
+
+final storeClaimsProvider = StreamProvider<List<String>>(
+  (ref) => ref.watch(storeRepositoryProvider).watchClaims(),
 );
 
 final storeReviewsProvider = StreamProvider.family<List<StoreReview>, String>(

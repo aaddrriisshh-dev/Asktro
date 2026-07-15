@@ -284,6 +284,10 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+    match /storeBanners/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
     // Orders: a customer reads only their own; admins read all. Orders are
     // created + mutated ONLY by the store callables/webhook (server computes the
     // price, decrements stock, advances status) — never by the client.

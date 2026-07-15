@@ -38,6 +38,41 @@ class StoreCategory {
   }
 }
 
+/// A hero banner shown in the storefront's top carousel (portal-managed:
+/// `storeBanners`). Tapping optionally opens a linked category.
+class StoreBanner {
+  const StoreBanner({
+    required this.id,
+    this.image = '',
+    this.headline = '',
+    this.subtext = '',
+    this.ctaLabel = '',
+    this.linkCategoryId = '',
+    this.sortOrder = 0,
+  });
+
+  final String id;
+  final String image;
+  final String headline;
+  final String subtext;
+  final String ctaLabel;
+  final String linkCategoryId;
+  final int sortOrder;
+
+  factory StoreBanner.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
+    final m = d.data() ?? {};
+    return StoreBanner(
+      id: d.id,
+      image: (m['image'] ?? '') as String,
+      headline: (m['headline'] ?? '') as String,
+      subtext: (m['subtext'] ?? '') as String,
+      ctaLabel: (m['ctaLabel'] ?? '') as String,
+      linkCategoryId: (m['linkCategoryId'] ?? '') as String,
+      sortOrder: ((m['sortOrder'] ?? 0) as num).toInt(),
+    );
+  }
+}
+
 /// A physical product for sale.
 class StoreProduct {
   const StoreProduct({
