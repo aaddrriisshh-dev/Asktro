@@ -18,6 +18,8 @@ export default function InventoryPage() {
   const [q, setQ] = useState('');
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [restockId, setRestockId] = useState<string | null>(null);
+  const [restockVal, setRestockVal] = useState('');
 
   const stockOf = (p: Row) => (typeof p.stock === 'number' ? (p.stock as number) : 0);
 
@@ -76,6 +78,18 @@ export default function InventoryPage() {
     finally { setSavingId(null); }
   }
 
+  // Restock — a shipment arrived: ADD the received units to what's on hand.
+  async function addStock(p: Row) {
+    const add = Math.round(Number(restockVal));
+    if (!Number.isFinite(add) || add <= 0) { alert('Enter how many units arrived.'); return; }
+    setSavingId(p.id);
+    try {
+      await updateDoc(doc(db, 'storeProducts', p.id), { stock: Math.max(0, stockOf(p) + add), updatedAt: serverTimestamp() });
+      setRestockId(null); setRestockVal('');
+    } catch (e) { alert('Failed: ' + (e as Error).message); }
+    finally { setSavingId(null); }
+  }
+
   const chips: { k: Filter; label: string; n: number }[] = [
     { k: 'all', label: 'All', n: stats.total },
     { k: 'active', label: 'Live', n: stats.active },
@@ -87,7 +101,8 @@ export default function InventoryPage() {
     <div>
       <h1 style={{ marginBottom: 2 }}>Inventory</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-        Live stock for every Asktro Mall product. Edit a number to set exact stock, or use −/+ to adjust. Saves instantly.
+        Live stock for every Asktro Mall product. Type in the box to <strong>set exact stock</strong>, use −/+ for small fixes, or hit
+        {' '}<strong>Restock</strong> when a new shipment arrives to add the units received. Everything saves instantly.
       </p>
 
       {/* Summary */}
@@ -137,7 +152,8 @@ export default function InventoryPage() {
                   <th>Product</th>
                   <th>SKU</th>
                   <th style={{ textAlign: 'right' }}>Price</th>
-                  <th style={{ textAlign: 'center', width: 210 }}>Stock</th>
+                  <th style={{ textAlign: 'center', width: 200 }}>Set stock</th>
+                  <th style={{ textAlign: 'center', width: 190 }}>Restock (shipment in)</th>
                   <th style={{ textAlign: 'right' }}>Stock value</th>
                   <th style={{ textAlign: 'center' }}>Status</th>
                 </tr>
@@ -162,7 +178,7 @@ export default function InventoryPage() {
                       </td>
                       <td data-label="SKU" className="muted" style={{ fontSize: 12.5 }}>{(p.sku as string) || '—'}</td>
                       <td data-label="Price" style={{ textAlign: 'right' }}>{formatPaise((p.pricePaise as number) || 0)}</td>
-                      <td data-label="Stock" style={{ textAlign: 'center' }}>
+                      <td data-label="Set stock" style={{ textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           <button className="btn sm secondary" disabled={savingId === p.id || s <= 0}
                             onClick={() => bump(p, -1)} style={{ padding: '4px 9px' }}>−</button>
@@ -170,11 +186,27 @@ export default function InventoryPage() {
                             onChange={(e) => setDraft((d) => ({ ...d, [p.id]: e.target.value }))}
                             onBlur={() => commit(p)}
                             onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                            title="Type the exact stock on hand and press Enter"
                             style={{ width: 66, textAlign: 'center', padding: '5px 6px',
                               borderColor: dirty ? '#c8871a' : undefined }} />
                           <button className="btn sm secondary" disabled={savingId === p.id}
                             onClick={() => bump(p, 1)} style={{ padding: '4px 9px' }}>+</button>
                         </div>
+                        {dirty && <div style={{ fontSize: 10.5, color: '#c8871a', marginTop: 3 }}>press Enter to save</div>}
+                      </td>
+                      <td data-label="Restock" style={{ textAlign: 'center' }}>
+                        {restockId === p.id ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            <input className="input" type="number" min={1} autoFocus placeholder="+ units"
+                              value={restockVal} onChange={(e) => setRestockVal(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') addStock(p); if (e.key === 'Escape') { setRestockId(null); setRestockVal(''); } }}
+                              style={{ width: 72, textAlign: 'center', padding: '5px 6px' }} />
+                            <button className="btn sm" disabled={savingId === p.id} onClick={() => addStock(p)} style={{ padding: '4px 10px' }}>Add</button>
+                            <button className="btn sm secondary" onClick={() => { setRestockId(null); setRestockVal(''); }} style={{ padding: '4px 8px' }}>×</button>
+                          </div>
+                        ) : (
+                          <button className="btn sm secondary" onClick={() => { setRestockId(p.id); setRestockVal(''); }}>＋ Restock</button>
+                        )}
                       </td>
                       <td data-label="Stock value" style={{ textAlign: 'right' }} className="muted">
                         {formatPaise(s * ((p.pricePaise as number) || 0))}
