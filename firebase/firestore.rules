@@ -264,7 +264,16 @@ service cloud.firestore {
     // price, decrements stock, advances status) — never by the client.
     match /storeOrders/{orderId} {
       allow read: if isAdmin() || isSelf(resource.data.userId);
-      allow write: if false;
+      // Customers never write. The order is created + paid + stock-decremented
+      // ONLY by the store callables/webhook (admin SDK, bypasses rules). Admins
+      // may advance fulfilment (status, courier, tracking, notes) but can NEVER
+      // alter money / ownership / items — those are server-set at checkout.
+      allow create: if false;
+      allow update: if isAdmin() && notChanging([
+        'userId', 'items', 'itemCount', 'subtotalPaise', 'shippingPaise',
+        'totalPaise', 'razorpayOrderId', 'paymentId', 'createdAt', 'orderNo',
+      ]);
+      allow delete: if false;
     }
     match /storeOrderBindings/{orderId} {
       allow read, write: if false; // server-only (webhook resolution)
