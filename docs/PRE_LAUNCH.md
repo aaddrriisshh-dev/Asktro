@@ -407,4 +407,36 @@ click "Regenerate" on the LIVE key** — it breaks that platform too.
 
 ---
 
+## 🩺 STABILITY / CRASHLYTICS (from the 2026‑07‑15 "emerging issues" report)
+
+Firebase Crashlytics flagged two fresh issues on the **astrologer** app v1.0.0(1)
+(`com.example.asktro_astrologer`). Crash‑free users had dropped to ~73%. Both root
+causes are **fixed in code on branch `claude/asktro-session-handoff-o1ggo8`** and
+ship on the **next astrologer build** — but they need on‑device verification.
+
+- [x] **Agora in‑call crash — FIXED (verify on device).** `RtcEngineImpl.setEnableSpeakerphone`
+  threw `AgoraRtcException(-3 / ERR_NOT_READY)` as a **fatal** crash when a user tapped a
+  call control (speaker/mute/camera/switch) before the audio session was ready or during
+  teardown. `join()`/`leave()` were guarded but the four in‑call controls were not — now
+  wrapped best‑effort in the shared `CallEngine` (`packages/shared_flutter/.../call_engine.dart`),
+  so it fixes **both** apps. **Verify:** on the next astrologer build, hammer speaker/mute/
+  camera toggles at call start and during hang‑up — no crash.
+- [x] **Layout overflow counted as a crash — FIXED.** Both apps set
+  `FlutterError.onError = recordFlutterFatalError`, so a harmless "RenderFlex overflowed by
+  2.0 px" layout warning was reported as a **fatal** crash (this alone tanked crash‑free to
+  ~73%). Now overflows are recorded **non‑fatal** in both `main.dart` — logged but not counted
+  as crashes; everything else stays fatal.
+- [ ] **Pinpoint the actual ~2px overflow widget (low priority, cosmetic).** The overflow is
+  screen‑width dependent (only 2 users hit it) and invisible to users. Best fixed by reproducing
+  on a narrow device or reading the full Crashlytics stack (widget creation location). Downgraded
+  to non‑fatal, so it no longer hurts metrics. _(Tracked as a task.)_
+- [ ] **Package ID is still `com.example.asktro_astrologer`** (and `com.example.*` on customer) —
+  **Play Store will reject `com.example.*`.** Already in Tomorrow's List #3; repeated here because
+  the crash report confirmed the live builds still carry it.
+- [ ] **Turn on Crashlytics velocity alerts** (email/Slack) once the package IDs are real, and
+  make sure release **versionName/versionCode** bump per build so issues group by real versions
+  instead of all landing on `1.0.0(1)`.
+
+---
+
 ## Add new pre-launch items below as they come up.
