@@ -99,7 +99,7 @@ class RecentBlogsSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 const Icon(Icons.menu_book_rounded, size: 18, color: Ob.goldDeep),
@@ -118,8 +118,8 @@ class RecentBlogsSection extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text('View all',
-                          style: Ob.note.copyWith(color: Ob.purpleDeep, fontWeight: FontWeight.w700, fontSize: 13),),
-                      const Icon(Icons.chevron_right_rounded, size: 18, color: Ob.purpleDeep),
+                          style: Ob.note.copyWith(color: Ob.goldDeep, fontWeight: FontWeight.w700, fontSize: 13),),
+                      const Icon(Icons.chevron_right_rounded, size: 18, color: Ob.goldDeep),
                     ],
                   ),
                 ),
@@ -128,17 +128,17 @@ class RecentBlogsSection extends ConsumerWidget {
           ),
           const SizedBox(height: 3),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text('Recent reads for you', style: Ob.note.copyWith(color: Ob.grey)),
           ),
           const SizedBox(height: 14),
           SizedBox(
-            height: 232,
+            height: 202,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: blogs.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, __) => const SizedBox(width: 11),
               itemBuilder: (_, i) => _BlogCard(blog: blogs[i]),
             ),
           ),
@@ -159,10 +159,10 @@ class _BlogCard extends StatelessWidget {
         MaterialPageRoute<void>(builder: (_) => BlogReaderScreen(blog: blog)),
       ),
       child: Container(
-        width: 216,
+        width: 178,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0xFFD8C9F2), width: 1.3),
           boxShadow: Ob.softShadow,
         ),
@@ -173,7 +173,7 @@ class _BlogCard extends StatelessWidget {
             Stack(
               children: [
                 SizedBox(
-                  height: 112,
+                  height: 92,
                   width: double.infinity,
                   child: _cover(blog.coverImage),
                 ),

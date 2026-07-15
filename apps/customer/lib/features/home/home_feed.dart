@@ -861,7 +861,7 @@ class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 22, 12, 10),
+          padding: const EdgeInsets.fromLTRB(12, 22, 12, 10),
           child: Row(
             children: [
               const Icon(Icons.auto_awesome, size: 17, color: Ob.gold),
@@ -901,7 +901,7 @@ class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
                 padEnds: false,
                 itemCount: list.length,
                 itemBuilder: (_, i) => Padding(
-                  padding: EdgeInsets.only(left: i == 0 ? 16 : 6, right: 6, bottom: 6),
+                  padding: EdgeInsets.only(left: i == 0 ? 12 : 6, right: 6, bottom: 6),
                   child: _CelestialAstroCard(a: list[i]),
                 ),
               ),
