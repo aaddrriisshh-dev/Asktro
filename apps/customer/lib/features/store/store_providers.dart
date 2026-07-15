@@ -40,6 +40,19 @@ class StoreRepository {
         .map((s) => s.docs.map(StoreProduct.fromDoc).toList());
   }
 
+  /// All active products (bounded) — the store home derives Best Sellers, New
+  /// Launches and the All-Products grid from this single stream (no extra
+  /// indexes, no extra reads).
+  Stream<List<StoreProduct>> watchActiveProducts({int limit = 60}) {
+    return _db
+        .collection('storeProducts')
+        .where('active', isEqualTo: true)
+        .orderBy('sortOrder')
+        .limit(limit)
+        .snapshots()
+        .map((s) => s.docs.map(StoreProduct.fromDoc).toList());
+  }
+
   Future<StoreProduct?> fetchProduct(String id) async {
     final d = await _db.collection('storeProducts').doc(id).get();
     return d.exists ? StoreProduct.fromDoc(d) : null;
@@ -173,6 +186,10 @@ final storeCategoriesProvider = StreamProvider<List<StoreCategory>>(
 
 final storeFeaturedProvider = StreamProvider<List<StoreProduct>>(
   (ref) => ref.watch(storeRepositoryProvider).watchFeatured(),
+);
+
+final storeAllProductsProvider = StreamProvider<List<StoreProduct>>(
+  (ref) => ref.watch(storeRepositoryProvider).watchActiveProducts(),
 );
 
 final storeProductsByCategoryProvider =

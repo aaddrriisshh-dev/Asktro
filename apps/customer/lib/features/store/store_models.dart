@@ -44,6 +44,11 @@ class StoreProduct {
     this.images = const [],
     this.stock,
     this.sortOrder = 0,
+    this.rating = 4.8,
+    this.ratingCount = 0,
+    this.bestSeller = false,
+    this.newLaunch = false,
+    this.createdAtMs,
   });
 
   final String id;
@@ -56,6 +61,11 @@ class StoreProduct {
   final List<String> images;
   final int? stock;
   final int sortOrder;
+  final double rating;
+  final int ratingCount;
+  final bool bestSeller;
+  final bool newLaunch;
+  final int? createdAtMs;
 
   String? get image => images.isNotEmpty ? images.first : null;
   bool get hasDiscount => mrpPaise > pricePaise;
@@ -76,6 +86,11 @@ class StoreProduct {
       images: List<String>.from((m['images'] ?? const []) as List),
       stock: m['stock'] == null ? null : ((m['stock']) as num).toInt(),
       sortOrder: ((m['sortOrder'] ?? 0) as num).toInt(),
+      rating: ((m['rating'] ?? 4.8) as num).toDouble(),
+      ratingCount: ((m['ratingCount'] ?? 0) as num).toInt(),
+      bestSeller: (m['bestSeller'] ?? false) as bool,
+      newLaunch: (m['newLaunch'] ?? false) as bool,
+      createdAtMs: (m['createdAt'] as Timestamp?)?.millisecondsSinceEpoch,
     );
   }
 }

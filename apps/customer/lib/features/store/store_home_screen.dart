@@ -7,125 +7,251 @@ import 'store_providers.dart';
 import 'store_theme.dart';
 import 'store_widgets.dart';
 
-/// The Asktro Mall landing screen — banner, category chips, and a featured
-/// product grid. Reached from the home rail's "Visit Store" and the bottom nav.
+/// Asktro Mall — the storefront. A warm boutique: blended header, a full-bleed
+/// hero image, category chips, an auto-scrolling claim strip, Best Sellers, New
+/// Launches, and the full All-Products grid. Reached from the home rail's "Visit
+/// Store" and the bottom-nav Mall tab.
 class StoreHomeScreen extends ConsumerWidget {
   const StoreHomeScreen({super.key, this.embedded = false});
 
   /// When shown inside the bottom-nav tab there is no back arrow.
   final bool embedded;
 
+  static const _claims = ['Energised by top astrologers', '100% Natural', 'Lab Certified', 'Free shipping over ₹499'];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cats = ref.watch(storeCategoriesProvider);
-    final featured = ref.watch(storeFeaturedProvider);
+    final cats = ref.watch(storeCategoriesProvider).valueOrNull ?? const [];
+    final products = ref.watch(storeAllProductsProvider).valueOrNull ?? const [];
+
+    final best = products.where((p) => p.bestSeller).toList();
+    final bestSellers = (best.isEmpty ? products.take(8).toList() : best);
+    final newLaunches = products.where((p) => p.newLaunch).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F5FF),
-      appBar: MallAppBar(title: 'Asktro Mall', automaticallyImplyLeading: !embedded),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 28),
-        children: [
-          const _Banner(),
-          // Category chips
-          cats.when(
-            data: (list) => list.isEmpty
-                ? const SizedBox.shrink()
-                : SizedBox(
-                    height: 92,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-                      itemCount: list.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 11),
-                      itemBuilder: (_, i) => CategoryTile(
-                        category: list[i],
-                        size: 60,
-                        onTap: () => context.push('/store/category/${list[i].id}', extra: list[i].name),
-                      ),
-                    ),
+      backgroundColor: const Color(0xFFFBF5E9),
+      body: SafeArea(
+        bottom: false,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: _Header(embedded: embedded)),
+            SliverToBoxAdapter(child: _Chips(cats: cats)),
+            const SliverToBoxAdapter(child: _Hero()),
+            const SliverToBoxAdapter(child: ClaimMarquee(phrases: _claims)),
+            if (bestSellers.isNotEmpty) ...[
+              SliverToBoxAdapter(child: _sectionHeader('Most Loved', 'Best Sellers')),
+              SliverToBoxAdapter(child: _rail(context, ref, bestSellers)),
+            ],
+            if (newLaunches.isNotEmpty) ...[
+              SliverToBoxAdapter(child: _sectionHeader('Just In', 'New Launches')),
+              SliverToBoxAdapter(child: _rail(context, ref, newLaunches, ribbon: (text: 'NEW', color: Mall.green))),
+            ],
+            SliverToBoxAdapter(child: _sectionHeader('Browse our collection', 'All Products', viewAll: false)),
+            if (products.isEmpty)
+              const SliverToBoxAdapter(child: _Empty())
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(12, 2, 12, 26),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.66,
                   ),
-            loading: () => const SizedBox(height: 92),
-            error: (_, __) => const SizedBox.shrink(),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-            child: Row(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) => _card(context, ref, products[i]),
+                    childCount: products.length,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _rail(BuildContext context, WidgetRef ref, List<StoreProduct> items, {({String text, Color color})? ribbon}) {
+    return SizedBox(
+      height: 246,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (_, i) => SizedBox(width: 152, child: _card(context, ref, items[i], ribbon: ribbon)),
+      ),
+    );
+  }
+
+  Widget _card(BuildContext context, WidgetRef ref, StoreProduct p, {({String text, Color color})? ribbon}) => ProductCard(
+        product: p,
+        ribbon: ribbon,
+        onTap: () => context.push('/store/product/${p.id}', extra: p),
+        onAdd: () {
+          ref.read(cartProvider.notifier).add(p);
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(const SnackBar(
+              content: Text('Added to cart'),
+              duration: Duration(milliseconds: 1100),
+              behavior: SnackBarBehavior.floating,
+            ),);
+        },
+      );
+
+  static Widget _sectionHeader(String eyebrow, String title, {bool viewAll = true}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 16, 12, 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const Padding(padding: EdgeInsets.only(bottom: 3), child: Icon(Icons.auto_awesome, size: 13, color: Mall.gold)),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Popular picks',
-                    style: TextStyle(fontFamily: 'serif', fontSize: 19, fontWeight: FontWeight.w700, color: Mall.titleBrown),),
-                const Spacer(),
-                Icon(Icons.auto_awesome, size: 15, color: Mall.deep.withValues(alpha: 0.7)),
+                Text(eyebrow.toUpperCase(),
+                    style: const TextStyle(fontSize: 9, letterSpacing: 1.8, fontWeight: FontWeight.w700, color: Mall.goldInk),),
+                const SizedBox(height: 2),
+                Text(title,
+                    style: const TextStyle(fontFamily: 'serif', fontSize: 21, fontWeight: FontWeight.w700, color: Mall.titleBrown, height: 1),),
               ],
             ),
           ),
-          featured.when(
-            data: (list) => list.isEmpty
-                ? const _Empty()
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.60,
-                    ),
-                    itemCount: list.length,
-                    itemBuilder: (_, i) => _cardFor(context, ref, list[i]),
-                  ),
-            loading: () => const Padding(
-              padding: EdgeInsets.only(top: 40),
-              child: Center(child: CircularProgressIndicator(color: Mall.deep)),
+          if (viewAll)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 2),
+              child: Text('View all ›', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Mall.goldInk)),
             ),
-            error: (_, __) => const _Empty(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Blended store header (no white bar) — sits on the warm ground.
+class _Header extends ConsumerWidget {
+  const _Header({required this.embedded});
+  final bool embedded;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(cartCountProvider);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 4, 12, 8),
+      child: Row(
+        children: [
+          if (!embedded)
+            IconButton(icon: const Icon(Icons.arrow_back, color: Mall.titleBrown), onPressed: () => context.pop())
+          else
+            const SizedBox(width: 12),
+          const Expanded(
+            child: Text('Asktro Mall',
+                style: TextStyle(fontFamily: 'serif', fontSize: 24, fontWeight: FontWeight.w700, color: Mall.titleBrown, letterSpacing: 0.3),),
+          ),
+          IconButton(icon: const Icon(Icons.search_rounded, color: Mall.goldInk), onPressed: () {}),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(icon: const Icon(Icons.shopping_cart_outlined, color: Mall.goldInk), onPressed: () => context.push('/store/cart')),
+              if (count > 0)
+                Positioned(
+                  right: 4, top: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(color: Mall.deep, shape: BoxShape.circle),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text('$count', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
     );
   }
-
-  Widget _cardFor(BuildContext context, WidgetRef ref, StoreProduct p) => ProductCard(
-        product: p,
-        onTap: () => context.push('/store/product/${p.id}', extra: p),
-        onAdd: () {
-          ref.read(cartProvider.notifier).add(p);
-          _snackAdded(context);
-        },
-      );
 }
 
-void _snackAdded(BuildContext context) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(const SnackBar(
-      content: Text('Added to cart'),
-      duration: Duration(milliseconds: 1200),
-      behavior: SnackBarBehavior.floating,
-    ),);
-}
-
-class _Banner extends StatelessWidget {
-  const _Banner();
+class _Chips extends StatelessWidget {
+  const _Chips({required this.cats});
+  final List<StoreCategory> cats;
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(12),
-      padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
-      decoration: BoxDecoration(
-        gradient: Mall.bannerGradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: const Color(0xFF5A3C0A).withValues(alpha: 0.5), blurRadius: 26, offset: const Offset(0, 12))],
+    if (cats.isEmpty) return const SizedBox(height: 4);
+    return SizedBox(
+      height: 92,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
+        itemCount: cats.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (_, i) => CategoryTile(
+          category: cats[i],
+          size: 60,
+          onTap: () => context.push('/store/category/${cats[i].id}', extra: cats[i].name),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+}
+
+/// Full-bleed hero. For now it uses the bundled welcoming-pandit art on a warm
+/// gold ground; admin-uploaded store banners replace this once the back-office
+/// ships.
+class _Hero extends StatelessWidget {
+  const _Hero();
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 320,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          const Text('Blessed by Asktro',
-              style: TextStyle(fontFamily: 'serif', fontSize: 25, fontWeight: FontWeight.w700, color: Color(0xFFF6D98A)),),
-          const SizedBox(height: 5),
-          Text('Certified gemstones, rudraksha, yantras & more — energised before dispatch, delivered to your door.',
-              style: TextStyle(fontSize: 12.5, height: 1.5, color: const Color(0xFFF3E7CF).withValues(alpha: 0.95)),),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0.45, -0.55), radius: 1.2,
+                colors: [Color(0xFFF0D78F), Color(0xFFC88F2E), Color(0xFF7A4B12)],
+                stops: [0, 0.5, 1],
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Image.asset('assets/promo/welcome.png', height: 316, fit: BoxFit.fitHeight),
+            ),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft, end: Alignment.centerRight,
+                colors: [Color(0xB01E1204), Color(0x201E1204), Color(0x00000000)],
+                stops: [0, 0.55, 1],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 18, top: 0, bottom: 0, width: 190,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('✦ THE ASKTRO PROMISE',
+                    style: TextStyle(fontSize: 8.5, letterSpacing: 1.6, fontWeight: FontWeight.w700, color: Color(0xFFF6D98A)),),
+                const SizedBox(height: 5),
+                const Text('Blessed by\nour Pandits',
+                    style: TextStyle(fontFamily: 'serif', fontSize: 25, fontWeight: FontWeight.w700, color: Colors.white, height: 1.05),),
+                const SizedBox(height: 11),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                  decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFF4D281), Color(0xFFDCA63E)]), borderRadius: BorderRadius.circular(18)),
+                  child: const Text('Shop the collection', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF4A3208))),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -137,7 +263,7 @@ class _Empty extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding: EdgeInsets.fromLTRB(24, 50, 24, 40),
+      padding: EdgeInsets.fromLTRB(24, 40, 24, 40),
       child: Column(
         children: [
           Icon(Icons.storefront_outlined, size: 46, color: Mall.deep),
@@ -151,7 +277,8 @@ class _Empty extends StatelessWidget {
   }
 }
 
-/// Shared gold-accented store app bar with a cart button + badge.
+/// Shared gold-accented store app bar with a cart button + badge. Used by the
+/// store sub-screens (category, detail, cart, orders).
 class MallAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const MallAppBar({super.key, required this.title, this.automaticallyImplyLeading = true, this.showCart = true});
   final String title;
@@ -185,8 +312,7 @@ class MallAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 ),
                 if (count > 0)
                   Positioned(
-                    right: 4,
-                    top: 4,
+                    right: 4, top: 4,
                     child: Container(
                       padding: const EdgeInsets.all(3),
                       decoration: const BoxDecoration(color: Mall.deep, shape: BoxShape.circle),
