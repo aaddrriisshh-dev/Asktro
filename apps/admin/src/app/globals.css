@@ -1436,40 +1436,44 @@ tbody tr:last-child td { border-bottom: none; }
 .promo-art--hero { position: absolute; top: 11%; left: 0; right: 0; height: 42%; z-index: 1; pointer-events: none; background-repeat: no-repeat; background-position: center; background-size: contain; }
 
 /* ============================================================
-   Asktro Mall — "Muted Gold" ghee theme (palette #4) for the store
-   portal-in-portal: a light muted-gold sidebar + a minimal-ghee content
-   area (replacing the lavender). Only applies inside the Mall section.
+   Asktro Mall — "Emerald & Gold" theme (palette #3) for the store
+   portal-in-portal: a deep emerald sidebar (clearly separated from the
+   content) + a minimal-ghee content area with dark text + gold accents.
+   Only applies inside the Mall section.
    ============================================================ */
 .sidebar--mall {
-  background: #f6edd3;
-  color: #7a5b1e;
-  border-color: #e6d3a2;
-  box-shadow: 8px 0 24px rgba(120, 90, 30, 0.14), inset -2px 0 6px rgba(120, 90, 30, 0.05);
+  background: linear-gradient(180deg, #173d2d 0%, #0e2a1f 100%);
+  color: #cfe3d2;
+  border-color: rgba(215, 190, 110, 0.30);
+  box-shadow: 8px 0 26px rgba(8, 30, 20, 0.32), inset -3px 0 9px rgba(0, 0, 0, 0.16);
 }
-.sidebar--mall .brand-word { color: #5a3d0c; }
-.sidebar--mall .brand-tag { color: #9c855a; }
-.sidebar--mall .sidebar__eyebrow { color: #b08a2e; }
-.sidebar--mall .sidebar__ico { color: #c2a35c; }
-.sidebar--mall .sidebar__link { color: #6b5327; }
-.sidebar--mall .sidebar__link:hover { background: rgba(200, 135, 26, 0.10); color: #5a3d0c; border-color: rgba(200, 135, 26, 0.25); }
-.sidebar--mall .sidebar__link:hover .sidebar__ico { color: #a9791f; }
-.sidebar--mall .sidebar__link.active { background: #ffffff; color: #9a6b12; border-color: #e0c67e; box-shadow: 0 4px 12px rgba(150, 100, 20, 0.14); }
-.sidebar--mall .sidebar__link.active .sidebar__ico { color: #c8871a; }
-.sidebar--mall .sidebar__foot { border-top-color: rgba(120, 90, 30, 0.16); }
-.sidebar--mall .sidebar__email { color: #8a7550; }
-.sidebar--mall .sidebar__toggle { background: #e2cf96; color: #5a3d0c; }
-.sidebar--mall .sidebar__toggle:hover { background: #d8c17e; }
-.sidebar--mall .sidebar__logout { color: #6b5327; }
-.sidebar--mall .sidebar__logout:hover { background: rgba(120, 90, 30, 0.10); }
+.sidebar--mall .brand-word { color: #eadfa8; }
+.sidebar--mall .brand-tag { color: #9fbfa8; }
+.sidebar--mall .sidebar__eyebrow { color: #cbb768; }
+.sidebar--mall .sidebar__ico { color: #84a891; }
+.sidebar--mall .sidebar__link { color: #cfe3d2; }
+.sidebar--mall .sidebar__link:hover { background: rgba(230, 205, 130, 0.10); color: #f2ecd6; border-color: rgba(230, 205, 130, 0.28); }
+.sidebar--mall .sidebar__link:hover .sidebar__ico { color: #e6cf86; }
+.sidebar--mall .sidebar__link.active { background: rgba(230, 205, 130, 0.18); color: #f4ecc9; border-color: rgba(230, 205, 130, 0.5); }
+.sidebar--mall .sidebar__link.active .sidebar__ico { color: #e6cf86; }
+.sidebar--mall .sidebar__foot { border-top-color: rgba(255, 255, 255, 0.10); }
+.sidebar--mall .sidebar__email { color: #a9c2ac; }
+.sidebar--mall .sidebar__foot .badge { background: rgba(230, 205, 130, 0.18); color: #e6cf86; }
+.sidebar--mall .sidebar__toggle { background: #235240; color: #eadfa8; }
+.sidebar--mall .sidebar__toggle:hover { background: #2c6650; }
+.sidebar--mall .sidebar__logout { color: #cfe3d2; }
+.sidebar--mall .sidebar__logout:hover { background: rgba(255, 255, 255, 0.10); }
 
 /* Mall content area: opaque minimal-ghee ground (covers the lavender
-   celestial layer) + ghee-gold accents. */
+   celestial layer), darker text + ghee-gold accents. */
 .mall-theme {
   --primary: #b07d16; --primary-dark: #9a6b12; --accent: #f7ebcf;
+  --text: #33291a; --muted: #7a6a48;
   background: #fffdf7;
   background-image: radial-gradient(120% 55% at 50% -12%, #fbf1d8 0%, rgba(251, 241, 216, 0) 60%);
 }
 .mall-theme h1, .mall-theme h2, .mall-theme h3 { color: #5a3d0c; }
+.mall-theme .muted { color: #7a6a48; }
 .mall-theme .btn { background: linear-gradient(135deg, #e0a83a, #c8871a); }
 .mall-theme .btn:hover { box-shadow: 0 10px 24px rgba(150, 100, 20, 0.32); }
 .mall-theme .btn.secondary { background: #fff; color: #9a6b12; border-color: rgba(212, 175, 55, 0.4); }
