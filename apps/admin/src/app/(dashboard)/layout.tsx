@@ -21,6 +21,7 @@ const STORE_ICON = I(<><path d="M3 9l1-5h16l1 5" /><path d="M4 9v10a1 1 0 0 0 1 
 const MALL_NAV = [
   { href: '/mall', label: 'Dashboard', icon: DASH_ICON },
   { href: '/store', label: 'Catalog', icon: STORE_ICON },
+  { href: '/store-inventory', label: 'Inventory', icon: I(<><path d="M20 7l-8-4-8 4v10l8 4 8-4z" /><path d="M4 7l8 4 8-4" /><path d="M12 21V11" /></>) },
   { href: '/store-orders', label: 'Orders', icon: I(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /><path d="M8 14h5" /></>) },
   { href: '/store-discounts', label: 'Discounts', icon: I(<><path d="M9 9h.01M15 15h.01M16 8l-8 8" /><path d="M20 12a2 2 0 0 1 2-2V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v3a2 2 0 0 1 0 4v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3a2 2 0 0 1-2-2z" /></>) },
   { href: '/store-content', label: 'Content', icon: I(<><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></>) },
@@ -79,7 +80,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // The Mall is a portal-inside-the-portal: on any store route the whole left
   // menu swaps to the Mall's own nav (and the section takes the ghee-gold look).
-  const mallPaths = ['/mall', '/store', '/store-orders', '/store-discounts', '/store-content', '/store-front', '/home-content'];
+  const mallPaths = ['/mall', '/store', '/store-inventory', '/store-orders', '/store-discounts', '/store-content', '/store-front', '/home-content'];
   const isMall = mallPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const nav = (isMall ? MALL_NAV : NAV).filter((n) => canSee(adminRole, n.href));
 
