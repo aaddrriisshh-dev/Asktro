@@ -12,7 +12,15 @@ const emptyProd = {
   title: '', description: '', categoryId: '', priceRupees: '', mrpRupees: '',
   stock: '', sku: '', sortOrder: '', active: true, images: [] as string[],
   bestSeller: false, newLaunch: false, combo: false, rating: '', ratingCount: '',
+  weightGrams: '', hsn: '', gstRate: '', dimL: '', dimB: '', dimH: '',
+  specs: [] as { k: string; v: string }[],
 };
+
+const numOr0 = (s: string) => (s.trim() ? Math.max(0, Number(s) || 0) : 0);
+function dimOf(p: Row, k: 'l' | 'b' | 'h') {
+  const d = p.dimsCm as { l?: number; b?: number; h?: number } | undefined;
+  return d && d[k] != null ? String(d[k]) : '';
+}
 
 /** AstroMall catalog — categories + products. Direct Firestore writes
  *  (admin-gated by rules), same pattern as Blogs/Banners. Photos upload to
@@ -165,6 +173,11 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
     });
   }
 
+  const addSpec = () => setF((s) => ({ ...s, specs: [...s.specs, { k: '', v: '' }] }));
+  const removeSpec = (i: number) => setF((s) => ({ ...s, specs: s.specs.filter((_, j) => j !== i) }));
+  const setSpec = (i: number, key: 'k' | 'v', val: string) =>
+    setF((s) => ({ ...s, specs: s.specs.map((sp, j) => (j === i ? { ...sp, [key]: val } : sp)) }));
+
   function edit(p: Row) {
     setEditId(p.id);
     setF({
@@ -178,6 +191,13 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
       bestSeller: p.bestSeller === true, newLaunch: p.newLaunch === true, combo: p.combo === true,
       rating: p.rating != null ? String(p.rating) : '',
       ratingCount: p.ratingCount != null ? String(p.ratingCount) : '',
+      weightGrams: p.weightGrams != null ? String(p.weightGrams) : '',
+      hsn: (p.hsnCode as string) ?? '',
+      gstRate: p.gstRate != null ? String(p.gstRate) : '',
+      dimL: dimOf(p, 'l'), dimB: dimOf(p, 'b'), dimH: dimOf(p, 'h'),
+      specs: Array.isArray(p.specs)
+        ? (p.specs as { k: string; v: string }[]).map((s) => ({ k: s.k ?? '', v: s.v ?? '' }))
+        : [],
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -201,6 +221,11 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
         bestSeller: f.bestSeller, newLaunch: f.newLaunch, combo: f.combo,
         rating: f.rating.trim() ? Math.min(5, Math.max(0, Number(f.rating) || 4.8)) : 4.8,
         ratingCount: f.ratingCount.trim() ? Math.max(0, Math.round(Number(f.ratingCount) || 0)) : 0,
+        weightGrams: f.weightGrams.trim() ? Math.max(0, Math.round(Number(f.weightGrams) || 0)) : 0,
+        hsnCode: f.hsn.trim(),
+        gstRate: f.gstRate.trim() ? Math.max(0, Number(f.gstRate) || 0) : 0,
+        dimsCm: { l: numOr0(f.dimL), b: numOr0(f.dimB), h: numOr0(f.dimH) },
+        specs: f.specs.filter((s) => s.k.trim()).map((s) => ({ k: s.k.trim(), v: s.v.trim() })),
         active: f.active, updatedAt: serverTimestamp(),
       };
       if (editId) await updateDoc(doc(db, 'storeProducts', editId), payload);
@@ -274,6 +299,40 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
           </label>
           <label className="af"><span>Rating count</span>
             <input className="input" type="number" min={0} placeholder="0" value={f.ratingCount} onChange={(e) => set('ratingCount', e.target.value)} />
+          </label>
+        </div>
+
+        <p className="af-label" style={{ marginTop: 16 }}>Specifications (shown as a table on the product page)</p>
+        {f.specs.map((sp, i) => (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr auto', gap: 8, marginBottom: 8 }}>
+            <input className="input" placeholder="Origin" value={sp.k} onChange={(e) => setSpec(i, 'k', e.target.value)} />
+            <input className="input" placeholder="Nepal" value={sp.v} onChange={(e) => setSpec(i, 'v', e.target.value)} />
+            <button className="btn sm secondary" onClick={() => removeSpec(i)}>✕</button>
+          </div>
+        ))}
+        <button className="btn sm secondary" onClick={addSpec}>+ Add specification</button>
+
+        <p className="af-label" style={{ marginTop: 16 }}>Invoice &amp; shipping details (internal — GST invoice + courier)</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          <label className="af"><span>Weight (grams)</span>
+            <input className="input" type="number" min={0} placeholder="50" value={f.weightGrams} onChange={(e) => set('weightGrams', e.target.value)} />
+          </label>
+          <label className="af"><span>HSN code</span>
+            <input className="input" placeholder="7103" value={f.hsn} onChange={(e) => set('hsn', e.target.value)} />
+          </label>
+          <label className="af"><span>GST rate (%)</span>
+            <input className="input" type="number" min={0} placeholder="3" value={f.gstRate} onChange={(e) => set('gstRate', e.target.value)} />
+          </label>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 12 }}>
+          <label className="af"><span>Length (cm)</span>
+            <input className="input" type="number" min={0} placeholder="0" value={f.dimL} onChange={(e) => set('dimL', e.target.value)} />
+          </label>
+          <label className="af"><span>Breadth (cm)</span>
+            <input className="input" type="number" min={0} placeholder="0" value={f.dimB} onChange={(e) => set('dimB', e.target.value)} />
+          </label>
+          <label className="af"><span>Height (cm)</span>
+            <input className="input" type="number" min={0} placeholder="0" value={f.dimH} onChange={(e) => set('dimH', e.target.value)} />
           </label>
         </div>
 

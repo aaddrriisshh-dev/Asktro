@@ -258,6 +258,12 @@ service cloud.firestore {
     match /storeProducts/{productId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
+      // Product reviews — read for signed-in users; authored/moderated by admins
+      // for now (customer submission with moderation comes later).
+      match /reviews/{reviewId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin();
+      }
     }
     // Storefront content blocks (testimonials, videos, FAQs) — same contract as
     // the catalog: signed-in read, admin-only authoring.

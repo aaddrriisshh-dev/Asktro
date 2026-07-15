@@ -49,6 +49,7 @@ class StoreProduct {
     this.bestSeller = false,
     this.newLaunch = false,
     this.combo = false,
+    this.specs = const [],
     this.createdAtMs,
   });
 
@@ -67,6 +68,7 @@ class StoreProduct {
   final bool bestSeller;
   final bool newLaunch;
   final bool combo;
+  final List<ProductSpec> specs;
   final int? createdAtMs;
 
   String? get image => images.isNotEmpty ? images.first : null;
@@ -93,6 +95,58 @@ class StoreProduct {
       bestSeller: (m['bestSeller'] ?? false) as bool,
       newLaunch: (m['newLaunch'] ?? false) as bool,
       combo: (m['combo'] ?? false) as bool,
+      specs: ((m['specs'] ?? const []) as List)
+          .map((e) => ProductSpec.fromMap(Map<String, dynamic>.from(e as Map)))
+          .where((s) => s.label.isNotEmpty)
+          .toList(),
+      createdAtMs: (m['createdAt'] as Timestamp?)?.millisecondsSinceEpoch,
+    );
+  }
+}
+
+/// A single product specification row (e.g. Origin → Nepal).
+class ProductSpec {
+  const ProductSpec({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  factory ProductSpec.fromMap(Map<String, dynamic> m) =>
+      ProductSpec(label: (m['k'] ?? '') as String, value: (m['v'] ?? '') as String);
+}
+
+/// A customer review on a product (`storeProducts/{id}/reviews/{rid}`). Seeded
+/// / moderated from the portal for now; rolls up into the product rating.
+class StoreReview {
+  const StoreReview({
+    required this.id,
+    required this.name,
+    required this.rating,
+    this.title = '',
+    this.body = '',
+    this.verified = false,
+    this.photo = '',
+    this.createdAtMs,
+  });
+
+  final String id;
+  final String name;
+  final double rating;
+  final String title;
+  final String body;
+  final bool verified;
+  final String photo;
+  final int? createdAtMs;
+
+  factory StoreReview.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
+    final m = d.data() ?? {};
+    return StoreReview(
+      id: d.id,
+      name: (m['name'] ?? 'Anonymous') as String,
+      rating: ((m['rating'] ?? 5) as num).toDouble(),
+      title: (m['title'] ?? '') as String,
+      body: (m['body'] ?? '') as String,
+      verified: (m['verified'] ?? false) as bool,
+      photo: (m['photo'] ?? '') as String,
       createdAtMs: (m['createdAt'] as Timestamp?)?.millisecondsSinceEpoch,
     );
   }

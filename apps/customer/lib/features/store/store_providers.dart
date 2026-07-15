@@ -90,6 +90,19 @@ class StoreRepository {
           ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)),);
   }
 
+  /// Approved reviews for a product, newest first (client-sorted).
+  Stream<List<StoreReview>> watchReviews(String productId) {
+    return _db
+        .collection('storeProducts')
+        .doc(productId)
+        .collection('reviews')
+        .where('status', isEqualTo: 'approved')
+        .limit(50)
+        .snapshots()
+        .map((s) => s.docs.map(StoreReview.fromDoc).toList()
+          ..sort((a, b) => (b.createdAtMs ?? 0).compareTo(a.createdAtMs ?? 0)),);
+  }
+
   Future<StoreProduct?> fetchProduct(String id) async {
     final d = await _db.collection('storeProducts').doc(id).get();
     return d.exists ? StoreProduct.fromDoc(d) : null;
@@ -227,6 +240,10 @@ final storeFeaturedProvider = StreamProvider<List<StoreProduct>>(
 
 final storeAllProductsProvider = StreamProvider<List<StoreProduct>>(
   (ref) => ref.watch(storeRepositoryProvider).watchActiveProducts(),
+);
+
+final storeReviewsProvider = StreamProvider.family<List<StoreReview>, String>(
+  (ref, productId) => ref.watch(storeRepositoryProvider).watchReviews(productId),
 );
 
 final storeTestimonialsProvider = StreamProvider<List<StoreTestimonial>>(

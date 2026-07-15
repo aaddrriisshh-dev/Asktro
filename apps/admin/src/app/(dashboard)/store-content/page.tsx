@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { addDoc, collection, deleteDoc, doc, orderBy, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useCollection, Row } from '@/lib/hooks';
 import { ImageUpload } from '@/components/ImageUpload';
@@ -10,21 +10,23 @@ import { ImageUpload } from '@/components/ImageUpload';
  *  render on the store home. Direct Firestore writes (admin-gated by rules),
  *  same pattern as the catalog. Everything reflects in the app instantly. */
 export default function StoreContentPage() {
-  const [tab, setTab] = useState<'testimonials' | 'videos' | 'faqs'>('testimonials');
+  const [tab, setTab] = useState<'testimonials' | 'videos' | 'faqs' | 'reviews'>('testimonials');
   return (
     <div>
       <h1 style={{ marginBottom: 2 }}>Store Content</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-        Testimonials, videos &amp; FAQs shown on the Asktro Mall storefront. Updates go live in the app instantly — no rebuild.
+        Testimonials, videos, FAQs &amp; product reviews shown on the Asktro Mall storefront. Updates go live in the app instantly — no rebuild.
       </p>
-      <div style={{ display: 'flex', gap: 8, margin: '16px 0' }}>
+      <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
         <button className={`btn sm ${tab === 'testimonials' ? '' : 'secondary'}`} onClick={() => setTab('testimonials')}>Testimonials</button>
         <button className={`btn sm ${tab === 'videos' ? '' : 'secondary'}`} onClick={() => setTab('videos')}>Videos</button>
         <button className={`btn sm ${tab === 'faqs' ? '' : 'secondary'}`} onClick={() => setTab('faqs')}>FAQs</button>
+        <button className={`btn sm ${tab === 'reviews' ? '' : 'secondary'}`} onClick={() => setTab('reviews')}>Product Reviews</button>
       </div>
       {tab === 'testimonials' && <TestimonialsTab />}
       {tab === 'videos' && <VideosTab />}
       {tab === 'faqs' && <FaqsTab />}
+      {tab === 'reviews' && <ReviewsTab />}
     </div>
   );
 }
@@ -286,6 +288,103 @@ function FaqsTab() {
           </div>
         ))}
       </div>
+    </>
+  );
+}
+
+// ---------------- Product Reviews ----------------
+const emptyR = { name: '', rating: '5', title: '', body: '', verified: true };
+
+/** Recompute a product's rating + count from its approved reviews. */
+async function recomputeRating(pid: string) {
+  const snap = await getDocs(query(collection(db, `storeProducts/${pid}/reviews`), where('status', '==', 'approved')));
+  const ratings = snap.docs.map((d) => Number(d.data().rating) || 0).filter((r) => r > 0);
+  const count = ratings.length;
+  const avg = count ? Math.round((ratings.reduce((a, b) => a + b, 0) / count) * 10) / 10 : 4.8;
+  await updateDoc(doc(db, 'storeProducts', pid), { rating: avg, ratingCount: count });
+}
+
+function ReviewsTab() {
+  const { rows: prods } = useCollection('storeProducts', [orderBy('title', 'asc')]);
+  const [pid, setPid] = useState('');
+  const path = pid ? `storeProducts/${pid}/reviews` : 'storeProducts/__none__/reviews';
+  const { rows: reviews } = useCollection(path);
+  const [f, setF] = useState({ ...emptyR });
+  const [busy, setBusy] = useState(false);
+  const set = (k: string, v: string | boolean) => setF((s) => ({ ...s, [k]: v }));
+
+  async function add() {
+    if (!pid) return alert('Pick a product first.');
+    if (!f.name.trim() || !f.body.trim()) return alert('Reviewer name and review text are required.');
+    setBusy(true);
+    try {
+      await addDoc(collection(db, `storeProducts/${pid}/reviews`), {
+        name: f.name.trim(), rating: Math.min(5, Math.max(1, Number(f.rating) || 5)),
+        title: f.title.trim(), body: f.body.trim(), verified: f.verified,
+        status: 'approved', createdAt: serverTimestamp(),
+      });
+      await recomputeRating(pid);
+      setF({ ...emptyR });
+    } catch (e) { alert('Failed: ' + (e as Error).message); }
+    finally { setBusy(false); }
+  }
+
+  async function del(rid: string) {
+    if (!confirm('Delete this review?')) return;
+    await deleteDoc(doc(db, `storeProducts/${pid}/reviews`, rid));
+    await recomputeRating(pid);
+  }
+
+  return (
+    <>
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Add a review</h3>
+        <label className="af"><span>Product *</span>
+          <select className="input" value={pid} onChange={(e) => setPid(e.target.value)}>
+            <option value="">Select a product…</option>
+            {prods.map((p) => <option key={p.id} value={p.id}>{p.title as string}</option>)}
+          </select>
+        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+          <label className="af"><span>Reviewer name *</span>
+            <input className="input" placeholder="Ananya Iyer" value={f.name} onChange={(e) => set('name', e.target.value)} />
+          </label>
+          <label className="af"><span>Rating (1–5)</span>
+            <input className="input" type="number" min={1} max={5} step={1} value={f.rating} onChange={(e) => set('rating', e.target.value)} />
+          </label>
+        </div>
+        <label className="af" style={{ marginTop: 12 }}><span>Title (optional)</span>
+          <input className="input" placeholder="Beautiful & authentic" value={f.title} onChange={(e) => set('title', e.target.value)} />
+        </label>
+        <label className="af" style={{ marginTop: 12 }}><span>Review *</span>
+          <textarea className="input" rows={3} placeholder="What the reviewer said…" value={f.body} onChange={(e) => set('body', e.target.value)} />
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 14 }}>
+          <input type="checkbox" checked={f.verified} onChange={(e) => set('verified', e.target.checked)} /> Verified buyer badge
+        </label>
+        <div style={{ marginTop: 16 }}>
+          <button className="btn" disabled={busy || !pid} onClick={add}>{busy ? 'Saving…' : 'Add review'}</button>
+        </div>
+      </div>
+
+      {pid && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <h3 style={{ marginTop: 0 }}>Reviews ({reviews.length})</h3>
+          {reviews.length === 0 && <p className="muted">No reviews for this product yet.</p>}
+          {reviews.map((r) => (
+            <div key={r.id} style={rowStyle}>
+              <div style={{ flex: 1 }}>
+                <strong>{r.name as string}</strong> <span className="muted">· {'★'.repeat(Number(r.rating) || 5)}{(r.verified ? ' · ✓ verified' : '')}</span>
+                {(r.title as string) && <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{r.title as string}</div>}
+                <div className="muted" style={{ fontSize: 13 }}>{r.body as string}</div>
+              </div>
+              <div style={{ flexShrink: 0 }}>
+                <button className="btn sm secondary" onClick={() => del(r.id)}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }

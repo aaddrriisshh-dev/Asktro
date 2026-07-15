@@ -200,6 +200,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 Text(p.description, style: const TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF6A5F4A))),
                 const SizedBox(height: 18),
               ],
+              if (p.specs.isNotEmpty) ...[
+                _specsTable(p),
+                const SizedBox(height: 18),
+              ],
               const Row(
                 children: [
                   _TrustBadge(icon: Icons.verified_rounded, label: 'Certified'),
@@ -209,12 +213,136 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   _TrustBadge(icon: Icons.autorenew_rounded, label: 'Easy Returns'),
                 ],
               ),
+              const SizedBox(height: 22),
+              _reviews(p),
               const SizedBox(height: 90),
             ],
           ),
         ),
       ],
     );
+  }
+
+  Widget _specsTable(StoreProduct p) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Specifications', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Mall.navy)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFAF0),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Mall.goldLine),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < p.specs.length; i++)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+                  decoration: BoxDecoration(
+                    border: i == 0 ? null : const Border(top: BorderSide(color: Color(0xFFF0E6CC))),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 116,
+                        child: Text(p.specs[i].label,
+                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF7A6534)),),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(p.specs[i].value,
+                            style: const TextStyle(fontSize: 12.5, color: Color(0xFF4A3F2A)),),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _reviews(StoreProduct p) {
+    final reviews = ref.watch(storeReviewsProvider(p.id)).valueOrNull ?? const [];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Ratings & Reviews', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Mall.navy)),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Text(p.rating.toStringAsFixed(1),
+                style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Mall.ink, height: 1),),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                StarRow(rating: p.rating, size: 16),
+                const SizedBox(height: 3),
+                Text(p.ratingCount > 0 ? '${p.ratingCount} ratings' : 'Be the first to review',
+                    style: const TextStyle(fontSize: 12, color: Mall.warmGrey),),
+              ],
+            ),
+          ],
+        ),
+        if (reviews.isNotEmpty) const SizedBox(height: 14),
+        for (final r in reviews) _reviewTile(r),
+      ],
+    );
+  }
+
+  Widget _reviewTile(StoreReview r) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(13, 11, 13, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Mall.hair),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              StarRow(rating: r.rating, size: 13),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(r.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Mall.ink),),
+              ),
+              if (r.verified) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.verified_rounded, size: 13, color: Mall.green),
+              ],
+              const Spacer(),
+              if (r.createdAtMs != null)
+                Text(_shortDate(r.createdAtMs!), style: const TextStyle(fontSize: 10.5, color: Mall.warmGrey)),
+            ],
+          ),
+          if (r.title.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(r.title, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Mall.navy)),
+          ],
+          if (r.body.isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Text(r.body, style: const TextStyle(fontSize: 12.5, height: 1.45, color: Color(0xFF5A4B2E))),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static String _shortDate(int ms) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final d = DateTime.fromMillisecondsSinceEpoch(ms);
+    return '${months[d.month - 1]} ${d.year}';
   }
 
   Widget _stepper(StoreProduct p, int qty) {
