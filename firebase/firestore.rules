@@ -356,6 +356,14 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ================= home sections (portal-managed home content) =========
+    // Typed, ordered home blocks (e.g. the "trust" assurance band). Content
+    // is curated in the portal and rendered live in the app.
+    match /homeSections/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // ================= moderation: reports / blocks / image review =========
     // A signed-in user may FILE a report (naming themselves as reporter) and
     // read their own; admins read/triage all. Reports are never editable by
