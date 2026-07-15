@@ -50,6 +50,43 @@ function cleanAddress(raw: unknown): Address {
   return addr;
 }
 
+/**
+ * Validate a coupon code against the cart subtotal and return the discount.
+ * Server-authoritative — the client never supplies the discount amount. Throws a
+ * clear failedPrecondition if the code is invalid/expired/below the minimum.
+ */
+async function applyCoupon(
+  code: string,
+  subtotalPaise: number,
+): Promise<{ code: string; discountPaise: number; freeShipping: boolean }> {
+  const snap = await db.collection(Collections.storeCoupons).doc(code).get();
+  if (!snap.exists) failedPrecondition('That coupon code is not valid.');
+  const c = snap.data()!;
+  if (c.active === false) failedPrecondition('That coupon is no longer active.');
+  const exp = typeof c.expiresAt?.toMillis === 'function'
+    ? c.expiresAt.toMillis()
+    : (typeof c.expiresAt === 'number' ? c.expiresAt : 0);
+  if (exp && Date.now() > exp) failedPrecondition('That coupon has expired.');
+  const minCart = Math.round(Number(c.minCartPaise) || 0);
+  if (subtotalPaise < minCart) {
+    failedPrecondition(`Add ₹${Math.ceil((minCart - subtotalPaise) / 100)} more to use this coupon.`);
+  }
+  const usageLimit = Math.round(Number(c.usageLimit) || 0);
+  const usedCount = Math.round(Number(c.usedCount) || 0);
+  if (usageLimit > 0 && usedCount >= usageLimit) failedPrecondition('This coupon has reached its usage limit.');
+
+  let discount = 0;
+  if (c.type === 'percent') {
+    discount = Math.round((subtotalPaise * (Number(c.value) || 0)) / 100);
+    const cap = Math.round(Number(c.maxDiscountPaise) || 0);
+    if (cap > 0) discount = Math.min(discount, cap);
+  } else {
+    discount = Math.round(Number(c.value) || 0); // fixed amount in paise
+  }
+  discount = Math.max(0, Math.min(discount, subtotalPaise));
+  return { code, discountPaise: discount, freeShipping: c.freeShipping === true };
+}
+
 /** Allocate the next human-readable order number (AST-100001, …). */
 async function nextOrderNo(): Promise<string> {
   const ref = db.collection(Collections.counters).doc('storeOrders');
@@ -67,7 +104,8 @@ export const createStoreOrder = onCall(
   async (req) => {
     const userId = assertAuthed(req);
     await enforceRateLimit('createStoreOrder', userId);
-    const { items, address } = (req.data ?? {}) as { items?: CartLine[]; address?: unknown };
+    const { items, address, couponCode: rawCoupon } =
+      (req.data ?? {}) as { items?: CartLine[]; address?: unknown; couponCode?: unknown };
     if (!Array.isArray(items) || items.length === 0) badRequest('Your cart is empty.');
     if (items.length > 50) badRequest('Too many items in one order.');
     const deliverTo = cleanAddress(address);
@@ -108,12 +146,24 @@ export const createStoreOrder = onCall(
       });
     }
 
-    // Shipping (config-overridable).
+    // Coupon (server-validated; discount never trusted from the client).
+    const couponCode = typeof rawCoupon === 'string' ? rawCoupon.trim().toUpperCase() : '';
+    let discountPaise = 0;
+    let appliedCoupon = '';
+    let couponFreeShip = false;
+    if (couponCode) {
+      const applied = await applyCoupon(couponCode, subtotalPaise);
+      discountPaise = applied.discountPaise;
+      appliedCoupon = applied.code;
+      couponFreeShip = applied.freeShipping;
+    }
+
+    // Shipping (config-overridable; a coupon may waive it).
     const cfg = (await db.doc('config/store').get()).data() ?? {};
     const shipFee = Math.round(Number(cfg.shippingFeePaise ?? DEFAULT_SHIPPING_PAISE));
     const freeOver = Math.round(Number(cfg.freeShippingThresholdPaise ?? DEFAULT_FREE_SHIPPING_THRESHOLD_PAISE));
-    const shippingPaise = subtotalPaise >= freeOver ? 0 : shipFee;
-    const totalPaise = subtotalPaise + shippingPaise;
+    const shippingPaise = (couponFreeShip || subtotalPaise >= freeOver) ? 0 : shipFee;
+    const totalPaise = subtotalPaise - discountPaise + shippingPaise;
     if (totalPaise <= 0) failedPrecondition('Order total must be greater than zero.');
 
     const orderNo = await nextOrderNo();
@@ -134,6 +184,8 @@ export const createStoreOrder = onCall(
       itemCount: lines.reduce((n, l) => n + l.qty, 0),
       subtotalPaise,
       shippingPaise,
+      discountPaise,
+      couponCode: appliedCoupon || null,
       totalPaise,
       address: deliverTo,
       status: 'pending_payment',
@@ -156,7 +208,8 @@ export const createStoreOrder = onCall(
       amount: rzp.amount,
       currency: rzp.currency,
       keyId: RAZORPAY_KEY_ID.value(),
-      subtotalPaise, shippingPaise, totalPaise,
+      subtotalPaise, shippingPaise, discountPaise, totalPaise,
+      couponCode: appliedCoupon || null,
     };
   },
 );
@@ -230,6 +283,16 @@ export async function confirmStoreOrderPaid(
         tx.update(ps.ref, { stock: left });
       }
     });
+
+    // Count coupon usage only on a paid order (never on abandoned checkouts).
+    const coupon = o.couponCode as string | undefined;
+    if (coupon) {
+      tx.set(
+        db.collection(Collections.storeCoupons).doc(coupon),
+        { usedCount: FieldValue.increment(1) },
+        { merge: true },
+      );
+    }
 
     logger.info('store order confirmed', { storeOrderId, orderNo, paymentId, source });
     return { storeOrderId, orderNo, status: 'confirmed', alreadyPaid: false };

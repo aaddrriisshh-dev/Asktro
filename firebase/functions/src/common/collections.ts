@@ -24,6 +24,7 @@ export const Collections = {
   storeProducts: 'storeProducts', // AstroMall physical products
   storeOrders: 'storeOrders', // AstroMall orders (physical-goods purchases)
   storeOrderBindings: 'storeOrderBindings', // razorpayOrderId -> storeOrderId (webhook resolution)
+  storeCoupons: 'storeCoupons', // AstroMall discount codes (server-validated)
 } as const;
 
 export const ConfigDoc = { path: 'config/global' } as const;

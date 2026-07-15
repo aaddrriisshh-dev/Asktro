@@ -34,6 +34,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _state = TextEditingController();
   final _pincode = TextEditingController();
   final _landmark = TextEditingController();
+  final _coupon = TextEditingController();
+
+  StoreCoupon? _appliedCoupon;
+  String? _couponError;
+  bool _checkingCoupon = false;
 
   late final Razorpay _razorpay;
   StoreOrderDraft? _draft;
@@ -81,7 +86,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   @override
   void dispose() {
     _razorpay.clear();
-    for (final c in [_name, _phone, _line1, _line2, _city, _state, _pincode, _landmark]) {
+    for (final c in [_name, _phone, _line1, _line2, _city, _state, _pincode, _landmark, _coupon]) {
       c.dispose();
     }
     super.dispose();
@@ -113,6 +118,32 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     });
   }
 
+  Future<void> _applyCoupon() async {
+    final code = _coupon.text.trim().toUpperCase();
+    if (code.isEmpty) return;
+    setState(() { _checkingCoupon = true; _couponError = null; });
+    final subtotal = ref.read(cartProvider).fold<int>(0, (n, c) => n + c.lineTotalPaise);
+    try {
+      final c = await ref.read(storeRepositoryProvider).fetchCoupon(code);
+      if (!mounted) return;
+      if (c == null) {
+        setState(() { _appliedCoupon = null; _couponError = 'That coupon code is not valid.'; });
+        return;
+      }
+      final err = c.validationError(subtotal);
+      setState(() {
+        if (err != null) { _appliedCoupon = null; _couponError = err; }
+        else { _appliedCoupon = c; _couponError = null; }
+      });
+    } catch (_) {
+      if (mounted) setState(() => _couponError = "Couldn't check that coupon. Try again.");
+    } finally {
+      if (mounted) setState(() => _checkingCoupon = false);
+    }
+  }
+
+  void _removeCoupon() => setState(() { _appliedCoupon = null; _couponError = null; _coupon.clear(); });
+
   ShippingAddress _address() => ShippingAddress(
         name: _name.text.trim(),
         phone: _phone.text.trim(),
@@ -142,7 +173,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       } catch (_) {}
     }
     try {
-      final draft = await ref.read(storeServiceProvider).createOrder(items: items, address: addr);
+      final draft = await ref.read(storeServiceProvider).createOrder(
+            items: items, address: addr, couponCode: _appliedCoupon?.code,
+          );
       if (!mounted) return;
       _draft = draft;
       _razorpay.open({
@@ -199,8 +232,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Widget build(BuildContext context) {
     final items = ref.watch(cartProvider);
     final subtotal = items.fold<int>(0, (n, c) => n + c.lineTotalPaise);
-    final shipping = subtotal >= _freeOverPaise ? 0 : _shipFeePaise;
-    final total = subtotal + shipping;
+    final discount = _appliedCoupon?.discountFor(subtotal) ?? 0;
+    final freeShipCoupon = _appliedCoupon?.freeShipping ?? false;
+    final shipping = (freeShipCoupon || subtotal >= _freeOverPaise) ? 0 : _shipFeePaise;
+    final total = subtotal - discount + shipping;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5FF),
@@ -235,9 +270,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               Expanded(child: _field(_landmark, 'Landmark (optional)')),
             ],),
             const SizedBox(height: 22),
+            const _SectionTitle('Have a coupon?'),
+            const SizedBox(height: 10),
+            _couponRow(),
+            const SizedBox(height: 22),
             const _SectionTitle('Order summary'),
             const SizedBox(height: 10),
-            _summaryCard(items, subtotal, shipping, total),
+            _summaryCard(items, subtotal, discount, shipping, total),
             const SizedBox(height: 10),
             const Row(
               children: [
@@ -350,7 +389,75 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 
-  Widget _summaryCard(List<CartItem> items, int subtotal, int shipping, int total) {
+  Widget _couponRow() {
+    final applied = _appliedCoupon;
+    if (applied != null) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF7EF),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFB6E3C8)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.local_offer_rounded, size: 18, color: Mall.green),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('“${applied.code}” applied',
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF1B7A4C)),),
+            ),
+            GestureDetector(onTap: _removeCoupon, child: const Text('Remove', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Mall.warmGrey))),
+          ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _coupon,
+                textCapitalization: TextCapitalization.characters,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Enter coupon code',
+                  hintStyle: const TextStyle(fontSize: 13, color: Mall.warmGrey),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE8E1F0))),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Mall.deep, width: 1.5)),
+                ),
+                onSubmitted: (_) => _applyCoupon(),
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: _checkingCoupon ? null : _applyCoupon,
+              child: Container(
+                height: 46,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(gradient: Mall.goldButton, borderRadius: BorderRadius.circular(12)),
+                child: _checkingCoupon
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2))
+                    : const Text('Apply', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+        if (_couponError != null) ...[
+          const SizedBox(height: 6),
+          Text(_couponError!, style: const TextStyle(fontSize: 12, color: Mall.offInk)),
+        ],
+      ],
+    );
+  }
+
+  Widget _summaryCard(List<CartItem> items, int subtotal, int discount, int shipping, int total) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -373,6 +480,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             ),
           const Divider(height: 14),
           _line('Subtotal', Mall.rupees(subtotal)),
+          if (discount > 0) ...[
+            const SizedBox(height: 5),
+            _line('Discount${_appliedCoupon != null ? ' (${_appliedCoupon!.code})' : ''}', '– ${Mall.rupees(discount)}', green: true),
+          ],
           const SizedBox(height: 5),
           _line('Shipping', shipping == 0 ? 'FREE' : Mall.rupees(shipping), green: shipping == 0),
           const Divider(height: 14),

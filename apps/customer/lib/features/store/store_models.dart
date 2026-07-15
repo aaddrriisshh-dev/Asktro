@@ -359,6 +359,72 @@ class ShippingAddress {
       );
 }
 
+/// A discount code. The server re-validates and applies authoritatively at
+/// checkout; this is used only to preview the discount before paying.
+class StoreCoupon {
+  const StoreCoupon({
+    required this.code,
+    this.type = 'percent',
+    this.value = 0,
+    this.minCartPaise = 0,
+    this.maxDiscountPaise = 0,
+    this.freeShipping = false,
+    this.active = true,
+    this.expiresAtMs,
+    this.usageLimit = 0,
+    this.usedCount = 0,
+  });
+
+  final String code;
+  final String type; // 'percent' | 'fixed'
+  final num value;
+  final int minCartPaise;
+  final int maxDiscountPaise;
+  final bool freeShipping;
+  final bool active;
+  final int? expiresAtMs;
+  final int usageLimit;
+  final int usedCount;
+
+  factory StoreCoupon.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
+    final m = d.data() ?? {};
+    return StoreCoupon(
+      code: (m['code'] ?? d.id) as String,
+      type: (m['type'] ?? 'percent') as String,
+      value: (m['value'] ?? 0) as num,
+      minCartPaise: ((m['minCartPaise'] ?? 0) as num).toInt(),
+      maxDiscountPaise: ((m['maxDiscountPaise'] ?? 0) as num).toInt(),
+      freeShipping: (m['freeShipping'] ?? false) as bool,
+      active: (m['active'] ?? true) as bool,
+      expiresAtMs: (m['expiresAt'] as Timestamp?)?.millisecondsSinceEpoch,
+      usageLimit: ((m['usageLimit'] ?? 0) as num).toInt(),
+      usedCount: ((m['usedCount'] ?? 0) as num).toInt(),
+    );
+  }
+
+  /// Client-side preview discount (server is authoritative).
+  int discountFor(int subtotalPaise) {
+    var d = type == 'percent' ? (subtotalPaise * value / 100).round() : value.round();
+    if (type == 'percent' && maxDiscountPaise > 0 && d > maxDiscountPaise) d = maxDiscountPaise;
+    if (d < 0) d = 0;
+    if (d > subtotalPaise) d = subtotalPaise;
+    return d;
+  }
+
+  /// null when the coupon can be applied; otherwise a reason to show the user.
+  String? validationError(int subtotalPaise) {
+    if (!active) return 'This coupon is no longer active.';
+    if (expiresAtMs != null && DateTime.now().millisecondsSinceEpoch > expiresAtMs!) {
+      return 'This coupon has expired.';
+    }
+    if (subtotalPaise < minCartPaise) {
+      return 'Add ₹${((minCartPaise - subtotalPaise) / 100).ceil()} more to use this coupon.';
+    }
+    if (usageLimit > 0 && usedCount >= usageLimit) return 'This coupon has reached its usage limit.';
+    return null;
+  }
+}
+
 /// A saved delivery address in the customer's address book.
 class SavedAddress {
   const SavedAddress({required this.id, required this.address, this.lastUsedMs});

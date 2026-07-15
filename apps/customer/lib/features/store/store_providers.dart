@@ -168,6 +168,12 @@ class StoreRepository {
   }
 
   Future<void> deleteAddress(String uid, String id) => _addrCol(uid).doc(id).delete();
+
+  /// Fetch a coupon by code for a checkout preview (server re-validates).
+  Future<StoreCoupon?> fetchCoupon(String code) async {
+    final d = await _db.collection('storeCoupons').doc(code.trim().toUpperCase()).get();
+    return d.exists ? StoreCoupon.fromDoc(d) : null;
+  }
 }
 
 /// Result of createStoreOrder — everything Razorpay checkout needs.
@@ -196,10 +202,12 @@ class StoreService {
   Future<StoreOrderDraft> createOrder({
     required List<CartItem> items,
     required ShippingAddress address,
+    String? couponCode,
   }) async {
     final res = await _fn.httpsCallable('createStoreOrder').call<Map<String, dynamic>>({
       'items': items.map((c) => {'productId': c.product.id, 'qty': c.qty}).toList(),
       'address': address.toMap(),
+      if (couponCode != null && couponCode.isNotEmpty) 'couponCode': couponCode,
     });
     final m = Map<String, dynamic>.from(res.data);
     return StoreOrderDraft(
