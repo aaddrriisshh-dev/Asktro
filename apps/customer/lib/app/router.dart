@@ -17,6 +17,7 @@ import '../features/wallet/recharge_screen.dart';
 import '../features/store/store_models.dart';
 import '../features/store/store_home_screen.dart';
 import '../features/store/store_category_screen.dart';
+import '../features/store/all_products_screen.dart';
 import '../features/store/product_detail_screen.dart';
 import '../features/store/cart_screen.dart';
 import '../features/store/checkout_screen.dart';
@@ -138,6 +139,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ---- Asktro Mall (store) ----
       GoRoute(path: '/store', builder: (_, __) => const StoreHomeScreen()),
+      GoRoute(
+        path: '/store/products/:filter',
+        builder: (_, s) {
+          final f = s.pathParameters['filter'] ?? 'all';
+          return AllProductsScreen(filter: f, title: AllProductsScreen.titleFor(f));
+        },
+      ),
       GoRoute(
         path: '/store/category/:id',
         builder: (_, s) => StoreCategoryScreen(

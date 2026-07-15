@@ -43,103 +43,38 @@ class StoreHomeScreen extends ConsumerWidget {
             SliverToBoxAdapter(child: _Chips(cats: cats)),
             const SliverToBoxAdapter(child: _Hero()),
             const SliverToBoxAdapter(child: ClaimMarquee(phrases: _claims)),
-            if (bestSellers.isNotEmpty) ...[
-              SliverToBoxAdapter(child: _sectionHeader('Most Loved', 'Best Sellers')),
-              SliverToBoxAdapter(child: _rail(context, ref, bestSellers)),
-            ],
-            if (newLaunches.isNotEmpty) ...[
-              SliverToBoxAdapter(child: _sectionHeader('Just In', 'New Launches')),
-              SliverToBoxAdapter(child: _rail(context, ref, newLaunches, ribbon: (text: 'NEW', color: Mall.green))),
-            ],
-            if (combos.isNotEmpty) ...[
-              SliverToBoxAdapter(child: _sectionHeader('Save More', 'Combo Deals')),
-              SliverToBoxAdapter(child: _rail(context, ref, combos, ribbon: (text: 'COMBO', color: Mall.offInk))),
-            ],
-            if (cats.isNotEmpty) ...[
-              SliverToBoxAdapter(child: _sectionHeader('Find your fit', 'Shop by Category', viewAll: false)),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.82,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => StoreCategoryCard(
-                      category: cats[i],
-                      onTap: () => context.push('/store/category/${cats[i].id}', extra: cats[i].name),
-                    ),
-                    childCount: cats.length,
-                  ),
-                ),
+            const SliverToBoxAdapter(child: SizedBox(height: 10)),
+            if (bestSellers.isNotEmpty)
+              SliverToBoxAdapter(
+                child: _railBand(context, ref, 'Most Loved', 'Best Sellers', bestSellers,
+                    onViewAll: () => context.push('/store/products/best'),),
               ),
-            ],
-            SliverToBoxAdapter(child: _sectionHeader('Browse our collection', 'All Products', viewAll: false)),
+            if (newLaunches.isNotEmpty)
+              SliverToBoxAdapter(
+                child: _railBand(context, ref, 'Just In', 'New Launches', newLaunches,
+                    ribbon: (text: 'NEW', color: Mall.green),
+                    onViewAll: () => context.push('/store/products/new'),),
+              ),
+            if (combos.isNotEmpty)
+              SliverToBoxAdapter(
+                child: _railBand(context, ref, 'Save More', 'Combo Deals', combos,
+                    ribbon: (text: 'COMBO', color: Mall.offInk),
+                    onViewAll: () => context.push('/store/products/combo'),),
+              ),
+            if (cats.isNotEmpty)
+              SliverToBoxAdapter(child: _categoryBand(context, cats)),
             if (products.isEmpty)
               const SliverToBoxAdapter(child: _Empty())
             else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.66,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => _card(context, ref, products[i]),
-                    childCount: products.length,
-                  ),
-                ),
-              ),
-            if (testimonials.isNotEmpty) ...[
-              SliverToBoxAdapter(child: _sectionHeader('In their words', 'What Our Customers Say', viewAll: false)),
               SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 176,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
-                    itemCount: testimonials.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemBuilder: (_, i) => TestimonialCard(t: testimonials[i]),
-                  ),
-                ),
+                child: _allProductsBand(context, ref, products.take(8).toList(), products.length),
               ),
-            ],
-            if (videos.isNotEmpty) ...[
-              SliverToBoxAdapter(child: _sectionHeader('Watch & learn', 'Guides & Stories', viewAll: false)),
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 208,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
-                    itemCount: videos.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemBuilder: (_, i) => VideoCard(
-                      video: videos[i],
-                      onTap: () => ScaffoldMessenger.of(context)
-                        ..hideCurrentSnackBar()
-                        ..showSnackBar(const SnackBar(
-                          content: Text('Video player coming soon'),
-                          duration: Duration(milliseconds: 1100),
-                          behavior: SnackBarBehavior.floating,
-                        ),),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-            if (faqs.isNotEmpty) ...[
-              SliverToBoxAdapter(child: _sectionHeader('Good to know', 'Frequently Asked', viewAll: false)),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => FaqTile(faq: faqs[i]),
-                    childCount: faqs.length,
-                  ),
-                ),
-              ),
-            ],
+            if (testimonials.isNotEmpty)
+              SliverToBoxAdapter(child: _testimonialBand(testimonials)),
+            if (videos.isNotEmpty)
+              SliverToBoxAdapter(child: _videoBand(context, videos)),
+            if (faqs.isNotEmpty)
+              SliverToBoxAdapter(child: _faqBand(faqs)),
             const SliverToBoxAdapter(child: SizedBox(height: 22)),
           ],
         ),
@@ -176,9 +111,9 @@ class StoreHomeScreen extends ConsumerWidget {
         },
       );
 
-  static Widget _sectionHeader(String eyebrow, String title, {bool viewAll = true}) {
+  static Widget _sectionHeader(String eyebrow, String title, {VoidCallback? onViewAll}) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 16, 12, 10),
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -196,14 +131,171 @@ class StoreHomeScreen extends ConsumerWidget {
               ],
             ),
           ),
-          if (viewAll)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 2),
-              child: Text('View all ›', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Mall.goldInk)),
+          if (onViewAll != null)
+            GestureDetector(
+              onTap: onViewAll,
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.only(bottom: 2, left: 8),
+                child: Text('View all ›', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Mall.goldInk)),
+              ),
             ),
         ],
       ),
     );
+  }
+
+  // ---- section "bands": a full-bleed white block on the warm ground, split
+  // by a cream gap + hairlines, so each section reads as its own zone. ----
+
+  static Widget _band(Widget child) => Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: Mall.hair),
+            bottom: BorderSide(color: Mall.hair),
+          ),
+        ),
+        padding: const EdgeInsets.only(top: 14, bottom: 14),
+        child: child,
+      );
+
+  Widget _railBand(BuildContext context, WidgetRef ref, String eyebrow, String title, List<StoreProduct> items,
+      {({String text, Color color})? ribbon, VoidCallback? onViewAll,}) {
+    return _band(Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionHeader(eyebrow, title, onViewAll: onViewAll),
+        _rail(context, ref, items, ribbon: ribbon),
+      ],
+    ),);
+  }
+
+  Widget _categoryBand(BuildContext context, List<StoreCategory> cats) {
+    return _band(Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionHeader('Find your fit', 'Shop by Category'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 2, 14, 0),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.82,
+            ),
+            itemCount: cats.length,
+            itemBuilder: (_, i) => StoreCategoryCard(
+              category: cats[i],
+              onTap: () => context.push('/store/category/${cats[i].id}', extra: cats[i].name),
+            ),
+          ),
+        ),
+      ],
+    ),);
+  }
+
+  Widget _allProductsBand(BuildContext context, WidgetRef ref, List<StoreProduct> preview, int total) {
+    return _band(Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionHeader('Browse our collection', 'All Products',
+            onViewAll: () => context.push('/store/products/all'),),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 2, 14, 6),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.66,
+            ),
+            itemCount: preview.length,
+            itemBuilder: (_, i) => _card(context, ref, preview[i]),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
+          child: GestureDetector(
+            onTap: () => context.push('/store/products/all'),
+            child: Container(
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Mall.cream,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Mall.goldLine, width: 1.4),
+              ),
+              child: Text('View all $total products  →',
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: Mall.goldInk),),
+            ),
+          ),
+        ),
+      ],
+    ),);
+  }
+
+  Widget _testimonialBand(List<StoreTestimonial> items) {
+    return _band(Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionHeader('In their words', 'What Our Customers Say'),
+        SizedBox(
+          height: 176,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(14, 2, 14, 0),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (_, i) => TestimonialCard(t: items[i]),
+          ),
+        ),
+      ],
+    ),);
+  }
+
+  Widget _videoBand(BuildContext context, List<StoreVideo> items) {
+    return _band(Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionHeader('Watch & learn', 'Guides & Stories'),
+        SizedBox(
+          height: 200,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(14, 2, 14, 0),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (_, i) => VideoCard(
+              video: items[i],
+              onTap: () => ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(const SnackBar(
+                  content: Text('Video player coming soon'),
+                  duration: Duration(milliseconds: 1100),
+                  behavior: SnackBarBehavior.floating,
+                ),),
+            ),
+          ),
+        ),
+      ],
+    ),);
+  }
+
+  Widget _faqBand(List<StoreFaq> items) {
+    return _band(Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionHeader('Good to know', 'Frequently Asked'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 2, 14, 0),
+          child: Column(children: [for (final f in items) FaqTile(faq: f)]),
+        ),
+      ],
+    ),);
   }
 }
 
