@@ -14,7 +14,7 @@ class StoreRail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cats = ref.watch(storeCategoriesProvider).valueOrNull ?? const [];
+    final cats = ref.watch(storeRootCategoriesProvider);
     if (cats.isEmpty) return const SizedBox.shrink();
 
     return Container(

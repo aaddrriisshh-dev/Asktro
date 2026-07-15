@@ -26,7 +26,9 @@ class StoreHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cats = ref.watch(storeCategoriesProvider).valueOrNull ?? const [];
+    // Only top-level categories head the storefront; subcategories appear when
+    // you open a parent category.
+    final cats = ref.watch(storeRootCategoriesProvider);
     final products = ref.watch(storeAllProductsProvider).valueOrNull ?? const [];
 
     final best = products.where((p) => p.bestSeller).toList();

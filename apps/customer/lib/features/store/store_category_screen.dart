@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'store_home_screen.dart' show MallAppBar;
+import 'store_models.dart';
 import 'store_providers.dart';
 import 'store_theme.dart';
 import 'store_widgets.dart';
 
-/// All products within one category.
+/// A category page: any subcategories shown as tiles up top, then the products
+/// that belong directly to this category.
 class StoreCategoryScreen extends ConsumerWidget {
   const StoreCategoryScreen({super.key, required this.categoryId, this.categoryName});
   final String categoryId;
@@ -16,13 +18,14 @@ class StoreCategoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final products = ref.watch(storeProductsByCategoryProvider(categoryId));
+    final subs = ref.watch(storeSubcategoriesProvider(categoryId));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5FF),
       appBar: MallAppBar(title: categoryName ?? 'Category'),
       body: products.when(
         data: (list) {
-          if (list.isEmpty) {
+          if (list.isEmpty && subs.isEmpty) {
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(30),
@@ -30,51 +33,69 @@ class StoreCategoryScreen extends ConsumerWidget {
               ),
             );
           }
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: Row(
-                  children: [
-                    Text('${list.length} product${list.length == 1 ? '' : 's'}',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Mall.warmGrey),),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: GridView.builder(
+          return CustomScrollView(
+            slivers: [
+              if (subs.isNotEmpty) ...[
+                SliverToBoxAdapter(child: _header('Shop by type')),
+                SliverToBoxAdapter(child: _subRow(context, subs)),
+              ],
+              if (list.isNotEmpty) ...[
+                SliverToBoxAdapter(child: _header('${list.length} product${list.length == 1 ? '' : 's'}')),
+                SliverPadding(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.60,
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.60,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) => ProductCard(
+                        product: list[i],
+                        onTap: () => context.push('/store/product/${list[i].id}', extra: list[i]),
+                        onAdd: () {
+                          ref.read(cartProvider.notifier).add(list[i]);
+                          ScaffoldMessenger.of(context)
+                            ..hideCurrentSnackBar()
+                            ..showSnackBar(const SnackBar(
+                              content: Text('Added to cart'),
+                              duration: Duration(milliseconds: 1200),
+                              behavior: SnackBarBehavior.floating,
+                            ),);
+                        },
+                      ),
+                      childCount: list.length,
+                    ),
                   ),
-                  itemCount: list.length,
-                  itemBuilder: (_, i) {
-                    final p = list[i];
-                    return ProductCard(
-                      product: p,
-                      onTap: () => context.push('/store/product/${p.id}', extra: p),
-                      onAdd: () {
-                        ref.read(cartProvider.notifier).add(p);
-                        ScaffoldMessenger.of(context)
-                          ..hideCurrentSnackBar()
-                          ..showSnackBar(const SnackBar(
-                            content: Text('Added to cart'),
-                            duration: Duration(milliseconds: 1200),
-                            behavior: SnackBarBehavior.floating,
-                          ),);
-                      },
-                    );
-                  },
                 ),
-              ),
+              ],
             ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator(color: Mall.deep)),
-        error: (e, __) => Center(child: Text('Could not load products.\n$e', textAlign: TextAlign.center, style: const TextStyle(color: Mall.warmGrey))),
+        error: (e, __) => Center(
+          child: Text('Could not load products.\n$e', textAlign: TextAlign.center, style: const TextStyle(color: Mall.warmGrey)),
+        ),
+      ),
+    );
+  }
+
+  Widget _header(String text) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+        child: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Mall.warmGrey)),
+      );
+
+  Widget _subRow(BuildContext context, List<StoreCategory> subs) {
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
+        itemCount: subs.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (_, i) => CategoryTile(
+          category: subs[i],
+          size: 62,
+          onTap: () => context.push('/store/category/${subs[i].id}', extra: subs[i].name),
+        ),
       ),
     );
   }

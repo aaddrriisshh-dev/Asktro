@@ -7,7 +7,7 @@ import { useCollection, Row } from '@/lib/hooks';
 import { formatPaise } from '@/lib/format';
 import { ImageUpload } from '@/components/ImageUpload';
 
-const emptyCat = { name: '', emoji: '', blurb: '', image: '', sortOrder: '', active: true };
+const emptyCat = { name: '', emoji: '', blurb: '', image: '', sortOrder: '', active: true, parentId: '' };
 const emptyProd = {
   title: '', description: '', categoryId: '', priceRupees: '', mrpRupees: '',
   stock: '', sku: '', sortOrder: '', active: true, images: [] as string[],
@@ -63,6 +63,7 @@ function CategoriesTab({ cats }: { cats: Row[] }) {
       name: (c.name as string) ?? '', emoji: (c.emoji as string) ?? '',
       blurb: (c.blurb as string) ?? '', image: (c.image as string) ?? '',
       sortOrder: c.sortOrder != null ? String(c.sortOrder) : '', active: c.active !== false,
+      parentId: (c.parentId as string) ?? '',
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -75,6 +76,7 @@ function CategoriesTab({ cats }: { cats: Row[] }) {
       const payload = {
         name: f.name.trim(), emoji: f.emoji.trim(), blurb: f.blurb.trim(), image: f.image.trim(),
         sortOrder: f.sortOrder.trim() ? Math.round(Number(f.sortOrder) || 0) : (cats.length),
+        parentId: f.parentId,
         active: f.active, updatedAt: serverTimestamp(),
       };
       if (editId) await updateDoc(doc(db, 'storeCategories', editId), payload);
@@ -96,9 +98,19 @@ function CategoriesTab({ cats }: { cats: Row[] }) {
             <input className="input" placeholder="💎" value={f.emoji} onChange={(e) => set('emoji', e.target.value)} />
           </label>
         </div>
-        <label className="af" style={{ marginTop: 12 }}><span>Short blurb</span>
-          <input className="input" placeholder="Certified astrological gemstones" value={f.blurb} onChange={(e) => set('blurb', e.target.value)} />
-        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+          <label className="af"><span>Parent category</span>
+            <select className="input" value={f.parentId} onChange={(e) => set('parentId', e.target.value)}>
+              <option value="">— None (top-level) —</option>
+              {cats.filter((c) => c.id !== editId).map((c) => (
+                <option key={c.id} value={c.id}>{(c.emoji as string) || ''} {c.name as string}</option>
+              ))}
+            </select>
+          </label>
+          <label className="af"><span>Short blurb</span>
+            <input className="input" placeholder="Certified astrological gemstones" value={f.blurb} onChange={(e) => set('blurb', e.target.value)} />
+          </label>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: 12, marginTop: 12, alignItems: 'end' }}>
           <div>
             <p className="af-label">Category image (round tile on the app)</p>
@@ -122,12 +134,14 @@ function CategoriesTab({ cats }: { cats: Row[] }) {
         {cats.length === 0 ? <p className="muted">No categories yet.</p> : (
           <div style={{ overflowX: 'auto' }}>
             <table className="cardify">
-              <thead><tr><th>Category</th><th>Blurb</th><th>Order</th><th>Status</th><th></th></tr></thead>
+              <thead><tr><th>Category</th><th>Parent</th><th>Order</th><th>Status</th><th></th></tr></thead>
               <tbody>
-                {cats.map((c) => (
+                {cats.map((c) => {
+                  const parent = c.parentId ? cats.find((p) => p.id === c.parentId) : null;
+                  return (
                   <tr key={c.id}>
-                    <td data-label="Category"><b>{(c.emoji as string) || ''} {(c.name as string) || '—'}</b></td>
-                    <td data-label="Blurb" className="muted" style={{ fontSize: 13 }}>{(c.blurb as string) || '—'}</td>
+                    <td data-label="Category"><b>{parent ? '↳ ' : ''}{(c.emoji as string) || ''} {(c.name as string) || '—'}</b></td>
+                    <td data-label="Parent" className="muted" style={{ fontSize: 13 }}>{parent ? (parent.name as string) : '— top level —'}</td>
                     <td data-label="Order" className="muted">{c.sortOrder as number ?? '—'}</td>
                     <td data-label="Status">
                       <button className={`btn sm ${c.active !== false ? 'secondary' : ''}`}
@@ -140,7 +154,8 @@ function CategoriesTab({ cats }: { cats: Row[] }) {
                       <button className="btn sm danger" onClick={() => { if (confirm('Delete this category? Products keep their categoryId.')) deleteDoc(doc(db, 'storeCategories', c.id)); }}>Delete</button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

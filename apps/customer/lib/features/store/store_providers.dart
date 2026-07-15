@@ -238,6 +238,18 @@ final storeFeaturedProvider = StreamProvider<List<StoreProduct>>(
   (ref) => ref.watch(storeRepositoryProvider).watchFeatured(),
 );
 
+/// Top-level categories only (parentId empty) — derived from the full stream.
+final storeRootCategoriesProvider = Provider<List<StoreCategory>>((ref) {
+  final all = ref.watch(storeCategoriesProvider).valueOrNull ?? const [];
+  return all.where((c) => c.isRoot).toList();
+});
+
+/// Direct children of a category — derived from the full stream (no new query).
+final storeSubcategoriesProvider = Provider.family<List<StoreCategory>, String>((ref, parentId) {
+  final all = ref.watch(storeCategoriesProvider).valueOrNull ?? const [];
+  return all.where((c) => c.parentId == parentId).toList();
+});
+
 final storeAllProductsProvider = StreamProvider<List<StoreProduct>>(
   (ref) => ref.watch(storeRepositoryProvider).watchActiveProducts(),
 );

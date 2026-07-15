@@ -9,6 +9,7 @@ class StoreCategory {
     this.blurb = '',
     this.image = '',
     this.sortOrder = 0,
+    this.parentId = '',
   });
 
   final String id;
@@ -17,6 +18,11 @@ class StoreCategory {
   final String blurb;
   final String image;
   final int sortOrder;
+
+  /// Empty for a top-level category; otherwise the id of the parent category.
+  final String parentId;
+
+  bool get isRoot => parentId.isEmpty;
 
   factory StoreCategory.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
     final m = d.data() ?? {};
@@ -27,6 +33,7 @@ class StoreCategory {
       blurb: (m['blurb'] ?? '') as String,
       image: (m['image'] ?? '') as String,
       sortOrder: ((m['sortOrder'] ?? 0) as num).toInt(),
+      parentId: (m['parentId'] ?? '') as String,
     );
   }
 }
