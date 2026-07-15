@@ -429,7 +429,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
         title: 'Start Your Free\nSession',
         subtitle: 'Your first chat is on us',
         cta: 'Start Now',
-        illustration: Image.asset(Ob.gift, height: 128),
+        illustration: Image.asset(Ob.gift, height: 98),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
       ),
       _banner(
@@ -439,8 +439,8 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
         subtitle: 'By verified pandits',
         cta: 'Book Now',
         illustration: Padding(
-          padding: const EdgeInsets.only(right: 8, bottom: 4),
-          child: Image.asset(Ob.pujaMandala, height: 150),
+          padding: const EdgeInsets.only(right: 6, bottom: 2),
+          child: Image.asset(Ob.pujaMandala, height: 108),
         ),
         onTap: () => _comingSoon(context, 'Group Pujas'),
       ),
@@ -449,7 +449,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
     return Column(
       children: [
         SizedBox(
-          height: 196,
+          height: 120,
           child: PageView(
             controller: _controller,
             onPageChanged: (i) => setState(() => _page = i),
@@ -676,25 +676,27 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
     required Widget illustration,
     required VoidCallback onTap,
   }) {
+    // Compact promo strip (~120px): kicker + one-line title + inline CTA on the
+    // left, a small illustration bleeding off the right. Subtitle is dropped at
+    // this height to keep the strip clean.
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: GestureDetector(
         onTap: onTap,
         child: Container(
           clipBehavior: Clip.antiAlias,
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-          decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(24), boxShadow: _bshadow),
+          padding: const EdgeInsets.fromLTRB(16, 12, 14, 12),
+          decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(20), boxShadow: _bshadow),
           child: Stack(
             children: [
-              // Soft gold glow behind the illustration so the subject sits in
-              // an intentional halo — no hard rectangle.
+              // Soft gold halo behind the illustration.
               Positioned(
-                right: -36,
-                bottom: -36,
+                right: -30,
+                bottom: -40,
                 child: IgnorePointer(
                   child: Container(
-                    width: 216,
-                    height: 216,
+                    width: 150,
+                    height: 150,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
@@ -705,34 +707,34 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
                   ),
                 ),
               ),
-              Positioned(right: -6, bottom: -10, child: illustration),
-              // A few gold sparkles rising off the illustration.
+              Positioned(right: -4, bottom: -8, child: illustration),
               const Positioned(
-                  right: 40, top: 12,
-                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0xCCF3D97C), size: 15)),),
+                  right: 34, top: 8,
+                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0xCCF3D97C), size: 12)),),
               const Positioned(
-                  right: 16, top: 58,
-                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x99F3D97C), size: 10)),),
-              const Positioned(
-                  right: 104, top: 26,
-                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x77F3D97C), size: 9)),),
+                  right: 14, top: 44,
+                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x99F3D97C), size: 9)),),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(kicker,
                       style: Ob.note.copyWith(
-                          color: const Color(0xFFEAD79A), letterSpacing: 1.4, fontWeight: FontWeight.w600, fontSize: 11,),),
-                  const SizedBox(height: 6),
-                  SizedBox(width: 195, child: Text(title, style: Ob.title.copyWith(color: Colors.white, fontSize: 25, height: 1.05))),
-                  const SizedBox(height: 4),
-                  SizedBox(width: 185, child: Text(subtitle, style: Ob.note.copyWith(color: const Color(0xFFE7DCFA)))),
-                  const SizedBox(height: 12),
+                          color: const Color(0xFFEAD79A), letterSpacing: 1.3, fontWeight: FontWeight.w600, fontSize: 9.5,),),
+                  const SizedBox(height: 5),
+                  SizedBox(
+                    width: 190,
+                    child: Text(title.replaceAll('\n', ' '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Ob.title.copyWith(color: Colors.white, fontSize: 18, height: 1.05),),
+                  ),
+                  const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-                    decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(12)),
                     child: Text('$cta  →',
-                        style: Ob.option.copyWith(fontSize: 13, fontWeight: FontWeight.w600, color: Ob.navy),),
+                        style: Ob.option.copyWith(fontSize: 11.5, fontWeight: FontWeight.w600, color: Ob.navy),),
                   ),
                 ],
               ),
@@ -763,30 +765,17 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Why Millions Trust Us', style: Ob.title.copyWith(color: Colors.white, fontSize: 22)),
-                  const SizedBox(height: 8),
-                  // gold divider with a centred sparkle
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(width: 34, height: 1.2, color: Ob.gold.withValues(alpha: 0.55)),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 7),
-                        child: Icon(Icons.auto_awesome, color: Ob.gold, size: 13),
-                      ),
-                      Container(width: 34, height: 1.2, color: Ob.gold.withValues(alpha: 0.55)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                  Text('Why millions trust us', style: Ob.title.copyWith(color: Colors.white, fontSize: 15)),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
-                      _trustItem(Icons.verified_user_rounded, 'Money-Back\nGuarantee'),
-                      _trustItem(Icons.workspace_premium_rounded, 'Verified\nExperts'),
-                      _trustItem(Icons.lock_rounded, '100%\nPrivate'),
+                      _trustItem(Icons.verified_user_rounded, 'Money-back'),
+                      _trustItem(Icons.workspace_premium_rounded, 'Verified experts'),
+                      _trustItem(Icons.lock_rounded, '100% private'),
                     ],
                   ),
                 ],
@@ -799,11 +788,12 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
   }
 
   Widget _trustItem(IconData icon, String label) => Expanded(
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 46,
-              height: 46,
+              width: 30,
+              height: 30,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -811,14 +801,16 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
                   colors: [Colors.white.withValues(alpha: 0.14), Colors.white.withValues(alpha: 0.05)],
                 ),
                 shape: BoxShape.circle,
-                border: Border.all(color: Ob.gold.withValues(alpha: 0.55), width: 1.2),
+                border: Border.all(color: Ob.gold.withValues(alpha: 0.55), width: 1.1),
               ),
-              child: Icon(icon, color: const Color(0xFFF3D97C), size: 21),
+              child: Icon(icon, color: const Color(0xFFF3D97C), size: 15),
             ),
-            const SizedBox(height: 9),
-            Text(label,
-                textAlign: TextAlign.center,
-                style: Ob.note.copyWith(color: Colors.white, fontSize: 10.5, height: 1.2, fontWeight: FontWeight.w600),),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(label,
+                  maxLines: 2,
+                  style: Ob.note.copyWith(color: Colors.white, fontSize: 9.5, height: 1.1, fontWeight: FontWeight.w600),),
+            ),
           ],
         ),
       );
