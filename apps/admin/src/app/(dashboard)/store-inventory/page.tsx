@@ -1,25 +1,28 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { doc, orderBy, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, orderBy, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useCollection, Row } from '@/lib/hooks';
 import { formatPaise } from '@/lib/format';
+import { useLowStockThreshold } from '@/lib/storeSettings';
 
 type Filter = 'all' | 'low' | 'out' | 'active';
-const LOW = 5;
 
 /** Inventory — the store's stock control room. Every product's on-hand count in
  *  one editable table: adjust stock inline, watch low/out badges, and see the
  *  total money sitting on the shelf. Writes straight to storeProducts.stock. */
 export default function InventoryPage() {
   const { rows: products } = useCollection('storeProducts', [orderBy('title', 'asc')]);
+  const LOW = useLowStockThreshold();
   const [filter, setFilter] = useState<Filter>('all');
   const [q, setQ] = useState('');
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [restockId, setRestockId] = useState<string | null>(null);
   const [restockVal, setRestockVal] = useState('');
+  const [lowDraft, setLowDraft] = useState('');
+  const [savingLow, setSavingLow] = useState(false);
 
   const stockOf = (p: Row) => (typeof p.stock === 'number' ? (p.stock as number) : 0);
 
@@ -34,7 +37,18 @@ export default function InventoryPage() {
       else if (s <= LOW) low += 1;
     }
     return { value, units, low, out, active, total: products.length };
-  }, [products]);
+  }, [products, LOW]);
+
+  async function saveLow() {
+    const n = Math.max(1, Math.round(Number(lowDraft || LOW)));
+    if (!Number.isFinite(n)) { alert('Enter a valid number.'); return; }
+    setSavingLow(true);
+    try {
+      await setDoc(doc(db, 'homeSections', 'storeSettings'), { lowStockThreshold: n, updatedAt: serverTimestamp() }, { merge: true });
+      setLowDraft('');
+    } catch (e) { alert('Failed: ' + (e as Error).message); }
+    finally { setSavingLow(false); }
+  }
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -129,8 +143,29 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      {/* Low-stock alert level — portal-managed business setting */}
+      <div className="card" style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <strong style={{ fontSize: 14 }}>Low-stock alert level</strong>
+          <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+            Flag a product as <strong>LOW</strong> once its stock falls to this many units or fewer. Applies here and on the dashboard.
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="muted" style={{ fontSize: 13 }}>≤</span>
+          <input className="input" type="number" min={1} value={lowDraft !== '' ? lowDraft : String(LOW)}
+            onChange={(e) => setLowDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') saveLow(); }}
+            style={{ width: 80, textAlign: 'center' }} />
+          <span className="muted" style={{ fontSize: 13 }}>units</span>
+          <button className="btn sm" disabled={savingLow || (lowDraft !== '' && Number(lowDraft) === LOW)} onClick={saveLow}>
+            {savingLow ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+
       {/* Controls */}
-      <div className="card" style={{ marginTop: 4 }}>
+      <div className="card" style={{ marginTop: 12 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {chips.map((c) => (

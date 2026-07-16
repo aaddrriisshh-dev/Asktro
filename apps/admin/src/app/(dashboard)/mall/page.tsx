@@ -11,6 +11,7 @@ import { useCollection, Row } from '@/lib/hooks';
 import { formatPaise } from '@/lib/format';
 import { DateFilter } from '@/components/DateFilter';
 import { Preset, Range, resolveRange } from '@/lib/dateRange';
+import { useLowStockThreshold } from '@/lib/storeSettings';
 
 const PAID = new Set(['confirmed', 'packed', 'processing', 'shipped', 'delivered']);
 const TOSHIP = new Set(['confirmed', 'paid', 'processing', 'packed']);
@@ -113,15 +114,16 @@ export default function MallDashboardPage() {
   }, [orders, head.range]);
 
   // Operational + inventory — always "as of now".
+  const lowThreshold = useLowStockThreshold();
   const now = useMemo(() => {
     const toShip = orders.filter((o) => TOSHIP.has(o.status as string)).length;
     const pending = orders.filter((o) => o.status === 'pending_payment').length;
     const activeProducts = products.filter((p) => p.active !== false).length;
-    const lowStock = products.filter((p) => typeof p.stock === 'number' && (p.stock as number) <= 5 && (p.stock as number) > 0);
+    const lowStock = products.filter((p) => typeof p.stock === 'number' && (p.stock as number) <= lowThreshold && (p.stock as number) > 0);
     const outStock = products.filter((p) => typeof p.stock === 'number' && (p.stock as number) <= 0);
     const stockValue = products.reduce((s, p) => s + ((typeof p.stock === 'number' ? (p.stock as number) : 0) * ((p.pricePaise as number) || 0)), 0);
     return { toShip, pending, activeProducts, totalProducts: products.length, lowStock, outStock, stockValue };
-  }, [orders, products]);
+  }, [orders, products, lowThreshold]);
 
   const showDelta = head.preset !== 'allTime';
 
@@ -177,7 +179,7 @@ export default function MallDashboardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginTop: 6 }}>
           <MiniStat label="Stock value" value={formatPaise(now.stockValue)} />
           <MiniStat label="Live products" value={`${now.activeProducts}/${now.totalProducts}`} />
-          <MiniStat label="Low stock (≤5)" value={now.lowStock.length} warn={!!now.lowStock.length} />
+          <MiniStat label={`Low stock (≤${lowThreshold})`} value={now.lowStock.length} warn={!!now.lowStock.length} />
           <MiniStat label="Out of stock" value={now.outStock.length} warn={!!now.outStock.length} />
         </div>
         {(now.lowStock.length > 0 || now.outStock.length > 0) && (
