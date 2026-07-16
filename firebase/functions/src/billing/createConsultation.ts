@@ -79,7 +79,8 @@ export const createConsultation = onCall(async (req) => {
     if (astrologer.accountStatus !== 'approved') {
       failedPrecondition('This astrologer is not available.');
     }
-    if (astrologer.onlineStatus !== true) {
+    // AI personas have no presence heartbeat — they're always online.
+    if (astrologer.isAI !== true && astrologer.onlineStatus !== true) {
       failedPrecondition('This astrologer is offline.');
     }
     // Concurrency model for human astrologers:
@@ -89,6 +90,9 @@ export const createConsultation = onCall(async (req) => {
     // `available === false` means "on or awaiting a call" (the exclusive lock);
     // chats never touch it. AI personas are never gated.
     const isCall = type === 'voice' || type === 'video';
+    if (astrologer.isAI === true && isCall) {
+      failedPrecondition('This astrologer is chat-only.');
+    }
     if (astrologer.isAI !== true) {
       // A call in progress (or awaiting accept) blocks everything, chat or call.
       if (astrologer.available !== true) {
