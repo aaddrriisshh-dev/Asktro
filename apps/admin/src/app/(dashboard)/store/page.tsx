@@ -9,7 +9,7 @@ import { ImageUpload } from '@/components/ImageUpload';
 
 const emptyCat = { name: '', emoji: '', blurb: '', image: '', sortOrder: '', active: true, parentId: '' };
 const emptyProd = {
-  title: '', description: '', categoryId: '', priceRupees: '', mrpRupees: '',
+  title: '', description: '', categoryId: '', priceRupees: '', mrpRupees: '', discountPct: '',
   stock: '', sku: '', sortOrder: '', active: true, images: [] as string[],
   bestSeller: false, newLaunch: false, combo: false, rating: '', ratingCount: '',
   weightGrams: '', hsn: '', gstRate: '', dimL: '', dimB: '', dimH: '',
@@ -176,6 +176,31 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
   const set = (k: string, v: string | boolean | string[]) => setF((s) => ({ ...s, [k]: v }));
   const catName = (id: string) => cats.find((c) => c.id === id)?.name as string | undefined;
 
+  // Pricing is interlinked: MRP + Discount% ⟷ Selling price. Editing any two
+  // recomputes the third so the number the customer pays is always consistent.
+  const numOf = (s: string) => { const n = Number(s); return Number.isFinite(n) ? n : 0; };
+  function onMrp(v: string) {
+    setF((s) => {
+      const mrp = numOf(v), pct = numOf(s.discountPct);
+      const price = mrp > 0 && pct > 0 ? String(Math.round(mrp * (1 - pct / 100))) : s.priceRupees;
+      return { ...s, mrpRupees: v, priceRupees: price };
+    });
+  }
+  function onPct(v: string) {
+    setF((s) => {
+      const pct = Math.min(95, Math.max(0, numOf(v))), mrp = numOf(s.mrpRupees);
+      const price = mrp > 0 ? String(Math.round(mrp * (1 - pct / 100))) : s.priceRupees;
+      return { ...s, discountPct: v === '' ? '' : String(pct), priceRupees: mrp > 0 ? price : s.priceRupees };
+    });
+  }
+  function onPrice(v: string) {
+    setF((s) => {
+      const price = numOf(v), mrp = numOf(s.mrpRupees);
+      const pct = mrp > 0 && price > 0 && price <= mrp ? String(Math.round((1 - price / mrp) * 100)) : s.discountPct;
+      return { ...s, priceRupees: v, discountPct: pct };
+    });
+  }
+
   const shown = useMemo(
     () => (filterCat ? prods.filter((p) => p.categoryId === filterCat) : prods),
     [prods, filterCat],
@@ -211,6 +236,8 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
       categoryId: (p.categoryId as string) ?? '',
       priceRupees: p.pricePaise != null ? String((p.pricePaise as number) / 100) : '',
       mrpRupees: p.mrpPaise != null ? String((p.mrpPaise as number) / 100) : '',
+      discountPct: (p.mrpPaise as number) > (p.pricePaise as number)
+        ? String(Math.round((1 - (p.pricePaise as number) / (p.mrpPaise as number)) * 100)) : '',
       stock: p.stock != null ? String(p.stock) : '', sku: (p.sku as string) ?? '',
       sortOrder: p.sortOrder != null ? String(p.sortOrder) : '', active: p.active !== false,
       images: Array.isArray(p.images) ? (p.images as string[]) : [],
@@ -289,13 +316,25 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
           <textarea className="input" rows={3} placeholder="A short product description shown on the detail page…"
             value={f.description} onChange={(e) => set('description', e.target.value)} />
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginTop: 12 }}>
-          <label className="af"><span>Price ₹ *</span>
-            <input className="input" type="number" min={0} placeholder="5999" value={f.priceRupees} onChange={(e) => set('priceRupees', e.target.value)} />
-          </label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 12 }}>
           <label className="af"><span>MRP ₹ (strike-through)</span>
-            <input className="input" type="number" min={0} placeholder="8999" value={f.mrpRupees} onChange={(e) => set('mrpRupees', e.target.value)} />
+            <input className="input" type="number" min={0} placeholder="8999" value={f.mrpRupees} onChange={(e) => onMrp(e.target.value)} />
           </label>
+          <label className="af"><span>Discount %</span>
+            <input className="input" type="number" min={0} max={95} placeholder="33" value={f.discountPct} onChange={(e) => onPct(e.target.value)} />
+          </label>
+          <label className="af"><span>Selling price ₹ *</span>
+            <input className="input" type="number" min={0} placeholder="5999" value={f.priceRupees} onChange={(e) => onPrice(e.target.value)} />
+          </label>
+        </div>
+        <p className="muted" style={{ margin: '6px 2px 0', fontSize: 12 }}>
+          {(() => {
+            const mrp = numOf(f.mrpRupees), price = numOf(f.priceRupees);
+            if (mrp > 0 && price > 0 && price < mrp) return `Customer sees ₹${price.toLocaleString('en-IN')}, saves ₹${(mrp - price).toLocaleString('en-IN')} (${Math.round((1 - price / mrp) * 100)}% off).`;
+            return 'Enter MRP + discount % and the selling price fills in — or type the price to get the %.';
+          })()}
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
           <label className="af"><span>Stock</span>
             <input className="input" type="number" min={0} placeholder="100" value={f.stock} onChange={(e) => set('stock', e.target.value)} />
           </label>
