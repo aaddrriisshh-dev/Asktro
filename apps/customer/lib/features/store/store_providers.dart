@@ -68,6 +68,14 @@ class StoreRepository {
           ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)),);
   }
 
+  /// Portal-managed shipping rates (config/store) — used to show the checkout
+  /// estimate that matches the server's authoritative charge.
+  Stream<StoreShipping> watchShipping() {
+    return _db.collection('config').doc('store').snapshots().map(
+          (d) => StoreShipping.fromMap(d.data() ?? const {}),
+        );
+  }
+
   /// Editable claim-strip phrases (homeSections/storeClaims); empty = use default.
   Stream<List<String>> watchClaims() {
     return _db.collection('homeSections').doc('storeClaims').snapshots().map((d) {
@@ -314,6 +322,12 @@ final storeBannersProvider = StreamProvider<List<StoreBanner>>(
 
 final storeClaimsProvider = StreamProvider<List<String>>(
   (ref) => ref.watch(storeRepositoryProvider).watchClaims(),
+);
+
+/// Live shipping rates from the portal (config/store), with a sensible default
+/// while it loads so the checkout never blocks on it.
+final storeShippingProvider = StreamProvider<StoreShipping>(
+  (ref) => ref.watch(storeRepositoryProvider).watchShipping(),
 );
 
 final storeReviewsProvider = StreamProvider.family<List<StoreReview>, String>(

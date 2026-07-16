@@ -1,5 +1,60 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Portal-managed shipping rates (config/store). Mirrors the server's
+/// resolveShipping so the checkout summary shows exactly what will be charged.
+class StoreShippingZone {
+  const StoreShippingZone({required this.states, required this.feePaise, this.freeOverPaise = 0});
+  final List<String> states;
+  final int feePaise;
+  final int freeOverPaise;
+}
+
+class StoreShipping {
+  const StoreShipping({
+    this.feePaise = 4900,
+    this.freeEnabled = true,
+    this.freeOverPaise = 49900,
+    this.zones = const [],
+  });
+
+  final int feePaise;
+  final bool freeEnabled;
+  final int freeOverPaise;
+  final List<StoreShippingZone> zones;
+
+  factory StoreShipping.fromMap(Map<String, dynamic> m) {
+    int paise(dynamic v, int fallback) => v is num ? v.round() : fallback;
+    final rawZones = (m['zones'] is List) ? (m['zones'] as List) : const [];
+    return StoreShipping(
+      feePaise: paise(m['shippingFeePaise'], 4900),
+      freeEnabled: m['freeShippingEnabled'] != false,
+      freeOverPaise: paise(m['freeShippingThresholdPaise'], 49900),
+      zones: rawZones.whereType<Map>().map((z) => StoreShippingZone(
+            states: (z['states'] is List)
+                ? (z['states'] as List).map((s) => s.toString()).toList()
+                : const [],
+            feePaise: paise(z['feePaise'], 0),
+            freeOverPaise: paise(z['freeThresholdPaise'], 0),
+          )).toList(),
+    );
+  }
+
+  /// Fee for a destination state + cart subtotal (a coupon may waive it).
+  int resolve(String state, int subtotalPaise, {bool couponFreeShip = false}) {
+    String norm(String s) => s.trim().toLowerCase();
+    StoreShippingZone? zone;
+    for (final z in zones) {
+      if (z.states.any((s) => norm(s) == norm(state))) { zone = z; break; }
+    }
+    final base = freeEnabled ? freeOverPaise : 0;
+    final fee = zone?.feePaise ?? feePaise;
+    final freeOver = (zone != null && zone.freeOverPaise > 0) ? zone.freeOverPaise : base;
+    if (couponFreeShip) return 0;
+    if (freeOver > 0 && subtotalPaise >= freeOver) return 0;
+    return fee < 0 ? 0 : fee;
+  }
+}
+
 /// A product category in the Asktro Mall (Rudraksha, Gemstones, …).
 class StoreCategory {
   const StoreCategory({

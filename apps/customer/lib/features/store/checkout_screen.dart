@@ -47,9 +47,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   /// The saved-address doc currently loaded into the form (null = a new one).
   String? _selectedId;
 
-  static const _shipFeePaise = 4900;
-  static const _freeOverPaise = 49900;
-
   @override
   void initState() {
     super.initState();
@@ -57,6 +54,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       ..on(Razorpay.EVENT_PAYMENT_SUCCESS, _onSuccess)
       ..on(Razorpay.EVENT_PAYMENT_ERROR, _onError)
       ..on(Razorpay.EVENT_EXTERNAL_WALLET, (_) {});
+    // Recompute the shipping estimate as the destination state is typed.
+    _state.addListener(() { if (mounted) setState(() {}); });
     _prefill();
   }
 
@@ -234,7 +233,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final subtotal = items.fold<int>(0, (n, c) => n + c.lineTotalPaise);
     final discount = _appliedCoupon?.discountFor(subtotal) ?? 0;
     final freeShipCoupon = _appliedCoupon?.freeShipping ?? false;
-    final shipping = (freeShipCoupon || subtotal >= _freeOverPaise) ? 0 : _shipFeePaise;
+    final shipCfg = ref.watch(storeShippingProvider).valueOrNull ?? const StoreShipping();
+    final shipping = shipCfg.resolve(_state.text, subtotal, couponFreeShip: freeShipCoupon);
     final total = subtotal - discount + shipping;
 
     return Scaffold(
