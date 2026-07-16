@@ -64,6 +64,58 @@ short, relationship-driven. Never a bot that dumps a wall of text. The goal is
 5. **Close** — keep the relationship warm + soft store/remedy upsell. **No human
    referral.**
 
+### Turn-taking & message handling (the 99%-human layer)
+This is what separates "an AI that answers" from "a person who converses":
+- **One beat per turn.** Usually 1 bubble (occasionally 2), 2–3 lines, then STOP
+  and hand the conversation back. Reveal the reading **gradually across the
+  user's turns** — withhold, hook, wait for "aur bataiye," then go deeper. (Also
+  lengthens the engaged per-minute session.)
+- **Never fire multiple bubbles then go silent** — that burst is the #1 AI tell.
+- **Aggregate the user's message burst (debounce).** Real users type in fragments
+  and mistype then correct. Wait a short settle window (~3–5s, longer if the last
+  message looks unfinished — no end punctuation / trailing), resetting the timer
+  while messages keep arriving. Only when the user clearly stops, read the WHOLE
+  burst together as one turn and answer the complete intent. *(Fixes the WhatsApp
+  bug where the AI answered only the first message and ignored the correction.)*
+- **Cancel-and-reread on interruption.** If the AI is mid "typing" (delay running)
+  and a new user message lands, cancel the pending reply and re-read the full set
+  — like a human who stops to read your new message.
+- **Realistic typing rhythm** (the pacing engine): thinking pause + typing
+  indicator + length-proportional delay.
+- **Aim 99%, not 100%.** Occasional terse replies ("haan, bilkul"), sometimes ask
+  instead of answer, slightly loose structure — a flawless, perfectly-structured
+  reply every time is itself an AI tell.
+- **Kill the AI tells:** no markdown/bullets/emojis, no essays, no repeated
+  openings/closings (repetition = the biggest tell), no summarizing the user's
+  question back, no "is there anything else", no instant replies, emotion answered
+  before astrology, never re-introduce or re-ask known info, never break character.
+
+### Engine engineering rules (root causes from the WhatsApp prompt audit)
+The founder's WhatsApp model (Claude Haiku) had wrong predictions + broken
+messaging + high cost. Root causes and the fixes we build in from day one:
+1. **Grounding contract (fixes wrong predictions).** Positive rule, not just "don't
+   invent": *"You may name a planet/house/sign/nakshatra/yoga/dosha/dasha/transit
+   ONLY if it appears verbatim in the KUNDLI DATA block. Verify before naming. If
+   the needed data isn't there, say so in-character — never fill the gap."* Feed
+   Prokerala data as **clean labeled facts, not raw JSON**. Confidence is about
+   tone, not always having an answer — **honesty outranks sounding certain.**
+2. **Output envelope (fixes broken multi-message + routing).** The model returns a
+   parseable envelope: `{ "messages": ["…","…"], "action": "READY" |
+   "REQUEST_SECONDARY_KUNDLI" | "REQUEST_CLARIFICATION" | … }`. Each `messages`
+   string is pure Hinglish (no markdown/JSON) rendered as one bubble with the
+   typing delay. Resolves the old contradiction (prose-only vs. return-actions).
+3. **Backend owns timing math.** Compute the active dasha/transit window server-side
+   and pass it as a fact; don't make the model do date arithmetic.
+4. **Cost controls.** Cache the (static) system prompt + kundli → 0.1× after turn 1;
+   trim history to a rolling window (~8–10 turns) + a short running summary; cap
+   output length. (The old "always send full history, no caching" spec is what ate
+   money on Haiku.)
+5. **Model.** Gemini Pro / Claude Sonnet for readings (Haiku was too weak for real
+   judgment); Flash for filler. Blind-test on real Hindi/Hinglish prompts.
+6. **Keep the good bones:** the founder's 16-module "constitution" (identity,
+   personality, ethics, emotional intelligence, edge cases, decision engine) is a
+   strong base — reuse it, de-duplicated and slimmed, with the fixes above.
+
 ---
 
 ## Cost & margin (verified inputs; see the spec artifact)
