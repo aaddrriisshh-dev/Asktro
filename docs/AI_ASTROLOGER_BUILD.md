@@ -70,12 +70,22 @@ YOGAS PRESENT: Gajakesari; DOSHAS: none detected
 ```
 Rule fed to the model: *only name factors that appear here; verify before naming.*
 
-## Provider strategy (model-agnostic)
-One adapter interface; models switchable by config:
-- **Reading tier:** Gemini 2.5 Pro (recommended) or Claude Sonnet — blind-tested on
-  real Hindi/Hinglish prompts.
-- **Filler / extractor tier:** Gemini 2.5 Flash (cheap, great Indic).
-- Prompt caching on the (static) persona + chart facts → 0.1× after turn 1.
+## Provider strategy (model-agnostic) — 3-tier routing = the cost lever
+One adapter interface; each turn routes to the CHEAPEST model that can do the job,
+so the premium brain only fires on real readings (~30–40% of turns). Models by
+config; IDs locked Jul 2026 (all tested-good on the funded Asktro key):
+- **Tier 3 — Readings (the brain):** `gemini-pro-latest` (fallback
+  `gemini-3.1-pro-preview`). The grounded kundli interpretation — the moments that
+  must feel like a real astrologer. Premium, but rare.
+- **Tier 2 — Filler / conversation:** `gemini-flash-latest` (fallback
+  `gemini-3.5-flash`). Greetings, clarifiers, small talk, "let me check…". Cheap.
+- **Tier 1 — Router / extractor:** `gemini-flash-lite-latest`. Intent detection
+  (self/compat/third-person) + parsing messy birth details into clean slots.
+  Cheapest; mechanical.
+- Prompt caching on the (static) persona + chart facts → 0.1× after turn 1; capped
+  output length; rolling ~8–10-turn history window. These four controls decide
+  profit vs loss. **Infra ready:** ₹1,000 prepay on `asktro-tech-provate-limited`,
+  key confirmed live.
 
 ## Phased plan
 - **Phase 0 — Foundations:** provider adapter + secrets; persona prompt v4
@@ -94,9 +104,13 @@ One adapter interface; models switchable by config:
   a blind quality-eval harness, load test.
 
 ## Dependencies I need from the founder
-1. **LLM API key** (the one blocker to wiring it live). Recommend **Gemini** (2.5
-   Pro + Flash). Set as Firebase secrets: `GEMINI_API_KEY` (or `ANTHROPIC_API_KEY`
-   if we go Claude). I'll default to Gemini unless vetoed.
+1. ~~**LLM API key**~~ ✅ **RESOLVED (Jul 2026).** Gemini key live on
+   `asktro-tech-provate-limited` with ₹1,000 prepay credit; Flash + Pro tiers
+   tested. Remaining wiring step: drop the key value into the `GEMINI_API_KEY`
+   Firebase secret (new version) at the moment we deploy Phase 1 — not before, so
+   it isn't sitting around unused.
 2. Confirm **Prokerala plan has credit budget** (already integrated; birth-details/
    kundli endpoints cost ~tens of credits each — trivial).
-3. Model choice sign-off (recommend Gemini 2.5 Pro reading tier) — vetoable.
+3. ~~Model choice sign-off~~ ✅ Locked: `gemini-pro-latest` readings /
+   `gemini-flash-latest` filler / `gemini-flash-lite-latest` router. Vetoable via
+   config; blind-test vs Sonnet still open before final sign-off.

@@ -35,9 +35,13 @@ short, relationship-driven. Never a bot that dumps a wall of text. The goal is
    remedy upsell** (gemstone, pooja, report) — never "go talk to a real one."
 4. **Model:** **Gemini Pro for the readings** (quality = the "real astrologer"
    feel), **Gemini Flash for filler turns** (greetings, clarifiers, small talk).
-   Blind-test **Gemini Pro vs Claude Sonnet** on real Hindi/Hinglish prompts +
-   real Prokerala data before finalizing the premium model. Grounding/prompting
-   matters ~60%, the model ~40%.
+   Concrete model IDs locked (Jul 2026, all tested-good on our funded key):
+   **readings = `gemini-pro-latest`**, **filler = `gemini-flash-latest`** (both
+   auto-current aliases); pinned fallbacks `gemini-3.1-pro-preview` /
+   `gemini-3.5-flash` if we ever freeze behavior. Adapter is config-driven, so
+   swapping is one line. Still worth a blind-test **Gemini Pro vs Claude Sonnet**
+   on real Hindi/Hinglish + real Prokerala data before final sign-off.
+   Grounding/prompting matters ~60%, the model ~40%.
 5. **Architecture rule (non-negotiable):** **Prokerala CALCULATES the chart; the
    LLM only INTERPRETS.** Never let the LLM compute placements — that's the
    "hallucinated planet" failure of cheap apps. Feed clean **labeled facts**, not
