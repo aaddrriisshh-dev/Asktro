@@ -45,7 +45,7 @@ class StoreCategoryScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                   sliver: SliverGrid(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.60,
+                      crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.58,
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (_, i) => ProductCard(

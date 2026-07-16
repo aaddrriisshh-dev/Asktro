@@ -97,7 +97,7 @@ class StoreHomeScreen extends ConsumerWidget {
 
   Widget _rail(BuildContext context, WidgetRef ref, List<StoreProduct> items, {({String text, Color color})? ribbon}) {
     return SizedBox(
-      height: 246,
+      height: 280,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
@@ -260,7 +260,7 @@ class StoreHomeScreen extends ConsumerWidget {
             physics: const NeverScrollableScrollPhysics(),
             padding: EdgeInsets.zero,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.66,
+              crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.58,
             ),
             itemCount: preview.length,
             itemBuilder: (_, i) => _card(context, ref, preview[i]),
@@ -368,7 +368,7 @@ class _Header extends ConsumerWidget {
             child: Text('Asktro Mall',
                 style: TextStyle(fontFamily: 'serif', fontSize: 24, fontWeight: FontWeight.w700, color: Mall.titleBrown, letterSpacing: 0.3),),
           ),
-          IconButton(icon: const Icon(Icons.search_rounded, color: Mall.goldInk), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.search_rounded, color: Mall.goldInk), onPressed: () => context.push('/store/search')),
           Stack(
             clipBehavior: Clip.none,
             children: [

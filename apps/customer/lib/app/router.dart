@@ -18,6 +18,7 @@ import '../features/store/store_models.dart';
 import '../features/store/store_home_screen.dart';
 import '../features/store/store_category_screen.dart';
 import '../features/store/all_products_screen.dart';
+import '../features/store/store_search_screen.dart';
 import '../features/store/product_detail_screen.dart';
 import '../features/store/cart_screen.dart';
 import '../features/store/checkout_screen.dart';
@@ -139,6 +140,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ---- Asktro Mall (store) ----
       GoRoute(path: '/store', builder: (_, __) => const StoreHomeScreen()),
+      GoRoute(path: '/store/search', builder: (_, __) => const StoreSearchScreen()),
       GoRoute(
         path: '/store/products/:filter',
         builder: (_, s) {

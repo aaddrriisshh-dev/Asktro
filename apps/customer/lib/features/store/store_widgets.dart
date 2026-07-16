@@ -76,8 +76,9 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rib = ribbon ??
-        (product.hasDiscount ? (text: '${product.discountPercent}% OFF', color: Mall.offInk) : null);
+    final override = ribbon; // NEW / COMBO ribbon, if any
+    final savings = product.mrpPaise - product.pricePaise;
+    final showSavings = override == null && product.hasDiscount && savings > 0;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -109,13 +110,28 @@ class ProductCard extends StatelessWidget {
                       child: MallImage(url: product.image, size: 46, radius: 12),
                     ),
                   ),
-                  if (rib != null)
+                  if (override != null)
                     Positioned(
                       left: 0, top: 9,
                       child: Container(
                         padding: const EdgeInsets.fromLTRB(7, 3, 8, 3),
-                        decoration: BoxDecoration(color: rib.color, borderRadius: const BorderRadius.horizontal(right: Radius.circular(8))),
-                        child: Text(rib.text, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.2)),
+                        decoration: BoxDecoration(color: override.color, borderRadius: const BorderRadius.horizontal(right: Radius.circular(8))),
+                        child: Text(override.text, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.2)),
+                      ),
+                    )
+                  else if (showSavings)
+                    // Savings tag — dark ghee ground with gold ink (badge "5").
+                    Positioned(
+                      left: 0, top: 9,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(8, 3, 9, 3),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF33240F),
+                          borderRadius: BorderRadius.horizontal(right: Radius.circular(9)),
+                          boxShadow: [BoxShadow(color: Color(0x66281A08), blurRadius: 7, offset: Offset(0, 3))],
+                        ),
+                        child: Text('${Mall.rupees(savings)} OFF',
+                            style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Mall.gold, letterSpacing: 0.2)),
                       ),
                     ),
                   Positioned(
@@ -147,46 +163,50 @@ class ProductCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(11, 9, 10, 11),
+              padding: const EdgeInsets.fromLTRB(11, 9, 11, 11),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(product.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Mall.navy),),
-                  const SizedBox(height: 7),
-                  Row(
+                  const SizedBox(height: 6),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 5,
                     children: [
-                      Expanded(
-                        child: Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 5,
-                          children: [
-                            Text(Mall.rupees(product.pricePaise),
-                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Mall.green),),
-                            if (product.hasDiscount)
-                              Text(Mall.rupees(product.mrpPaise),
-                                  style: const TextStyle(fontSize: 10.5, color: Mall.mrp, decoration: TextDecoration.lineThrough),),
-                          ],
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: product.inStock ? onAdd : null,
-                        child: Container(
-                          width: 30, height: 30,
-                          decoration: BoxDecoration(
-                            gradient: product.inStock ? Mall.goldButton : null,
-                            color: product.inStock ? null : Mall.mrp,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: product.inStock
-                                ? [BoxShadow(color: const Color(0xFF966414).withValues(alpha: 0.5), blurRadius: 8, offset: const Offset(0, 4))]
-                                : null,
-                          ),
-                          child: const Icon(Icons.add_rounded, size: 19, color: Colors.white),
-                        ),
-                      ),
+                      Text(Mall.rupees(product.pricePaise),
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Mall.green),),
+                      if (product.hasDiscount)
+                        Text(Mall.rupees(product.mrpPaise),
+                            style: const TextStyle(fontSize: 10.5, color: Mall.mrp, decoration: TextDecoration.lineThrough),),
                     ],
+                  ),
+                  const SizedBox(height: 9),
+                  // Add to Cart — near-black ground, gold cart, white label (button "B").
+                  GestureDetector(
+                    onTap: product.inStock ? onAdd : null,
+                    child: Container(
+                      height: 34,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: product.inStock ? const Color(0xFF1C160C) : Mall.mrp,
+                        borderRadius: BorderRadius.circular(11),
+                        boxShadow: product.inStock
+                            ? [BoxShadow(color: const Color(0xFF1C160C).withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 5))]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.shopping_cart_outlined, size: 15, color: product.inStock ? Mall.gold : Colors.white70),
+                          const SizedBox(width: 7),
+                          Text(product.inStock ? 'ADD TO CART' : 'OUT OF STOCK',
+                              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: 0.4, color: Colors.white)),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
