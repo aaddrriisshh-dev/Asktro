@@ -103,13 +103,16 @@ Widget _pill(String code, Color fg, Color chipBg) => Container(
     );
 
 Widget _closeBtn(BuildContext ctx, Color fg) => GestureDetector(
+      // Opaque so the whole circle is tappable — a BoxDecoration + Icon don't
+      // hit-test themselves, so the default (deferToChild) swallowed the tap.
+      behavior: HitTestBehavior.opaque,
       onTap: () => Navigator.of(ctx).pop(),
       child: Container(
-        width: 32,
-        height: 32,
+        width: 36,
+        height: 36,
         alignment: Alignment.center,
         decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.22), shape: BoxShape.circle),
-        child: Icon(Icons.close_rounded, color: fg, size: 19),
+        child: Icon(Icons.close_rounded, color: fg, size: 20),
       ),
     );
 
