@@ -51,6 +51,41 @@ function cleanAddress(raw: unknown): Address {
 }
 
 /**
+ * Resolve the shipping fee for a destination. A per-region zone (matched by the
+ * delivery state) overrides the flat fee and, optionally, the free-shipping
+ * threshold; otherwise the global config (or built-in defaults) applies. A
+ * coupon that waives shipping, or crossing the free-shipping threshold, makes it
+ * free. All values are read from `config/store` — never trusted from the client.
+ */
+function resolveShipping(
+  cfg: Record<string, unknown>,
+  state: string,
+  subtotalPaise: number,
+  couponFreeShip: boolean,
+): number {
+  const norm = (s: unknown) => String(s ?? '').trim().toLowerCase();
+  const zones = Array.isArray(cfg.zones) ? (cfg.zones as Record<string, unknown>[]) : [];
+  const zone = zones.find(
+    (z) => Array.isArray(z.states) && (z.states as unknown[]).some((zs) => norm(zs) === norm(state)),
+  );
+
+  const baseFee = Math.round(Number(cfg.shippingFeePaise ?? DEFAULT_SHIPPING_PAISE));
+  const freeEnabled = cfg.freeShippingEnabled !== false;
+  const baseFree = freeEnabled
+    ? Math.round(Number(cfg.freeShippingThresholdPaise ?? DEFAULT_FREE_SHIPPING_THRESHOLD_PAISE))
+    : 0;
+
+  const fee = zone && Number.isFinite(Number(zone.feePaise)) ? Math.round(Number(zone.feePaise)) : baseFee;
+  const freeOver = zone && Number(zone.freeThresholdPaise) > 0
+    ? Math.round(Number(zone.freeThresholdPaise))
+    : baseFree;
+
+  if (couponFreeShip) return 0;
+  if (freeOver > 0 && subtotalPaise >= freeOver) return 0;
+  return Math.max(0, fee);
+}
+
+/**
  * Validate a coupon code against the cart subtotal and return the discount.
  * Server-authoritative — the client never supplies the discount amount. Throws a
  * clear failedPrecondition if the code is invalid/expired/below the minimum.
@@ -158,11 +193,9 @@ export const createStoreOrder = onCall(
       couponFreeShip = applied.freeShipping;
     }
 
-    // Shipping (config-overridable; a coupon may waive it).
+    // Shipping (config-overridable, per-region aware; a coupon may waive it).
     const cfg = (await db.doc('config/store').get()).data() ?? {};
-    const shipFee = Math.round(Number(cfg.shippingFeePaise ?? DEFAULT_SHIPPING_PAISE));
-    const freeOver = Math.round(Number(cfg.freeShippingThresholdPaise ?? DEFAULT_FREE_SHIPPING_THRESHOLD_PAISE));
-    const shippingPaise = (couponFreeShip || subtotalPaise >= freeOver) ? 0 : shipFee;
+    const shippingPaise = resolveShipping(cfg, deliverTo.state, subtotalPaise, couponFreeShip);
     const totalPaise = subtotalPaise - discountPaise + shippingPaise;
     if (totalPaise <= 0) failedPrecondition('Order total must be greater than zero.');
 
