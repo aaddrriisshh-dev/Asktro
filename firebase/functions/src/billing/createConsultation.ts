@@ -83,13 +83,6 @@ export const createConsultation = onCall(async (req) => {
     if (astrologer.isAI !== true && astrologer.onlineStatus !== true) {
       failedPrecondition('This astrologer is offline.');
     }
-    // The AI reply engine isn't live yet, so AI personas are shown but BUSY —
-    // block starting a paid chat the AI can't answer. Flip AI_CHAT_LIVE (and the
-    // client's kAiChatLive) together when the engine ships.
-    const AI_CHAT_LIVE = false;
-    if (astrologer.isAI === true && !AI_CHAT_LIVE) {
-      failedPrecondition('This astrologer is busy right now. Please try again later.');
-    }
     // Concurrency model for human astrologers:
     //   - CHATS are unlimited & concurrent — an astrologer can run many at once.
     //   - VOICE/VIDEO calls are EXCLUSIVE — one at a time, and no chats during a

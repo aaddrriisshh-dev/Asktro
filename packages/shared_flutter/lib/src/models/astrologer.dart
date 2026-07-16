@@ -1,11 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'enums.dart';
 
-/// Whether the AI-astrologer reply engine is live. While false, AI personas are
-/// shown but marked BUSY (chat can't be started) so no one opens a paid chat the
-/// AI can't answer. Flip to true when the AI reply backend ships.
-const bool kAiChatLive = false;
-
 /// Astrologer directory entity (see DATA_MODEL.md). Money fields are display-only
 /// on the client; the backend owns them.
 class Astrologer extends Equatable {
@@ -92,10 +87,9 @@ class Astrologer extends Equatable {
 
   bool get isConsultable {
     if (status != AstrologerStatus.approved) return false;
-    // AI personas are chat-only and, when their reply engine is live, always
-    // available. Until then `kAiChatLive` keeps them shown but BUSY, so no one
-    // starts a chat the AI can't answer yet. A human needs to be online + free.
-    if (isAI) return kAiChatLive;
+    // AI personas are chat-only and always available (no human, no presence
+    // heartbeat). A human needs to be online and free.
+    if (isAI) return true;
     return onlineStatus && available;
   }
 
