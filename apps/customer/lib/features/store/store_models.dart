@@ -49,6 +49,10 @@ class StoreBanner {
     this.ctaLabel = '',
     this.linkCategoryId = '',
     this.sortOrder = 0,
+    this.textPosition = 'center',
+    this.textAlign = 'left',
+    this.textTheme = 'onDark',
+    this.headlineScale = 1.0,
   });
 
   final String id;
@@ -58,6 +62,12 @@ class StoreBanner {
   final String ctaLabel;
   final String linkCategoryId;
   final int sortOrder;
+
+  /// Portal-managed text layout on the hero image.
+  final String textPosition; // 'top' | 'center' | 'bottom'
+  final String textAlign;    // 'left' | 'center'
+  final String textTheme;    // 'onDark' (light text) | 'onLight' (dark text)
+  final double headlineScale; // multiplies the base headline size (0.7–1.4)
 
   factory StoreBanner.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
     final m = d.data() ?? {};
@@ -69,6 +79,10 @@ class StoreBanner {
       ctaLabel: (m['ctaLabel'] ?? '') as String,
       linkCategoryId: (m['linkCategoryId'] ?? '') as String,
       sortOrder: ((m['sortOrder'] ?? 0) as num).toInt(),
+      textPosition: (m['textPosition'] ?? 'center') as String,
+      textAlign: (m['textAlign'] ?? 'left') as String,
+      textTheme: (m['textTheme'] ?? 'onDark') as String,
+      headlineScale: ((m['headlineScale'] ?? 1.0) as num).toDouble(),
     );
   }
 }

@@ -22,7 +22,61 @@ export default function StorefrontPage() {
 }
 
 // ---------------- Hero banners ----------------
-const emptyB = { image: '', headline: '', subtext: '', ctaLabel: '', linkCategoryId: '', sortOrder: '', active: true };
+const emptyB = {
+  image: '', headline: '', subtext: '', ctaLabel: '', linkCategoryId: '', sortOrder: '', active: true,
+  textPosition: 'center', textAlign: 'left', textTheme: 'onDark', headlineScale: '1',
+};
+
+/** WYSIWYG hero preview — mirrors the app's _tile so the copy + text styling can
+ *  be judged against the real image before publishing. */
+function BannerPreview({ f }: { f: typeof emptyB }) {
+  const scale = Math.min(1.4, Math.max(0.7, Number(f.headlineScale) || 1));
+  const REF = 390, W = 340, k = W / REF;
+  const onLight = f.textTheme === 'onLight';
+  const centered = f.textAlign === 'center';
+  const justify = f.textPosition === 'top' ? 'flex-start' : f.textPosition === 'bottom' ? 'flex-end' : 'center';
+  const align = centered ? 'center' : 'flex-start';
+  const scrim = onLight
+    ? (centered ? 'linear-gradient(to top, rgba(251,243,224,.82), rgba(251,243,224,.25) 55%, rgba(255,255,255,0))'
+      : 'linear-gradient(to right, rgba(251,243,224,.82), rgba(251,243,224,.25) 55%, rgba(255,255,255,0))')
+    : (centered ? 'linear-gradient(to top, rgba(30,18,4,.69), rgba(30,18,4,.12) 55%, rgba(0,0,0,0))'
+      : 'linear-gradient(to right, rgba(30,18,4,.69), rgba(30,18,4,.12) 55%, rgba(0,0,0,0))');
+  const hasText = !!(f.headline || f.subtext || f.ctaLabel);
+  return (
+    <div style={{ width: W, maxWidth: '100%' }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 4', borderRadius: 14, overflow: 'hidden',
+        border: '1px solid #e7d9b8', background: f.image ? `center/cover no-repeat url(${f.image})` : '#efe3c8' }}>
+        {!f.image && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b9a98a', fontSize: 13 }}>Upload an image to preview</div>}
+        {hasText && <div style={{ position: 'absolute', inset: 0, background: scrim }} />}
+        {hasText && (
+          <div style={{ position: 'absolute', left: 18 * k, top: 14 * k, bottom: 14 * k, right: centered ? 18 * k : undefined,
+            width: centered ? undefined : 210 * k, display: 'flex', flexDirection: 'column',
+            justifyContent: justify, alignItems: align, textAlign: centered ? 'center' : 'left' }}>
+            {f.headline && <div style={{ fontFamily: 'Georgia, serif', fontSize: 25 * scale * k, fontWeight: 700, color: onLight ? '#2B1E08' : '#fff', lineHeight: 1.05 }}>{f.headline}</div>}
+            {f.subtext && <div style={{ fontSize: 11 * k, color: onLight ? '#5A4520' : '#FBEECB', fontWeight: 500, lineHeight: 1.35, marginTop: 8 * k }}>{f.subtext}</div>}
+            {f.ctaLabel && <div style={{ marginTop: 12 * k, alignSelf: centered ? 'center' : 'flex-start', background: 'linear-gradient(135deg,#F4D281,#DCA63E)', color: '#4A3208', fontSize: 11 * k, fontWeight: 800, padding: `${8 * k}px ${15 * k}px`, borderRadius: 18 }}>{f.ctaLabel}</div>}
+          </div>
+        )}
+      </div>
+      <div className="muted" style={{ fontSize: 11.5, textAlign: 'center', marginTop: 6 }}>Live preview — how the app renders it</div>
+    </div>
+  );
+}
+
+function Seg({ value, options, onChange }: { value: string; options: { v: string; label: string }[]; onChange: (v: string) => void }) {
+  return (
+    <div style={{ display: 'inline-flex', border: '1px solid var(--gold,#e7d9b8)', borderRadius: 9, overflow: 'hidden' }}>
+      {options.map((o, i) => (
+        <button key={o.v} type="button" onClick={() => onChange(o.v)}
+          style={{ padding: '6px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: 'none',
+            borderLeft: i ? '1px solid #eee1c4' : 'none',
+            background: value === o.v ? 'var(--primary,#b07d16)' : '#fff', color: value === o.v ? '#fff' : '#7a6a48' }}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function HeroBanners() {
   const { rows } = useCollection('storeBanners', [orderBy('sortOrder', 'asc')]);
@@ -39,6 +93,10 @@ function HeroBanners() {
       subtext: (r.subtext as string) ?? '', ctaLabel: (r.ctaLabel as string) ?? '',
       linkCategoryId: (r.linkCategoryId as string) ?? '',
       sortOrder: r.sortOrder != null ? String(r.sortOrder) : '', active: r.active !== false,
+      textPosition: (r.textPosition as string) ?? 'center',
+      textAlign: (r.textAlign as string) ?? 'left',
+      textTheme: (r.textTheme as string) ?? 'onDark',
+      headlineScale: r.headlineScale != null ? String(r.headlineScale) : '1',
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -52,6 +110,8 @@ function HeroBanners() {
         image: f.image, headline: f.headline.trim(), subtext: f.subtext.trim(),
         ctaLabel: f.ctaLabel.trim(), linkCategoryId: f.linkCategoryId,
         sortOrder: f.sortOrder.trim() ? Math.round(Number(f.sortOrder) || 0) : rows.length,
+        textPosition: f.textPosition, textAlign: f.textAlign, textTheme: f.textTheme,
+        headlineScale: Math.min(1.4, Math.max(0.7, Number(f.headlineScale) || 1)),
         active: f.active, updatedAt: serverTimestamp(),
       };
       if (editId) await updateDoc(doc(db, 'storeBanners', editId), payload);
@@ -68,37 +128,65 @@ function HeroBanners() {
         <p className="muted" style={{ fontSize: 12.5, marginTop: 0 }}>
           Tall / near-square images work best (they fill the full-width hero). Text is optional — a fully-designed image can carry it all.
         </p>
-        <div style={{ marginBottom: 12 }}>
-          <ImageUpload folder="store_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" aspect={1.25} label="Banner image" />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <label className="af"><span>Headline (optional)</span>
-            <input className="input" placeholder="Blessed by our Pandits" value={f.headline} onChange={(e) => set('headline', e.target.value)} />
-          </label>
-          <label className="af"><span>CTA label (optional)</span>
-            <input className="input" placeholder="Shop the collection" value={f.ctaLabel} onChange={(e) => set('ctaLabel', e.target.value)} />
-          </label>
-        </div>
-        <label className="af" style={{ marginTop: 12 }}><span>Subtext (optional)</span>
-          <input className="input" placeholder="Energised & lab-certified, chosen for your stars." value={f.subtext} onChange={(e) => set('subtext', e.target.value)} />
-        </label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: 12, marginTop: 12 }}>
-          <label className="af"><span>Tapping opens (optional)</span>
-            <select className="input" value={f.linkCategoryId} onChange={(e) => set('linkCategoryId', e.target.value)}>
-              <option value="">— No link —</option>
-              {cats.map((c) => <option key={c.id} value={c.id}>{(c.emoji as string) || ''} {c.name as string}</option>)}
-            </select>
-          </label>
-          <label className="af"><span>Sort order</span>
-            <input className="input" type="number" placeholder="0" value={f.sortOrder} onChange={(e) => set('sortOrder', e.target.value)} />
-          </label>
-        </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 14 }}>
-          <input type="checkbox" checked={f.active} onChange={(e) => set('active', e.target.checked)} /> Active (shown in the app)
-        </label>
-        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-          <button className="btn" disabled={busy} onClick={save}>{busy ? 'Saving…' : editId ? 'Save changes' : 'Add banner'}</button>
-          {editId && <button className="btn secondary" onClick={reset}>Cancel</button>}
+        <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div style={{ flexShrink: 0 }}><BannerPreview f={f} /></div>
+          <div style={{ flex: 1, minWidth: 300 }}>
+            <div style={{ marginBottom: 12 }}>
+              <ImageUpload folder="store_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" aspect={1.25} label="Banner image" />
+            </div>
+            <label className="af"><span>Headline (optional)</span>
+              <input className="input" placeholder="Blessed by our Pandits" value={f.headline} onChange={(e) => set('headline', e.target.value)} />
+            </label>
+            <label className="af" style={{ marginTop: 12 }}><span>Subtext (optional)</span>
+              <input className="input" placeholder="Energised & lab-certified, chosen for your stars." value={f.subtext} onChange={(e) => set('subtext', e.target.value)} />
+            </label>
+            <label className="af" style={{ marginTop: 12 }}><span>CTA label (optional)</span>
+              <input className="input" placeholder="Shop the collection" value={f.ctaLabel} onChange={(e) => set('ctaLabel', e.target.value)} />
+            </label>
+
+            <p className="af-label" style={{ marginTop: 16, marginBottom: 8 }}>Text styling</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'flex-start' }}>
+              <div>
+                <div className="muted" style={{ fontSize: 12, marginBottom: 5 }}>Position</div>
+                <Seg value={f.textPosition} onChange={(v) => set('textPosition', v)}
+                  options={[{ v: 'top', label: 'Top' }, { v: 'center', label: 'Center' }, { v: 'bottom', label: 'Bottom' }]} />
+              </div>
+              <div>
+                <div className="muted" style={{ fontSize: 12, marginBottom: 5 }}>Align</div>
+                <Seg value={f.textAlign} onChange={(v) => set('textAlign', v)}
+                  options={[{ v: 'left', label: 'Left' }, { v: 'center', label: 'Center' }]} />
+              </div>
+              <div>
+                <div className="muted" style={{ fontSize: 12, marginBottom: 5 }}>Text colour</div>
+                <Seg value={f.textTheme} onChange={(v) => set('textTheme', v)}
+                  options={[{ v: 'onDark', label: 'Light (dark image)' }, { v: 'onLight', label: 'Dark (light image)' }]} />
+              </div>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <div className="muted" style={{ fontSize: 12, marginBottom: 5 }}>Headline size — {Number(f.headlineScale).toFixed(2)}×</div>
+              <input type="range" min={0.7} max={1.4} step={0.05} value={f.headlineScale}
+                onChange={(e) => set('headlineScale', e.target.value)} style={{ width: 240, accentColor: '#c8871a' }} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 12, marginTop: 16 }}>
+              <label className="af"><span>Tapping opens (optional)</span>
+                <select className="input" value={f.linkCategoryId} onChange={(e) => set('linkCategoryId', e.target.value)}>
+                  <option value="">— No link —</option>
+                  {cats.map((c) => <option key={c.id} value={c.id}>{(c.emoji as string) || ''} {c.name as string}</option>)}
+                </select>
+              </label>
+              <label className="af"><span>Sort order</span>
+                <input className="input" type="number" placeholder="0" value={f.sortOrder} onChange={(e) => set('sortOrder', e.target.value)} />
+              </label>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 14 }}>
+              <input type="checkbox" checked={f.active} onChange={(e) => set('active', e.target.checked)} /> Active (shown in the app)
+            </label>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button className="btn" disabled={busy} onClick={save}>{busy ? 'Saving…' : editId ? 'Save changes' : 'Add banner'}</button>
+              {editId && <button className="btn secondary" onClick={reset}>Cancel</button>}
+            </div>
+          </div>
         </div>
       </div>
 

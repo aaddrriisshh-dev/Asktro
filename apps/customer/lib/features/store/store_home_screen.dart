@@ -570,35 +570,56 @@ class _BannerCarouselState extends State<_BannerCarousel> {
   }
 
   Widget _tile(BuildContext context, StoreBanner b) {
+    final hasText = b.headline.isNotEmpty || b.subtext.isNotEmpty || b.ctaLabel.isNotEmpty;
+    final onLight = b.textTheme == 'onLight';
+    final centered = b.textAlign == 'center';
+    final mainAlign = b.textPosition == 'top'
+        ? MainAxisAlignment.start
+        : b.textPosition == 'bottom'
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.center;
+    final crossAlign = centered ? CrossAxisAlignment.center : CrossAxisAlignment.start;
+    final headColor = onLight ? const Color(0xFF2B1E08) : Colors.white;
+    final subColor = onLight ? const Color(0xFF5A4520) : const Color(0xFFFBEECB);
+    // Scrim so text stays legible; direction follows the alignment, tint follows theme.
+    final scrimDark = [const Color(0xB01E1204), const Color(0x201E1204), const Color(0x00000000)];
+    final scrimLight = [const Color(0xC8FBF3E0), const Color(0x40FBF3E0), const Color(0x00FFFFFF)];
+    final scrim = onLight ? scrimLight : scrimDark;
+    final headlineSize = (25.0 * b.headlineScale).clamp(14.0, 40.0);
+
     return GestureDetector(
       onTap: b.linkCategoryId.isEmpty ? null : () => context.push('/store/category/${b.linkCategoryId}'),
       child: Stack(
         fit: StackFit.expand,
         children: [
           MallImage(url: b.image, size: 60, radius: 0, fit: BoxFit.cover),
-          if (b.headline.isNotEmpty || b.subtext.isNotEmpty || b.ctaLabel.isNotEmpty)
-            const DecoratedBox(
+          if (hasText)
+            DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.centerLeft, end: Alignment.centerRight,
-                  colors: [Color(0xB01E1204), Color(0x201E1204), Color(0x00000000)],
-                  stops: [0, 0.55, 1],
+                  begin: centered ? Alignment.bottomCenter : Alignment.centerLeft,
+                  end: centered ? Alignment.topCenter : Alignment.centerRight,
+                  colors: scrim,
+                  stops: const [0, 0.55, 1],
                 ),
               ),
             ),
-          if (b.headline.isNotEmpty || b.subtext.isNotEmpty || b.ctaLabel.isNotEmpty)
+          if (hasText)
             Positioned(
-              left: 18, top: 0, bottom: 0, width: 210,
+              left: 18, right: centered ? 18 : null, top: 14, bottom: 14, width: centered ? null : 210,
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: mainAlign,
+                crossAxisAlignment: crossAlign,
                 children: [
                   if (b.headline.isNotEmpty)
                     Text(b.headline,
-                        style: const TextStyle(fontFamily: 'serif', fontSize: 25, fontWeight: FontWeight.w700, color: Colors.white, height: 1.05),),
+                        textAlign: centered ? TextAlign.center : TextAlign.start,
+                        style: TextStyle(fontFamily: 'serif', fontSize: headlineSize, fontWeight: FontWeight.w700, color: headColor, height: 1.05),),
                   if (b.subtext.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Text(b.subtext, style: const TextStyle(fontSize: 11, height: 1.35, color: Color(0xFFFBEECB), fontWeight: FontWeight.w500)),
+                    Text(b.subtext,
+                        textAlign: centered ? TextAlign.center : TextAlign.start,
+                        style: TextStyle(fontSize: 11, height: 1.35, color: subColor, fontWeight: FontWeight.w500),),
                   ],
                   if (b.ctaLabel.isNotEmpty) ...[
                     const SizedBox(height: 12),
