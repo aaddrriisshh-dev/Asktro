@@ -30,8 +30,13 @@ Future<void> showPromoPopup(
   String? heroTagline = 'Everyone loves a gift, right?',
   String? imageUrl,
   String imageStyle = 'banner',
+  bool imageFill = false,
 }) {
   final th = theme;
+  // Image-first: a fully-designed image fills the takeover with just close + CTA.
+  if (imageFill && imageUrl != null && imageUrl.isNotEmpty) {
+    return _imageFull(context, th, imageUrl, ctaLabel, onAction);
+  }
   if (th != null && displayMode == 'full') {
     return _full(context, th, title, body, onAction, ctaLabel, code, heroKicker, heroTagline, imageUrl, imageStyle);
   }
@@ -39,6 +44,46 @@ Future<void> showPromoPopup(
     return _half(context, th, title, body, onAction, ctaLabel, code, imageUrl, imageStyle);
   }
   return _center(context, th, title, body, onAction, ctaLabel, code, medal, showMaybeLater, imageUrl, imageStyle);
+}
+
+// ---- image-first takeover (fully-designed image fills the sheet) ------------
+
+Future<void> _imageFull(BuildContext context, PromoTheme? th, String imageUrl,
+    String ctaLabel, VoidCallback onAction,) {
+  return showGeneralDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: 'offer',
+    barrierColor: Colors.black87,
+    transitionDuration: const Duration(milliseconds: 220),
+    pageBuilder: (ctx, _, __) => Material(
+      type: MaterialType.transparency,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(imageUrl, fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(color: Colors.black)),
+          // Bottom scrim so the CTA stays legible over any image.
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.center, end: Alignment.bottomCenter,
+                colors: [Color(0x00000000), Color(0xB3000000)],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Stack(
+              children: [
+                Positioned(top: 10, right: 16, child: _closeBtn(ctx, Colors.white)),
+                Positioned(left: 24, right: 24, bottom: 28, child: _actionCta(ctx, th, ctaLabel, onAction)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 // ---- shared building blocks -------------------------------------------------

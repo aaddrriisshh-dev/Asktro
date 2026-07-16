@@ -11,7 +11,7 @@ export function PromoPreview({
   title, body, image, imageStyle = 'banner', bg = '#2e2b5f', fg = '#ffffff', kind = 'push',
   displayMode = 'small', portraitImage, ctaText,
   landingTitle, landingBody, landingBg = '#2e2b5f', landingFg = '#ffffff', code, theme,
-  textPosition = 'center', textAlign = 'left', headlineScale = 1,
+  textPosition = 'center', textAlign = 'left', headlineScale = 1, imageFill = false,
 }: {
   title?: string;
   body?: string;
@@ -32,6 +32,7 @@ export function PromoPreview({
   textPosition?: string;
   textAlign?: string;
   headlineScale?: number;
+  imageFill?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const th = themeById(theme);
@@ -106,7 +107,17 @@ export function PromoPreview({
           </span>
           <div className="promo-phone">
             <div className="promo-notch" />
-            {displayMode === 'full' ? (
+            {imageFill && (portraitImage || image) ? (
+              // Image-first: the picture fills the sheet with only close + CTA.
+              <div className="promo-screen" style={{ position: 'relative', overflow: 'hidden',
+                background: `center/cover no-repeat url(${portraitImage || image})` }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0) 55%, rgba(0,0,0,0.72))' }} />
+                <span className="promo-close" style={{ zIndex: 4 }}>×</span>
+                {cta && (
+                  <span className="promo-cta" style={{ position: 'absolute', left: 16, right: 16, bottom: 18, textAlign: 'center', zIndex: 4 }}>{cta}</span>
+                )}
+              </div>
+            ) : displayMode === 'full' ? (
               <div className="promo-screen" style={{ ...lBgStyle, color: lTx, position: 'relative', overflow: 'hidden' }}>
                 {th ? (
                   <ThemeSkin th={th} variant="full" />

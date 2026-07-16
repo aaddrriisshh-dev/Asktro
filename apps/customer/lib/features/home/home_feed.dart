@@ -629,10 +629,13 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
   // un-themed ones) just follow the deeplink straight away.
   void _openBanner(BuildContext context, PromoBanner b) {
     final th = promoThemeById(b.theme);
-    if (th != null && b.hasLanding) {
-      // The landing hero uses the uploaded portrait (9:16) when present, else the
-      // strip image — without this the popup always fell back to the gift art.
-      final hasPortrait = b.portraitImage?.trim().isNotEmpty ?? false;
+    // The landing hero uses the uploaded portrait (9:16) when present, else the
+    // strip image — without this the popup always fell back to the gift art.
+    final hasPortrait = b.portraitImage?.trim().isNotEmpty ?? false;
+    final landingImage = hasPortrait ? b.portraitImage!.trim() : (b.image.isNotEmpty ? b.image : null);
+    final fill = b.imageFillsSheet && landingImage != null;
+    // Image-first fill works even with no theme (the image carries the design).
+    if (b.hasLanding && (th != null || fill)) {
       showPromoPopup(
         context,
         theme: th,
@@ -640,8 +643,9 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
         title: (b.landingTitle?.trim().isNotEmpty ?? false) ? b.landingTitle!.trim() : b.title,
         body: (b.landingBody?.trim().isNotEmpty ?? false) ? b.landingBody!.trim() : b.subtitle,
         ctaLabel: (b.cta?.trim().isNotEmpty ?? false) ? b.cta!.trim() : 'View offer',
-        imageUrl: hasPortrait ? b.portraitImage!.trim() : (b.image.isNotEmpty ? b.image : null),
+        imageUrl: landingImage,
         imageStyle: hasPortrait ? 'portrait' : 'banner',
+        imageFill: fill,
         heroKicker: '✦  JUST FOR YOU',
         heroTagline: null,
         onAction: () => _followDeeplink(context, b.deeplink),

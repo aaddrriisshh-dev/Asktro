@@ -43,6 +43,7 @@ export default function BannersPage() {
   const [bTextPos, setBTextPos] = useState('center');
   const [bTextAlign, setBTextAlign] = useState('left');
   const [bHScale, setBHScale] = useState(1);
+  const [imageFill, setImageFill] = useState(false);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
   function applyTheme(t: PromoTheme | null) {
@@ -72,6 +73,7 @@ export default function BannersPage() {
         textPosition: f.image.trim() ? bTextPos : 'center',
         textAlign: f.image.trim() ? bTextAlign : 'left',
         headlineScale: f.image.trim() ? bHScale : 1,
+        imageFillsSheet: displayMode !== 'small' ? imageFill : false,
         displayMode,
         portraitImage: displayMode !== 'small' ? (portraitImage.trim() || null) : null,
         ctaText: ctaText.trim() || null,
@@ -84,7 +86,7 @@ export default function BannersPage() {
       });
       setF({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
       setTheme('');
-      setBTextPos('center'); setBTextAlign('left'); setBHScale(1);
+      setBTextPos('center'); setBTextAlign('left'); setBHScale(1); setImageFill(false);
       setBannerType('marketing'); setPlanId('');
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
       setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
@@ -101,7 +103,7 @@ export default function BannersPage() {
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0,0.82fr) minmax(0,1.18fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
         {/* LEFT — live preview, pinned so it never overlaps the form */}
         <PromoPreview kind="banner" theme={theme} title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
-          textPosition={bTextPos} textAlign={bTextAlign} headlineScale={bHScale}
+          textPosition={bTextPos} textAlign={bTextAlign} headlineScale={bHScale} imageFill={imageFill}
           displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
           landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
 
@@ -197,6 +199,18 @@ export default function BannersPage() {
             cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
             bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
 
+          {displayMode !== 'small' && (
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, fontSize: 14 }}>
+              <input type="checkbox" checked={imageFill} onChange={(e) => setImageFill(e.target.checked)} style={{ marginTop: 3 }} />
+              <span>
+                <b>Image fills the sheet</b>
+                <span className="muted" style={{ display: 'block', fontSize: 12 }}>
+                  Show the image edge-to-edge with just a close + button — use when the image already has its own text/design. Off = image tile with the headline &amp; description below.
+                </span>
+              </span>
+            </label>
+          )}
+
           <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
         </div>
       </div>
@@ -247,6 +261,7 @@ export default function BannersPage() {
               headlineScale={(preview.headlineScale as number) ?? 1}
               displayMode={((preview.displayMode as string) || 'small') as 'small' | 'half' | 'full'}
               portraitImage={(preview.portraitImage as string) || undefined}
+              imageFill={preview.imageFillsSheet === true}
               ctaText={(preview.ctaText as string) || undefined}
               landingTitle={(preview.landingTitle as string) || undefined}
               landingBody={(preview.landingBody as string) || undefined} />

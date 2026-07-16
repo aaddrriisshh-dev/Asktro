@@ -70,6 +70,7 @@ class PromoBanner extends Equatable {
     this.textPosition = 'center',
     this.textAlign = 'left',
     this.headlineScale = 1.0,
+    this.imageFillsSheet = false,
     this.createdAtMs = 0,
   });
 
@@ -96,6 +97,9 @@ class PromoBanner extends Equatable {
   final String textPosition; // 'top' | 'center' | 'bottom'
   final String textAlign;    // 'left' | 'center'
   final double headlineScale; // multiplies the base headline size (0.7–1.4)
+  /// Landing popup: true = the (fully-designed) image fills the sheet with only
+  /// a close + CTA; false = image tile with themed title/body below.
+  final bool imageFillsSheet;
   final int createdAtMs;
 
   bool get hasLanding => displayMode == 'half' || displayMode == 'full';
@@ -123,13 +127,14 @@ class PromoBanner extends Equatable {
         textPosition: (m['textPosition'] ?? 'center') as String? ?? 'center',
         textAlign: (m['textAlign'] ?? 'left') as String? ?? 'left',
         headlineScale: ((m['headlineScale'] ?? 1.0) as num?)?.toDouble() ?? 1.0,
+        imageFillsSheet: m['imageFillsSheet'] == true,
         createdAtMs: createdAtMs,
       );
 
   @override
   List<Object?> get props => [id, image, title, subtitle, cta, deeplink, placement, priority,
         bgColor, textColor, displayMode, portraitImage, landingTitle, landingBody, landingBgColor, landingTextColor, theme,
-        textPosition, textAlign, headlineScale, createdAtMs,];
+        textPosition, textAlign, headlineScale, imageFillsSheet, createdAtMs,];
 }
 
 /// Admin-managed wallet coupon, surfaced on the Offers screen and applied at
