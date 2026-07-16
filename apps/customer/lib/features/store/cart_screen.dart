@@ -13,14 +13,13 @@ import 'store_widgets.dart';
 class CartScreen extends ConsumerWidget {
   const CartScreen({super.key});
 
-  static const _shipFeePaise = 4900;
-  static const _freeOverPaise = 49900;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(cartProvider);
     final subtotal = items.fold<int>(0, (n, c) => n + c.lineTotalPaise);
-    final shipping = items.isEmpty || subtotal >= _freeOverPaise ? 0 : _shipFeePaise;
+    // Base rate here (no address yet); the exact zone rate resolves at checkout.
+    final shipCfg = ref.watch(storeShippingProvider).valueOrNull ?? const StoreShipping();
+    final shipping = items.isEmpty ? 0 : shipCfg.resolve('', subtotal);
     final total = subtotal + shipping;
 
     return Scaffold(
