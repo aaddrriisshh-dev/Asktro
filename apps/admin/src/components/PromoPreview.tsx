@@ -11,6 +11,7 @@ export function PromoPreview({
   title, body, image, imageStyle = 'banner', bg = '#2e2b5f', fg = '#ffffff', kind = 'push',
   displayMode = 'small', portraitImage, ctaText,
   landingTitle, landingBody, landingBg = '#2e2b5f', landingFg = '#ffffff', code, theme,
+  textPosition = 'center', textAlign = 'left', headlineScale = 1,
 }: {
   title?: string;
   body?: string;
@@ -28,6 +29,9 @@ export function PromoPreview({
   landingFg?: string;
   code?: string;
   theme?: string;
+  textPosition?: string;
+  textAlign?: string;
+  headlineScale?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const th = themeById(theme);
@@ -48,30 +52,48 @@ export function PromoPreview({
   const heroKicker = kind === 'coupon' ? '✦  A GIFT FOR YOU' : '✦  JUST FOR YOU';
   const heroTag = kind === 'coupon' ? 'Everyone loves a gift, right?' : null;
 
+  // A home banner with an uploaded photo overlays its text on the image (exactly
+  // like the app), so its preview honours the position/align/size styling.
+  const bannerImg = kind === 'banner' && !!image && imageStyle === 'banner';
+  const centered = textAlign === 'center';
+  const justify = textPosition === 'top' ? 'flex-start' : textPosition === 'bottom' ? 'flex-end' : 'center';
+
   const inner = (
     <>
       {/* Small strip — the notification / home card */}
       <span className="promo-kind">{kind === 'push' ? '🔔 Notification' : kind === 'banner' ? '🖼 Home strip' : '🎟 Coupon card'}</span>
-      <div className="promo-card" style={{ ...cardBg, color: txCard, position: 'relative', overflow: 'hidden' }}>
-        {th && <ThemeSkin th={th} hideArt={!!(image && imageStyle === 'banner')} />}
-        {image && imageStyle === 'banner' && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="promo-img-banner" src={image} alt="" style={{ position: 'relative', zIndex: 2 }} />
-        )}
-        <div className="promo-body" style={{ display: 'flex', gap: 12, alignItems: 'center', position: 'relative', zIndex: 3 }}>
-          {portrait && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img className="promo-img-portrait" src={image} alt="" />
-          )}
-          <div style={{ minWidth: 0, maxWidth: th && th.layout === 'split' ? '62%' : '100%' }}>
-            <strong className="promo-title" style={{ color: txCard }}>{title || 'Your title appears here'}</strong>
-            <p className="promo-text" style={{ color: txCard, opacity: 0.9 }}>{body || 'Your message / description appears here.'}</p>
-            {kind === 'coupon' && code && (
-              <span className="promo-code" style={{ color: txCard, borderColor: th ? th.edge : undefined }}>{code}</span>
-            )}
+      {bannerImg ? (
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '3 / 1', borderRadius: 16, overflow: 'hidden',
+          background: `center/cover no-repeat url(${image})` }}>
+          <div style={{ position: 'absolute', inset: 0, background: centered
+            ? 'linear-gradient(to top, rgba(0,0,0,.72), rgba(0,0,0,.15) 60%, rgba(0,0,0,0))'
+            : 'linear-gradient(to right, rgba(0,0,0,.80), rgba(0,0,0,.18) 65%, rgba(0,0,0,0))' }} />
+          <div style={{ position: 'absolute', left: 16, right: centered ? 16 : undefined, top: 12, bottom: 12,
+            width: centered ? undefined : '62%', display: 'flex', flexDirection: 'column',
+            justifyContent: justify, alignItems: centered ? 'center' : 'flex-start', textAlign: centered ? 'center' : 'left' }}>
+            {(title || '') && <div style={{ fontWeight: 800, color: fg, fontSize: 20 * headlineScale, lineHeight: 1.1 }}>{title}</div>}
+            {(body || '') && <div style={{ color: fg, opacity: 0.9, fontSize: 12, marginTop: 5, lineHeight: 1.3 }}>{body}</div>}
+            {ctaText?.trim() && <div style={{ marginTop: 10, alignSelf: centered ? 'center' : 'flex-start', background: '#fff', color: bg, fontWeight: 700, fontSize: 11, padding: '6px 12px', borderRadius: 11 }}>{ctaText} →</div>}
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="promo-card" style={{ ...cardBg, color: txCard, position: 'relative', overflow: 'hidden' }}>
+          {th && <ThemeSkin th={th} hideArt={!!(image && imageStyle === 'banner')} />}
+          <div className="promo-body" style={{ display: 'flex', gap: 12, alignItems: 'center', position: 'relative', zIndex: 3 }}>
+            {portrait && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="promo-img-portrait" src={image} alt="" />
+            )}
+            <div style={{ minWidth: 0, maxWidth: th && th.layout === 'split' ? '62%' : '100%' }}>
+              <strong className="promo-title" style={{ color: txCard }}>{title || 'Your title appears here'}</strong>
+              <p className="promo-text" style={{ color: txCard, opacity: 0.9 }}>{body || 'Your message / description appears here.'}</p>
+              {kind === 'coupon' && code && (
+                <span className="promo-code" style={{ color: txCard, borderColor: th ? th.edge : undefined }}>{code}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Landing view — phone-frame mockup of what opens on tap */}
       {landing && (

@@ -40,6 +40,9 @@ export default function BannersPage() {
   const [busy, setBusy] = useState(false);
   const [theme, setTheme] = useState('');
   const [preview, setPreview] = useState<Row | null>(null);
+  const [bTextPos, setBTextPos] = useState('center');
+  const [bTextAlign, setBTextAlign] = useState('left');
+  const [bHScale, setBHScale] = useState(1);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
   function applyTheme(t: PromoTheme | null) {
@@ -66,6 +69,9 @@ export default function BannersPage() {
         bannerType, planId: bannerType === 'recharge' ? planId : null,
         title: f.title.trim(), description: f.description.trim(), image: f.image.trim(),
         deeplink, placement: f.placement, bgColor: bg, textColor: fg, active: true,
+        textPosition: f.image.trim() ? bTextPos : 'center',
+        textAlign: f.image.trim() ? bTextAlign : 'left',
+        headlineScale: f.image.trim() ? bHScale : 1,
         displayMode,
         portraitImage: displayMode !== 'small' ? (portraitImage.trim() || null) : null,
         ctaText: displayMode !== 'small' ? (ctaText.trim() || null) : null,
@@ -78,6 +84,7 @@ export default function BannersPage() {
       });
       setF({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
       setTheme('');
+      setBTextPos('center'); setBTextAlign('left'); setBHScale(1);
       setBannerType('marketing'); setPlanId('');
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
       setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
@@ -94,6 +101,7 @@ export default function BannersPage() {
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0,0.82fr) minmax(0,1.18fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
         {/* LEFT — live preview, pinned so it never overlaps the form */}
         <PromoPreview kind="banner" theme={theme} title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
+          textPosition={bTextPos} textAlign={bTextAlign} headlineScale={bHScale}
           displayMode={displayMode} portraitImage={portraitImage} ctaText={ctaText}
           landingTitle={lTitle} landingBody={lBody} landingBg={lBg} landingFg={lFg} />
 
@@ -141,6 +149,39 @@ export default function BannersPage() {
 
           <p className="af-label">Image (optional — overrides the theme background)</p>
           <ImageUpload folder="banner_images" value={f.image} onChange={(url) => set('image', url)} shape="wide" />
+
+          {f.image.trim() && (
+            <div style={{ marginTop: 12 }}>
+              <p className="af-label" style={{ marginTop: 0 }}>Text over image</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'flex-start' }}>
+                <div>
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 5 }}>Position</div>
+                  <div className="pickrow">
+                    {['top', 'center', 'bottom'].map((p) => (
+                      <button key={p} type="button" className={`pickchip${bTextPos === p ? ' on' : ''}`} onClick={() => setBTextPos(p)}>
+                        {p[0].toUpperCase() + p.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 5 }}>Align</div>
+                  <div className="pickrow">
+                    {['left', 'center'].map((a) => (
+                      <button key={a} type="button" className={`pickchip${bTextAlign === a ? ' on' : ''}`} onClick={() => setBTextAlign(a)}>
+                        {a[0].toUpperCase() + a.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <div className="muted" style={{ fontSize: 12, marginBottom: 5 }}>Headline size — {bHScale.toFixed(2)}×</div>
+                <input type="range" min={0.7} max={1.4} step={0.05} value={bHScale}
+                  onChange={(e) => setBHScale(Number(e.target.value))} style={{ width: 240, accentColor: 'var(--primary,#6b4bc0)' }} />
+              </div>
+            </div>
+          )}
 
           <Collapsible title="Background & text colour" summary="Optional — your theme already sets these">
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -199,6 +240,9 @@ export default function BannersPage() {
               imageStyle="banner"
               bg={(preview.bgColor as string) || '#2e2b5f'}
               fg={(preview.textColor as string) || '#ffffff'}
+              textPosition={(preview.textPosition as string) || 'center'}
+              textAlign={(preview.textAlign as string) || 'left'}
+              headlineScale={(preview.headlineScale as number) ?? 1}
               displayMode={((preview.displayMode as string) || 'small') as 'small' | 'half' | 'full'}
               portraitImage={(preview.portraitImage as string) || undefined}
               ctaText={(preview.ctaText as string) || undefined}

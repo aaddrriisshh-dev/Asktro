@@ -545,23 +545,29 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: b.textAlign == 'center' ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+                  mainAxisAlignment: b.textPosition == 'top'
+                      ? MainAxisAlignment.start
+                      : b.textPosition == 'bottom'
+                          ? MainAxisAlignment.end
+                          : MainAxisAlignment.center,
                   children: [
                     if (b.title.isNotEmpty)
                       SizedBox(
-                        width: 210,
+                        width: b.textAlign == 'center' ? double.infinity : 210,
                         child: Text(b.title,
                             maxLines: 2,
+                            textAlign: b.textAlign == 'center' ? TextAlign.center : TextAlign.start,
                             overflow: TextOverflow.ellipsis,
-                            style: Ob.title.copyWith(color: fg, fontSize: 22, height: 1.1),),
+                            style: Ob.title.copyWith(color: fg, fontSize: (22 * b.headlineScale).clamp(13.0, 34.0).toDouble(), height: 1.1),),
                       ),
                     if (b.subtitle.isNotEmpty) ...[
                       const SizedBox(height: 5),
                       SizedBox(
-                        width: 210,
+                        width: b.textAlign == 'center' ? double.infinity : 210,
                         child: Text(b.subtitle,
                             maxLines: 2,
+                            textAlign: b.textAlign == 'center' ? TextAlign.center : TextAlign.start,
                             overflow: TextOverflow.ellipsis,
                             style: Ob.note.copyWith(color: fg.withValues(alpha: 0.92)),),
                       ),

@@ -67,6 +67,9 @@ class PromoBanner extends Equatable {
     this.landingBgColor,
     this.landingTextColor,
     this.theme,
+    this.textPosition = 'center',
+    this.textAlign = 'left',
+    this.headlineScale = 1.0,
     this.createdAtMs = 0,
   });
 
@@ -89,6 +92,10 @@ class PromoBanner extends Equatable {
   final String? landingBody;
   final String? landingBgColor;
   final String? landingTextColor;
+  // Text layout over an uploaded image (portal-managed).
+  final String textPosition; // 'top' | 'center' | 'bottom'
+  final String textAlign;    // 'left' | 'center'
+  final double headlineScale; // multiplies the base headline size (0.7–1.4)
   final int createdAtMs;
 
   bool get hasLanding => displayMode == 'half' || displayMode == 'full';
@@ -113,12 +120,16 @@ class PromoBanner extends Equatable {
         landingBgColor: m['landingBgColor'] as String?,
         landingTextColor: m['landingTextColor'] as String?,
         theme: m['theme'] as String?,
+        textPosition: (m['textPosition'] ?? 'center') as String? ?? 'center',
+        textAlign: (m['textAlign'] ?? 'left') as String? ?? 'left',
+        headlineScale: ((m['headlineScale'] ?? 1.0) as num?)?.toDouble() ?? 1.0,
         createdAtMs: createdAtMs,
       );
 
   @override
   List<Object?> get props => [id, image, title, subtitle, cta, deeplink, placement, priority,
-        bgColor, textColor, displayMode, portraitImage, landingTitle, landingBody, landingBgColor, landingTextColor, theme, createdAtMs,];
+        bgColor, textColor, displayMode, portraitImage, landingTitle, landingBody, landingBgColor, landingTextColor, theme,
+        textPosition, textAlign, headlineScale, createdAtMs,];
 }
 
 /// Admin-managed wallet coupon, surfaced on the Offers screen and applied at

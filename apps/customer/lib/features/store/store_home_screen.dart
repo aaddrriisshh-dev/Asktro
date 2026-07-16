@@ -585,7 +585,7 @@ class _BannerCarouselState extends State<_BannerCarousel> {
     final scrimDark = [const Color(0xB01E1204), const Color(0x201E1204), const Color(0x00000000)];
     final scrimLight = [const Color(0xC8FBF3E0), const Color(0x40FBF3E0), const Color(0x00FFFFFF)];
     final scrim = onLight ? scrimLight : scrimDark;
-    final headlineSize = (25.0 * b.headlineScale).clamp(14.0, 40.0);
+    final headlineSize = (25.0 * b.headlineScale).clamp(14.0, 40.0).toDouble();
 
     return GestureDetector(
       onTap: b.linkCategoryId.isEmpty ? null : () => context.push('/store/category/${b.linkCategoryId}'),
