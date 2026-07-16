@@ -106,6 +106,37 @@ short, relationship-driven. Never a bot that dumps a wall of text. The goal is
       grounding → persona prompt → typing/pacing engine → billing-on-first-reply →
       retention surfaces (continue cards, favorites, memory, nudges).
 
+## Market benchmark (research #2, verified)
+- **The market gives AI chat away FREE as lead-gen** — it does NOT meter the bot.
+  Ishvaram: free kundali + first AI answer, "no per-minute charges." AstroTalk:
+  paid consults are 100% human (per-minute, "First Chat Free") + a *separate free*
+  "Astro Chat" AI app. Money is made on human per-minute + paid reports.
+- **Human rate ≈ ₹20–50/min** (budget-to-mid). Our ₹5/min AI sits well below —
+  good "affordable, always-on" positioning.
+- **Prokerala cost is a rounding error:** birth chart 50 credits ≈ ₹1; free tier
+  5,000 credits/mo (~100 charts); Ruby ₹999/mo = 100k credits. **The whole COGS is
+  the LLM.**
+- **Market is huge & real** (MCA-verified): AstroTalk FY24 ₹659 cr revenue (+132%),
+  ₹100 cr profit; Astroyogi ₹85 cr; InstaAstro ₹21 cr; AstroSage ₹60 cr; 50M+
+  downloads each.
+- **Regulation light:** no dedicated law; astrology exempt from anti-superstition
+  / magic-remedies acts. **But ASCI bars "100% guarantee" claims** → always add
+  disclaimers, never promise certainty.
+- **Report/remedy upsells work:** Ishvaram sells reports at ₹149–199 (Brihat
+  Kundali, Marriage, Career, Sade Sati) — adopt this, it doesn't undermine the AI.
+- ⚠️ Ignore the viral "AstroSage 90% margins / 25 cr questions / 20% MoM" figures —
+  **refuted** in verification.
+
+### Strategic decision (cofounder call)
+Charging per-minute for AI is **contrarian** (market gives AI free). It works IF
+the AI is genuinely differentiated — the "real human astrologer, paced, remembered"
+experience is the justification. De-risk it:
+- **Free first taste** (first chat / first 2–3 messages free) to hook — a *paid-AI*
+  funnel, NOT a human funnel.
+- Keep ₹5/min for engaged sessions (below the ₹20–50/min human rate).
+- **Add report/remedy upsells** (₹149–199) as a second revenue line.
+- Margin holds ~60% on Sonnet with the four cost controls; higher on Gemini.
+
 ## Research references
 - Spec + cost artifact: _AI Astrologer Engine: Spec & Cost Research_ (Claude artifact).
 - Research #1 (done): architecture, Prokerala pricing, Claude/Gemini/GPT token costs.
