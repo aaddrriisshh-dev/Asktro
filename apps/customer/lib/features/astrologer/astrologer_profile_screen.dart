@@ -119,6 +119,7 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
       bottomNavigationBar: async.maybeWhen(
         data: (a) => _StickyBar(
           consultable: a.isConsultable,
+          busy: a.isBusy,
           starting: _starting,
           // Calls are only for human astrologers — an AI persona can't answer.
           showVoice: kCallsEnabled && !a.isAI,
@@ -272,6 +273,7 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
 class _StickyBar extends StatelessWidget {
   const _StickyBar({
     required this.consultable,
+    required this.busy,
     required this.starting,
     required this.showVoice,
     required this.showVideo,
@@ -280,6 +282,7 @@ class _StickyBar extends StatelessWidget {
     required this.onVideo,
   });
   final bool consultable;
+  final bool busy;
   final bool starting;
   final bool showVoice;
   final bool showVideo;
@@ -297,9 +300,9 @@ class _StickyBar extends StatelessWidget {
         child: starting
             ? const SizedBox(height: 56, child: Center(child: CircularProgressIndicator(color: AppColors.primary)))
             : !consultable
-                ? const SizedBox(
+                ? SizedBox(
                     height: 56,
-                    child: Center(child: Text('Astrologer is currently unavailable')),
+                    child: Center(child: Text(busy ? 'Astrologer is busy right now' : 'Astrologer is currently unavailable')),
                   )
                 : Row(
                     children: [

@@ -33,6 +33,9 @@ export const activateConsultation = onCall(async (req) => {
     if (!isAstrologer && !isAdmin && !isAiCustomer) {
       failedPrecondition('Only the astrologer can accept this consultation.');
     }
+    // Idempotent: reopening an already-active session is a no-op, not an error
+    // (previously this threw "Cannot activate an active consultation").
+    if (c.status === 'active') return;
     if (c.status !== 'waiting') {
       failedPrecondition(`Cannot activate a ${c.status} consultation.`);
     }
