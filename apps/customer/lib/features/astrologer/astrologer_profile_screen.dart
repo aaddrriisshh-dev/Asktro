@@ -188,7 +188,7 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
                   ),
                   child: AppAvatar(name: a.name, photoUrl: a.profilePhoto, size: 96),
                 ),
-                if (a.onlineStatus)
+                if (a.isOnline)
                   Positioned(
                     right: 4,
                     bottom: 4,

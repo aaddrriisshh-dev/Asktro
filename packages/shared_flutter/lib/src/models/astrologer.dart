@@ -81,10 +81,14 @@ class Astrologer extends Equatable {
   /// sees, so period aggregates match the net payout figures.
   int netOf(int grossPaise) => (grossPaise * (100 - commissionPercent) / 100).round();
 
+  // Whether to show the astrologer as online. AI personas have no presence
+  // heartbeat, so they're always "on" once approved.
+  bool get isOnline => onlineStatus || isAI;
+
   // `available` is a busy flag toggled by the session lifecycle; AI personas are
-  // never "busy", so they're consultable whenever online + approved.
+  // never busy and never go offline, so they're consultable whenever approved.
   bool get isConsultable =>
-      onlineStatus && (available || isAI) && status == AstrologerStatus.approved;
+      (onlineStatus || isAI) && (available || isAI) && status == AstrologerStatus.approved;
 
   /// Display label for the per-minute price, e.g. "₹9/min" or "₹12.50/min".
   String get rateLabel {

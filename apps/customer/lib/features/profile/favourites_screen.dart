@@ -79,7 +79,7 @@ class _FavTile extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            if (a.onlineStatus)
+            if (a.isOnline)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(

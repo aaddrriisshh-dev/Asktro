@@ -978,7 +978,7 @@ class _CelestialAstroCard extends StatelessWidget {
                         clipBehavior: Clip.none,
                         children: [
                           AppAvatar(name: a.name, photoUrl: a.profilePhoto, size: 54),
-                          if (a.onlineStatus)
+                          if (a.isOnline)
                             Positioned(
                               right: 1,
                               bottom: 1,
