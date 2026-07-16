@@ -630,6 +630,9 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
   void _openBanner(BuildContext context, PromoBanner b) {
     final th = promoThemeById(b.theme);
     if (th != null && b.hasLanding) {
+      // The landing hero uses the uploaded portrait (9:16) when present, else the
+      // strip image — without this the popup always fell back to the gift art.
+      final hasPortrait = b.portraitImage?.trim().isNotEmpty ?? false;
       showPromoPopup(
         context,
         theme: th,
@@ -637,6 +640,8 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
         title: (b.landingTitle?.trim().isNotEmpty ?? false) ? b.landingTitle!.trim() : b.title,
         body: (b.landingBody?.trim().isNotEmpty ?? false) ? b.landingBody!.trim() : b.subtitle,
         ctaLabel: (b.cta?.trim().isNotEmpty ?? false) ? b.cta!.trim() : 'View offer',
+        imageUrl: hasPortrait ? b.portraitImage!.trim() : (b.image.isNotEmpty ? b.image : null),
+        imageStyle: hasPortrait ? 'portrait' : 'banner',
         heroKicker: '✦  JUST FOR YOU',
         heroTagline: null,
         onAction: () => _followDeeplink(context, b.deeplink),

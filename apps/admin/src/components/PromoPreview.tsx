@@ -137,7 +137,8 @@ export function PromoPreview({
                   <span className="promo-close" style={{ position: 'static', alignSelf: 'flex-end', zIndex: 4 }}>×</span>
                   {portraitImage && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img className="promo-half-img" src={portraitImage} alt="" style={{ position: 'relative', zIndex: 4 }} />
+                    <img src={portraitImage} alt="" style={{ position: 'relative', zIndex: 4, display: 'block', margin: '0 auto 10px',
+                      height: 170, width: 'auto', maxWidth: '66%', objectFit: 'contain', borderRadius: 14 }} />
                   )}
                   <strong className="promo-full-title" style={{ color: head, textAlign: 'center', position: 'relative', zIndex: 4 }}>{lTitle}</strong>
                   <p className="promo-full-text" style={{ color: lTx, textAlign: 'center', position: 'relative', zIndex: 4 }}>{lBody}</p>

@@ -101,9 +101,11 @@ Widget _hero(String? imageUrl, String imageStyle, {double giftSize = 130}) {
     borderRadius: BorderRadius.circular(18),
     child: Image.network(
       imageUrl,
-      height: portrait ? 220 : 150,
-      width: portrait ? 168 : double.infinity,
-      fit: BoxFit.cover,
+      height: portrait ? 250 : 150,
+      width: portrait ? 190 : double.infinity,
+      // Portrait art is fully designed (9:16 with its own text), so show all of
+      // it (contain) rather than cover-cropping; banners still fill their strip.
+      fit: portrait ? BoxFit.contain : BoxFit.cover,
       errorBuilder: (_, __, ___) => _giftHero(giftSize),
     ),
   );
