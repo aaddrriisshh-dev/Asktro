@@ -22,8 +22,13 @@ short, relationship-driven. Never a bot that dumps a wall of text. The goal is
    like a real astrologer's time. Guardrail: pacing must stay **believably
    human, never obviously padded** — padded delays make a quick buck then churn,
    which kills the retention engine. Real pacing serves revenue *and* retention.
-2. **Per-minute pricing, target ~₹5/min** (benchmark pending 2nd research). The
-   billing timer starts on the **first real AI reply**, not on chat-open.
+2. **Per-minute pricing = ₹9/min (LIVE, already built).** New users get a
+   **₹27 welcome credit = 3 free minutes** — granted in `onUserCreate.ts` as
+   `welcomeBonus = config.freeChatMinutes (3) × consultationPricePerMinutePaise
+   (900)`, dropped into the non-withdrawable `chatBonusBalance` (spent first). The
+   app nudges a recharge at the **2-minute mark**, before the free 3 min run out.
+   The billing timer should start on the **first real AI reply**, not chat-open.
+   (This "free taste → paid" is exactly the funnel the market research pointed to.)
 3. **Never funnel AI users to a human astrologer.** The AI is a first-class
    product and revenue center, not a lead-gen loss-leader. The close keeps the
    relationship warm ("come back, your stars are shifting") + a soft **store /
@@ -68,8 +73,11 @@ short, relationship-driven. Never a bot that dumps a wall of text. The goal is
   Sonnet ~₹1.1–1.4, Gemini Pro mid-tier (cheaper than Sonnet). Done **wrong**
   (no caching, full JSON every message, verbose output): ~₹4.5+/msg — this is the
   "it ate up money" failure the founder hit on WhatsApp with Haiku.
-- **Per-minute @ ₹5/min**, ~1.5 msgs/min: Haiku ~85% margin, **Sonnet ~55–65%**,
-  Opus ~0/negative. Uncontrolled = negative.
+- **Per-minute @ ₹9/min (live rate)**, done right: Sonnet cost ~₹2/min → **~78%
+  margin**; Gemini Pro ~₹1.2–1.5/min → **~83–87%**; Haiku ~92% (too weak, skip).
+  Uncontrolled (no caching, verbose, Opus) can still go negative — controls matter.
+- **The free 3 min costs ~₹6 of LLM** (Sonnet), not ₹27 — ₹27 is notional bonus
+  credit, not cash. Cheap hook for an engaged user who then pays ₹9/min.
 - **The four cost controls that decide profit vs loss:** (1) **prompt caching**
   (chart + system prompt read at 0.1×), (2) **cap output length**, (3) **trim
   history** to last ~8–10 messages, (4) **rate-limit** the AI (no 4 replies in
@@ -99,7 +107,7 @@ short, relationship-driven. Never a bot that dumps a wall of text. The goal is
 ---
 
 ## Open items / next steps
-- [ ] Confirm ₹5/min vs the market benchmark (2nd deep-research running).
+- [x] Pricing confirmed: ₹9/min live + 3 free min (₹27 credit) + 2-min recharge nudge.
 - [ ] Blind-test Gemini Pro vs Claude Sonnet on ~50–100 real Hindi/Hinglish prompts.
 - [ ] Design the **memory model** (retention deep-dive).
 - [ ] Build order once we commit: model-agnostic adapter → Prokerala→facts
@@ -111,7 +119,7 @@ short, relationship-driven. Never a bot that dumps a wall of text. The goal is
   Ishvaram: free kundali + first AI answer, "no per-minute charges." AstroTalk:
   paid consults are 100% human (per-minute, "First Chat Free") + a *separate free*
   "Astro Chat" AI app. Money is made on human per-minute + paid reports.
-- **Human rate ≈ ₹20–50/min** (budget-to-mid). Our ₹5/min AI sits well below —
+- **Human rate ≈ ₹20–50/min** (budget-to-mid). Our **₹9/min** AI sits well below —
   good "affordable, always-on" positioning.
 - **Prokerala cost is a rounding error:** birth chart 50 credits ≈ ₹1; free tier
   5,000 credits/mo (~100 charts); Ruby ₹999/mo = 100k credits. **The whole COGS is
@@ -130,12 +138,12 @@ short, relationship-driven. Never a bot that dumps a wall of text. The goal is
 ### Strategic decision (cofounder call)
 Charging per-minute for AI is **contrarian** (market gives AI free). It works IF
 the AI is genuinely differentiated — the "real human astrologer, paced, remembered"
-experience is the justification. De-risk it:
-- **Free first taste** (first chat / first 2–3 messages free) to hook — a *paid-AI*
-  funnel, NOT a human funnel.
-- Keep ₹5/min for engaged sessions (below the ₹20–50/min human rate).
-- **Add report/remedy upsells** (₹149–199) as a second revenue line.
-- Margin holds ~60% on Sonnet with the four cost controls; higher on Gemini.
+experience is the justification. Status vs this plan:
+- **Free first taste — ALREADY BUILT** (3 free minutes via the ₹27 welcome
+  credit + recharge nudge at 2 min). This is the paid-AI funnel, not a human funnel.
+- **₹9/min** for engaged sessions (below the ₹20–50/min human rate).
+- **Add report/remedy upsells** (₹149–199) as a second revenue line — not built yet.
+- Margin ~78% on Sonnet / ~85% on Gemini Pro with the four cost controls.
 
 ## Research references
 - Spec + cost artifact: _AI Astrologer Engine: Spec & Cost Research_ (Claude artifact).
