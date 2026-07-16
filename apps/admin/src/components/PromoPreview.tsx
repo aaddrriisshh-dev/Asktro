@@ -87,6 +87,9 @@ export function PromoPreview({
             <div style={{ minWidth: 0, maxWidth: th && th.layout === 'split' ? '62%' : '100%' }}>
               <strong className="promo-title" style={{ color: txCard }}>{title || 'Your title appears here'}</strong>
               <p className="promo-text" style={{ color: txCard, opacity: 0.9 }}>{body || 'Your message / description appears here.'}</p>
+              {kind === 'banner' && ctaText?.trim() && (
+                <span style={{ display: 'inline-block', marginTop: 8, background: '#fff', color: bg, fontWeight: 700, fontSize: 11, padding: '5px 11px', borderRadius: 10 }}>{ctaText} →</span>
+              )}
               {kind === 'coupon' && code && (
                 <span className="promo-code" style={{ color: txCard, borderColor: th ? th.edge : undefined }}>{code}</span>
               )}

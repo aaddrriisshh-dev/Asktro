@@ -74,7 +74,7 @@ export default function BannersPage() {
         headlineScale: f.image.trim() ? bHScale : 1,
         displayMode,
         portraitImage: displayMode !== 'small' ? (portraitImage.trim() || null) : null,
-        ctaText: displayMode !== 'small' ? (ctaText.trim() || null) : null,
+        ctaText: ctaText.trim() || null,
         landingTitle: displayMode !== 'small' ? (lTitle.trim() || null) : null,
         landingBody: displayMode !== 'small' ? (lBody.trim() || null) : null,
         landingBgColor: displayMode !== 'small' ? lBg : null,
@@ -128,6 +128,8 @@ export default function BannersPage() {
           </div>
           <label className="af" style={{ marginTop: 12 }}><span>Description</span>
             <textarea className="input" rows={2} value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
+          <label className="af" style={{ marginTop: 12 }}><span>Button text / CTA (optional)</span>
+            <input className="input" placeholder="Shop Now" value={ctaText} onChange={(e) => setCtaText(e.target.value)} /></label>
 
           {bannerType === 'recharge' ? (
             <div className="af" style={{ marginTop: 12 }}><span>Recharge plan (opens its checkout)</span>
