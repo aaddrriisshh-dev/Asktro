@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -94,6 +95,12 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   bool _graceShown = false;
   bool _leftForTerminal = false;
   bool _pausedShown = false;
+
+  // Join-chime: ids of "<name> has joined" lines we've already sounded, so the
+  // chime fires once when the astrologer arrives — never for join lines that
+  // were already on screen when an existing chat was reopened.
+  final Set<String> _chimedJoins = {};
+  bool _joinBaselineSet = false;
 
   String get _id => widget.consultationId;
 
@@ -282,6 +289,32 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       if (m['senderId'] != uid && m['seen'] != true) {
         _messagesCol.doc(m['id'] as String).update({'seen': true});
       }
+    }
+  }
+
+  /// Soft chime + haptic when the astrologer's "has joined" line first appears.
+  /// The first stream emission is treated as a baseline (join lines already on
+  /// screen when reopening a chat are NOT re-sounded); only lines that arrive
+  /// afterwards fire the chime, and each fires exactly once.
+  void _maybeChimeJoin(List<Map<String, dynamic>> messages) {
+    if (widget.readOnly || !mounted) return;
+    final joinedIds = messages
+        .where((m) => m['type'] == 'system' &&
+            m['id'] is String &&
+            (m['text'] ?? '').toString().toLowerCase().contains('joined'))
+        .map((m) => m['id'] as String);
+    if (!_joinBaselineSet) {
+      _chimedJoins.addAll(joinedIds); // pre-existing → don't chime on open
+      _joinBaselineSet = true;
+      return;
+    }
+    var fresh = false;
+    for (final id in joinedIds) {
+      if (_chimedJoins.add(id)) fresh = true;
+    }
+    if (fresh) {
+      SystemSound.play(SystemSoundType.alert);
+      HapticFeedback.lightImpact();
     }
   }
 
@@ -547,6 +580,10 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       if (s == null) return;
       _handleWarn(s);
       _maybeHandleTerminal(s);
+    });
+    // A soft chime + haptic the moment the astrologer joins.
+    ref.listen(_messagesProvider(_id), (_, next) {
+      _maybeChimeJoin(next.valueOrNull ?? const []);
     });
 
     final uid = ref.watch(currentUidProvider);
