@@ -27,22 +27,38 @@ class ProkeralaRepository {
 
   // --- Janam Kundli (chart image + details), computed once, then cached ------
   Future<KundliResult?> janamKundli(UserProfile p, {bool forceRefresh = false}) async {
-    final coords = await _coordinatesFor(p);
-    if (coords == null) return null; // no birth place → can't compute
     final datetime = _birthDateTimeIso(p);
-    final key = _birthKey(datetime, coords);
-
     final doc = _cache.doc('kundli');
+
+    // Coordinates we already have WITHOUT a network geocode (the common case:
+    // the birth place was picked with lat/lng during onboarding).
+    final directCoords =
+        (p.birthLat != null && p.birthLng != null) ? '${p.birthLat},${p.birthLng}' : null;
+
+    // Serve from cache BEFORE geocoding. Previously _coordinatesFor() ran first
+    // and did a geocode network round-trip on EVERY open when the profile had no
+    // stored lat/lng — even when the chart was already cached — which is what
+    // made the card slow. Now a cache hit costs a single Firestore read.
     if (!forceRefresh) {
       final snap = await doc.get();
       final d = snap.data();
-      if (d != null && d['birthKey'] == key) {
-        return KundliResult(
-          data: Map<String, dynamic>.from(d['data'] as Map? ?? const {}),
-          chartSvg: d['chartSvg'] as String?,
-        );
+      if (d != null) {
+        final hit = directCoords != null
+            ? d['birthKey'] == _birthKey(datetime, directCoords)
+            : (d['birthDatetime'] == datetime && d['birthPlace'] == p.birthPlace);
+        if (hit) {
+          return KundliResult(
+            data: Map<String, dynamic>.from(d['data'] as Map? ?? const {}),
+            chartSvg: d['chartSvg'] as String?,
+          );
+        }
       }
     }
+
+    // Cache miss (or forced) → only NOW resolve coordinates (may geocode) + fetch.
+    final coords = directCoords ?? await _coordinatesFor(p);
+    if (coords == null) return null; // no birth place → can't compute
+    final key = _birthKey(datetime, coords);
 
     // Fetch the kundli data + the rendered chart SVG together.
     final params = {'datetime': datetime, 'coordinates': coords, 'ayanamsa': 1, 'la': 'en'};
@@ -58,8 +74,12 @@ class ProkeralaRepository {
     if (data == null) return null; // upstream failure — caller shows a friendly error
     final chartSvg = (results[1]?['svg'] as String?)?.trim();
 
+    // Store birthDatetime + birthPlace too, so a future open can match the cache
+    // without geocoding when the profile has no stored lat/lng.
     await doc.set({
       'birthKey': key,
+      'birthDatetime': datetime,
+      'birthPlace': p.birthPlace,
       'data': data,
       'chartSvg': chartSvg,
       'cachedAt': FieldValue.serverTimestamp(),

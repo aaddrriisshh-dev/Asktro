@@ -64,6 +64,10 @@ dependencies:
   # Native share sheet (referral invite -> WhatsApp / anywhere)
   share_plus: ^10.1.4
 
+  # Short in-app chime (e.g. the AI astrologer "has joined" cue). SystemSound is
+  # near-silent on iOS, so we play a bundled asset for a reliable audible beep.
+  audioplayers: ^6.1.0
+
 # agora_rtc_engine still pins ffi ^1.1.2 (<2.0), which collides with share_plus
 # (and other modern plugins) that need ffi ^2. Force ffi 2.x for everyone — the
 # FFI surface Agora/iris use is stable across the 1→2 bump (2.0 only dropped
@@ -103,3 +107,4 @@ flutter:
     - assets/illustrations/
     - assets/onboarding/
     - assets/promo/
+    - assets/sounds/

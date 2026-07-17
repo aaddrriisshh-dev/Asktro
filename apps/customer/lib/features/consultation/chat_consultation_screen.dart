@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -101,6 +102,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   // were already on screen when an existing chat was reopened.
   final Set<String> _chimedJoins = {};
   bool _joinBaselineSet = false;
+  final AudioPlayer _chimePlayer = AudioPlayer();
 
   String get _id => widget.consultationId;
 
@@ -203,6 +205,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   @override
   void dispose() {
     _input.dispose();
+    _chimePlayer.dispose();
     super.dispose();
   }
 
@@ -313,7 +316,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       if (_chimedJoins.add(id)) fresh = true;
     }
     if (fresh) {
-      SystemSound.play(SystemSoundType.alert);
+      // A real audible chime (bundled asset — reliable on iOS, unlike
+      // SystemSound) plus a soft haptic. Best-effort: never break the chat.
+      _chimePlayer.play(AssetSource('sounds/join_chime.wav'), volume: 0.7).catchError((_) {});
       HapticFeedback.lightImpact();
     }
   }
