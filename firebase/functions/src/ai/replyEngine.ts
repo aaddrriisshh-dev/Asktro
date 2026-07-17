@@ -141,6 +141,17 @@ export const onAiChatMessage = onDocumentCreated(
         return;
       }
 
+      // SUPERSEDE: if the user sent a newer message WHILE we were composing (their
+      // questions were spaced further apart than the debounce), abandon this reply
+      // — the newer message's own run will answer the whole burst. Without this,
+      // each spaced-out question spawns its own reply and floods the chat.
+      const stillLatest = await latestMessageId(consultationId);
+      if (stillLatest && stillLatest !== snap.id) {
+        await setTyping(consultationId, c.astrologerId, false);
+        logger.info('onAiChatMessage: superseded during generation, skipping', { consultationId });
+        return;
+      }
+
       // 7) Up to TWO short bubbles. Strip a leading "<Name> ji," from the FIRST
       // (a robotic tell), trim each to a beat, drop any empties/overflow.
       const consultationRef = db.collection('consultations').doc(consultationId);

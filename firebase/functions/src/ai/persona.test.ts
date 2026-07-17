@@ -28,7 +28,8 @@ describe('age-based address tiers (the personal-touch metric)', () => {
   it('younger client → beta / beti, used sparingly', () => {
     expect(addressGuidance(astro, { age: 20, gender: 'male' })).toMatch(/"beta"/);
     expect(addressGuidance(astro, { age: 20, gender: 'female' })).toMatch(/"beti"/);
-    expect(addressGuidance(astro, { age: 20 })).toMatch(/never on every line|occasionally/i);
+    expect(addressGuidance(astro, { age: 20 })).toMatch(/not every single line|every few messages/i);
+    expect(addressGuidance(astro, { age: 20 })).toMatch(/ELDER|younger than you/i); // states the gap
   });
   it('around same age → name + aap, no beta', () => {
     const g = addressGuidance(astro, { age: 29, gender: 'male' });

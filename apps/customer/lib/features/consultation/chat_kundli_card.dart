@@ -18,7 +18,7 @@ class ChatKundliCard extends ConsumerStatefulWidget {
 }
 
 class _ChatKundliCardState extends ConsumerState<ChatKundliCard> {
-  bool _open = true; // chart shown by default
+  bool _open = false; // collapsed on open — no spinner-scroll, no keyboard overflow; tap View to see the chart
   Future<KundliResult?>? _future;
 
   @override
@@ -47,9 +47,11 @@ class _ChatKundliCardState extends ConsumerState<ChatKundliCard> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _ensureStarted());
     }
     // Auto-collapse while the keyboard is up: the tall chart + keyboard used to
-    // overflow the chat column ("bottom overflowed by …px"). It re-opens the
-    // moment the keyboard closes.
-    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    // overflow the chat column ("bottom overflowed by …px"). Read the RAW window
+    // inset via View.of — MediaQuery.viewInsets reads 0 inside the Scaffold body
+    // (it's already consumed), which is why the earlier fix didn't fire. It
+    // re-opens the moment the keyboard closes.
+    final keyboardOpen = View.of(context).viewInsets.bottom > 0;
     final open = _open && !keyboardOpen;
     return Container(
       decoration: BoxDecoration(
