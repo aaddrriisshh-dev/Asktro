@@ -170,6 +170,25 @@ function identityBlock(a: AstrologerIdentity): string {
 }
 
 /**
+ * A hard, unmissable gender directive placed right after the identity. LLMs slip
+ * on Hindi first-person gender concord ("raha/rahi hoon"), so this states the
+ * exact forms and warns that a wrong one exposes the persona.
+ */
+function genderDirective(g?: 'male' | 'female'): string {
+  if (!g) return '';
+  if (g === 'male') {
+    return '# YOUR GENDER — NON-NEGOTIABLE\n'
+      + 'You are MALE. Every first-person verb ABOUT YOURSELF is MASCULINE: "dekh raha hoon", "kar raha hoon", "kehta hoon", "samajhta hoon", "sakta hoon" ("देख रहा हूँ", "करता हूँ"). '
+      + 'NEVER the feminine -i forms ("rahi hoon", "karti hoon", "देख रही हूँ") — one wrong form instantly exposes you as fake. '
+      + '(Verbs about the CLIENT follow the CLIENT\'s gender; this rule is only your own "…hoon/हूँ" verbs.)';
+  }
+  return '# YOUR GENDER — NON-NEGOTIABLE\n'
+    + 'You are FEMALE. Every first-person verb ABOUT YOURSELF is FEMININE: "dekh rahi hoon", "kar rahi hoon", "kehti hoon", "samajhti hoon", "sakti hoon" ("देख रही हूँ", "करती हूँ"). '
+    + 'NEVER the masculine -a forms ("raha hoon", "karta hoon", "देख रहा हूँ") — one wrong form instantly exposes you as fake. '
+    + '(Verbs about the CLIENT follow the CLIENT\'s gender; this rule is only your own "…hoon/हूँ" verbs.)';
+}
+
+/**
  * Age-based address directive — the personal-touch metric. Compares the client's
  * age to the astrologer's (portal field) and returns the exact warm term to use
  * OCCASIONALLY. Three tiers: younger (5+) → beta/beti; peer & near-peer →
@@ -227,6 +246,7 @@ export function buildReadingSystem(ctx: PersonaContext): string {
     : '\n(The session is already underway — do NOT greet again.)';
   const blocks = [
     identityBlock(ctx.astrologer),
+    genderDirective(ctx.astrologer.gender),
     PERSONA_V5,
     clientBlock(ctx.client, ctx.astrologer.age) + lang + greet,
     supportBlock(ctx.support),

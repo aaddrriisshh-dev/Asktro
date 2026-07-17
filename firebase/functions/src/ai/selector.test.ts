@@ -28,6 +28,21 @@ const ADVANCED = {
 const SOURCES: ProkeralaSources = { name: 'Adrish', natalPlanets: NATAL, gocharPlanets: GOCHAR, advanced: ADVANCED, nowMs: Date.parse('2026-07-16T12:00:00+05:30') };
 const CHART: ChartData = extractChartData(SOURCES);
 
+describe('assembleSlice — yoga/overview question', () => {
+  it('surfaces the full detected yoga + dosha list when overview is set', () => {
+    const chart: ChartData = { ...CHART, yogas: ['Gajakesari Yoga', 'Budhaditya Yoga'], doshas: ['Mangal Dosha'] };
+    const slice = assembleSlice(chart, { themes: ['general'], subIntent: 'general', overview: true });
+    expect(slice).toContain('CHART OVERVIEW');
+    expect(slice).toContain('Gajakesari Yoga');
+    expect(slice).toContain('Budhaditya Yoga');
+    expect(slice).toContain('Mangal Dosha');
+  });
+  it('does not add the overview block for a normal question', () => {
+    const slice = assembleSlice(CHART, { themes: ['career'], subIntent: 'promise' });
+    expect(slice).not.toContain('CHART OVERVIEW');
+  });
+});
+
 describe('assembleSlice — marriage', () => {
   const slice = assembleSlice(CHART, { themes: ['marriage'], subIntent: 'promise', gender: 'male' });
 

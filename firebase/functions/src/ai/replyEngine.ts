@@ -25,6 +25,7 @@ import { classifyIntentHeuristic } from './router';
 import { buildReadingSystem } from './persona';
 import { llmGenerate, LlmTurn } from './provider';
 import { guardReply } from './guard';
+import { conjugateGender } from './gender';
 
 const IST_MS = 5.5 * 3600 * 1000;
 const HISTORY_TURNS = 10;
@@ -111,12 +112,14 @@ export const onAiChatMessage = onDocumentCreated(
         themes: intent.themes,
         subIntent: intent.subIntent,
         gender: user.gender === 'female' ? 'female' : user.gender === 'male' ? 'male' : undefined,
+        overview: intent.overview,
       });
+      const astroGender = astro.gender === 'female' ? 'female' : astro.gender === 'male' ? 'male' : undefined;
       const system = buildReadingSystem({
         astrologer: {
           name: astro.name ?? astro.displayName ?? 'Guru ji',
           age: typeof astro.age === 'number' ? astro.age : undefined,
-          gender: astro.gender === 'female' ? 'female' : astro.gender === 'male' ? 'male' : undefined,
+          gender: astroGender,
           style: astro.persona ?? astro.bio ?? undefined,
         },
         client: {
@@ -146,6 +149,7 @@ export const onAiChatMessage = onDocumentCreated(
         .filter(Boolean)
         .slice(0, MAX_BUBBLES)
         .map((m, i) => trimToBeat(i === 0 ? stripLeadingName(m, clientName) : m))
+        .map((m) => conjugateGender(m, astroGender)) // deterministic Hindi gender net
         .filter(Boolean);
 
       // Abuse toward the astrologer → two warnings, then end the session.
@@ -153,7 +157,9 @@ export const onAiChatMessage = onDocumentCreated(
         const strikes = (num(c.aiAbuseStrikes) ?? 0) + 1;
         await consultationRef.set({ aiAbuseStrikes: strikes, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
         if (strikes >= 3) {
-          const endMsg = 'Main is tarah ki baat-cheet aage nahi kar sakti. Yeh session yahin samapt kar rahi hoon, apna dhyaan rakhiye.';
+          const endMsg = astroGender === 'male'
+            ? 'Main is tarah ki baat-cheet aage nahi kar sakta. Yeh session yahin samapt kar raha hoon, apna dhyaan rakhiye.'
+            : 'Main is tarah ki baat-cheet aage nahi kar sakti. Yeh session yahin samapt kar rahi hoon, apna dhyaan rakhiye.';
           await setTyping(consultationId, c.astrologerId, true);
           await sleep(typingDelayMs(endMsg));
           await writeAstro(consultationId, c.astrologerId, endMsg);
@@ -241,6 +247,8 @@ export const onAiConsultationCreated = onDocumentCreated(
       await writeAstro(consultationId, c.astrologerId, 'Namaste ji! Kaise hain aap?');
       await setTyping(consultationId, c.astrologerId, false);
     } catch (e) {
+      // Never leave the typing dots stuck on if the ritual throws mid-way.
+      if (c.astrologerId) await setTyping(consultationId, String(c.astrologerId), false);
       logger.error('onAiConsultationCreated failed', {
         consultationId,
         error: e instanceof Error ? e.message : String(e),

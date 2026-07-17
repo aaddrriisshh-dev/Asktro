@@ -5,6 +5,19 @@
  */
 import { classifyIntentHeuristic, parseIntent } from './router';
 
+describe('classifyIntentHeuristic — yoga/overview intent', () => {
+  it('flags a direct "which yogas" question (Hinglish + Devanagari)', () => {
+    expect(classifyIntentHeuristic('meri kundli mein kaun se yog hain').overview).toBe(true);
+    expect(classifyIntentHeuristic('मेरी कुंडली में कौन से योग हैं').overview).toBe(true);
+    expect(classifyIntentHeuristic('kya mujhe manglik dosha hai').overview).toBe(true);
+    expect(classifyIntentHeuristic('kundli mein kya khaas hai').overview).toBe(true);
+  });
+  it('does NOT flag ordinary life questions as overview', () => {
+    expect(classifyIntentHeuristic('meri shaadi kab hogi').overview).toBe(false);
+    expect(classifyIntentHeuristic('naukri kab lagegi').overview).toBe(false);
+  });
+});
+
 describe('classifyIntentHeuristic — themes', () => {
   it('marriage phrasings (Hinglish + English)', () => {
     expect(classifyIntentHeuristic('meri shaadi kab hogi').themes).toContain('marriage');

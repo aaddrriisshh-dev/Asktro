@@ -19,9 +19,19 @@ export interface Intent {
   themes: Theme[];
   subIntent: SubIntent;
   person: 'self' | 'partner' | 'child' | 'other';
+  /** A direct "which yogas/doshas are in my kundli / what's special" question —
+   *  surfaces the chart's FULL detected yoga+dosha list so she answers straight
+   *  instead of deflecting. */
+  overview: boolean;
   /** Confidence of the heuristic (0..1); the caller may prefer the LLM when low. */
   heuristicConfidence: number;
 }
+
+// A direct question about the chart's yogas/doshas or "what's special in my
+// kundli" — Latin + Devanagari. These aren't a life THEME, so without this they
+// match no keyword and the reading has no yoga data to ground an answer.
+const OVERVIEW_WORDS =
+  /\b(yog|yoga|yogas|dosh|dosha|doshas|manglik|mangal dosha|kaal ?sarp|gaj ?kesari|raj ?yog|dhan ?yog|budhaditya|overview|kya khaas|khaas baat|special)\b|योग|दोष|कुंडली में क्या|कौन ?से ?योग|खास/i;
 
 // Hinglish + English theme keywords. Order matters only for readability; all are
 // scanned. Roman-Hindi variants included because users type in Latin script.
@@ -74,14 +84,18 @@ export function classifyIntentHeuristic(message: string): Intent {
 
   // Confidence: high when we matched a theme AND a specific sub-intent; lower when
   // we had to default. Drives whether the caller escalates to the LLM.
+  const overview = OVERVIEW_WORDS.test(msg);
+
   const themeHit = themes.length > 0;
   const subHit = subIntent !== 'general';
-  const heuristicConfidence = themeHit && subHit ? 0.9 : themeHit ? 0.65 : 0.2;
+  // An overview question is confidently handled by the heuristic (no LLM needed).
+  const heuristicConfidence = overview ? 0.9 : themeHit && subHit ? 0.9 : themeHit ? 0.65 : 0.2;
 
   return {
     themes: themes.length ? themes : ['general'],
     subIntent,
     person,
+    overview,
     heuristicConfidence,
   };
 }
@@ -110,6 +124,8 @@ export async function classifyIntent(
     opts?.configModels,
   );
   const parsed = parseIntent(raw);
+  // Overview is a deterministic keyword signal — keep the heuristic's verdict.
+  if (parsed) parsed.overview = parsed.overview || heuristic.overview;
   return parsed ?? heuristic;
 }
 
@@ -137,5 +153,5 @@ export function parseIntent(raw: string | null): Intent | null {
     ? (obj.person as Intent['person'])
     : 'self';
   if (!themes.length) return null;
-  return { themes, subIntent, person, heuristicConfidence: 1 };
+  return { themes, subIntent, person, overview: false, heuristicConfidence: 1 };
 }

@@ -15,11 +15,16 @@ export interface SliceRequest {
   themes: Theme[];
   subIntent: SubIntent;
   gender?: 'male' | 'female';
+  /** Direct "which yogas/doshas are in my kundli" question — include the chart's
+   *  FULL detected yoga+dosha list so she can answer it straight. */
+  overview?: boolean;
 }
 
 /** Assemble the briefing for a question. Multiple themes are stacked (deduped). */
 export function assembleSlice(chart: ChartData, req: SliceRequest): string {
   const blocks: string[] = [anchors(chart)];
+  // A yoga/dosha/overview question: surface the whole detected list up front.
+  if (req.overview) blocks.push(overviewBlock(chart));
   const seen = new Set<Theme>();
   for (const theme of req.themes.length ? req.themes : ['general' as Theme]) {
     if (seen.has(theme)) continue;
@@ -46,6 +51,26 @@ function anchors(c: ChartData): string {
   if (dasha) bits.push(`Now running: ${dasha} dasha`);
   if (c.sadeSati?.active) bits.push(`Sade Sati ${c.sadeSati.phase ?? 'active'}`);
   return `ANCHORS: ${bits.join(' | ')}`;
+}
+
+// ---- chart overview (yogas & doshas — the "kaun se yog" answer) ---------
+
+/**
+ * The chart's FULL detected yoga + dosha list. Only rendered for an overview /
+ * "which yogas are in my kundli" question, so she can answer it directly from
+ * grounded data instead of deflecting. Names notable ones; never invents.
+ */
+function overviewBlock(c: ChartData): string {
+  const yogas = c.yogas ?? [];
+  const doshas = c.doshas ?? [];
+  const L: string[] = ['CHART OVERVIEW (the actual yogas & doshas in THIS kundli) —'];
+  L.push(yogas.length ? `- Yogas present: ${yogas.join(', ')}` : '- Yogas: none notable in the data available.');
+  L.push(doshas.length ? `- Doshas present: ${doshas.join(', ')}` : '- Doshas: none present.');
+  L.push(
+    'When they ask which yogas/doshas are in the kundli, answer PLAINLY from this list — '
+    + 'name the notable ones and what each means in one line. Never invent a yoga not listed here.',
+  );
+  return L.join('\n');
 }
 
 // ---- per-theme block ----------------------------------------------------
