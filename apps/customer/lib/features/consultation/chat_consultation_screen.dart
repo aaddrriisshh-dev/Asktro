@@ -23,17 +23,22 @@ import 'chat_kundli_card.dart';
 /// peer ever sets `typing:true` and vanishes without clearing it.
 const _typingStaleAfter = Duration(seconds: 20);
 
-/// Whether the peer is currently typing. TRUE only when their typing doc has
-/// `typing == true` AND the flag is still fresh. A 2s ticker re-evaluates so a
-/// stale flag clears on its own — the Firestore snapshot alone can't, because it
-/// only fires when the doc changes, never when a timestamp simply ages out.
-final _peerTypingProvider = StreamProvider.autoDispose.family<bool, ({String id, String peerId})>((ref, arg) {
-  final controller = StreamController<bool>();
+/// Whether the peer is currently typing, plus WHEN the flag was set. TRUE only
+/// when their typing doc has `typing == true` AND the flag is still fresh. A 2s
+/// ticker re-evaluates so a stale flag clears on its own — the Firestore snapshot
+/// alone can't, because it only fires when the doc changes, never when a
+/// timestamp simply ages out. `atMs` lets the UI ignore a flag that a newer
+/// message has already superseded (belt-and-suspenders against a stuck indicator).
+final _peerTypingProvider =
+    StreamProvider.autoDispose.family<({bool typing, int? atMs}), ({String id, String peerId})>((ref, arg) {
+  final controller = StreamController<({bool typing, int? atMs})>();
   var typingFlag = false;
   DateTime? at;
 
   bool live() => typingFlag && at != null && DateTime.now().difference(at!) < _typingStaleAfter;
-  void emit() { if (!controller.isClosed) controller.add(live()); }
+  void emit() {
+    if (!controller.isClosed) controller.add((typing: live(), atMs: at?.millisecondsSinceEpoch));
+  }
 
   final sub = ref
       .watch(firestoreProvider)
@@ -593,10 +598,19 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
 
     final uid = ref.watch(currentUidProvider);
     final messages = ref.watch(_messagesProvider(_id)).valueOrNull ?? const [];
-    final peerTyping = ref
-            .watch(_peerTypingProvider((id: _id, peerId: widget.astrologer.id)))
-            .valueOrNull ??
-        false;
+    final typingState = ref.watch(_peerTypingProvider((id: _id, peerId: widget.astrologer.id))).valueOrNull;
+    // Show the dots only if the flag is live AND no astrologer message has landed
+    // since she started typing. If her latest message is newer than the typing
+    // flag, the flag is stale — hide the dots (kills a lingering indicator),
+    // while still showing them before the NEXT bubble (its flag is refreshed).
+    var peerTyping = typingState?.typing ?? false;
+    if (peerTyping && typingState?.atMs != null && messages.isNotEmpty) {
+      final newest = messages.first;
+      if (newest['senderId'] == widget.astrologer.id) {
+        final ms = (newest['timestamp'] as Timestamp?)?.millisecondsSinceEpoch;
+        if (ms != null && ms >= typingState!.atMs!) peerTyping = false;
+      }
+    }
     if (messages.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _markSeen(messages));
     }
