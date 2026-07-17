@@ -12,6 +12,8 @@ import {
   extractChartData,
   houseFrom,
   navamsaSignId,
+  saptamsaSignId,
+  dashamsaSignId,
   ChartData,
   ProkeralaSources,
 } from './chartFacts';
@@ -120,6 +122,26 @@ describe('navamsaSignId (D9)', () => {
   it('computes the founder chart D9 (Saturn Capricorn 6.6° → Aquarius)', () => {
     expect(navamsaSignId(9, 6.6)).toBe(10); // Aquarius
     expect(navamsaSignId(8, 27.9)).toBe(8); // Ascendant Sagittarius 27.9° → Sagittarius (Vargottama)
+  });
+});
+
+describe('saptamsaSignId (D7 — children)', () => {
+  it('odd signs count from themselves, even signs from the 7th', () => {
+    expect(saptamsaSignId(0, 0)).toBe(0); // Aries (odd) → Aries
+    expect(saptamsaSignId(1, 0)).toBe(7); // Taurus (even) → Scorpio (7th)
+  });
+  it('founder Saturn Capricorn 6.6° → Leo', () => {
+    expect(saptamsaSignId(9, 6.6)).toBe(4); // Leo
+  });
+});
+
+describe('dashamsaSignId (D10 — career; NOT the continuous shortcut)', () => {
+  it('odd signs count from themselves, even signs from the 9th', () => {
+    expect(dashamsaSignId(0, 0)).toBe(0); // Aries (odd) → Aries
+    expect(dashamsaSignId(1, 0)).toBe(9); // Taurus (even) → Capricorn (9th), not Aquarius
+  });
+  it('founder Saturn Capricorn 6.6° → Scorpio', () => {
+    expect(dashamsaSignId(9, 6.6)).toBe(7); // Scorpio
   });
 });
 

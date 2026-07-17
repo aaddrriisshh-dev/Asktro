@@ -48,6 +48,8 @@ export interface PlanetPlacement {
   retrograde: boolean;
   navamsaSignId: number; // 0-indexed rasi id in the D9 Navamsa chart
   vargottama: boolean; // same sign in D1 and D9 → strong
+  saptamsaSignId: number; // D7 sign (children)
+  dashamsaSignId: number; // D10 sign (career)
   dignity?: string; // exalted/debilitated/own/friendly/etc. (null for nodes)
   strong?: boolean; // quick flag derived from dignity
   aspectsHouses: number[]; // houses this planet aspects by graha drishti
@@ -79,6 +81,8 @@ export interface ChartData {
   name?: string;
   lagnaSignId?: number;
   navamsaLagnaSignId?: number; // D9 ascendant sign
+  saptamsaLagnaSignId?: number; // D7 ascendant sign
+  dashamsaLagnaSignId?: number; // D10 ascendant sign
   moonSignId?: number;
   sunSignId?: number;
   nakshatra?: string;
@@ -145,6 +149,18 @@ export function formatChartFacts(d: ChartData): string {
     const vargLagna =
       d.navamsaLagnaSignId != null && d.lagnaSignId != null && d.navamsaLagnaSignId === d.lagnaSignId;
     if (vargLagna) L.push('- Ascendant: [VARGOTTAMA Lagna — strong]');
+
+    // D7 (children) and D10 (career) — compact one-line-per-planet divisional signs.
+    if (d.saptamsaLagnaSignId != null) {
+      L.push('');
+      L.push(`SAPTAMSA (D7 — children). D7 Lagna: ${sign(d.saptamsaLagnaSignId)}`);
+      L.push(d.planets.map((p) => `${p.name}: ${SIGN_BY_ID[p.saptamsaSignId]?.en}`).join('; '));
+    }
+    if (d.dashamsaLagnaSignId != null) {
+      L.push('');
+      L.push(`DASHAMSA (D10 — career). D10 Lagna: ${sign(d.dashamsaLagnaSignId)}`);
+      L.push(d.planets.map((p) => `${p.name}: ${SIGN_BY_ID[p.dashamsaSignId]?.en}`).join('; '));
+    }
   }
 
   const dashaBits: string[] = [];
@@ -205,6 +221,33 @@ export function navamsaSignId(signId: number, degree: number): number {
   return Math.floor(absLongitude / (30 / 9)) % 12;
 }
 
+/** Odd sign (Aries, Gemini … = 0-indexed even) vs even sign — divisional rules key off this. */
+function isOddSign(signId: number): boolean {
+  return signId % 2 === 0;
+}
+
+/**
+ * Saptamsa (D7 — children/progeny). Each sign → 7 parts of 30/7°. Odd signs
+ * count from themselves; even signs from the 7th sign. Explicit rule (not the
+ * continuous shortcut) for clarity + correctness.
+ */
+export function saptamsaSignId(signId: number, degree: number): number {
+  const part = Math.floor(degree / (30 / 7)); // 0..6
+  const start = isOddSign(signId) ? signId : (signId + 6) % 12;
+  return (start + part) % 12;
+}
+
+/**
+ * Dashamsa (D10 — career/status). Each sign → 10 parts of 3°. Odd signs count
+ * from themselves; even signs from the 9th sign. NOTE: the continuous shortcut
+ * does NOT hold here (even-sign start is the 9th, not the 7th) — must be explicit.
+ */
+export function dashamsaSignId(signId: number, degree: number): number {
+  const part = Math.floor(degree / 3); // 0..9
+  const start = isOddSign(signId) ? signId : (signId + 8) % 12;
+  return (start + part) % 12;
+}
+
 export interface ProkeralaSources {
   name?: string;
   /** planet_position array from planet-position @ BIRTH datetime. */
@@ -229,8 +272,11 @@ export function extractChartData(s: ProkeralaSources): ChartData {
   const asc = natal.find((p) => nameOf(p) === 'Ascendant' || nameOf(p) === 'Lagna');
   const lagnaId = rasiId(asc);
   if (lagnaId != null) {
+    const ascDeg = numOf(asObj(asc)?.['degree']) ?? 0;
     out.lagnaSignId = lagnaId;
-    out.navamsaLagnaSignId = navamsaSignId(lagnaId, numOf(asObj(asc)?.['degree']) ?? 0);
+    out.navamsaLagnaSignId = navamsaSignId(lagnaId, ascDeg);
+    out.saptamsaLagnaSignId = saptamsaSignId(lagnaId, ascDeg);
+    out.dashamsaLagnaSignId = dashamsaSignId(lagnaId, ascDeg);
   }
 
   // Natal planets (exclude the Ascendant marker) with houses from the Lagna and
@@ -254,6 +300,8 @@ export function extractChartData(s: ProkeralaSources): ChartData {
       retrograde: asObj(p)?.['is_retrograde'] === true,
       navamsaSignId: navId,
       vargottama: navId === sid,
+      saptamsaSignId: saptamsaSignId(sid, deg),
+      dashamsaSignId: dashamsaSignId(sid, deg),
       dignity: dig ?? undefined,
       strong: dig ? isStrong(dig) : undefined,
       aspectsHouses: house ? aspectedHouses(nm, house) : [],
