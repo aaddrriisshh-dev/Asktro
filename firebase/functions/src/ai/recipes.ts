@@ -271,7 +271,7 @@ export const RECIPES: Record<Theme, Recipe> = {
 
 /** What each sub-intent ADDS on top of a theme's natal factors. */
 export const SUBINTENT_FOCUS: Record<SubIntent, string> = {
-  promise: 'Weigh the natal promise + divisional confirmation (D9/D7/D10 strength).',
+  promise: "Weigh the natal promise + the confirming divisional chart's strength.",
   timing:
     'Add the dasha of the theme’s house-lord/karaka and the relevant gochar transits; ' +
     'give a window, never a false-precise date.',
