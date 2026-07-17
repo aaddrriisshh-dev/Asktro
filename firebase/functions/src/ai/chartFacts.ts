@@ -21,7 +21,7 @@
  * cache. `formatChartFacts` is pure + deterministic → unit-testable in isolation.
  */
 
-import { signLord, dignity, isStrong, aspectedHouses } from './vedic';
+import { signLord, dignity, isStrong, aspectedHouses, charaKarakas, arudhaFromLordSign, CharaKaraka } from './vedic';
 
 /** 0-indexed rasi id → English + Sanskrit sign name (ProKerala uses this order). */
 export const SIGN_BY_ID: Array<{ en: string; sa: string }> = [
@@ -89,6 +89,8 @@ export interface ChartData {
   nakshatraPada?: number;
   planets?: PlanetPlacement[];
   houseLords?: HouseLord[];
+  charaKarakas?: CharaKaraka[]; // Jaimini: AK (soul) … DK (spouse)
+  upapadaLagnaSignId?: number; // Arudha of the 12th — marriage/spouse point
   mahadasha?: DashaLevel;
   antardasha?: DashaLevel;
   pratyantardasha?: DashaLevel;
@@ -160,6 +162,19 @@ export function formatChartFacts(d: ChartData): string {
       L.push('');
       L.push(`DASHAMSA (D10 — career). D10 Lagna: ${sign(d.dashamsaLagnaSignId)}`);
       L.push(d.planets.map((p) => `${p.name}: ${SIGN_BY_ID[p.dashamsaSignId]?.en}`).join('; '));
+    }
+
+    // Jaimini: Chara Karakas (spouse/career/soul significators) + Upapada Lagna.
+    if (d.charaKarakas?.length) {
+      L.push('');
+      const key = d.charaKarakas
+        .filter((c) => c.key === 'AK' || c.key === 'AmK' || c.key === 'DK')
+        .map((c) => `${c.name} (${c.means}) = ${c.planet}`)
+        .join('; ');
+      L.push(`CHARA KARAKAS (Jaimini): ${key}`);
+    }
+    if (d.upapadaLagnaSignId != null) {
+      L.push(`UPAPADA LAGNA (marriage/spouse point): ${sign(d.upapadaLagnaSignId)} (lord ${signLord(d.upapadaLagnaSignId)})`);
     }
   }
 
@@ -323,6 +338,18 @@ export function extractChartData(s: ProkeralaSources): ChartData {
       lords.push({ house: h, signId, lord, lordHouse: lp?.house ?? 0, lordDignity: lp?.dignity });
     }
     out.houseLords = lords;
+
+    // Jaimini Chara Karakas (spouse = Darakaraka, career = Amatyakaraka, etc.).
+    out.charaKarakas = charaKarakas(placements.map((p) => ({ name: p.name, degree: p.degree })));
+
+    // Upapada Lagna = Arudha of the 12th house (marriage/spouse). Needs the 12th
+    // lord's ACTUAL placed sign.
+    const twelfthSign = (lagnaId + 11) % 12;
+    const twelfthLord = signLord(twelfthSign);
+    const lordPlacement = placements.find((p) => p.name === twelfthLord);
+    if (lordPlacement) {
+      out.upapadaLagnaSignId = arudhaFromLordSign(twelfthSign, lordPlacement.signId);
+    }
   }
 
   // Nakshatra + moon/sun fallback + doshas + yogas from kundli/advanced.

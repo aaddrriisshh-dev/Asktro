@@ -2,7 +2,15 @@
  * Vedic-math tests — the classical rules must be exactly right (a wrong dignity
  * or aspect = a wrong reading). Spot-checked against the founder's real chart.
  */
-import { signLord, dignity, isStrong, aspectedHouses, THEME_KARAKA } from './vedic';
+import {
+  signLord,
+  dignity,
+  isStrong,
+  aspectedHouses,
+  THEME_KARAKA,
+  charaKarakas,
+  arudhaFromLordSign,
+} from './vedic';
 
 describe('signLord', () => {
   it('maps each sign to its ruler', () => {
@@ -79,5 +87,41 @@ describe('THEME_KARAKA', () => {
     expect(THEME_KARAKA.marriage).toBe('Venus');
     expect(THEME_KARAKA.children).toBe('Jupiter');
     expect(THEME_KARAKA.career).toBe('Saturn');
+  });
+});
+
+describe('charaKarakas (Jaimini)', () => {
+  it('highest degree = Atmakaraka, lowest = Darakaraka (spouse)', () => {
+    // Founder degrees: Venus 28.5 (highest) → AK; Moon 4.1 (lowest) → DK.
+    const ck = charaKarakas([
+      { name: 'Sun', degree: 4.2 },
+      { name: 'Moon', degree: 4.1 },
+      { name: 'Mercury', degree: 23.8 },
+      { name: 'Venus', degree: 28.5 },
+      { name: 'Mars', degree: 19.3 },
+      { name: 'Jupiter', degree: 8.2 },
+      { name: 'Saturn', degree: 6.6 },
+    ]);
+    const by = Object.fromEntries(ck.map((c) => [c.key, c.planet]));
+    expect(by['AK']).toBe('Venus');
+    expect(by['AmK']).toBe('Mercury');
+    expect(by['DK']).toBe('Moon');
+    expect(ck).toHaveLength(7);
+  });
+});
+
+describe('arudhaFromLordSign (Upapada Lagna)', () => {
+  it('founder UL: 12th house Scorpio, lord Mars in Virgo → Cancer', () => {
+    // 12th sign from Lagna Sagittarius = Scorpio (7); Mars (12th lord) in Virgo (5).
+    expect(arudhaFromLordSign(7, 5)).toBe(3); // Cancer
+  });
+  it('applies the same-sign exception (→ 10th)', () => {
+    // If arudha would equal the house sign, jump 10th (+9).
+    // houseSign 0, lordSign 0 → 2*0-0=0 = houseSign → +9 = 9.
+    expect(arudhaFromLordSign(0, 0)).toBe(9);
+  });
+  it('applies the 7th-from-house exception (→ 4th)', () => {
+    // houseSign 0, lordSign 3 → 6 = 7th from house → +3 = 9.
+    expect(arudhaFromLordSign(0, 3)).toBe(9);
   });
 });

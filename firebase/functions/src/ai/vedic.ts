@@ -158,3 +158,59 @@ export const THEME_KARAKA = {
 function isGraha(p: string): p is Graha {
   return (GRAHAS as readonly string[]).includes(p);
 }
+
+// ---- Jaimini: Chara Karakas + Upapada Lagna ------------------------------
+
+/** Chara karakas in degree-descending order (7-planet Parashari scheme). */
+export const CHARA_KARAKAS = [
+  { key: 'AK', name: 'Atmakaraka', means: 'soul/self' },
+  { key: 'AmK', name: 'Amatyakaraka', means: 'career/mind' },
+  { key: 'BK', name: 'Bhratrikaraka', means: 'siblings' },
+  { key: 'MK', name: 'Matrikaraka', means: 'mother' },
+  { key: 'PiK', name: 'Putrakaraka', means: 'children' },
+  { key: 'GK', name: 'Gnatikaraka', means: 'obstacles' },
+  { key: 'DK', name: 'Darakaraka', means: 'spouse/marriage' },
+] as const;
+
+export interface CharaKaraka {
+  key: string; // AK / AmK / … / DK
+  name: string;
+  means: string;
+  planet: string;
+}
+
+/**
+ * Assign the 7 Chara Karakas by sorting the seven planets (Sun..Saturn) on their
+ * degree WITHIN the sign, descending: highest = Atmakaraka, lowest = Darakaraka
+ * (the spouse significator). Input needs each planet's name + in-sign degree.
+ */
+export function charaKarakas(planets: Array<{ name: string; degree: number }>): CharaKaraka[] {
+  const seven = planets
+    .filter((p) => isGraha(p.name))
+    .sort((a, b) => b.degree - a.degree);
+  return CHARA_KARAKAS.slice(0, seven.length).map((c, i) => ({
+    key: c.key,
+    name: c.name,
+    means: c.means,
+    planet: seven[i].name,
+  }));
+}
+
+/**
+ * Arudha Pada sign of a house, given the house's sign and the LORD's ACTUAL
+ * (placed) sign. Arudha = count from the house to its lord, then the same count
+ * again from the lord: arudha = (2·lordSign − houseSign) mod 12. Classical
+ * exceptions: if the arudha lands in the house itself → take the 10th from it; if
+ * in the 7th from the house → take the 4th (an arudha can't sit on the house or
+ * its opposite). All sign ids 0-indexed.
+ *
+ * Upapada Lagna (UL) — the marriage/spouse point — is simply the Arudha of the
+ * 12th house: caller passes houseSign = 12th-house sign, lordSign = where the
+ * 12th lord actually sits.
+ */
+export function arudhaFromLordSign(houseSign: number, lordSign: number): number {
+  let arudha = (((2 * lordSign - houseSign) % 12) + 12) % 12;
+  if (arudha === houseSign) arudha = (arudha + 9) % 12; // → 10th from it
+  else if (arudha === (houseSign + 6) % 12) arudha = (arudha + 3) % 12; // → 4th from it
+  return arudha;
+}
