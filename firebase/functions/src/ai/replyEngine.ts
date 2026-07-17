@@ -115,7 +115,7 @@ export const onAiChatMessage = onDocumentCreated(
         overview: intent.overview,
       });
       const astroGender = astro.gender === 'female' ? 'female' : astro.gender === 'male' ? 'male' : undefined;
-      const system = buildReadingSystem({
+      const systemBase = buildReadingSystem({
         astrologer: {
           name: astro.name ?? astro.displayName ?? 'Guru ji',
           age: typeof astro.age === 'number' ? astro.age : undefined,
@@ -132,6 +132,14 @@ export const onAiChatMessage = onDocumentCreated(
         briefing,
         isSessionOpening,
       });
+
+      // 5b) Continuity: fold in any recent remedy-thread messages she exchanged
+      // with this client OUTSIDE the chat (portal nurture), so she picks up the
+      // context ("the bracelet I suggested…"). Best-effort — never blocks a reply.
+      const threadCtx = await loadRemedyThreadContext(c.customerId as string, c.astrologerId as string);
+      const system = threadCtx
+        ? `${systemBase}\n\n# RECENT MESSAGES YOU SENT THIS CLIENT (outside this chat — for continuity; refer to them naturally if relevant, never repeat verbatim)\n${threadCtx}`
+        : systemBase;
 
       // 6) Show the typing indicator (dots) while she composes, then generate.
       await setTyping(consultationId, c.astrologerId, true);
@@ -428,6 +436,43 @@ async function loadBurstAndHistory(
   }
   history.reverse();
   return { burst, history };
+}
+
+/**
+ * Recent remedy-thread messages this astrologer exchanged with this client from
+ * the PORTAL (outside the live chat), for continuity. Returns a short transcript
+ * of the most recent threaded remedy, or '' if none. Best-effort: any error → ''.
+ */
+async function loadRemedyThreadContext(customerId: string, astrologerId: string): Promise<string> {
+  try {
+    const rem = await db.collection('remedies').where('customerId', '==', customerId).limit(10).get();
+    const mine = rem.docs
+      .map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as Record<string, unknown> & { id: string }))
+      .filter((r) => r.astrologerId === astrologerId && r.threadLastAt)
+      .sort((a, b) => tsMs(b.threadLastAt) - tsMs(a.threadLastAt));
+    if (!mine.length) return '';
+    const top = mine[0];
+    const thread = await db
+      .collection('remedies').doc(top.id).collection('thread')
+      .orderBy('createdAt', 'desc').limit(6).get();
+    const lines = thread.docs
+      .map((d) => d.data() as Record<string, unknown>)
+      .reverse()
+      .map((m) => {
+        const who = m.senderRole === 'astrologer' ? 'You' : 'Client';
+        const hook = m.hook && typeof m.hook === 'object'
+          ? ` [you suggested: ${str((m.hook as Record<string, unknown>).title) ?? 'a product'}]` : '';
+        return `${who}: ${String(m.text ?? '').slice(0, 200)}${hook}`;
+      });
+    if (!lines.length) return '';
+    return `Remedy "${str(top.title) ?? 'upay'}":\n${lines.join('\n')}`;
+  } catch {
+    return '';
+  }
+}
+function tsMs(v: unknown): number {
+  return v && typeof (v as { toMillis?: () => number }).toMillis === 'function'
+    ? (v as { toMillis: () => number }).toMillis() : 0;
 }
 
 // ---- helpers ------------------------------------------------------------

@@ -154,6 +154,14 @@ service cloud.firestore {
         'consultationId','title','note','createdAt'
       ]);
       allow delete: if false;
+
+      // The nurture thread (astrologer <-> customer messages). Readable by the
+      // remedy's customer or an admin; written ONLY by Cloud Functions.
+      match /thread/{msgId} {
+        allow read: if isAdmin()
+          || isSelf(get(/databases/$(database)/documents/remedies/$(remedyId)).data.customerId);
+        allow write: if false;
+      }
     }
 
     // ================= consultations =================

@@ -66,6 +66,7 @@ export { reportClientError } from './observability/clientErrors';
 
 // ---- Remedies (customer follow-up questions) ----
 export { askRemedyQuestion, answerRemedyQuestion, answerAiRemedyQuestion } from './remedies/remedyFollowUp';
+export { sendRemedyThreadMessage, replyToRemedyThread, setRemedyMessagesOptOut } from './remedies/remedyThread';
 
 // ---- Content moderation (report / block / auto-flag) ----
 // onChatImageUploaded is a Storage-triggered (us-east1, matching the default

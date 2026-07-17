@@ -127,8 +127,8 @@ export const answerRemedyQuestion = onCall(async (req) => {
 export const answerAiRemedyQuestion = onCall(async (req) => {
   const uid = assertRole(req, 'admin');
   const role = req.auth?.token?.adminRole;
-  if (role !== 'super' && role !== 'astrology') {
-    failedPrecondition('Requires a super or astrology admin.');
+  if (role !== 'super' && role !== 'ops') {
+    failedPrecondition('Requires a super or ops admin.');
   }
   const { remedyId, answer } = (req.data ?? {}) as { remedyId?: string; answer?: string };
   if (!remedyId) badRequest('remedyId is required.');
