@@ -183,6 +183,27 @@ portal-tunable) enforces the human *timing*. Build during live wiring:
 7. Guardrail: believably human, NEVER obviously padded (padding churns users).
    All knobs portal-tunable without a redeploy.
 
+## Persona layers by age (two distinct things)
+1. **Address word (BUILT — `addressGuidance` in persona.ts).** What the astrologer
+   CALLS the client, by age gap + gender: younger → beta/beti; peer → name+aap;
+   somewhat older → bhaiya/bhai-sahab or didi/behenji; elder generation →
+   Babuji (man) / Mataji (woman). Used sparingly, never every line.
+2. **Reply register / bedside manner (TODO — portal-configurable).** The subtle
+   TONE & gestures of the whole reply, by the client's age band. Minor shifts, but
+   they make an elder feel respected and a youngster feel understood:
+   - **Young (~<35):** lighter, warmer, modern Hinglish, more energetic/reassuring.
+   - **Mid (~35–49):** balanced, practical, grounded — career, family, finances,
+     responsibilities.
+   - **Senior (~50+):** slower, more respectful/traditional — health, peace, family,
+     dharma; gentler pace.
+   Portal: per-AI-astrologer, editable tone text for each band; the engine injects
+   the matching band register into the persona. Build alongside portal onboarding.
+
+## Portal onboarding fields the AI persona needs
+- `age` (number) and `gender` — drive the address word + reply register.
+- Per-age-band reply-register text (young / mid / senior) — see above.
+- (Later) support contacts (email/WhatsApp/URL) for payment redirects.
+
 ## Open items / next steps
 - [x] Pricing confirmed: ₹9/min live + 3 free min (₹27 credit) + 2-min recharge nudge.
 - [ ] Blind-test Gemini Pro vs Claude Sonnet on ~50–100 real Hindi/Hinglish prompts.
