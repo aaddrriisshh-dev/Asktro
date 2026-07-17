@@ -87,9 +87,9 @@ describe('constitution rules present (audit fixes)', () => {
     expect(PERSONA_V5).toMatch(/EMOJIS/);
     expect(PERSONA_V5).toMatch(/Greet ONCE/i);
   });
-  it('output contract forbids emojis, caps to one bubble, shows few-shot brevity', () => {
+  it('output contract forbids emojis, caps bubbles to at most two, shows few-shot brevity', () => {
     expect(OUTPUT_CONTRACT).toMatch(/no emojis/i);
-    expect(OUTPUT_CONTRACT).toMatch(/ONE bubble/i);
+    expect(OUTPUT_CONTRACT).toMatch(/AT MOST TWO/i);
     expect(OUTPUT_CONTRACT).toMatch(/~200 characters/i);
     expect(OUTPUT_CONTRACT).toContain('aap kaise ho?'); // few-shot present
   });

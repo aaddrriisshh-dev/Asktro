@@ -37,6 +37,8 @@ const GREETING_GAP_MS = 2500; // typing dots before the opening greeting
 const TYPE_PER_CHAR_MS = 55; // human typing speed
 const TYPE_FLOOR_MS = 1500;
 const TYPE_CEIL_MS = 9000;
+const MAX_BUBBLES = 2; // she may send at most two short, paced bubbles per reply
+const INTER_BUBBLE_MS = 900; // gap between bubbles so the dots visibly re-appear
 
 export const onAiChatMessage = onDocumentCreated(
   {
@@ -128,8 +130,7 @@ export const onAiChatMessage = onDocumentCreated(
         isSessionOpening,
       });
 
-      // 6) Show the typing indicator (dots), generate, then a human typing-speed
-      // delay so the bubble lands like a person typed it — never instantly.
+      // 6) Show the typing indicator (dots) while she composes, then generate.
       await setTyping(consultationId, c.astrologerId, true);
       const envelope = await generateGrounded(system, history, userText, briefing, apiKey, configModels);
       if (!envelope) {
@@ -137,41 +138,56 @@ export const onAiChatMessage = onDocumentCreated(
         return;
       }
 
-      // 8) One bubble — the hard "one beat per turn" guarantee. Strip a leading
-      // "<Name> ji," so she doesn't open every reply with the client's name (a
-      // robotic tell), and trim a runaway line to WhatsApp length.
+      // 7) Up to TWO short bubbles. Strip a leading "<Name> ji," from the FIRST
+      // (a robotic tell), trim each to a beat, drop any empties/overflow.
       const consultationRef = db.collection('consultations').doc(consultationId);
-      const bubble = trimToBeat(stripLeadingName(envelope.messages.find((m) => m.trim()) ?? '', clientName));
-
-      // Human typing-speed delay (dots keep showing), proportional to length.
-      await sleep(typingDelayMs(bubble));
+      const bubbles = envelope.messages
+        .map((m) => m.trim())
+        .filter(Boolean)
+        .slice(0, MAX_BUBBLES)
+        .map((m, i) => trimToBeat(i === 0 ? stripLeadingName(m, clientName) : m))
+        .filter(Boolean);
 
       // Abuse toward the astrologer → two warnings, then end the session.
       if (envelope.abuse) {
         const strikes = (num(c.aiAbuseStrikes) ?? 0) + 1;
         await consultationRef.set({ aiAbuseStrikes: strikes, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
         if (strikes >= 3) {
-          await writeAstro(consultationId, c.astrologerId, 'Main is tarah ki baat-cheet aage nahi kar sakti. Yeh session yahin samapt kar rahi hoon, apna dhyaan rakhiye.');
-          await consultationRef.set({ status: 'ended', endTime: FieldValue.serverTimestamp(), endReason: 'abuse', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+          const endMsg = 'Main is tarah ki baat-cheet aage nahi kar sakti. Yeh session yahin samapt kar rahi hoon, apna dhyaan rakhiye.';
+          await setTyping(consultationId, c.astrologerId, true);
+          await sleep(typingDelayMs(endMsg));
+          await writeAstro(consultationId, c.astrologerId, endMsg);
           await setTyping(consultationId, c.astrologerId, false);
+          await consultationRef.set({ status: 'ended', endTime: FieldValue.serverTimestamp(), endReason: 'abuse', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
           logger.info('onAiChatMessage: ended session for repeated abuse', { consultationId, strikes });
           return;
         }
         logger.info('onAiChatMessage: abuse warning', { consultationId, strikes });
       }
 
-      if (bubble) await writeAstro(consultationId, c.astrologerId, bubble);
-      await setTyping(consultationId, c.astrologerId, false);
-      if (envelope.messages.filter((m) => m.trim()).length > 1) {
-        logger.info('onAiChatMessage: model bursted, sent only first bubble', { consultationId });
+      if (bubbles.length === 0) {
+        await setTyping(consultationId, c.astrologerId, false);
+        return;
       }
+
+      // 8) Send each bubble one at a time — dots, a human typing-delay sized to
+      // THAT bubble, then the bubble; a short gap before the next so the dots
+      // visibly clear and re-appear (a real person typing successive messages).
+      for (let k = 0; k < bubbles.length; k++) {
+        await setTyping(consultationId, c.astrologerId, true); // refreshes the dots + freshness
+        await sleep(typingDelayMs(bubbles[k]));
+        await writeAstro(consultationId, c.astrologerId, bubbles[k]);
+        await setTyping(consultationId, c.astrologerId, false);
+        if (k < bubbles.length - 1) await sleep(INTER_BUBBLE_MS);
+      }
+
       logger.info('onAiChatMessage: replied', {
         consultationId,
         themes: intent.themes,
         subIntent: intent.subIntent,
         action: envelope.action,
         confidence: envelope.confidence,
-        bubbles: envelope.messages.length,
+        bubbles: bubbles.length,
       });
     } catch (e) {
       if (typingAstroId) await setTyping(consultationId, typingAstroId, false);
