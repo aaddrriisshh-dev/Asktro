@@ -8,10 +8,10 @@ import { formatChartFacts, ChartData } from './chartFacts';
 
 const FACTS = formatChartFacts({
   name: 'Rahul',
-  lagna: 'Scorpio',
-  moonSign: 'Cancer',
-  transits: [{ planet: 'Saturn', house: 10, note: 'career house' }],
-  yogas: ['Gajakesari'],
+  lagnaSignId: 7, // Scorpio
+  moonSignId: 3, // Cancer
+  planets: [{ name: 'Saturn', signId: 9, house: 3, degree: 6.6, retrograde: true }],
+  yogas: ['Gajakesari Yoga'],
   doshas: [],
 } as ChartData);
 
