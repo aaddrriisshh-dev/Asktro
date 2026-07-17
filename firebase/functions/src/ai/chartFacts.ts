@@ -7,6 +7,8 @@
  * fact block — the ONLY placements the model is allowed to name (enforced again
  * by the grounding validator).
  *
+ * (Uses `./vedic` for the classical rules — sign lords, dignity, aspects.)
+ *
  * CRITICAL correctness rule learned from real ProKerala data: the planet-position
  * `position` field is the sign's NATURAL zodiac number (Aries=1 … Pisces=12), NOT
  * the house from the Lagna. Proof: the Ascendant reports position=9 when its house
@@ -18,6 +20,8 @@
  * the session (except gochar, refreshed periodically), so it sits in the prompt
  * cache. `formatChartFacts` is pure + deterministic → unit-testable in isolation.
  */
+
+import { signLord, dignity, isStrong, aspectedHouses } from './vedic';
 
 /** 0-indexed rasi id → English + Sanskrit sign name (ProKerala uses this order). */
 export const SIGN_BY_ID: Array<{ en: string; sa: string }> = [
@@ -44,6 +48,18 @@ export interface PlanetPlacement {
   retrograde: boolean;
   navamsaSignId: number; // 0-indexed rasi id in the D9 Navamsa chart
   vargottama: boolean; // same sign in D1 and D9 → strong
+  dignity?: string; // exalted/debilitated/own/friendly/etc. (null for nodes)
+  strong?: boolean; // quick flag derived from dignity
+  aspectsHouses: number[]; // houses this planet aspects by graha drishti
+}
+
+/** A house, its sign, its ruling planet, and where that ruler is placed. */
+export interface HouseLord {
+  house: number; // 1..12
+  signId: number;
+  lord: string; // ruling planet
+  lordHouse: number; // house the ruler occupies (0 if unknown)
+  lordDignity?: string;
 }
 
 export interface DashaLevel {
@@ -68,6 +84,7 @@ export interface ChartData {
   nakshatra?: string;
   nakshatraPada?: number;
   planets?: PlanetPlacement[];
+  houseLords?: HouseLord[];
   mahadasha?: DashaLevel;
   antardasha?: DashaLevel;
   pratyantardasha?: DashaLevel;
@@ -98,12 +115,24 @@ export function formatChartFacts(d: ChartData): string {
 
   if (d.planets?.length) {
     L.push('');
-    L.push('PLANETS (natal — house counted from Lagna):');
+    L.push('PLANETS (natal — house from Lagna; dignity pre-computed):');
     for (const p of d.planets) {
       const vn = p.vedicName ? `/${p.vedicName}` : '';
+      const dig = p.dignity ? `, ${p.dignity}${p.strong ? ' (strong)' : p.dignity === 'debilitated' || p.dignity === 'enemy sign' ? ' (weak)' : ''}` : '';
+      const asp = p.aspectsHouses.length ? ` — aspects houses ${p.aspectsHouses.join(', ')}` : '';
       L.push(
-        `- ${p.name}${vn}: ${sign(p.signId)}, ${ordinal(p.house)} house, ${p.degree.toFixed(1)}°${p.retrograde ? ' (retrograde)' : ''}`,
+        `- ${p.name}${vn}: ${sign(p.signId)}, ${ordinal(p.house)} house, ${p.degree.toFixed(1)}°${p.retrograde ? ' (R)' : ''}${dig}${asp}`,
       );
+    }
+
+    if (d.houseLords?.length) {
+      L.push('');
+      L.push('HOUSE LORDS (who rules each house & where that ruler sits):');
+      for (const hl of d.houseLords) {
+        const digNote = hl.lordDignity ? `, ${hl.lordDignity}` : '';
+        const where = hl.lordHouse ? `in ${ordinal(hl.lordHouse)} house${digNote}` : 'position unknown';
+        L.push(`- ${ordinal(hl.house)} house (${sign(hl.signId)}): lord ${hl.lord} ${where}`);
+      }
     }
 
     // Navamsa (D9) — planetary strength + marriage. Vargottama planets flagged.
@@ -214,20 +243,39 @@ export function extractChartData(s: ProkeralaSources): ChartData {
     if (sid == null) continue;
     const deg = numOf(asObj(p)?.['degree']) ?? 0;
     const navId = navamsaSignId(sid, deg);
+    const house = lagnaId != null ? houseFrom(sid, lagnaId) : 0;
+    const dig = dignity(nm, sid, deg);
     placements.push({
       name: nm,
       vedicName: vedicNameOf(p),
       signId: sid,
-      house: lagnaId != null ? houseFrom(sid, lagnaId) : 0,
+      house,
       degree: deg,
       retrograde: asObj(p)?.['is_retrograde'] === true,
       navamsaSignId: navId,
       vargottama: navId === sid,
+      dignity: dig ?? undefined,
+      strong: dig ? isStrong(dig) : undefined,
+      aspectsHouses: house ? aspectedHouses(nm, house) : [],
     });
     if (nm === 'Moon') out.moonSignId = sid;
     if (nm === 'Sun') out.sunSignId = sid;
   }
   if (placements.length) out.planets = placements;
+
+  // House lords: for each of the 12 houses, the sign on it (whole-sign from
+  // Lagna), its ruling planet, and which house that ruler occupies + its dignity.
+  if (lagnaId != null && placements.length) {
+    const houseOf = new Map(placements.map((p) => [p.name, p]));
+    const lords: HouseLord[] = [];
+    for (let h = 1; h <= 12; h++) {
+      const signId = (lagnaId + h - 1) % 12;
+      const lord = signLord(signId);
+      const lp = houseOf.get(lord);
+      lords.push({ house: h, signId, lord, lordHouse: lp?.house ?? 0, lordDignity: lp?.dignity });
+    }
+    out.houseLords = lords;
+  }
 
   // Nakshatra + moon/sun fallback + doshas + yogas from kundli/advanced.
   const adv = s.advanced ?? {};

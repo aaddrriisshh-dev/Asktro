@@ -10,7 +10,7 @@ const FACTS = formatChartFacts({
   name: 'Rahul',
   lagnaSignId: 7, // Scorpio
   moonSignId: 3, // Cancer
-  planets: [{ name: 'Saturn', signId: 9, house: 3, degree: 6.6, retrograde: true, navamsaSignId: 10, vargottama: false }],
+  planets: [{ name: 'Saturn', signId: 9, house: 3, degree: 6.6, retrograde: true, navamsaSignId: 10, vargottama: false, aspectsHouses: [5, 9, 12] }],
   yogas: ['Gajakesari Yoga'],
   doshas: [],
 } as ChartData);

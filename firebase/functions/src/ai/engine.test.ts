@@ -163,6 +163,24 @@ describe('extractChartData (real ProKerala shapes)', () => {
     expect(d.yogas).toEqual(['Gajakesari Yoga', 'Raja Yoga']);
     expect(d.doshas ?? []).not.toContain('Mangal Dosha');
   });
+
+  it('computes dignity + aspects per planet', () => {
+    const byName = Object.fromEntries((d.planets ?? []).map((p) => [p.name, p]));
+    expect(byName['Saturn'].dignity).toBe('own sign'); // Capricorn
+    expect(byName['Saturn'].strong).toBe(true);
+    // Saturn in the 2nd → aspects 4th, 8th, 11th (graha drishti 3/7/10).
+    expect(byName['Saturn'].aspectsHouses).toEqual([4, 8, 11]);
+  });
+
+  it('computes house lords and where the ruler sits', () => {
+    const byHouse = Object.fromEntries((d.houseLords ?? []).map((h) => [h.house, h]));
+    // Lagna Sagittarius: 7th house is Gemini, ruled by Mercury (in Leo = 9th house).
+    expect(byHouse[7].lord).toBe('Mercury');
+    expect(byHouse[7].lordHouse).toBe(9);
+    // 1st house Sagittarius, ruled by Jupiter (in Leo = 9th).
+    expect(byHouse[1].lord).toBe('Jupiter');
+    expect(byHouse[1].lordHouse).toBe(9);
+  });
 });
 
 describe('formatChartFacts', () => {
