@@ -14,6 +14,35 @@ const rupees = (paise: unknown) => (typeof paise === 'number' ? paise / 100 : nu
 
 type BoxAction = 'view' | 'edit' | 'approve';
 
+/** Round profile avatar with an initials fallback (recognise faces at a glance). */
+function Avatar({ photo, name }: { photo?: unknown; name?: unknown }) {
+  const [err, setErr] = useState(false);
+  const url = typeof photo === 'string' && photo.trim().length > 0 ? photo.trim() : '';
+  const initials =
+    String(name ?? '').trim().split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase() || '?';
+  if (url && !err) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={url}
+        alt=""
+        width={40}
+        height={40}
+        onError={() => setErr(true)}
+        style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flex: 'none', background: '#efeaf7' }}
+      />
+    );
+  }
+  return (
+    <span
+      style={{ width: 40, height: 40, borderRadius: '50%', flex: 'none', display: 'grid', placeItems: 'center', background: '#ece7f8', color: '#6a5acd', fontWeight: 700, fontSize: 14 }}
+      aria-hidden
+    >
+      {initials}
+    </span>
+  );
+}
+
 function AstroBox({
   title, icon, accent, list, isSuper, busy, actions, showLiveDot, onStatus, onEditRate,
 }: {
@@ -54,16 +83,19 @@ function AstroBox({
           const st = (a.accountStatus ?? 'pending') as string;
           return (
             <div key={a.id} className="custrow">
-              <div style={{ minWidth: 0 }}>
-                <span className="nm">
-                  {showLiveDot && a.onlineStatus ? <span className="live-dot" style={{ marginRight: 6 }} /> : null}
-                  {a.name || 'Unnamed'}
-                  {a.verified ? ' ✓' : ''}
-                  {a.isAI ? <span className="badge purple" style={{ marginLeft: 6, fontSize: 10 }}>AI</span> : null}
-                </span>
-                <span className="ph">
-                  {rate != null ? `₹${rate}/min` : 'default rate'} · <span className={`badge ${STATUS_COLORS[st] ?? ''}`} style={{ fontSize: 10 }}>{st}</span>
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <Avatar photo={a.profilePhoto} name={a.name} />
+                <div style={{ minWidth: 0 }}>
+                  <span className="nm">
+                    {showLiveDot && a.onlineStatus ? <span className="live-dot" style={{ marginRight: 6 }} /> : null}
+                    {a.name || 'Unnamed'}
+                    {a.verified ? ' ✓' : ''}
+                    {a.isAI ? <span className="badge purple" style={{ marginLeft: 6, fontSize: 10 }}>AI</span> : null}
+                  </span>
+                  <span className="ph">
+                    {rate != null ? `₹${rate}/min` : 'default rate'} · <span className={`badge ${STATUS_COLORS[st] ?? ''}`} style={{ fontSize: 10 }}>{st}</span>
+                  </span>
+                </div>
               </div>
               <div className="custrow-right" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {actions.includes('view') && <Link href={`/astrologers/${a.id}`} className="btn sm secondary">View</Link>}
