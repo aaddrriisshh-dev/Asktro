@@ -40,7 +40,7 @@ export { generateAgoraToken } from './agora/token';
 export { prokeralaAstrology } from './prokerala/prokerala';
 
 // ---- AI astrologer reply engine ----
-export { onAiChatMessage } from './ai/replyEngine';
+export { onAiChatMessage, onAiConsultationCreated } from './ai/replyEngine';
 export { purchaseKundliMatch } from './astrology/kundliMatch';
 
 // ---- AstroMall store (physical-goods checkout) ----

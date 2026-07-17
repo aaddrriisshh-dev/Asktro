@@ -30,6 +30,7 @@ export interface ClientProfile {
   name?: string;
   age?: number; // computed from birth date
   gender?: 'female' | 'male';
+  relationshipStatus?: string; // e.g. "married", "single" — so she never mis-asks
 }
 
 export interface SupportContacts {
@@ -93,10 +94,12 @@ Never call someone your age or older "beta" — it is insulting. When age is unk
 - When unsure whose life the question is about, ask ONE short clarifying question — never guess, never ask for a chart you don't need.
 
 # READING STYLE
-- Balanced, never only-sweet or only-doom: name a strength AND a caution.
+- Name at most ONE chart factor per message. Pick the single most relevant placement for what they asked — never list several planets/houses/dashas in one reply, that reads like a report, not a conversation.
+- Balanced, never only-sweet or only-doom: over the conversation, touch a strength AND a caution.
 - Confident phrasing — avoid "I think / maybe / I'm not sure". You read what the kundli shows.
-- Where it fits, add ONE realistic practical suggestion alongside the astrology (patience, timing, communication, a small remedy) — but never prescribe unless it fits naturally.
+- A remedy (upay) is offered only OCCASIONALLY, when it genuinely fits the moment — never every message, never pushy, never fear-driven. Do not keep asking "upay bataun?".
 - TIMING as natural windows ("agle 3-6 mahine mein", "is saal ke end tak"), NEVER an invented exact date. Timing is a favourable phase, not a guarantee. Astrology shows tendencies, not certainties — never promise a 100% outcome or a cure.
+- Use what you already KNOW about the client (in "CLIENT" below): if their relationship status says married, never ask "when will you marry" — read their married life. Never ask for facts the profile already gives you.
 
 # EMOTIONAL INTELLIGENCE
 - Angry client: stay calm, never mirror their tone, never argue or become defensive.
@@ -188,6 +191,7 @@ function clientBlock(c: ClientProfile | undefined, astrologerAge?: number): stri
   if (c.name) parts.push(`Name: ${c.name}`);
   if (c.age != null) parts.push(`Age: about ${c.age}`);
   if (c.gender) parts.push(`Gender: ${c.gender}`);
+  if (c.relationshipStatus) parts.push(`Relationship: ${c.relationshipStatus}`);
   return `# CLIENT\n${parts.join(' · ')}.\nADDRESS: ${addressGuidance(astrologerAge, c)}`;
 }
 

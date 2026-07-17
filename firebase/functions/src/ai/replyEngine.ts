@@ -101,6 +101,7 @@ export const onAiChatMessage = onDocumentCreated(
           name: firstName(user.name),
           age: ageFromMs(user.birthDateMs),
           gender: user.gender === 'female' ? 'female' : user.gender === 'male' ? 'male' : undefined,
+          relationshipStatus: str(user.relationshipStatus),
         },
         language: undefined, // auto-mirror per the persona rules
         briefing,
@@ -140,6 +141,48 @@ export const onAiChatMessage = onDocumentCreated(
       });
     } catch (e) {
       logger.error('onAiChatMessage failed', {
+        consultationId,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  },
+);
+
+/**
+ * Proactive opening greeting — fires when an AI chat consultation is created, so
+ * the astrologer speaks FIRST (the opening ritual) instead of the user staring at
+ * silence. Template-based: instant + free (no chart/LLM needed); the chart builds
+ * on the user's first real question. Only for AI chat consultations, once each.
+ */
+export const onAiConsultationCreated = onDocumentCreated(
+  { document: 'consultations/{consultationId}' },
+  async (event) => {
+    const c = event.data?.data();
+    const consultationId = event.params.consultationId;
+    if (!c || c.type !== 'chat') return;
+    try {
+      const [aSnap, uSnap] = await Promise.all([
+        db.collection('astrologers').doc(c.astrologerId).get(),
+        db.collection('users').doc(c.customerId).get(),
+      ]);
+      const astro = aSnap.data();
+      if (!astro || astro.isAI !== true) return;
+      const user = uSnap.data() ?? {};
+      const name = firstName(user.name);
+      const looking = astro.gender === 'male' ? 'dekh raha hoon' : 'dekh rahi hoon';
+      const hi = name ? `Namaste ${name} ji` : 'Namaste';
+      const greeting = `${hi}! Aapki kundli mere saamne hai, ${looking}. Kahiye, aaj kis baare mein jaanna chahte hain?`;
+      await db.collection('consultations').doc(consultationId).collection('messages').add({
+        senderId: c.astrologerId,
+        type: 'text',
+        text: greeting,
+        timestamp: FieldValue.serverTimestamp(),
+        delivered: true,
+        seen: false,
+        aiGenerated: true,
+      });
+    } catch (e) {
+      logger.error('onAiConsultationCreated failed', {
         consultationId,
         error: e instanceof Error ? e.message : String(e),
       });
