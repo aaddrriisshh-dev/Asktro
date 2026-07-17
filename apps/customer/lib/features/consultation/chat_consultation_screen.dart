@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -14,23 +16,45 @@ import 'consultation_header.dart';
 import 'consultation_end.dart';
 import 'chat_kundli_card.dart';
 
-/// Whether the astrologer is currently typing (their typing doc exists & fresh).
+/// How long a `typing:true` flag stays "live" without a refresh. Covers the AI's
+/// compose time (generation + human typing-delay) while still auto-clearing if a
+/// peer ever sets `typing:true` and vanishes without clearing it.
+const _typingStaleAfter = Duration(seconds: 20);
+
+/// Whether the peer is currently typing. TRUE only when their typing doc has
+/// `typing == true` AND the flag is still fresh. A 2s ticker re-evaluates so a
+/// stale flag clears on its own — the Firestore snapshot alone can't, because it
+/// only fires when the doc changes, never when a timestamp simply ages out.
 final _peerTypingProvider = StreamProvider.autoDispose.family<bool, ({String id, String peerId})>((ref, arg) {
-  return ref
+  final controller = StreamController<bool>();
+  var typingFlag = false;
+  DateTime? at;
+
+  bool live() => typingFlag && at != null && DateTime.now().difference(at!) < _typingStaleAfter;
+  void emit() { if (!controller.isClosed) controller.add(live()); }
+
+  final sub = ref
       .watch(firestoreProvider)
       .collection('consultations')
       .doc(arg.id)
       .collection('typing')
       .doc(arg.peerId)
       .snapshots()
-      .map((d) {
-    if (!d.exists) return false;
-    final ts = d.data()?['at'];
-    if (ts is Timestamp) {
-      return DateTime.now().difference(ts.toDate()).inSeconds < 6;
-    }
-    return d.data()?['typing'] == true;
+      .listen((d) {
+    final data = d.data();
+    typingFlag = d.exists && data?['typing'] == true;
+    final ts = data?['at'];
+    at = ts is Timestamp ? ts.toDate() : (typingFlag ? DateTime.now() : null);
+    emit();
   });
+
+  final ticker = Timer.periodic(const Duration(seconds: 2), (_) => emit());
+  ref.onDispose(() {
+    sub.cancel();
+    ticker.cancel();
+    controller.close();
+  });
+  return controller.stream;
 });
 
 final _messagesProvider =
@@ -621,12 +645,11 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                           ),
                   ),
                   if (peerTyping)
-                    Padding(
-                      padding: const EdgeInsets.only(left: AppSpacing.xl, bottom: AppSpacing.xs),
+                    const Padding(
+                      padding: EdgeInsets.only(left: AppSpacing.lg, bottom: AppSpacing.xs),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Text('${widget.astrologer.name} is typing…',
-                            style: AppTypography.caption.copyWith(fontStyle: FontStyle.italic),),
+                        child: _TypingBubble(),
                       ),
                     ),
                 ],
@@ -645,25 +668,130 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   }
 }
 
-/// A centered, muted status line (e.g. "Astrologer is joining…", "<name> has
-/// joined") — never a chat bubble, never attributed to a sender.
+/// A centered system status line. The "<name> has joined" line renders as a
+/// green confirmation pill with a check — so the user clearly sees their
+/// astrologer has arrived — while "joining…" stays a subtle grey line. Never a
+/// chat bubble, never attributed to a sender.
 class _SystemLine extends StatelessWidget {
   const _SystemLine({required this.text});
   final String text;
 
+  static const _joinedGreen = Color(0xFF2E7D32);
+  static const _joinedBg = Color(0xFFE6F4EA);
+
   @override
   Widget build(BuildContext context) {
-    if (text.trim().isEmpty) return const SizedBox.shrink();
+    final t = text.trim();
+    if (t.isEmpty) return const SizedBox.shrink();
+    // "joined" (arrived) → confirmation; "joining…" → still subtle grey.
+    final joined = t.toLowerCase().contains('joined');
+    if (!joined) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Center(
+          child: Text(
+            t,
+            textAlign: TextAlign.center,
+            style: AppTypography.caption.copyWith(
+              color: AppColors.textSecondary,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Center(
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: AppTypography.caption.copyWith(
-            color: AppColors.textSecondary,
-            fontStyle: FontStyle.italic,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: _joinedBg,
+            borderRadius: BorderRadius.circular(999),
           ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle_rounded, size: 15, color: _joinedGreen),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  t,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.caption.copyWith(
+                    color: _joinedGreen,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A left-aligned "she's typing" chat bubble with three jumping dots (the live
+/// typing cue). Shown only while the peer-typing flag is genuinely live.
+class _TypingBubble extends StatefulWidget {
+  const _TypingBubble();
+
+  @override
+  State<_TypingBubble> createState() => _TypingBubbleState();
+}
+
+class _TypingBubbleState extends State<_TypingBubble> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+          bottomLeft: Radius.circular(4),
+          bottomRight: Radius.circular(16),
+        ),
+        boxShadow: AppShadows.soft,
+      ),
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (i) {
+            // Each dot leads the next by a third of the cycle, so the crest
+            // travels left→right like a wave.
+            final phase = (_c.value - i * 0.2) % 1.0;
+            final lift = (phase < 0.5 ? phase : 1 - phase) * 2; // 0→1→0
+            return Padding(
+              padding: EdgeInsets.only(right: i == 2 ? 0 : 5),
+              child: Transform.translate(
+                offset: Offset(0, -3 * lift),
+                child: Opacity(
+                  opacity: 0.4 + 0.6 * lift,
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: AppColors.textSecondary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
         ),
       ),
     );

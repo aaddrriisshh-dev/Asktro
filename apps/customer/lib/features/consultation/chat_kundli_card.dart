@@ -31,7 +31,7 @@ class _ChatKundliCardState extends ConsumerState<ChatKundliCard> {
   }
 
   void _ensureStarted() {
-    if (_future != null) return;
+    if (_future != null || !mounted) return;
     final profile = ref.read(myProfileProvider).valueOrNull;
     final repo = ref.read(prokeralaRepositoryProvider);
     if (profile != null && repo != null) {
@@ -41,6 +41,12 @@ class _ChatKundliCardState extends ConsumerState<ChatKundliCard> {
 
   @override
   Widget build(BuildContext context) {
+    // Start the chart fetch the moment the profile resolves — the first-frame
+    // read in initState often runs before the profile has loaded, which used to
+    // leave the spinner running until the user toggled Hide/View by hand.
+    if (_future == null && ref.watch(myProfileProvider).valueOrNull != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ensureStarted());
+    }
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
