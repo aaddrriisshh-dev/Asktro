@@ -46,7 +46,7 @@ export const MAX_REPAIR_ATTEMPTS = 1;
  * reading. Portal-overridable later; kept short + human. Deliberately says the
  * astrologer needs a closer look — which is what a real reader does.
  */
-export const REFUSAL_MESSAGE = 'Ek minute… aapki kundli thoda aur dhyaan se dekhta hoon 🙏';
+export const REFUSAL_MESSAGE = 'Ek minute, aapki kundli thoda aur dhyaan se dekhta hoon.';
 
 /**
  * Decide what to do with a freshly generated reply.
