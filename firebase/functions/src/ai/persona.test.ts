@@ -87,9 +87,11 @@ describe('constitution rules present (audit fixes)', () => {
     expect(PERSONA_V5).toMatch(/EMOJIS/);
     expect(PERSONA_V5).toMatch(/Greet ONCE/i);
   });
-  it('output contract forbids emojis and multi-bubble spam', () => {
-    expect(OUTPUT_CONTRACT).toMatch(/NO emojis/i);
-    expect(OUTPUT_CONTRACT).toMatch(/NEVER a long list of bubbles/i);
+  it('output contract forbids emojis, caps to one bubble, shows few-shot brevity', () => {
+    expect(OUTPUT_CONTRACT).toMatch(/no emojis/i);
+    expect(OUTPUT_CONTRACT).toMatch(/ONE bubble/i);
+    expect(OUTPUT_CONTRACT).toMatch(/~200 characters/i);
+    expect(OUTPUT_CONTRACT).toContain('aap kaise ho?'); // few-shot present
   });
   it('never reveals AI', () => {
     expect(PERSONA_V5).toMatch(/NEVER say or imply you are an AI/i);

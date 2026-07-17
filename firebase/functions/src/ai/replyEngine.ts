@@ -111,9 +111,12 @@ export const onAiChatMessage = onDocumentCreated(
       const envelope = await generateGrounded(system, history, text, briefing, apiKey, configModels);
       if (!envelope) return;
 
-      // 8) Write the reply bubble(s) as the astrologer.
-      for (const bubble of envelope.messages) {
-        if (!bubble.trim()) continue;
+      // 8) Write EXACTLY ONE bubble — the hard "one beat per turn" guarantee.
+      // Never trust the model not to burst; take only its first line, hold the
+      // rest for the next turn (that IS the gradual reveal). A too-long line is
+      // trimmed to the first ~2 sentences so it stays a WhatsApp-length message.
+      const bubble = trimToBeat(envelope.messages.find((m) => m.trim()) ?? '');
+      if (bubble) {
         await db.collection('consultations').doc(consultationId).collection('messages').add({
           senderId: c.astrologerId,
           type: 'text',
@@ -123,6 +126,9 @@ export const onAiChatMessage = onDocumentCreated(
           seen: false,
           aiGenerated: true,
         });
+      }
+      if (envelope.messages.filter((m) => m.trim()).length > 1) {
+        logger.info('onAiChatMessage: model bursted, sent only first bubble', { consultationId });
       }
       logger.info('onAiChatMessage: replied', {
         consultationId,
@@ -257,6 +263,23 @@ function ageFromMs(v: unknown): number | undefined {
 }
 function two(n: number): string {
   return String(n).padStart(2, '0');
+}
+/** Safety net: keep a bubble to ~2 sentences / WhatsApp length even if the model runs long. */
+function trimToBeat(text: string): string {
+  const t = text.trim();
+  if (t.length <= 240) return t;
+  const sentences = t.split(/(?<=[.!?।])\s+/).filter(Boolean);
+  const out: string[] = [];
+  let len = 0;
+  for (const s of sentences) {
+    if (out.length >= 2) break;
+    if (out.length >= 1 && len + s.length > 260) break;
+    out.push(s);
+    len += s.length + 1;
+  }
+  let res = out.join(' ').trim() || t;
+  if (res.length > 300) res = res.slice(0, 300).replace(/\s+\S*$/, '').trim();
+  return res;
 }
 /** Birth ISO in IST from an epoch-ms date + optional HH:mm. Matches the app. */
 function birthIso(birthMs: number, birthTime: string | undefined, timeKnown: boolean): string {
