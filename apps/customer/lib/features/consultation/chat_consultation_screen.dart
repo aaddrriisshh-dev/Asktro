@@ -147,6 +147,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                         itemCount: messages.length,
                         itemBuilder: (_, i) {
                           final m = messages[i];
+                          if (m['type'] == 'system') {
+                            return _SystemLine(text: (m['text'] ?? '') as String);
+                          }
                           final isRemedy = m['type'] == 'remedy';
                           return _Bubble(
                             text: (m['text'] ?? '') as String,
@@ -601,6 +604,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                             itemCount: messages.length,
                             itemBuilder: (_, i) {
                               final m = messages[i];
+                              if (m['type'] == 'system') {
+                                return _SystemLine(text: (m['text'] ?? '') as String);
+                              }
                               final mine = m['senderId'] == uid;
                               final isRemedy = m['type'] == 'remedy';
                               return _Bubble(
@@ -633,6 +639,31 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
               onChanged: (v) => _setTyping(v.trim().isNotEmpty),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A centered, muted status line (e.g. "Astrologer is joining…", "<name> has
+/// joined") — never a chat bubble, never attributed to a sender.
+class _SystemLine extends StatelessWidget {
+  const _SystemLine({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Center(
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: AppTypography.caption.copyWith(
+            color: AppColors.textSecondary,
+            fontStyle: FontStyle.italic,
+          ),
         ),
       ),
     );

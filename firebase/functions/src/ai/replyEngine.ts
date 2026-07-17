@@ -30,6 +30,14 @@ const IST_MS = 5.5 * 3600 * 1000;
 const HISTORY_TURNS = 10;
 const CHART_CACHE = 'chart'; // consultations/{id}/ai/{CHART_CACHE}
 
+// Pacing knobs (portal-tunable later). Kept human, never obviously padded.
+const DEBOUNCE_MS = 3500; // wait for the user's burst to settle before replying
+const JOIN_DELAY_MS = 2500; // "joining…" → "<name> joined"
+const GREETING_GAP_MS = 2500; // typing dots before the opening greeting
+const TYPE_PER_CHAR_MS = 55; // human typing speed
+const TYPE_FLOOR_MS = 1500;
+const TYPE_CEIL_MS = 9000;
+
 export const onAiChatMessage = onDocumentCreated(
   {
     document: 'consultations/{consultationId}/messages/{messageId}',
@@ -41,6 +49,7 @@ export const onAiChatMessage = onDocumentCreated(
     const msg = snap.data() ?? {};
     const consultationId = event.params.consultationId;
 
+    let typingAstroId: string | undefined; // to clear the typing dots on error
     try {
       const text = String(msg.text ?? '').trim();
       const senderId = msg.senderId as string | undefined;
@@ -54,12 +63,20 @@ export const onAiChatMessage = onDocumentCreated(
       // LOOP GUARD: only reply to the customer's own messages.
       if (senderId !== c.customerId) return;
 
+      // DEBOUNCE: wait for the user's burst to settle, then only the LAST message
+      // proceeds (earlier ones bail) — so 2-3 rapid messages are read together and
+      // answered once, never one-by-one.
+      await sleep(DEBOUNCE_MS);
+      const latestId = await latestMessageId(consultationId);
+      if (latestId && latestId !== snap.id) return; // a newer message superseded us
+
       const [aSnap, uSnap] = await Promise.all([
         db.collection('astrologers').doc(c.astrologerId).get(),
         db.collection('users').doc(c.customerId).get(),
       ]);
       const astro = aSnap.data();
       if (!astro || astro.isAI !== true) return; // only AI personas auto-reply
+      typingAstroId = c.astrologerId as string;
       const user = uSnap.data() ?? {};
       const clientName = firstName(user.name);
 
@@ -80,12 +97,14 @@ export const onAiChatMessage = onDocumentCreated(
         return; // Stage 1: silently skip; a "share your birth details" flow comes later
       }
 
-      // 2) History + opening detection.
-      const history = await loadHistory(consultationId, c.astrologerId, snap.id);
+      // 2) Aggregate the settled burst + rolling history (system/join messages
+      // are excluded from context).
+      const { burst, history } = await loadBurstAndHistory(consultationId, c.customerId, c.astrologerId);
+      const userText = burst || text;
       const isSessionOpening = !history.some((t) => t.role === 'model');
 
       // 3) Intent → 4) slice → 5) persona system prompt.
-      const intent = classifyIntentHeuristic(text);
+      const intent = classifyIntentHeuristic(userText);
       const briefing = assembleSlice(chart, {
         themes: intent.themes,
         subIntent: intent.subIntent,
@@ -109,15 +128,23 @@ export const onAiChatMessage = onDocumentCreated(
         isSessionOpening,
       });
 
-      // 6) Reading model + 7) grounding guard (one repair, then refuse).
-      const envelope = await generateGrounded(system, history, text, briefing, apiKey, configModels);
-      if (!envelope) return;
+      // 6) Show the typing indicator (dots), generate, then a human typing-speed
+      // delay so the bubble lands like a person typed it — never instantly.
+      await setTyping(consultationId, c.astrologerId, true);
+      const envelope = await generateGrounded(system, history, userText, briefing, apiKey, configModels);
+      if (!envelope) {
+        await setTyping(consultationId, c.astrologerId, false);
+        return;
+      }
 
       // 8) One bubble — the hard "one beat per turn" guarantee. Strip a leading
       // "<Name> ji," so she doesn't open every reply with the client's name (a
       // robotic tell), and trim a runaway line to WhatsApp length.
       const consultationRef = db.collection('consultations').doc(consultationId);
       const bubble = trimToBeat(stripLeadingName(envelope.messages.find((m) => m.trim()) ?? '', clientName));
+
+      // Human typing-speed delay (dots keep showing), proportional to length.
+      await sleep(typingDelayMs(bubble));
 
       // Abuse toward the astrologer → two warnings, then end the session.
       if (envelope.abuse) {
@@ -126,6 +153,7 @@ export const onAiChatMessage = onDocumentCreated(
         if (strikes >= 3) {
           await writeAstro(consultationId, c.astrologerId, 'Main is tarah ki baat-cheet aage nahi kar sakti. Yeh session yahin samapt kar rahi hoon, apna dhyaan rakhiye.');
           await consultationRef.set({ status: 'ended', endTime: FieldValue.serverTimestamp(), endReason: 'abuse', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+          await setTyping(consultationId, c.astrologerId, false);
           logger.info('onAiChatMessage: ended session for repeated abuse', { consultationId, strikes });
           return;
         }
@@ -133,6 +161,7 @@ export const onAiChatMessage = onDocumentCreated(
       }
 
       if (bubble) await writeAstro(consultationId, c.astrologerId, bubble);
+      await setTyping(consultationId, c.astrologerId, false);
       if (envelope.messages.filter((m) => m.trim()).length > 1) {
         logger.info('onAiChatMessage: model bursted, sent only first bubble', { consultationId });
       }
@@ -145,6 +174,7 @@ export const onAiChatMessage = onDocumentCreated(
         bubbles: envelope.messages.length,
       });
     } catch (e) {
+      if (typingAstroId) await setTyping(consultationId, typingAstroId, false);
       logger.error('onAiChatMessage failed', {
         consultationId,
         error: e instanceof Error ? e.message : String(e),
@@ -166,26 +196,19 @@ export const onAiConsultationCreated = onDocumentCreated(
     const consultationId = event.params.consultationId;
     if (!c || c.type !== 'chat') return;
     try {
-      const [aSnap, uSnap] = await Promise.all([
-        db.collection('astrologers').doc(c.astrologerId).get(),
-        db.collection('users').doc(c.customerId).get(),
-      ]);
-      const astro = aSnap.data();
+      const astro = (await db.collection('astrologers').doc(c.astrologerId).get()).data();
       if (!astro || astro.isAI !== true) return;
-      const user = uSnap.data() ?? {};
-      const name = firstName(user.name);
-      const looking = astro.gender === 'male' ? 'dekh raha hoon' : 'dekh rahi hoon';
-      const hi = name ? `Namaste ${name} ji` : 'Namaste';
-      const greeting = `${hi}! Aapki kundli mere saamne hai, ${looking}. Kahiye, aaj kis baare mein jaanna chahte hain?`;
-      await db.collection('consultations').doc(consultationId).collection('messages').add({
-        senderId: c.astrologerId,
-        type: 'text',
-        text: greeting,
-        timestamp: FieldValue.serverTimestamp(),
-        delivered: true,
-        seen: false,
-        aiGenerated: true,
-      });
+      const displayName = String(astro.name ?? astro.displayName ?? 'Acharya');
+      // Opening ritual: "joining…" → "<name> has joined" → typing dots → a SHORT
+      // greeting. Never reveals it's AI (name only). All free — billing starts on
+      // the user's first reply.
+      await writeSystem(consultationId, 'Astrologer is joining…');
+      await sleep(JOIN_DELAY_MS);
+      await writeSystem(consultationId, `${displayName} has joined`);
+      await setTyping(consultationId, c.astrologerId, true);
+      await sleep(GREETING_GAP_MS);
+      await writeAstro(consultationId, c.astrologerId, 'Namaste ji! Kaise hain aap?');
+      await setTyping(consultationId, c.astrologerId, false);
     } catch (e) {
       logger.error('onAiConsultationCreated failed', {
         consultationId,
@@ -266,29 +289,84 @@ async function generateGrounded(
 
 // ---- history ------------------------------------------------------------
 
-async function loadHistory(
-  consultationId: string,
-  astrologerId: string,
-  currentMsgId: string,
-): Promise<LlmTurn[]> {
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+function typingDelayMs(text: string): number {
+  return Math.min(Math.max(text.length * TYPE_PER_CHAR_MS, TYPE_FLOOR_MS), TYPE_CEIL_MS);
+}
+/** Flip the astrologer's typing indicator (the app already renders the dots). */
+async function setTyping(consultationId: string, typerId: string, typing: boolean): Promise<void> {
+  await db
+    .collection('consultations')
+    .doc(consultationId)
+    .collection('typing')
+    .doc(typerId)
+    .set({ typing, at: FieldValue.serverTimestamp() }, { merge: true })
+    .catch(() => {});
+}
+/** A centered system status line (joining / joined). Excluded from LLM context. */
+async function writeSystem(consultationId: string, text: string): Promise<void> {
+  await db.collection('consultations').doc(consultationId).collection('messages').add({
+    senderId: 'system',
+    type: 'system',
+    text,
+    timestamp: FieldValue.serverTimestamp(),
+    delivered: true,
+    seen: true,
+  });
+}
+/** Id of the newest message — used to bail if a newer message superseded us. */
+async function latestMessageId(consultationId: string): Promise<string | null> {
   const q = await db
     .collection('consultations')
     .doc(consultationId)
     .collection('messages')
     .orderBy('timestamp', 'desc')
-    .limit(HISTORY_TURNS + 4)
+    .limit(1)
     .get();
-  const turns: LlmTurn[] = [];
-  for (const d of q.docs) {
-    if (d.id === currentMsgId) continue;
-    const m = d.data();
+  return q.docs[0]?.id ?? null;
+}
+/**
+ * Aggregate the user's settled burst (the trailing run of their own messages
+ * since the last astrologer turn) + the rolling history before it. Image/system
+ * messages are excluded from context.
+ */
+async function loadBurstAndHistory(
+  consultationId: string,
+  customerId: string,
+  astrologerId: string,
+): Promise<{ burst: string; history: LlmTurn[] }> {
+  const q = await db
+    .collection('consultations')
+    .doc(consultationId)
+    .collection('messages')
+    .orderBy('timestamp', 'desc')
+    .limit(HISTORY_TURNS + 8)
+    .get();
+  const docs = q.docs.map((d) => d.data() as Record<string, unknown>);
+  const usable = (m: Record<string, unknown>): string | null => {
     const t = String(m.text ?? '').trim();
-    if (!t || m.type === 'image') continue;
-    const role: LlmTurn['role'] = m.senderId === astrologerId ? 'model' : 'user';
-    turns.push({ role, text: t });
-    if (turns.length >= HISTORY_TURNS) break;
+    return t && m.type !== 'image' && m.type !== 'system' ? t : null;
+  };
+  // Trailing run of the customer's own messages (newest-first) = settled burst.
+  const burstParts: string[] = [];
+  let i = 0;
+  for (; i < docs.length; i++) {
+    const t = usable(docs[i]);
+    if (docs[i].senderId === customerId && t) burstParts.push(t);
+    else break;
   }
-  return turns.reverse(); // chronological
+  const burst = burstParts.reverse().join('\n').trim();
+  // Everything older = rolling history (chronological).
+  const history: LlmTurn[] = [];
+  for (let j = i; j < docs.length && history.length < HISTORY_TURNS; j++) {
+    const t = usable(docs[j]);
+    if (!t) continue;
+    history.push({ role: docs[j].senderId === astrologerId ? 'model' : 'user', text: t });
+  }
+  history.reverse();
+  return { burst, history };
 }
 
 // ---- helpers ------------------------------------------------------------
