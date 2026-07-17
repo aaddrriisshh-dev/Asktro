@@ -60,15 +60,47 @@ conversation the user never suspects is AI. Zero-bug bar.
 honest "mujhe aur dekhna hoga" instead of a hallucination.
 
 ## Chart-facts format (Prokerala → labeled facts)
-Assemble once per person, cache, feed as plain labeled text, e.g.:
-```
-LAGNA: Vrishchik (Scorpio)
-MOON: Karka (Cancer), 4th house
-CURRENT MAHADASHA: Shukra (until 2027-03); ANTARDASHA: Budh (until 2026-08)
-CURRENT TRANSIT: Shani in 10th house (career), Guru in 2nd
-YOGAS PRESENT: Gajakesari; DOSHAS: none detected
-```
+Assemble once per person, cache, feed as plain labeled text (built by
+`src/ai/chartFacts.ts`, verified against real data — see below).
 Rule fed to the model: *only name factors that appear here; verify before naming.*
+
+### ProKerala data mapping — VERIFIED against a real chart (do not re-guess)
+Confirmed by pulling a real kundli (founder's, 21-09-1991). Three endpoints, all
+via the internal `prokeralaGet()` (bypasses the client proxy whitelist):
+- **`v2/astrology/planet-position` @ BIRTH datetime** → natal grahas. Each: `name`,
+  `is_retrograde`, `degree`, `rasi:{id,name,lord}`, and `position`. **10 entries =
+  9 grahas + `Ascendant`** (the Ascendant entry gives the Lagna sign).
+- **`v2/astrology/planet-position` @ CURRENT datetime** → **gochar** (transits).
+  Same shape; the ONLY difference is the datetime. This is how we get "what's
+  happening now" + Sade Sati.
+- **`v2/astrology/kundli/advanced`** → `nakshatra_details`, `mangal_dosha`,
+  `yoga_details[].yoga_list[]` (`has_yoga`), and the full `dasha_periods` tree
+  (maha→antar→pratyantar, each with `start`/`end` ISO). ~246 KB.
+
+**⚠️ THE `position` TRAP (root-cause bug class — a WhatsApp failure mode):**
+`position` is the sign's NATURAL zodiac number (Aries=1 … Pisces=12), **NOT the
+house from the Lagna.** Proof: the Ascendant reports `position:9` (Sagittarius)
+when its house is by definition 1. Houses MUST be computed:
+`house = ((signId − lagnaSignId + 12) % 12) + 1` (whole-sign; rasi `id` is
+0-indexed). Trusting `position` as the house makes every placement wrong.
+
+- **Dasha:** resolve the active period by walking the tree and comparing
+  `start`/`end` to now (backend owns the timing math — never the LLM).
+- **Gochar houses** counted from natal Moon (`houseFromMoon`); Sade Sati = Saturn
+  in the 12th/1st/2nd from Moon (rising/peak/setting phase).
+
+Actual rendered output for the real chart (this is what the model reads):
+```
+LAGNA (Ascendant): Sagittarius (Dhanu)
+MOON (rashi): Aquarius (Kumbha), 3rd house — Nakshatra Dhanishta pada 4
+PLANETS (natal — house counted from Lagna):
+- Saturn: Capricorn (Makara), 2nd house, 6.6° (retrograde)   [NOT house 10]
+- Sun/Mars: Virgo, 10th; Mercury/Jupiter: Leo, 9th; Venus: Cancer, 8th; …
+CURRENT DASHA: Jupiter (Guru) → Rahu → Venus
+GOCHAR (from natal Moon): Saturn Pisces 2nd → SADE SATI ACTIVE (final phase); …
+YOGAS PRESENT: Gajakesari, Raja Yoga, Anapha, Vasi, Daridra
+DOSHAS: none detected
+```
 
 ## Provider strategy (model-agnostic) — 3-tier routing = the cost lever
 One adapter interface; each turn routes to the CHEAPEST model that can do the job,
