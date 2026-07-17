@@ -38,10 +38,12 @@ export const SIGN_BY_ID: Array<{ en: string; sa: string }> = [
 export interface PlanetPlacement {
   name: string; // "Saturn"
   vedicName?: string; // "Shani"
-  signId: number; // 0-indexed rasi id
+  signId: number; // 0-indexed rasi id (D1 Rasi chart)
   house: number; // 1..12, computed from the Lagna (never the `position` field)
   degree: number; // degree within the sign
   retrograde: boolean;
+  navamsaSignId: number; // 0-indexed rasi id in the D9 Navamsa chart
+  vargottama: boolean; // same sign in D1 and D9 → strong
 }
 
 export interface DashaLevel {
@@ -60,6 +62,7 @@ export interface Transit {
 export interface ChartData {
   name?: string;
   lagnaSignId?: number;
+  navamsaLagnaSignId?: number; // D9 ascendant sign
   moonSignId?: number;
   sunSignId?: number;
   nakshatra?: string;
@@ -102,6 +105,17 @@ export function formatChartFacts(d: ChartData): string {
         `- ${p.name}${vn}: ${sign(p.signId)}, ${ordinal(p.house)} house, ${p.degree.toFixed(1)}°${p.retrograde ? ' (retrograde)' : ''}`,
       );
     }
+
+    // Navamsa (D9) — planetary strength + marriage. Vargottama planets flagged.
+    L.push('');
+    const d9Lagna = d.navamsaLagnaSignId != null ? `D9 Lagna: ${sign(d.navamsaLagnaSignId)}` : '';
+    L.push(`NAVAMSA (D9 — strength & marriage). ${d9Lagna}`.trim());
+    for (const p of d.planets) {
+      L.push(`- ${p.name}: ${sign(p.navamsaSignId)}${p.vargottama ? ' [VARGOTTAMA — strong]' : ''}`);
+    }
+    const vargLagna =
+      d.navamsaLagnaSignId != null && d.lagnaSignId != null && d.navamsaLagnaSignId === d.lagnaSignId;
+    if (vargLagna) L.push('- Ascendant: [VARGOTTAMA Lagna — strong]');
   }
 
   const dashaBits: string[] = [];
@@ -150,6 +164,18 @@ export function houseFrom(signId: number, fromSignId: number): number {
   return ((signId - fromSignId + 12) % 12) + 1;
 }
 
+/**
+ * Navamsa (D9) sign for a point at absolute longitude (0..360). Each sign's 30°
+ * splits into 9 navamsas of 3°20′; the continuous formula floor(L / (30/9)) % 12
+ * is provably equivalent to the Parashari movable/fixed/dual starting rules for
+ * every sign type. Pure math — no interpretation, no LLM. `signId` is the D1
+ * rasi id (0-indexed), `degree` the position within that sign.
+ */
+export function navamsaSignId(signId: number, degree: number): number {
+  const absLongitude = signId * 30 + degree;
+  return Math.floor(absLongitude / (30 / 9)) % 12;
+}
+
 export interface ProkeralaSources {
   name?: string;
   /** planet_position array from planet-position @ BIRTH datetime. */
@@ -173,22 +199,30 @@ export function extractChartData(s: ProkeralaSources): ChartData {
 
   const asc = natal.find((p) => nameOf(p) === 'Ascendant' || nameOf(p) === 'Lagna');
   const lagnaId = rasiId(asc);
-  if (lagnaId != null) out.lagnaSignId = lagnaId;
+  if (lagnaId != null) {
+    out.lagnaSignId = lagnaId;
+    out.navamsaLagnaSignId = navamsaSignId(lagnaId, numOf(asObj(asc)?.['degree']) ?? 0);
+  }
 
-  // Natal planets (exclude the Ascendant marker) with houses from the Lagna.
+  // Natal planets (exclude the Ascendant marker) with houses from the Lagna and
+  // their D9 Navamsa sign (+ Vargottama when D1 and D9 signs match).
   const placements: PlanetPlacement[] = [];
   for (const p of natal) {
     const nm = nameOf(p);
     if (!nm || nm === 'Ascendant' || nm === 'Lagna') continue;
     const sid = rasiId(p);
     if (sid == null) continue;
+    const deg = numOf(asObj(p)?.['degree']) ?? 0;
+    const navId = navamsaSignId(sid, deg);
     placements.push({
       name: nm,
       vedicName: vedicNameOf(p),
       signId: sid,
       house: lagnaId != null ? houseFrom(sid, lagnaId) : 0,
-      degree: numOf(asObj(p)?.['degree']) ?? 0,
+      degree: deg,
       retrograde: asObj(p)?.['is_retrograde'] === true,
+      navamsaSignId: navId,
+      vargottama: navId === sid,
     });
     if (nm === 'Moon') out.moonSignId = sid;
     if (nm === 'Sun') out.sunSignId = sid;

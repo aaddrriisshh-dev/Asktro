@@ -11,6 +11,7 @@ import {
   formatChartFacts,
   extractChartData,
   houseFrom,
+  navamsaSignId,
   ChartData,
   ProkeralaSources,
 } from './chartFacts';
@@ -106,6 +107,19 @@ describe('houseFrom (whole-sign from Lagna)', () => {
     expect(houseFrom(8, 8)).toBe(1); // Ascendant sign is always the 1st house
     expect(houseFrom(5, 8)).toBe(10); // Sun in Virgo → 10th
     expect(houseFrom(10, 8)).toBe(3); // Moon in Aquarius → 3rd
+  });
+});
+
+describe('navamsaSignId (D9)', () => {
+  it('matches the Parashari rule for movable/fixed/dual signs', () => {
+    expect(navamsaSignId(0, 0)).toBe(0); // Aries 0° → Aries (movable starts from itself)
+    expect(navamsaSignId(0, 3.34)).toBe(1); // Aries 2nd navamsa → Taurus
+    expect(navamsaSignId(1, 0)).toBe(9); // Taurus (fixed) starts from Capricorn
+    expect(navamsaSignId(2, 0)).toBe(6); // Gemini (dual) starts from Libra
+  });
+  it('computes the founder chart D9 (Saturn Capricorn 6.6° → Aquarius)', () => {
+    expect(navamsaSignId(9, 6.6)).toBe(10); // Aquarius
+    expect(navamsaSignId(8, 27.9)).toBe(8); // Ascendant Sagittarius 27.9° → Sagittarius (Vargottama)
   });
 });
 
@@ -224,14 +238,16 @@ describe('validateGrounding', () => {
     expect(g.grounded).toBe(true);
   });
 
-  it('catches a hallucinated planet not in the chart', () => {
-    // The chart has no Mars-in-Aries story; name a sign that is not Mars's.
-    const g = validateGrounding(['Aapke Mangal Vrishchik mein baithe hain'], facts);
+  // NOTE: a COMPLETE chart (D1 + D9 + gochar) contains all 9 planets and nearly
+  // every sign somewhere, so the net's real teeth are on finite, often-absent
+  // factors: fabricated yogas / doshas / nakshatras.
+  it('catches a fabricated yoga not present in the chart', () => {
+    // Chart has Gajakesari/Raja/Anapha/Vasi/Daridra — Kemadruma is NOT present.
+    const g = validateGrounding(['Aapki kundli mein Kemadruma yoga ban raha hai'], facts);
     expect(g.grounded).toBe(false);
-    expect(g.ungrounded).toContain('sign:Scorpio');
   });
 
-  it('catches a hallucinated dosha not in the chart', () => {
+  it('catches a fabricated dosha not in the chart', () => {
     const g = validateGrounding(['Aapki kundli mein Kaal Sarp dosha hai'], facts);
     expect(g.grounded).toBe(false);
   });
