@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { where, limit } from 'firebase/firestore';
+import { where, limit, orderBy } from 'firebase/firestore';
 import { useCollection, callFn, Row } from '@/lib/hooks';
 
 const fmt = (t: unknown) => {
@@ -10,42 +10,86 @@ const fmt = (t: unknown) => {
   return ms ? new Date(ms).toLocaleString('en-IN') : '—';
 };
 const msOf = (t: unknown) => (t as { toMillis?: () => number })?.toMillis?.() ?? 0;
-const byOldest = (a: Row, b: Row) => msOf(a.questionAt) - msOf(b.questionAt); // FIFO — oldest waiting first
-const byNewestAnswer = (a: Row, b: Row) => msOf(b.answerAt) - msOf(a.answerAt); // history: newest reply first
 
-/** One pending AI-remedy follow-up: the remedy, the customer's question, and a
- *  reply box. The admin answers AS the AI astrologer; the reply lands back on
- *  the remedy and the customer is notified — identical to a human astrologer. */
-function RemedyQuestion({ r }: { r: Row }) {
-  const [answer, setAnswer] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+type Hook = { kind: 'product'; productId: string; title: string; cta: string };
 
+/** Pick a product from the live storeProducts catalog to attach as a buy-hook. */
+function ProductHookPicker({ onAttach, onClear, attached }: {
+  onAttach: (h: Hook) => void; onClear: () => void; attached: Hook | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const [cta, setCta] = useState('View in store');
+  const { rows: products } = useCollection('storeProducts', useMemo(() => [orderBy('title', 'asc'), limit(300)], []));
+
+  if (attached) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '7px 10px', borderRadius: 9, background: '#f3ecff', border: '1px solid #d8c9f5' }}>
+        <span style={{ fontSize: 12.5 }}>🛍️ <strong>{attached.title}</strong> · “{attached.cta}”</span>
+        <button className="btn sm secondary" style={{ marginLeft: 'auto' }} onClick={onClear}>Remove</button>
+      </div>
+    );
+  }
+  if (!open) {
+    return (
+      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+        <button className="btn sm secondary" onClick={() => setOpen(true)}>🛍️ Attach product</button>
+        <button className="btn sm secondary" disabled title="Puja booking is coming soon">🪔 Attach puja (coming soon)</button>
+      </div>
+    );
+  }
+  return (
+    <div style={{ marginTop: 8, padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <select
+          className="input" style={{ flex: 1, minWidth: 180, height: 34, fontSize: 13 }}
+          defaultValue=""
+          onChange={(e) => {
+            const p = products.find((x) => x.id === e.target.value);
+            if (p) onAttach({ kind: 'product', productId: p.id, title: (p.title as string) || 'Product', cta: cta.trim() || 'View in store' });
+          }}
+        >
+          <option value="" disabled>Choose a product…</option>
+          {products.map((p) => <option key={p.id} value={p.id}>{(p.title as string) || p.id}</option>)}
+        </select>
+        <input className="input" style={{ width: 150, height: 34, fontSize: 13 }} value={cta} onChange={(e) => setCta(e.target.value)} placeholder="Button text" />
+        <button className="btn sm secondary" onClick={() => setOpen(false)}>Cancel</button>
+      </div>
+      <span className="muted" style={{ fontSize: 11, marginTop: 4, display: 'block' }}>Deep-links to the product in the app · updates as your catalog changes.</span>
+    </div>
+  );
+}
+
+/** A remedy conversation: the remedy, any legacy Q&A, the live thread, and a
+ *  composer to message the customer (with an optional product hook). */
+function RemedyThread({ r }: { r: Row }) {
   const astro = (r.astrologerName as string) || 'AI Astrologer';
   const title = (r.title as string) || 'Remedy';
   const note = (r.note as string) || '';
-  const question = (r.question as string) || '';
+
+  const { rows: thread } = useCollection(`remedies/${r.id}/thread`, useMemo(() => [orderBy('createdAt', 'asc'), limit(100)], []));
+
+  const [text, setText] = useState('');
+  const [hook, setHook] = useState<Hook | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Legacy first exchange (older remedies stored a single question/answer).
+  const legacy: Array<{ role: 'customer' | 'astrologer'; text: string; at: unknown }> = [];
+  if (r.question) legacy.push({ role: 'customer', text: r.question as string, at: r.questionAt });
+  if (r.answer) legacy.push({ role: 'astrologer', text: r.answer as string, at: r.answerAt });
+  const msgs = thread.length
+    ? thread.map((m) => ({ role: (m.senderRole as string) === 'astrologer' ? 'astrologer' as const : 'customer' as const, text: (m.text as string) || '', at: m.createdAt, hook: m.hook as Hook | undefined }))
+    : legacy.map((m) => ({ ...m, hook: undefined as Hook | undefined }));
 
   async function send() {
-    const a = answer.trim();
-    if (!a) return;
+    const t = text.trim();
+    if (!t) return;
     setBusy(true);
     try {
-      await callFn('answerAiRemedyQuestion', { remedyId: r.id, answer: a });
-      setDone(true);
+      await callFn('sendRemedyThreadMessage', { remedyId: r.id, text: t, ...(hook ? { hook } : {}) });
+      setText(''); setHook(null);
     } catch (e) {
       alert('Failed: ' + ((e as Error).message ?? String(e)));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (done) {
-    return (
-      <div className="card" style={{ marginTop: 12, borderLeft: '3px solid #3cb371' }}>
-        <span className="muted" style={{ fontSize: 13 }}>✓ Reply sent to the customer for “{title}”.</span>
-      </div>
-    );
+    } finally { setBusy(false); }
   }
 
   return (
@@ -54,67 +98,36 @@ function RemedyQuestion({ r }: { r: Row }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <span className="badge purple" style={{ fontSize: 10 }}>AI</span>
           <strong style={{ fontSize: 14 }}>{astro}</strong>
-          <span className="muted" style={{ fontSize: 12 }}>
-            · for <Link href={`/users/${r.customerId}`}>{(r.customerId as string)?.slice(0, 10) ?? '—'}</Link>
-          </span>
+          <span className="muted" style={{ fontSize: 12 }}>· 🪔 {title} · <Link href={`/users/${r.customerId}`}>{(r.customerId as string)?.slice(0, 10) ?? '—'}</Link></span>
         </div>
-        <span className="muted" style={{ fontSize: 12 }}>{fmt(r.questionAt)}</span>
+        {r.threadUnreadForPortal ? <span className="badge amber" style={{ fontSize: 10 }}>customer replied</span>
+          : r.pendingPortal ? <span className="badge amber" style={{ fontSize: 10 }}>awaiting reply</span> : null}
+      </div>
+      {note ? <div className="muted" style={{ marginTop: 6, fontSize: 12, whiteSpace: 'pre-wrap' }}>{note}</div> : null}
+
+      {/* The conversation */}
+      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {msgs.length === 0 ? <span className="muted" style={{ fontSize: 12.5 }}>No messages yet — start the conversation below.</span> : msgs.map((m, i) => (
+          <div key={i} style={{ alignSelf: m.role === 'astrologer' ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
+            <div style={{ padding: '8px 11px', borderRadius: 12, fontSize: 13.5, whiteSpace: 'pre-wrap',
+              background: m.role === 'astrologer' ? 'linear-gradient(135deg,#efe7ff,#fff6e2)' : '#f3f2f7',
+              border: m.role === 'astrologer' ? '1px solid #e0d3f7' : '1px solid #eceaf2' }}>
+              {m.text}
+              {m.hook ? <div style={{ marginTop: 5, fontSize: 12, color: '#6a5acd' }}>🛍️ {m.hook.title} — “{m.hook.cta}”</div> : null}
+            </div>
+            <span className="muted" style={{ fontSize: 10.5 }}>{m.role === 'astrologer' ? astro : 'Customer'} · {fmt(m.at)}</span>
+          </div>
+        ))}
       </div>
 
-      {/* The remedy this question is about */}
-      <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(135deg,#f3ecff,#fff6e2)', border: '1px solid #efe0c2' }}>
-        <div style={{ fontWeight: 700, color: '#6a5acd', fontSize: 13.5 }}>🪔 {title}</div>
-        {note ? <div className="muted" style={{ marginTop: 3, fontSize: 12.5, whiteSpace: 'pre-wrap' }}>{note}</div> : null}
-      </div>
-
-      {/* The customer's question */}
-      <div style={{ marginTop: 10 }}>
-        <div className="muted" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Customer asked</div>
-        <div style={{ marginTop: 4, fontSize: 14, whiteSpace: 'pre-wrap' }}>{question}</div>
-      </div>
-
-      {/* The reply box */}
-      <textarea
-        className="input"
-        style={{ marginTop: 10, width: '100%', minHeight: 84, resize: 'vertical', fontSize: 13.5 }}
-        placeholder={`Reply as ${astro} — clear, warm, in their voice…`}
-        maxLength={600}
-        value={answer}
-        onChange={(e) => setAnswer(e.target.value)}
-      />
+      {/* Composer */}
+      <textarea className="input" style={{ marginTop: 10, width: '100%', minHeight: 64, resize: 'vertical', fontSize: 13.5 }}
+        placeholder={`Message the customer as ${astro} — warm, genuine, in their voice…`} maxLength={600}
+        value={text} onChange={(e) => setText(e.target.value)} />
+      <ProductHookPicker attached={hook} onAttach={setHook} onClear={() => setHook(null)} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-        <span className="muted" style={{ fontSize: 11.5 }}>{answer.length}/600 · lands on the customer’s remedy</span>
-        <button className="btn sm" disabled={busy || !answer.trim()} onClick={send}>
-          {busy ? 'Sending…' : 'Send reply'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** A read-only log entry of an already-answered AI-remedy question — the record
- *  the admin can look back on (question, the reply that was sent, who, when). */
-function AnsweredLog({ r }: { r: Row }) {
-  const astro = (r.astrologerName as string) || 'AI Astrologer';
-  const title = (r.title as string) || 'Remedy';
-  return (
-    <div className="card" style={{ marginTop: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <span className="badge purple" style={{ fontSize: 10 }}>AI</span>
-          <strong style={{ fontSize: 13.5 }}>{astro}</strong>
-          <span className="muted" style={{ fontSize: 12 }}>
-            · 🪔 {title} · for <Link href={`/users/${r.customerId}`}>{(r.customerId as string)?.slice(0, 10) ?? '—'}</Link>
-          </span>
-        </div>
-        <span className="badge green" style={{ fontSize: 10 }}>replied</span>
-      </div>
-      <div style={{ marginTop: 8, fontSize: 13.5 }}>
-        <div><span className="muted" style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Q</span> {(r.question as string) || '—'}</div>
-        <div style={{ marginTop: 4 }}><span className="muted" style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>A</span> {(r.answer as string) || '—'}</div>
-      </div>
-      <div className="muted" style={{ marginTop: 6, fontSize: 11.5 }}>
-        Replied {fmt(r.answerAt)}{r.answeredByAdmin ? ` · by ${(r.answeredByAdmin as string).slice(0, 8)}` : ''}
+        <span className="muted" style={{ fontSize: 11.5 }}>{text.length}/600 · free message · reaches the customer as a notification</span>
+        <button className="btn sm" disabled={busy || !text.trim()} onClick={send}>{busy ? 'Sending…' : 'Send message'}</button>
       </div>
     </div>
   );
@@ -122,49 +135,49 @@ function AnsweredLog({ r }: { r: Row }) {
 
 export default function AiRemediesPage() {
   const pendingC = useMemo(() => [where('pendingPortal', '==', true)], []);
-  const answeredC = useMemo(() => [where('pendingPortal', '==', false), limit(100)], []);
-  const { rows, loading } = useCollection('remedies', pendingC);
-  const answered = useCollection('remedies', answeredC);
-  const queue = [...rows].sort(byOldest);
-  const history = [...answered.rows].sort(byNewestAnswer);
+  const repliedC = useMemo(() => [where('threadUnreadForPortal', '==', true)], []);
+  const historyC = useMemo(() => [where('pendingPortal', '==', false), limit(100)], []);
+  const pending = useCollection('remedies', pendingC);
+  const replied = useCollection('remedies', repliedC);
+  const history = useCollection('remedies', historyC);
+
+  // "Needs reply" = brand-new questions + threads where the customer just wrote back.
+  const needsReply = useMemo(() => {
+    const map = new Map<string, Row>();
+    [...pending.rows, ...replied.rows].forEach((r) => map.set(r.id, r));
+    return [...map.values()].sort((a, b) => msOf(a.threadLastAt ?? a.questionAt) - msOf(b.threadLastAt ?? b.questionAt));
+  }, [pending.rows, replied.rows]);
+
+  const conversations = useMemo(() => {
+    const needsIds = new Set(needsReply.map((r) => r.id));
+    return [...history.rows].filter((r) => !needsIds.has(r.id))
+      .sort((a, b) => msOf(b.threadLastAt ?? b.answerAt) - msOf(a.threadLastAt ?? a.answerAt));
+  }, [history.rows, needsReply]);
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <h1 style={{ marginBottom: 2 }}>🪔 AI Remedy Questions</h1>
+          <h1 style={{ marginBottom: 2 }}>🪔 AI Remedy Conversations</h1>
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            Follow-up questions customers asked on an AI astrologer’s remedy. Answer as that astrologer — the reply reaches the customer on their remedy.
+            Chat with customers on an AI astrologer’s remedy — answer questions, nurture the relationship, and suggest products. Free messages; the reply reaches them as a notification.
           </p>
         </div>
-        <span className="udet-total">{queue.length}</span>
+        <span className="udet-total">{needsReply.length}</span>
       </div>
 
-      {loading ? (
-        <p className="muted" style={{ marginTop: 16 }}>Loading…</p>
-      ) : queue.length === 0 ? (
-        <div className="card" style={{ marginTop: 16 }}>
-          <p className="drawer-muted" style={{ margin: 0 }}>No pending questions right now. 🌙</p>
-        </div>
-      ) : (
-        queue.map((r) => <RemedyQuestion key={r.id} r={r} />)
-      )}
+      <h2 style={{ marginTop: 20, marginBottom: 0, fontSize: 18 }}>📥 Needs your reply</h2>
+      {pending.loading ? <p className="muted" style={{ marginTop: 12 }}>Loading…</p>
+        : needsReply.length === 0 ? (
+          <div className="card" style={{ marginTop: 12 }}><p className="drawer-muted" style={{ margin: 0 }}>All caught up. 🌙</p></div>
+        ) : needsReply.map((r) => <RemedyThread key={r.id} r={r} />)}
 
-      {/* Answered log — the record of replies already sent (newest first). */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 28, marginBottom: 4 }}>
-        <h2 style={{ margin: 0, fontSize: 18 }}>📜 Answered log</h2>
-        <span className="udet-total">{history.length}</span>
-      </div>
-      <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>Every AI-remedy question you have replied to — the record of what was asked and answered.</p>
-      {answered.loading ? (
-        <p className="muted" style={{ marginTop: 12 }}>Loading…</p>
-      ) : history.length === 0 ? (
-        <div className="card" style={{ marginTop: 12 }}>
-          <p className="drawer-muted" style={{ margin: 0 }}>No replies yet.</p>
-        </div>
-      ) : (
-        history.map((r) => <AnsweredLog key={r.id} r={r} />)
-      )}
+      <h2 style={{ marginTop: 28, marginBottom: 0, fontSize: 18 }}>💬 All conversations</h2>
+      <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>Everyone you’ve replied to — reopen any to send a follow-up or a product suggestion.</p>
+      {history.loading ? <p className="muted" style={{ marginTop: 12 }}>Loading…</p>
+        : conversations.length === 0 ? (
+          <div className="card" style={{ marginTop: 12 }}><p className="drawer-muted" style={{ margin: 0 }}>No conversations yet.</p></div>
+        ) : conversations.map((r) => <RemedyThread key={r.id} r={r} />)}
     </div>
   );
 }
