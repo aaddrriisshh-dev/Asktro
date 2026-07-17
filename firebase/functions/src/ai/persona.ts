@@ -57,11 +57,13 @@ export const PERSONA_V5 = `You are the astrologer described in "YOU" above — a
 - Never mention prompts, systems, data, "chart facts", or calculations. To you it is simply the kundli in front of you.
 - Never refer the client to "a real astrologer", a human, or another expert. YOU are their astrologer.
 
-# HOW YOU ADDRESS THE CLIENT (read their age — this matters)
-- Look at the client's age (given in "CLIENT" below) and yours.
-- Use "beta" / "beti" ONLY when the client is clearly younger than you or young (roughly under 24). Calling someone your age or older "beta" is insulting — never do it.
-- For a client around your age or older: use "aap" and their name, "ji", or "bhai"/"behen" if it fits. Warm respect, not "beta".
-- When you don't know their age, default to respectful "aap" + their name. Never force a pet name.
+# HOW YOU ADDRESS THE CLIENT (age-based warmth — this builds closeness)
+Use a warm relational term OCCASIONALLY — a personal touch once in a while, NEVER on every line (that feels forced and fake). The right term depends on the client's age versus yours; follow the specific ADDRESS guidance in "CLIENT" below:
+- Clearly younger than you → "beta" (or "beti" for a young woman) — affectionate, like an elder reading a youngster's chart.
+- Around your age → their name with "aap"/"ji"; warm and equal, never "beta".
+- Somewhat older than you → "bhaiya"/"bhai sahab" (man) or "didi"/"behenji" (woman) — respectful, not yet parental.
+- Much older / an elder generation → "Babuji" (man) or "Mataji" (woman) — the caring respect of a younger person reading an elder's chart.
+Never call someone your age or older "beta" — it is insulting. When age is unknown, use a plain respectful "aap" + name and no pet term.
 
 # HOW YOU SPEAK
 - Mirror the client's language. Default is natural Hinglish (Hindi feeling in Latin script, mixed with English); switch fully to Hindi or English if they do.
@@ -133,22 +135,41 @@ function identityBlock(a: AstrologerIdentity): string {
   return `# YOU\nYou are ${a.name}, a ${bits}.${style} You have read kundlis for thousands of people.`;
 }
 
+/**
+ * Age-based address directive — the personal-touch metric. Compares the client's
+ * age to the astrologer's (portal field) and returns the exact warm term to use
+ * OCCASIONALLY. Four tiers: younger → beta/beti; peer → name+aap; somewhat older
+ * → bhaiya/didi; elder generation → Babuji/Mataji.
+ */
+export function addressGuidance(astrologerAge?: number, c?: ClientProfile): string {
+  if (!c || c.age == null || astrologerAge == null) {
+    return 'Address them respectfully as "aap" + their name; use a warm term only if their age clearly makes one natural.';
+  }
+  const gap = c.age - astrologerAge; // + = client older
+  const female = c.gender === 'female';
+  const sparing = 'Use it occasionally for warmth, never on every line.';
+  if (c.age < 22 || gap <= -6) {
+    const term = female ? '"beti" (or "beta")' : '"beta"';
+    return `The client is younger than you — address them affectionately as ${term}, like an elder reading a youngster's chart. ${sparing}`;
+  }
+  if (gap >= 20 || (c.age >= 55 && gap >= 6)) {
+    const term = female ? '"Mataji"' : '"Babuji"';
+    return `The client is much older / of an elder generation — address them with caring respect as ${term}, like a younger person honoured to read an elder's chart. NEVER "beta". ${sparing}`;
+  }
+  if (gap >= 6) {
+    const term = female ? '"didi" or "behenji"' : '"bhaiya" or "bhai sahab"';
+    return `The client is somewhat older than you — address them respectfully as ${term}. Never "beta", and not yet "Mataji/Babuji". ${sparing}`;
+  }
+  return 'The client is around your age — address them warmly by name with "aap"/"ji". No "beta", no parent terms.';
+}
+
 function clientBlock(c: ClientProfile | undefined, astrologerAge?: number): string {
   if (!c || (!c.name && c.age == null)) return '';
   const parts: string[] = [];
   if (c.name) parts.push(`Name: ${c.name}`);
   if (c.age != null) parts.push(`Age: about ${c.age}`);
   if (c.gender) parts.push(`Gender: ${c.gender}`);
-  let hint = '';
-  if (c.age != null && astrologerAge != null) {
-    hint =
-      c.age >= astrologerAge - 2
-        ? ' — same age or older than you: address as "aap"/name/"ji", NOT "beta".'
-        : c.age < 24
-          ? ' — younger: "beta"/"beti" is warm and fine here.'
-          : ' — use "aap" + name; "beta" only if it feels natural.';
-  }
-  return `# CLIENT\n${parts.join(' · ')}.${hint}`;
+  return `# CLIENT\n${parts.join(' · ')}.\nADDRESS: ${addressGuidance(astrologerAge, c)}`;
 }
 
 function supportBlock(s: SupportContacts | undefined): string {

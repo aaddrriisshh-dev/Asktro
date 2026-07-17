@@ -3,7 +3,7 @@
  * can't silently ship a broken voice: portal-driven identity, age-aware address,
  * the whose-kundli rule, payment redirect, no-emoji, and the grounding stance.
  */
-import { buildReadingSystem, PERSONA_V5, OUTPUT_CONTRACT } from './persona';
+import { buildReadingSystem, addressGuidance, PERSONA_V5, OUTPUT_CONTRACT } from './persona';
 
 describe('buildReadingSystem — identity from portal', () => {
   it('injects the configured astrologer identity (name, age, gender, style)', () => {
@@ -23,14 +23,35 @@ describe('buildReadingSystem — identity from portal', () => {
   });
 });
 
-describe('age-aware address', () => {
-  it('young client → beta is allowed', () => {
-    const s = buildReadingSystem({ astrologer: { name: 'Meera', age: 28 }, client: { name: 'Aryan', age: 21 }, briefing: 'x' });
-    expect(s).toMatch(/younger:.*beta/i);
+describe('age-based address tiers (the personal-touch metric)', () => {
+  const astro = 28; // astrologer age from the portal
+  it('younger client → beta / beti, used sparingly', () => {
+    expect(addressGuidance(astro, { age: 20, gender: 'male' })).toMatch(/"beta"/);
+    expect(addressGuidance(astro, { age: 20, gender: 'female' })).toMatch(/"beti"/);
+    expect(addressGuidance(astro, { age: 20 })).toMatch(/never on every line|occasionally/i);
   });
-  it('older/same-age client → never beta', () => {
-    const s = buildReadingSystem({ astrologer: { name: 'Meera', age: 28 }, client: { name: 'Suresh', age: 46 }, briefing: 'x' });
-    expect(s).toMatch(/NOT "beta"/i);
+  it('around same age → name + aap, no beta', () => {
+    const g = addressGuidance(astro, { age: 29, gender: 'male' });
+    expect(g).toMatch(/around your age/i);
+    expect(g).not.toMatch(/as "beta"/); // never recommends beta for a peer
+  });
+  it('somewhat older → bhaiya / didi, never beta, not yet Mataji/Babuji', () => {
+    expect(addressGuidance(astro, { age: 38, gender: 'male' })).toMatch(/bhaiya|bhai sahab/i);
+    expect(addressGuidance(astro, { age: 38, gender: 'female' })).toMatch(/didi|behenji/i);
+  });
+  it('much older / elder generation → Babuji (man) / Mataji (woman)', () => {
+    expect(addressGuidance(astro, { age: 60, gender: 'male' })).toMatch(/Babuji/);
+    expect(addressGuidance(astro, { age: 60, gender: 'female' })).toMatch(/Mataji/);
+    expect(addressGuidance(astro, { age: 60, gender: 'male' })).toMatch(/NEVER "beta"/);
+  });
+  it('unknown age → plain respectful aap + name', () => {
+    expect(addressGuidance(28, { name: 'X' })).toMatch(/aap.*name/i);
+    expect(addressGuidance(undefined, { age: 40 })).toMatch(/aap/i);
+  });
+  it('flows into the built system prompt under ADDRESS', () => {
+    const s = buildReadingSystem({ astrologer: { name: 'Meera', age: 28 }, client: { name: 'Suresh', age: 62, gender: 'male' }, briefing: 'x' });
+    expect(s).toContain('ADDRESS:');
+    expect(s).toContain('Babuji');
   });
 });
 
