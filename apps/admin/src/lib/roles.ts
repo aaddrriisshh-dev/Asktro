@@ -17,7 +17,7 @@ export const ROLE_LABEL: Record<string, string> = {
 const ROLE_ROUTES: Record<AdminRole, string[] | '*'> = {
   super: '*',
   ops: ['/', '/users', '/astrologers', '/phone-sessions', '/video-sessions', '/plans', '/recharges', '/banners', '/blogs', '/mall', '/home-content', '/store', '/store-inventory', '/store-orders', '/store-discounts', '/store-shipping', '/store-content', '/store-front', '/coupons', '/broadcast', '/reports', '/kundali-downloads', '/cms', '/audit', '/payouts', '/pricing', '/support', '/moderation'],
-  astrology: ['/astrologers', '/phone-sessions', '/video-sessions', '/payouts', '/audit'],
+  astrology: ['/astrologers', '/ai-remedies', '/phone-sessions', '/video-sessions', '/payouts', '/audit'],
 };
 
 // Routes a role may OPEN but not change (view-only). Enforced in the UI and,

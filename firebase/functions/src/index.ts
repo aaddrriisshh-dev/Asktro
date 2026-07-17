@@ -65,7 +65,7 @@ export { deliverAlert } from './alerts/deliver';
 export { reportClientError } from './observability/clientErrors';
 
 // ---- Remedies (customer follow-up questions) ----
-export { askRemedyQuestion, answerRemedyQuestion } from './remedies/remedyFollowUp';
+export { askRemedyQuestion, answerRemedyQuestion, answerAiRemedyQuestion } from './remedies/remedyFollowUp';
 
 // ---- Content moderation (report / block / auto-flag) ----
 // onChatImageUploaded is a Storage-triggered (us-east1, matching the default

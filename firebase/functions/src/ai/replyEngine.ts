@@ -32,13 +32,13 @@ const CHART_CACHE = 'chart'; // consultations/{id}/ai/{CHART_CACHE}
 
 // Pacing knobs (portal-tunable later). Kept human, never obviously padded.
 const DEBOUNCE_MS = 3500; // wait for the user's burst to settle before replying
-const JOIN_DELAY_MS = 2500; // "joining…" → "<name> joined"
+const JOIN_DELAY_MS = 4000; // "joining…" → "<name> joined" (a real, unhurried arrival)
 const GREETING_GAP_MS = 2500; // typing dots before the opening greeting
 const TYPE_PER_CHAR_MS = 55; // human typing speed
-const TYPE_FLOOR_MS = 1500;
+const TYPE_FLOOR_MS = 1800;
 const TYPE_CEIL_MS = 9000;
 const MAX_BUBBLES = 2; // she may send at most two short, paced bubbles per reply
-const INTER_BUBBLE_MS = 900; // gap between bubbles so the dots visibly re-appear
+const INTER_BUBBLE_MS = 1400; // gap between bubbles so the dots visibly re-appear and it never feels rushed
 
 export const onAiChatMessage = onDocumentCreated(
   {
@@ -181,6 +181,19 @@ export const onAiChatMessage = onDocumentCreated(
         if (k < bubbles.length - 1) await sleep(INTER_BUBBLE_MS);
       }
 
+      // 9) A concrete remedy (upay) → a saved remedy card, same as a real
+      // astrologer: a saveable `remedies` doc (powers "Your Personal Remedies")
+      // + a type:'remedy' chat card. Paced after the bubbles.
+      if (envelope.remedy) {
+        await setTyping(consultationId, c.astrologerId, true);
+        await sleep(typingDelayMs(`${envelope.remedy.title} ${envelope.remedy.note}`));
+        await writeRemedy(consultationId, c.customerId as string, c.astrologerId as string, {
+          name: str(astro.name ?? astro.displayName) ?? 'Acharya',
+          photo: str(astro.profilePhoto),
+        }, envelope.remedy);
+        await setTyping(consultationId, c.astrologerId, false);
+      }
+
       logger.info('onAiChatMessage: replied', {
         consultationId,
         themes: intent.themes,
@@ -188,6 +201,7 @@ export const onAiChatMessage = onDocumentCreated(
         action: envelope.action,
         confidence: envelope.confidence,
         bubbles: bubbles.length,
+        remedy: !!envelope.remedy,
       });
     } catch (e) {
       if (typingAstroId) await setTyping(consultationId, typingAstroId, false);
@@ -215,12 +229,13 @@ export const onAiConsultationCreated = onDocumentCreated(
       const astro = (await db.collection('astrologers').doc(c.astrologerId).get()).data();
       if (!astro || astro.isAI !== true) return;
       const displayName = String(astro.name ?? astro.displayName ?? 'Acharya');
-      // Opening ritual: "joining…" → "<name> has joined" → typing dots → a SHORT
-      // greeting. Never reveals it's AI (name only). All free — billing starts on
-      // the user's first reply.
-      await writeSystem(consultationId, 'Astrologer is joining…');
+      // Opening ritual: "joining…" → (same line updates to) "<name> has joined" →
+      // typing dots → a SHORT greeting. Updating the SAME status line in place
+      // means "joining…" never lingers next to "joined". Never reveals it's AI
+      // (name only). All free — billing starts on the user's first reply.
+      const joiningRef = await writeSystem(consultationId, 'Astrologer is joining…');
       await sleep(JOIN_DELAY_MS);
-      await writeSystem(consultationId, `${displayName} has joined`);
+      await joiningRef.update({ text: `${displayName} has joined` });
       await setTyping(consultationId, c.astrologerId, true);
       await sleep(GREETING_GAP_MS);
       await writeAstro(consultationId, c.astrologerId, 'Namaste ji! Kaise hain aap?');
@@ -321,9 +336,11 @@ async function setTyping(consultationId: string, typerId: string, typing: boolea
     .set({ typing, at: FieldValue.serverTimestamp() }, { merge: true })
     .catch(() => {});
 }
-/** A centered system status line (joining / joined). Excluded from LLM context. */
-async function writeSystem(consultationId: string, text: string): Promise<void> {
-  await db.collection('consultations').doc(consultationId).collection('messages').add({
+/** A centered system status line (joining / joined). Excluded from LLM context.
+ *  Returns the doc ref so the caller can update the SAME line in place (e.g.
+ *  "joining…" → "has joined") instead of stacking a second status message. */
+async function writeSystem(consultationId: string, text: string) {
+  return db.collection('consultations').doc(consultationId).collection('messages').add({
     senderId: 'system',
     type: 'system',
     text,
@@ -436,6 +453,46 @@ function stripLeadingName(text: string, name?: string): string {
   const re = new RegExp(`^${esc}\\s*(ji|jee)?\\s*[,:.\\-–—]?\\s+`, 'i');
   const stripped = t.replace(re, '');
   return stripped && stripped !== t ? stripped.charAt(0).toUpperCase() + stripped.slice(1) : t;
+}
+
+/**
+ * Write a remedy exactly like a real astrologer does: (1) a saveable `remedies`
+ * doc that powers the customer's "Your Personal Remedies" screen, tagged isAI so
+ * a later follow-up routes to the portal (not a human astrologer app); (2) a
+ * type:'remedy' chat message so the gold remedy card shows inline in the chat.
+ */
+async function writeRemedy(
+  consultationId: string,
+  customerId: string,
+  astrologerId: string,
+  astro: { name: string; photo?: string },
+  remedy: { title: string; note: string },
+): Promise<void> {
+  const title = remedy.title || 'Remedy';
+  const note = remedy.note || '';
+  await db.collection('remedies').add({
+    customerId,
+    astrologerId,
+    astrologerName: astro.name,
+    astrologerPhoto: astro.photo ?? null,
+    consultationId,
+    title,
+    note,
+    done: false,
+    isAI: true,
+    createdAt: FieldValue.serverTimestamp(),
+  }).catch(() => {});
+  await db.collection('consultations').doc(consultationId).collection('messages').add({
+    senderId: astrologerId,
+    type: 'remedy',
+    title,
+    note,
+    text: note ? `${title}\n${note}` : title,
+    timestamp: FieldValue.serverTimestamp(),
+    delivered: true,
+    seen: false,
+    aiGenerated: true,
+  });
 }
 
 /** Write one astrologer text bubble to a consultation. */

@@ -39,6 +39,10 @@ export interface ReplyEnvelope {
    *  (NOT a legitimate question about the user's own life). Drives the strike +
    *  session-end logic. The model judges this in context. */
   abuse?: boolean;
+  /** A concrete remedy (upay) she is giving THIS turn — rendered as a saved
+   *  "remedy card", not an ordinary bubble. Present only when she offers a real,
+   *  actionable remedy (not for a passing mention). */
+  remedy?: { title: string; note: string };
 }
 
 export interface ParseResult {
@@ -86,6 +90,7 @@ export function parseEnvelope(raw: string | null): ParseResult {
   const confidence = coerceConfidence(obj.confidence, issues);
   const person = typeof obj.person === 'string' && obj.person.trim() ? obj.person.trim() : undefined;
   const abuse = obj.abuse === true || obj.abuse === 'true';
+  const remedy = coerceRemedy(obj.remedy);
 
   if (messages.length === 0) {
     issues.push('no usable messages');
@@ -94,7 +99,7 @@ export function parseEnvelope(raw: string | null): ParseResult {
 
   return {
     ok: issues.length === 0,
-    envelope: { messages, action, person, confidence, abuse },
+    envelope: { messages, action, person, confidence, abuse, remedy },
     issues,
   };
 }
@@ -261,6 +266,17 @@ function coerceAction(v: unknown, issues: string[]): EnvelopeAction {
   if (s === 'READY') return 'REPLY';
   if (s) issues.push(`unknown action "${v}", defaulted to REPLY`);
   return 'REPLY';
+}
+
+/** A remedy is only real when it has a title (and usually a note). Anything
+ *  malformed is dropped — a bad remedy field must never break the reply. */
+function coerceRemedy(v: unknown): { title: string; note: string } | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const o = v as Record<string, unknown>;
+  const title = typeof o.title === 'string' ? stripMarkdown(o.title).trim() : '';
+  const note = typeof o.note === 'string' ? stripMarkdown(o.note).trim() : '';
+  if (!title && !note) return undefined;
+  return { title: title || 'Remedy', note };
 }
 
 function coerceConfidence(v: unknown, issues: string[]): Confidence {
