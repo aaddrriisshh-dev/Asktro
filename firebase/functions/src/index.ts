@@ -38,6 +38,9 @@ export { generateAgoraToken } from './agora/token';
 
 // ---- ProKerala astrology API proxy ----
 export { prokeralaAstrology } from './prokerala/prokerala';
+
+// ---- AI astrologer reply engine ----
+export { onAiChatMessage } from './ai/replyEngine';
 export { purchaseKundliMatch } from './astrology/kundliMatch';
 
 // ---- AstroMall store (physical-goods checkout) ----
