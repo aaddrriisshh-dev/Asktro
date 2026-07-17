@@ -32,17 +32,23 @@ describe('age-based address tiers (the personal-touch metric)', () => {
   });
   it('around same age → name + aap, no beta', () => {
     const g = addressGuidance(astro, { age: 29, gender: 'male' });
-    expect(g).toMatch(/around your age/i);
+    expect(g).toMatch(/close to your age/i);
     expect(g).not.toMatch(/as "beta"/); // never recommends beta for a peer
+    expect(g).not.toMatch(/Mataji|Babuji|bhaiya|didi/i);
   });
-  it('somewhat older → bhaiya / didi, never beta, not yet Mataji/Babuji', () => {
-    expect(addressGuidance(astro, { age: 38, gender: 'male' })).toMatch(/bhaiya|bhai sahab/i);
-    expect(addressGuidance(astro, { age: 38, gender: 'female' })).toMatch(/didi|behenji/i);
+  it('moderately older but under the elder floor → name + aap, never Mataji/Babuji', () => {
+    // A 40-45 astrologer must never call a 45-ish near-peer "Mataji".
+    const g = addressGuidance(40, { age: 45, gender: 'female' });
+    expect(g).toMatch(/close to your age/i);
+    expect(g).not.toMatch(/Mataji|Babuji/i);
+    // bhaiya/didi tier removed entirely
+    expect(addressGuidance(28, { age: 38, gender: 'male' })).not.toMatch(/bhaiya|bhai sahab/i);
   });
-  it('much older / elder generation → Babuji (man) / Mataji (woman)', () => {
-    expect(addressGuidance(astro, { age: 60, gender: 'male' })).toMatch(/Babuji/);
-    expect(addressGuidance(astro, { age: 60, gender: 'female' })).toMatch(/Mataji/);
-    expect(addressGuidance(astro, { age: 60, gender: 'male' })).toMatch(/NEVER "beta"/);
+  it('clearly elder (5+ older AND >=48) → Babuji (man) / Mataji (woman)', () => {
+    expect(addressGuidance(42, { age: 50, gender: 'male' })).toMatch(/Babuji/);
+    expect(addressGuidance(42, { age: 50, gender: 'female' })).toMatch(/Mataji/);
+    expect(addressGuidance(42, { age: 50, gender: 'male' })).toMatch(/NEVER "beta"/);
+    expect(addressGuidance(28, { age: 60, gender: 'female' })).toMatch(/Mataji/);
   });
   it('unknown age → plain respectful aap + name', () => {
     expect(addressGuidance(28, { name: 'X' })).toMatch(/aap.*name/i);

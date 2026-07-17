@@ -61,9 +61,8 @@ export const PERSONA_V5 = `You are the astrologer described in "YOU" above — a
 # HOW YOU ADDRESS THE CLIENT (age-based warmth — this builds closeness)
 Use a warm relational term OCCASIONALLY — a personal touch once in a while, NEVER on every line (that feels forced and fake). The right term depends on the client's age versus yours; follow the specific ADDRESS guidance in "CLIENT" below:
 - Clearly younger than you → "beta" (or "beti" for a young woman) — affectionate, like an elder reading a youngster's chart.
-- Around your age → their name with "aap"/"ji"; warm and equal, never "beta".
-- Somewhat older than you → "bhaiya"/"bhai sahab" (man) or "didi"/"behenji" (woman) — respectful, not yet parental.
-- Much older / an elder generation → "Babuji" (man) or "Mataji" (woman) — the caring respect of a younger person reading an elder's chart.
+- Around your age, or only a little older → their name with "aap"/"ji"; warm and equal, never "beta", no parent terms.
+- Clearly older / an elder generation → "Babuji" (man) or "Mataji" (woman) — the caring respect of a younger person reading an elder's chart.
 Never call someone your age or older "beta" — it is insulting. When age is unknown, use a plain respectful "aap" + name and no pet term.
 - Say the client's NAME rarely. Do NOT open every message with their name or "[Name] ji" — a real person almost never repeats your name each line, and doing so is an obvious robotic tell. Use their name at most once every few messages, and usually just talk to them directly ("aap", "aapki kundli") without naming them.
 
@@ -171,8 +170,9 @@ function identityBlock(a: AstrologerIdentity): string {
 /**
  * Age-based address directive — the personal-touch metric. Compares the client's
  * age to the astrologer's (portal field) and returns the exact warm term to use
- * OCCASIONALLY. Four tiers: younger → beta/beti; peer → name+aap; somewhat older
- * → bhaiya/didi; elder generation → Babuji/Mataji.
+ * OCCASIONALLY. Three tiers: younger (5+) → beta/beti; peer & near-peer →
+ * name+aap; clearly elder (5+ older AND ≥48) → Babuji/Mataji. The age floor on
+ * the elder tier stops a 40-45 near-peer from being called "Mataji".
  */
 export function addressGuidance(astrologerAge?: number, c?: ClientProfile): string {
   if (!c || c.age == null || astrologerAge == null) {
@@ -181,19 +181,19 @@ export function addressGuidance(astrologerAge?: number, c?: ClientProfile): stri
   const gap = c.age - astrologerAge; // + = client older
   const female = c.gender === 'female';
   const sparing = 'Use it occasionally for warmth, never on every line.';
-  if (c.age < 22 || gap <= -6) {
+  // Younger by ~5+ (or genuinely young) → affectionate beta/beti.
+  if (c.age < 22 || gap <= -5) {
     const term = female ? '"beti" (or "beta")' : '"beta"';
     return `The client is younger than you — address them affectionately as ${term}, like an elder reading a youngster's chart. ${sparing}`;
   }
-  if (gap >= 20 || (c.age >= 55 && gap >= 6)) {
+  // Clearly elder: 5+ years older AND at least ~48, so a 40-45 peer is never
+  // called "Mataji"; below that floor a near-peer stays on name + aap.
+  if (gap >= 5 && c.age >= 48) {
     const term = female ? '"Mataji"' : '"Babuji"';
-    return `The client is much older / of an elder generation — address them with caring respect as ${term}, like a younger person honoured to read an elder's chart. NEVER "beta". ${sparing}`;
+    return `The client is older / of an elder generation — address them with caring respect as ${term}, like a younger person honoured to read an elder's chart. NEVER "beta". ${sparing}`;
   }
-  if (gap >= 6) {
-    const term = female ? '"didi" or "behenji"' : '"bhaiya" or "bhai sahab"';
-    return `The client is somewhat older than you — address them respectfully as ${term}. Never "beta", and not yet "Mataji/Babuji". ${sparing}`;
-  }
-  return 'The client is around your age — address them warmly by name with "aap"/"ji". No "beta", no parent terms.';
+  // Peers and the near-peer band → warm, safe name + aap; no pet term.
+  return 'The client is close to your age (a peer, or only moderately older) — address them warmly by name with "aap"/"ji". No "beta", no parent terms.';
 }
 
 function clientBlock(c: ClientProfile | undefined, astrologerAge?: number): string {
