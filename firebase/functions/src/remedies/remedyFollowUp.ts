@@ -14,9 +14,10 @@
  * triggers onNotificationCreated which delivers the push.
  */
 import { onCall } from 'firebase-functions/v2/https';
+import { logger } from 'firebase-functions/v2';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
-import { assertAuthed, assertRole, badRequest, failedPrecondition, notFound } from '../common/errors';
+import { assertAuthed, assertRole, badRequest, failedPrecondition, notFound, HttpsError } from '../common/errors';
 
 const MAX_LEN = 600;
 
@@ -135,35 +136,43 @@ export const answerAiRemedyQuestion = onCall(async (req) => {
   if (!a) badRequest('answer is required.');
   if (a.length > MAX_LEN) badRequest('Answer is too long.');
 
-  // A plain read → validate → update → notify (no transaction). The previous
-  // transaction + FieldValue.delete() sentinel was throwing an opaque "internal"
-  // in the portal; this path is simpler and there's no concurrent writer to race.
-  const ref = db.collection('remedies').doc(remedyId!);
-  const snap = await ref.get();
-  if (!snap.exists) notFound('Remedy not found.');
-  const r = snap.data()!;
-  if (r.isAI !== true) failedPrecondition('Not an AI remedy.');
-  if (!r.question) failedPrecondition('There is no question to answer.');
+  // A plain read → validate → update → notify (no transaction). Wrapped so an
+  // unexpected Firestore error surfaces its REAL message instead of a bare
+  // "internal" in the portal.
+  try {
+    const ref = db.collection('remedies').doc(remedyId!);
+    const snap = await ref.get();
+    if (!snap.exists) notFound('Remedy not found.');
+    const r = snap.data()!;
+    if (r.isAI !== true) failedPrecondition('Not an AI remedy.');
+    if (!r.question) failedPrecondition('There is no question to answer.');
+    if (!r.customerId || typeof r.customerId !== 'string') failedPrecondition('Remedy has no customer on it.');
 
-  await ref.update({
-    answer: a,
-    answerAt: FieldValue.serverTimestamp(),
-    answered: true,
-    pendingPortal: false, // drops it out of the portal queue (query is == true)
-    answeredByAdmin: uid,
-    updatedAt: FieldValue.serverTimestamp(),
-  });
+    await ref.update({
+      answer: a,
+      answerAt: FieldValue.serverTimestamp(),
+      answered: true,
+      pendingPortal: false, // drops it out of the portal queue (query is == true)
+      answeredByAdmin: uid,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
 
-  // Notify the customer — shown as a reply from the (AI) astrologer's name.
-  await db.collection(Collections.notifications).add({
-    userId: r.customerId,
-    title: `${r.astrologerName ?? 'Your astrologer'} replied`,
-    body: `Reply on "${r.title ?? 'your remedy'}": ${a}`,
-    type: 'remedy_answer',
-    remedyId,
-    read: false,
-    createdAt: FieldValue.serverTimestamp(),
-  });
+    // Notify the customer — shown as a reply from the (AI) astrologer's name.
+    await db.collection(Collections.notifications).add({
+      userId: r.customerId,
+      title: `${r.astrologerName ?? 'Your astrologer'} replied`,
+      body: `Reply on "${r.title ?? 'your remedy'}": ${a}`,
+      type: 'remedy_answer',
+      remedyId,
+      read: false,
+      createdAt: FieldValue.serverTimestamp(),
+    });
 
-  return { ok: true };
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof HttpsError) throw e; // our own precondition/validation errors pass through
+    const msg = e instanceof Error ? e.message : String(e);
+    logger.error('answerAiRemedyQuestion failed', { remedyId, error: msg });
+    throw new HttpsError('internal', `answerAiRemedyQuestion: ${msg}`);
+  }
 });
