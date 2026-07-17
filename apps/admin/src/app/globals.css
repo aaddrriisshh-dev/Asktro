@@ -367,6 +367,15 @@ tbody tr:last-child td { border-bottom: none; }
 .custfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0ebfa; font-size: 12.5px; }
 .custfoot select { margin-left: 6px; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--line); }
 
+/* "View all" full-page grid: the card breaks out to full width and its list
+   re-flows into a wrapping grid of compact cards (~7 per row via auto-fill). */
+.custcard--wide { grid-column: 1 / -1; }
+.custgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 6px; }
+.custcardlet { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 12px 8px; border: 1px solid #f0ebfa; border-radius: 12px; background: #fff; }
+.custcardlet-body { min-width: 0; width: 100%; }
+.custcardlet .nm { font-weight: 600; font-size: 13px; color: var(--navy); white-space: normal; line-height: 1.25; }
+.custcardlet .ph { font-size: 11.5px; color: var(--muted); }
+
 /* Astrologer view page */
 .aview-grid { display: grid; grid-template-columns: 320px 1fr; gap: 18px; align-items: start; }
 @media (max-width: 860px) { .aview-grid { grid-template-columns: 1fr; } }

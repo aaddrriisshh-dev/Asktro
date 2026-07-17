@@ -50,7 +50,9 @@ function AstroBox({
   isSuper: boolean; busy: string | null; actions: BoxAction[]; showLiveDot?: boolean;
   onStatus: (id: string, status: string, name?: string) => void; onEditRate: (a: Row) => void;
 }) {
-  const [limit, setLimit] = useState(10);
+  // `wide` = the "View all" full-page grid mode: the card breaks out to full
+  // width and re-flows its list into a wrapping grid of compact cards.
+  const [wide, setWide] = useState(false);
   const [q, setQ] = useState('');
   const filtered = q.trim()
     ? list.filter((a) => {
@@ -59,10 +61,9 @@ function AstroBox({
           || (Array.isArray(a.expertise) && (a.expertise as string[]).some((e) => e.toLowerCase().includes(t)));
       })
     : list;
-  const expanded = limit >= filtered.length;
-  const shown = filtered.slice(0, limit);
+  const shown = wide ? filtered : filtered.slice(0, 10);
   return (
-    <div className="card custcard" style={{ borderTop: `3px solid ${accent}` }}>
+    <div className={`card custcard${wide ? ' custcard--wide' : ''}`} style={{ borderTop: `3px solid ${accent}` }}>
       <div className="sess-col-head">
         <h3 className="celeste" style={{ margin: 0, fontSize: 16 }}>{icon} {title}</h3>
         <span className="udet-total">{list.length}</span>
@@ -74,39 +75,56 @@ function AstroBox({
           style={{ paddingLeft: 32, height: 36, fontSize: 13, width: '100%' }}
           placeholder={`Search ${title.toLowerCase()} by name…`}
           value={q}
-          onChange={(e) => { setQ(e.target.value); setLimit(10); }}
+          onChange={(e) => { setQ(e.target.value); setWide(false); }}
         />
       </div>
-      <div className="custlist">
+      <div className={`custlist${wide ? ' custgrid' : ''}`}>
         {shown.length === 0 ? <p className="drawer-muted" style={{ margin: '10px 0' }}>{q.trim() ? 'No matches.' : 'Nothing here yet.'}</p> : shown.map((a) => {
           const rate = rupees(a.ratePerMinutePaise);
           const st = (a.accountStatus ?? 'pending') as string;
+          const nameEls = (
+            <span className="nm">
+              {showLiveDot && a.onlineStatus ? <span className="live-dot" style={{ marginRight: 6 }} /> : null}
+              {a.name || 'Unnamed'}
+              {a.verified ? ' ✓' : ''}
+              {a.isAI ? <span className="badge purple" style={{ marginLeft: 6, fontSize: 10 }}>AI</span> : null}
+            </span>
+          );
+          const metaEls = (
+            <span className="ph">
+              {rate != null ? `₹${rate}/min` : 'default rate'} · <span className={`badge ${STATUS_COLORS[st] ?? ''}`} style={{ fontSize: 10 }}>{st}</span>
+            </span>
+          );
+          const actionEls = (
+            <>
+              {actions.includes('view') && <Link href={`/astrologers/${a.id}`} className="btn sm secondary">View</Link>}
+              {actions.includes('edit') && <button className="btn sm secondary" disabled={busy === a.id} onClick={() => onEditRate(a)}>✎ Edit</button>}
+              {actions.includes('approve') && isSuper && (
+                <>
+                  <button className="btn sm" disabled={busy === a.id} onClick={() => onStatus(a.id, 'approved')}>✓</button>
+                  <button className="btn sm danger" disabled={busy === a.id} onClick={() => { if (confirm(`Reject ${a.name}?`)) onStatus(a.id, 'rejected'); }}>✕</button>
+                </>
+              )}
+            </>
+          );
+          // Full-page grid: a compact vertical card (avatar on top, centered).
+          if (wide) {
+            return (
+              <div key={a.id} className="custcardlet">
+                <Avatar photo={a.profilePhoto} name={a.name} />
+                <div className="custcardlet-body">{nameEls}{metaEls}</div>
+                <div className="custrow-right" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>{actionEls}</div>
+              </div>
+            );
+          }
+          // Column list: the existing horizontal row.
           return (
             <div key={a.id} className="custrow">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                 <Avatar photo={a.profilePhoto} name={a.name} />
-                <div style={{ minWidth: 0 }}>
-                  <span className="nm">
-                    {showLiveDot && a.onlineStatus ? <span className="live-dot" style={{ marginRight: 6 }} /> : null}
-                    {a.name || 'Unnamed'}
-                    {a.verified ? ' ✓' : ''}
-                    {a.isAI ? <span className="badge purple" style={{ marginLeft: 6, fontSize: 10 }}>AI</span> : null}
-                  </span>
-                  <span className="ph">
-                    {rate != null ? `₹${rate}/min` : 'default rate'} · <span className={`badge ${STATUS_COLORS[st] ?? ''}`} style={{ fontSize: 10 }}>{st}</span>
-                  </span>
-                </div>
+                <div style={{ minWidth: 0 }}>{nameEls}{metaEls}</div>
               </div>
-              <div className="custrow-right" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                {actions.includes('view') && <Link href={`/astrologers/${a.id}`} className="btn sm secondary">View</Link>}
-                {actions.includes('edit') && <button className="btn sm secondary" disabled={busy === a.id} onClick={() => onEditRate(a)}>✎ Edit</button>}
-                {actions.includes('approve') && isSuper && (
-                  <>
-                    <button className="btn sm" disabled={busy === a.id} onClick={() => onStatus(a.id, 'approved')}>✓</button>
-                    <button className="btn sm danger" disabled={busy === a.id} onClick={() => { if (confirm(`Reject ${a.name}?`)) onStatus(a.id, 'rejected'); }}>✕</button>
-                  </>
-                )}
-              </div>
+              <div className="custrow-right" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>{actionEls}</div>
             </div>
           );
         })}
@@ -114,8 +132,8 @@ function AstroBox({
       <div className="custfoot">
         <span className="muted">Showing {shown.length} of {filtered.length}</span>
         {filtered.length > 10 && (
-          <button className="btn sm secondary" onClick={() => setLimit(expanded ? 10 : filtered.length)}>
-            {expanded ? 'Show less' : `View all (${filtered.length})`}
+          <button className="btn sm secondary" onClick={() => setWide((w) => !w)}>
+            {wide ? 'Show less' : `View all (${filtered.length})`}
           </button>
         )}
       </div>
