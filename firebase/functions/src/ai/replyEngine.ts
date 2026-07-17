@@ -177,8 +177,12 @@ async function getOrBuildChart(
     nowMs: Date.now(),
   });
 
-  await cacheRef.set({ chart, builtAt: FieldValue.serverTimestamp() }, { merge: true }).catch(() => {});
-  return chart;
+  // Firestore rejects `undefined` (and throws SYNCHRONOUSLY, so .catch can't help).
+  // A JSON round-trip drops every undefined key (optional fields like vedicName,
+  // dignity, etc.) — safe because those are all optional and absent == undefined.
+  const clean = JSON.parse(JSON.stringify(chart)) as ChartData;
+  await cacheRef.set({ chart: clean, builtAt: FieldValue.serverTimestamp() }, { merge: true }).catch(() => {});
+  return clean;
 }
 
 // ---- LLM generate + grounding repair ------------------------------------
