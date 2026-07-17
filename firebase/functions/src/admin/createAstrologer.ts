@@ -39,6 +39,7 @@ export const createAstrologer = onCall(async (req) => {
     about?: string; ratePerMinutePaise?: number; commissionPercent?: number;
     chatRatePaise?: number; voiceRatePaise?: number; videoRatePaise?: number;
     profilePhoto?: string; isAI?: boolean; risingStar?: boolean;
+    age?: number; gender?: string;
   };
   if (!d.name || !d.email) badRequest('name and email are required.');
 
@@ -88,6 +89,11 @@ export const createAstrologer = onCall(async (req) => {
       ...(d.profilePhoto ? { profilePhoto: d.profilePhoto } : {}),
       isAI: d.isAI === true,
       risingStar: d.risingStar === true,
+      // Persona identity for the AI reply engine: age drives the address terms
+      // (beta/bhaiya/Babuji per the client's age gap); gender drives gendered
+      // phrasing. Harmless on human astrologers.
+      ...(typeof d.age === 'number' && d.age > 0 ? { age: d.age } : {}),
+      ...(d.gender === 'male' || d.gender === 'female' ? { gender: d.gender } : {}),
       rating: 0,
       totalReviews: 0,
       totalConsultations: 0,
@@ -148,7 +154,7 @@ export const updateAstrologer = onCall(async (req) => {
   const { astrologerId, ...rest } = (req.data ?? {}) as { astrologerId?: string } & Record<string, unknown>;
   if (!astrologerId) badRequest('astrologerId is required.');
 
-  const allowed = ['name', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'chatRatePaise', 'voiceRatePaise', 'videoRatePaise', 'profilePhoto', 'isAI', 'featured', 'risingStar'];
+  const allowed = ['name', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'chatRatePaise', 'voiceRatePaise', 'videoRatePaise', 'profilePhoto', 'isAI', 'featured', 'risingStar', 'age', 'gender'];
   const patch: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
   for (const k of allowed) if (k in rest) patch[k] = rest[k];
 

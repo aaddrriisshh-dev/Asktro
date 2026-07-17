@@ -49,6 +49,10 @@ export function AstrologerFormModal({
     about: str(a.about),
     profilePhoto: str(a.profilePhoto),
     password: '',
+    // Persona identity (drives the AI astrologer's age-based address terms +
+    // gendered phrasing). Optional; only meaningful for AI personas.
+    age: a.age != null ? String(a.age) : '',
+    gender: str(a.gender),
   });
   const [expertise, setExpertise] = useState<string[]>(arr(a.expertise));
   const [languages, setLanguages] = useState<string[]>(arr(a.languages));
@@ -87,6 +91,8 @@ export function AstrologerFormModal({
           commissionPercent: comm,
           about: f.about.trim(), profilePhoto: f.profilePhoto.trim() || undefined,
           expertise, languages, isAI, risingStar,
+          ...(f.age ? { age: Number(f.age) } : {}),
+          ...(f.gender ? { gender: f.gender } : {}),
           ...(chosen ? { password: chosen } : {}),
         });
         const where = isSuper ? 'approved and live.' : 'created and is pending a Super Admin’s approval.';
@@ -102,6 +108,8 @@ export function AstrologerFormModal({
           about: f.about.trim(),
           experience: Number(f.experience) || 0,
           expertise, languages, isAI, risingStar,
+          ...(f.age ? { age: Number(f.age) } : {}),
+          ...(f.gender ? { gender: f.gender } : {}),
           ...(rate != null ? { ratePerMinutePaise: rate } : {}),
           ...(chatRate != null ? { chatRatePaise: chatRate } : {}),
           ...(voiceRate != null ? { voiceRatePaise: voiceRate } : {}),
@@ -142,6 +150,14 @@ export function AstrologerFormModal({
                 disabled={mode === 'edit'} onChange={(e) => set('email', e.target.value)} />
             </label>
             <label className="af"><span>Experience (years)</span><input className="input" placeholder="10" value={f.experience} onChange={(e) => set('experience', e.target.value)} /></label>
+            <label className="af"><span>Age (for AI persona)</span><input className="input" type="number" placeholder="28" value={f.age} onChange={(e) => set('age', e.target.value)} /></label>
+            <label className="af"><span>Gender (for AI persona)</span>
+              <select className="input" value={f.gender} onChange={(e) => set('gender', e.target.value)}>
+                <option value="">—</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+              </select>
+            </label>
             <label className="af"><span>Chat rate (₹/min){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="25" value={f.chatRate} onChange={(e) => set('chatRate', e.target.value)} /></label>
             <label className="af"><span>Voice rate (₹/min)</span><input className="input" placeholder="29" value={f.voiceRate} onChange={(e) => set('voiceRate', e.target.value)} /></label>
             <label className="af"><span>Video rate (₹/min)</span><input className="input" placeholder="45" value={f.videoRate} onChange={(e) => set('videoRate', e.target.value)} /></label>
