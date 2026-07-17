@@ -162,6 +162,27 @@ messaging + high cost. Root causes and the fixes we build in from day one:
 
 ---
 
+## Pacing & typing engine — build spec (founder requirements, locked)
+The persona enforces "one beat, then wait"; the PACING ENGINE (client + server,
+portal-tunable) enforces the human *timing*. Build during live wiring:
+1. **Message aggregation / debounce.** If the user fires 2-3 messages one by one
+   (fragments, mistypes, corrections), PAUSE and wait for the burst to settle
+   (~3-5s; longer if the last message looks unfinished — no end punctuation),
+   resetting the timer while messages keep arriving; then read the WHOLE burst and
+   answer once. Never answer only the first message.
+2. **Cancel-and-reread.** If a new message lands while the AI is already composing
+   ("typing"), cancel the pending reply and re-read the full set.
+3. **Thinking pause before replying.** ~1.5-3s for small talk; ~3-5s before a real
+   reading ("consulting the chart").
+4. **Typing indicator (dots).** Show the "…" animation the WHOLE time the pause +
+   typing runs; the bubble appears only at the end.
+5. **Realistic typing speed.** Duration ∝ message length, like a person typing a
+   2-line message — ~60-80 ms/char (≈45-60 wpm). Floor ~2s, ceiling ~12-15s/bubble.
+6. **One bubble per turn** (occasionally two, each with its own pause + dots — never
+   a simultaneous dump), then STOP and wait.
+7. Guardrail: believably human, NEVER obviously padded (padding churns users).
+   All knobs portal-tunable without a redeploy.
+
 ## Open items / next steps
 - [x] Pricing confirmed: ₹9/min live + 3 free min (₹27 credit) + 2-min recharge nudge.
 - [ ] Blind-test Gemini Pro vs Claude Sonnet on ~50–100 real Hindi/Hinglish prompts.
