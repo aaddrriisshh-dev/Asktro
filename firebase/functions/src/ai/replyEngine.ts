@@ -61,6 +61,7 @@ export const onAiChatMessage = onDocumentCreated(
       const astro = aSnap.data();
       if (!astro || astro.isAI !== true) return; // only AI personas auto-reply
       const user = uSnap.data() ?? {};
+      const clientName = firstName(user.name);
 
       const apiKey = GEMINI_API_KEY.value();
       if (!apiKey) {
@@ -98,7 +99,7 @@ export const onAiChatMessage = onDocumentCreated(
           style: astro.persona ?? astro.bio ?? undefined,
         },
         client: {
-          name: firstName(user.name),
+          name: clientName,
           age: ageFromMs(user.birthDateMs),
           gender: user.gender === 'female' ? 'female' : user.gender === 'male' ? 'male' : undefined,
           relationshipStatus: str(user.relationshipStatus),
@@ -112,22 +113,26 @@ export const onAiChatMessage = onDocumentCreated(
       const envelope = await generateGrounded(system, history, text, briefing, apiKey, configModels);
       if (!envelope) return;
 
-      // 8) Write EXACTLY ONE bubble — the hard "one beat per turn" guarantee.
-      // Never trust the model not to burst; take only its first line, hold the
-      // rest for the next turn (that IS the gradual reveal). A too-long line is
-      // trimmed to the first ~2 sentences so it stays a WhatsApp-length message.
-      const bubble = trimToBeat(envelope.messages.find((m) => m.trim()) ?? '');
-      if (bubble) {
-        await db.collection('consultations').doc(consultationId).collection('messages').add({
-          senderId: c.astrologerId,
-          type: 'text',
-          text: bubble,
-          timestamp: FieldValue.serverTimestamp(),
-          delivered: true,
-          seen: false,
-          aiGenerated: true,
-        });
+      // 8) One bubble — the hard "one beat per turn" guarantee. Strip a leading
+      // "<Name> ji," so she doesn't open every reply with the client's name (a
+      // robotic tell), and trim a runaway line to WhatsApp length.
+      const consultationRef = db.collection('consultations').doc(consultationId);
+      const bubble = trimToBeat(stripLeadingName(envelope.messages.find((m) => m.trim()) ?? '', clientName));
+
+      // Abuse toward the astrologer → two warnings, then end the session.
+      if (envelope.abuse) {
+        const strikes = (num(c.aiAbuseStrikes) ?? 0) + 1;
+        await consultationRef.set({ aiAbuseStrikes: strikes, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        if (strikes >= 3) {
+          await writeAstro(consultationId, c.astrologerId, 'Main is tarah ki baat-cheet aage nahi kar sakti. Yeh session yahin samapt kar rahi hoon, apna dhyaan rakhiye.');
+          await consultationRef.set({ status: 'ended', endTime: FieldValue.serverTimestamp(), endReason: 'abuse', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+          logger.info('onAiChatMessage: ended session for repeated abuse', { consultationId, strikes });
+          return;
+        }
+        logger.info('onAiChatMessage: abuse warning', { consultationId, strikes });
       }
+
+      if (bubble) await writeAstro(consultationId, c.astrologerId, bubble);
       if (envelope.messages.filter((m) => m.trim()).length > 1) {
         logger.info('onAiChatMessage: model bursted, sent only first bubble', { consultationId });
       }
@@ -323,6 +328,33 @@ function trimToBeat(text: string): string {
   let res = out.join(' ').trim() || t;
   if (res.length > 300) res = res.slice(0, 300).replace(/\s+\S*$/, '').trim();
   return res;
+}
+
+/**
+ * Strip a leading "<Name> ji," / "<Name>," address so she doesn't open every
+ * reply with the client's name (a robotic tell). Only removes it when there's
+ * real content after it; leaves warm terms like "beta"/"Mataji" untouched.
+ */
+function stripLeadingName(text: string, name?: string): string {
+  const t = text.trim();
+  if (!name) return t;
+  const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`^${esc}\\s*(ji|jee)?\\s*[,:.\\-–—]?\\s+`, 'i');
+  const stripped = t.replace(re, '');
+  return stripped && stripped !== t ? stripped.charAt(0).toUpperCase() + stripped.slice(1) : t;
+}
+
+/** Write one astrologer text bubble to a consultation. */
+async function writeAstro(consultationId: string, astrologerId: string, text: string): Promise<void> {
+  await db.collection('consultations').doc(consultationId).collection('messages').add({
+    senderId: astrologerId,
+    type: 'text',
+    text,
+    timestamp: FieldValue.serverTimestamp(),
+    delivered: true,
+    seen: false,
+    aiGenerated: true,
+  });
 }
 /** Birth ISO in IST from an epoch-ms date + optional HH:mm. Matches the app. */
 function birthIso(birthMs: number, birthTime: string | undefined, timeKnown: boolean): string {

@@ -35,6 +35,10 @@ export interface ReplyEnvelope {
   action: EnvelopeAction;
   person?: string;
   confidence: Confidence;
+  /** Set true when the USER is sexually inappropriate/abusive TOWARD the astrologer
+   *  (NOT a legitimate question about the user's own life). Drives the strike +
+   *  session-end logic. The model judges this in context. */
+  abuse?: boolean;
 }
 
 export interface ParseResult {
@@ -81,6 +85,7 @@ export function parseEnvelope(raw: string | null): ParseResult {
   const action = coerceAction(obj.action, issues);
   const confidence = coerceConfidence(obj.confidence, issues);
   const person = typeof obj.person === 'string' && obj.person.trim() ? obj.person.trim() : undefined;
+  const abuse = obj.abuse === true || obj.abuse === 'true';
 
   if (messages.length === 0) {
     issues.push('no usable messages');
@@ -89,7 +94,7 @@ export function parseEnvelope(raw: string | null): ParseResult {
 
   return {
     ok: issues.length === 0,
-    envelope: { messages, action, person, confidence },
+    envelope: { messages, action, person, confidence, abuse },
     issues,
   };
 }

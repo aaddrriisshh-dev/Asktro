@@ -109,6 +109,15 @@ export async function llmGenerate(
       maxOutputTokens: opts.maxOutputTokens ?? tierDefault.maxOutputTokens,
       ...(opts.json ? { responseMimeType: 'application/json' } : {}),
     },
+    // Do NOT let the provider's safety layer hijack a reply with a canned "I
+    // can't answer that" (a fatal AI tell). The persona sets its OWN in-character
+    // boundaries on abuse/sexual input; we handle escalation in code.
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+    ],
   };
 
   const url = `${GEMINI_BASE}/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;

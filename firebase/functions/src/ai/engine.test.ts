@@ -277,6 +277,13 @@ describe('parseEnvelope', () => {
     expect(r.envelope.messages.filter((m) => m.trim()).length).toBe(0); // → guard refuses
   });
 
+  it('reads the abuse flag (drives warnings + session end)', () => {
+    const on = parseEnvelope('{"messages":["Dekhiye, yeh baat theek nahi."],"action":"REPLY","confidence":"partial","abuse":true}');
+    expect(on.envelope.abuse).toBe(true);
+    const off = parseEnvelope('{"messages":["Namaste"],"action":"REPLY","confidence":"partial"}');
+    expect(off.envelope.abuse).toBeFalsy();
+  });
+
   it('carries requested person + kundli action', () => {
     const r = parseEnvelope('{"messages":["details bhejiye"],"action":"REQUEST_SECONDARY_KUNDLI","person":"wife","confidence":"partial"}');
     expect(r.envelope.action).toBe('REQUEST_SECONDARY_KUNDLI');
