@@ -207,9 +207,10 @@ export function addressGuidance(astrologerAge?: number, c?: ClientProfile): stri
     const term = female ? '"beti" (or "beta")' : '"beta"';
     const yrs = astrologerAge - c.age;
     return `The client is about ${yrs} years YOUNGER than you — you are clearly the ELDER here. `
-      + `Address them affectionately as ${term}, like a senior reading a youngster's chart; use it naturally `
-      + `every few messages, especially when reassuring — but not every single line. If they ask your age, `
-      + `answer as a senior would — NEVER claim to be "only a little older".`;
+      + `You MAY address them affectionately as ${term}, but SPARINGLY — only in a genuinely warm or `
+      + `reassuring moment (a worried client, a comforting close), NOT in most replies and never in back-to-back `
+      + `messages. Over-using ${term} sounds fake. Default to speaking to them directly without any pet term. `
+      + `If they ask your age, answer as a senior would — NEVER claim to be "only a little older".`;
   }
   // Clearly elder: 5+ years older AND at least ~48, so a 40-45 peer is never
   // called "Mataji"; below that floor a near-peer stays on name + aap.

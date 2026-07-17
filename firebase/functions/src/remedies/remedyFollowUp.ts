@@ -135,34 +135,34 @@ export const answerAiRemedyQuestion = onCall(async (req) => {
   if (!a) badRequest('answer is required.');
   if (a.length > MAX_LEN) badRequest('Answer is too long.');
 
+  // A plain read → validate → update → notify (no transaction). The previous
+  // transaction + FieldValue.delete() sentinel was throwing an opaque "internal"
+  // in the portal; this path is simpler and there's no concurrent writer to race.
   const ref = db.collection('remedies').doc(remedyId!);
-  await db.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists) notFound('Remedy not found.');
-    const r = snap.data()!;
-    if (r.isAI !== true) failedPrecondition('Not an AI remedy.');
-    if (!r.question) failedPrecondition('There is no question to answer.');
+  const snap = await ref.get();
+  if (!snap.exists) notFound('Remedy not found.');
+  const r = snap.data()!;
+  if (r.isAI !== true) failedPrecondition('Not an AI remedy.');
+  if (!r.question) failedPrecondition('There is no question to answer.');
 
-    tx.update(ref, {
-      answer: a,
-      answerAt: FieldValue.serverTimestamp(),
-      answered: true,
-      pendingPortal: FieldValue.delete(),
-      answeredByAdmin: uid,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+  await ref.update({
+    answer: a,
+    answerAt: FieldValue.serverTimestamp(),
+    answered: true,
+    pendingPortal: false, // drops it out of the portal queue (query is == true)
+    answeredByAdmin: uid,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
 
-    // Notify the customer — shown as a reply from the (AI) astrologer's name.
-    const notifRef = db.collection(Collections.notifications).doc();
-    tx.set(notifRef, {
-      userId: r.customerId,
-      title: `${r.astrologerName ?? 'Your astrologer'} replied`,
-      body: `Reply on "${r.title ?? 'your remedy'}": ${a}`,
-      type: 'remedy_answer',
-      remedyId,
-      read: false,
-      createdAt: FieldValue.serverTimestamp(),
-    });
+  // Notify the customer — shown as a reply from the (AI) astrologer's name.
+  await db.collection(Collections.notifications).add({
+    userId: r.customerId,
+    title: `${r.astrologerName ?? 'Your astrologer'} replied`,
+    body: `Reply on "${r.title ?? 'your remedy'}": ${a}`,
+    type: 'remedy_answer',
+    remedyId,
+    read: false,
+    createdAt: FieldValue.serverTimestamp(),
   });
 
   return { ok: true };

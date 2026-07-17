@@ -70,8 +70,8 @@ export const onAiChatMessage = onDocumentCreated(
       // proceeds (earlier ones bail) — so 2-3 rapid messages are read together and
       // answered once, never one-by-one.
       await sleep(DEBOUNCE_MS);
-      const latestId = await latestMessageId(consultationId);
-      if (latestId && latestId !== snap.id) return; // a newer message superseded us
+      const latestId = await latestCustomerMessageId(consultationId, c.customerId as string);
+      if (latestId && latestId !== snap.id) return; // a newer USER message superseded us
 
       const [aSnap, uSnap] = await Promise.all([
         db.collection('astrologers').doc(c.astrologerId).get(),
@@ -145,7 +145,7 @@ export const onAiChatMessage = onDocumentCreated(
       // questions were spaced further apart than the debounce), abandon this reply
       // — the newer message's own run will answer the whole burst. Without this,
       // each spaced-out question spawns its own reply and floods the chat.
-      const stillLatest = await latestMessageId(consultationId);
+      const stillLatest = await latestCustomerMessageId(consultationId, c.customerId as string);
       if (stillLatest && stillLatest !== snap.id) {
         await setTyping(consultationId, c.astrologerId, false);
         logger.info('onAiChatMessage: superseded during generation, skipping', { consultationId });
@@ -368,16 +368,25 @@ async function writeSystem(consultationId: string, text: string) {
     seen: true,
   });
 }
-/** Id of the newest message — used to bail if a newer message superseded us. */
-async function latestMessageId(consultationId: string): Promise<string | null> {
+/**
+ * Id of the newest CUSTOMER message — used to bail only when a newer message
+ * FROM THE USER superseded us. It ignores the astrologer's OWN replies: a
+ * question sent while she is still typing must not be mistaken for "superseded"
+ * just because her bubble is the newest doc (that bug made her skip the message
+ * until the user nudged with another one).
+ */
+async function latestCustomerMessageId(consultationId: string, customerId: string): Promise<string | null> {
   const q = await db
     .collection('consultations')
     .doc(consultationId)
     .collection('messages')
     .orderBy('timestamp', 'desc')
-    .limit(1)
+    .limit(12)
     .get();
-  return q.docs[0]?.id ?? null;
+  for (const d of q.docs) {
+    if ((d.data() as Record<string, unknown>).senderId === customerId) return d.id;
+  }
+  return null;
 }
 /**
  * Aggregate the user's settled burst (the trailing run of their own messages
