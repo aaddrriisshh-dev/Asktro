@@ -35,10 +35,15 @@ export const DEFAULT_MODELS: Record<LlmTier, string> = {
  * human, non-robotic voice; router runs cold for deterministic parsing. Output
  * is capped everywhere — long replies are both an AI tell AND a cost leak.
  */
+// NOTE: the current Gemini models are "thinking" models — they spend output
+// tokens reasoning BEFORE emitting the answer, and that counts against
+// maxOutputTokens. A tight cap truncates the JSON mid-string. These budgets give
+// thinking room + the short reply; the reply LENGTH is capped by the prompt (2-3
+// lines), not by starving the token budget.
 const TIER_DEFAULTS: Record<LlmTier, { temperature: number; maxOutputTokens: number }> = {
-  router: { temperature: 0.0, maxOutputTokens: 512 },
-  filler: { temperature: 0.8, maxOutputTokens: 256 },
-  reading: { temperature: 0.9, maxOutputTokens: 512 },
+  router: { temperature: 0.0, maxOutputTokens: 1024 },
+  filler: { temperature: 0.8, maxOutputTokens: 1024 },
+  reading: { temperature: 0.9, maxOutputTokens: 3072 },
 };
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';

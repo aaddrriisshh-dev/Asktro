@@ -262,6 +262,21 @@ describe('parseEnvelope', () => {
     expect(r.envelope.confidence).toBe('insufficient');
   });
 
+  it('NEVER leaks raw JSON — salvages complete strings from truncated output', () => {
+    // Thinking model ran out of tokens mid-JSON (the real production bug).
+    const truncated = '{"messages":["Main bilkul theek hoon, aap sunaiye","aur bataiye kya poochh';
+    const r = parseEnvelope(truncated);
+    expect(r.envelope.messages).toEqual(['Main bilkul theek hoon, aap sunaiye']); // complete one kept, partial dropped
+    expect(r.envelope.messages.join(' ')).not.toContain('{'); // no JSON braces reach the user
+    expect(r.envelope.messages.join(' ')).not.toContain('messages');
+  });
+
+  it('refuses (empty) when even the first string is truncated', () => {
+    const r = parseEnvelope('{"messages":["Main');
+    expect(r.envelope.messages.every((m) => !m.includes('{'))).toBe(true);
+    expect(r.envelope.messages.filter((m) => m.trim()).length).toBe(0); // → guard refuses
+  });
+
   it('carries requested person + kundli action', () => {
     const r = parseEnvelope('{"messages":["details bhejiye"],"action":"REQUEST_SECONDARY_KUNDLI","person":"wife","confidence":"partial"}');
     expect(r.envelope.action).toBe('REQUEST_SECONDARY_KUNDLI');

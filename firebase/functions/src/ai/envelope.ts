@@ -63,10 +63,10 @@ export function parseEnvelope(raw: string | null): ParseResult {
 
   const jsonText = extractJsonObject(raw);
   if (!jsonText) {
-    issues.push('no JSON object found');
-    // Last resort: treat the whole thing as a single plain bubble, stripped of
-    // any markdown, so the user still gets a coherent human reply.
-    return { ok: false, envelope: safeFallback(stripMarkdown(raw).slice(0, 400)), issues };
+    issues.push('no balanced JSON object found');
+    // Truncated/streaming output (e.g. a thinking model cut off mid-JSON). Salvage
+    // only COMPLETE message strings — NEVER emit raw JSON braces to the user.
+    return { ok: false, envelope: fromSalvage(raw), issues };
   }
 
   let obj: Record<string, unknown>;
@@ -74,7 +74,7 @@ export function parseEnvelope(raw: string | null): ParseResult {
     obj = JSON.parse(jsonText) as Record<string, unknown>;
   } catch {
     issues.push('JSON parse failed');
-    return { ok: false, envelope: safeFallback(stripMarkdown(raw).slice(0, 400)), issues };
+    return { ok: false, envelope: fromSalvage(raw), issues };
   }
 
   const messages = coerceMessages(obj.messages, issues);
@@ -155,6 +155,57 @@ function extractFactors(text: string): Set<string> {
 const ONE_WORD_NAKSHATRAS = new Set(NAKSHATRAS.filter((n) => !n.includes(' ')));
 
 // ---- helpers ------------------------------------------------------------
+
+/**
+ * Build a fallback envelope from truncated/unparseable output by salvaging only
+ * the COMPLETE (fully-quoted) strings from the `messages` array. A half-written
+ * last string is dropped, so the user never sees a cut-off sentence — and NEVER
+ * raw JSON. If nothing complete survives, returns an empty envelope so the guard
+ * refuses with the safe line.
+ */
+function fromSalvage(raw: string): ReplyEnvelope {
+  const msgs = salvageMessages(raw);
+  return msgs.length
+    ? { messages: msgs, action: 'REPLY', confidence: 'partial' }
+    : safeFallback('');
+}
+
+/** Pull complete quoted strings out of a (possibly truncated) `"messages":[...]`. */
+function salvageMessages(raw: string): string[] {
+  const key = raw.indexOf('"messages"');
+  if (key === -1) return [];
+  const arrStart = raw.indexOf('[', key);
+  if (arrStart === -1) return [];
+  const out: string[] = [];
+  let i = arrStart + 1;
+  while (i < raw.length && out.length < 3) {
+    while (i < raw.length && raw[i] !== '"' && raw[i] !== ']') i++;
+    if (i >= raw.length || raw[i] === ']') break;
+    i++; // past opening quote
+    let s = '';
+    let closed = false;
+    let esc = false;
+    for (; i < raw.length; i++) {
+      const ch = raw[i];
+      if (esc) {
+        s += ch === 'n' ? '\n' : ch;
+        esc = false;
+      } else if (ch === '\\') {
+        esc = true;
+      } else if (ch === '"') {
+        closed = true;
+        i++;
+        break;
+      } else {
+        s += ch;
+      }
+    }
+    if (!closed) break; // truncated last string — drop it, don't show a fragment
+    const clean = stripMarkdown(s).trim();
+    if (clean) out.push(clean);
+  }
+  return out;
+}
 
 /** Extract the first balanced {...} object from arbitrary text. */
 function extractJsonObject(raw: string): string | null {
