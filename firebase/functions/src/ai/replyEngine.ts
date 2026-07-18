@@ -41,6 +41,7 @@ const TYPE_FLOOR_MS = 1800;
 const TYPE_CEIL_MS = 9000;
 const MAX_BUBBLES = 2; // she may send at most two short, paced bubbles per reply
 const INTER_BUBBLE_MS = 1400; // gap between bubbles so the dots visibly re-appear and it never feels rushed
+const RECALL_PAUSE_MS = 2600; // the "reading our last chat" pause after the beat, before she recalls
 
 export const onAiChatMessage = onDocumentCreated(
   {
@@ -149,16 +150,25 @@ export const onAiChatMessage = onDocumentCreated(
       // isSessionOpening, which is always false here because the automated greeting
       // ("Namaste ji…") is itself an astrologer turn in history. Best-effort.
       const isFirstUserTurn = !history.some((t) => t.role === 'user');
+      // Set when we will DETERMINISTICALLY post the "let me look at our last chat"
+      // beat before she recalls (so the model can never skip it).
+      let deterministicBeat = false;
       if (isFirstUserTurn) {
         const { text: priorCtx, count: priorCount } = await loadPriorSessionContext(
           c.customerId as string, c.astrologerId as string, consultationId);
         if (priorCtx) {
-          // Recall tone scales with familiarity: a near-acquaintance earns the
-          // recall with a brief "let me place you" beat; a regular skips the
-          // formality and recalls naturally (but keeps the astrologer's dignity).
-          const recallRule = priorCount >= 3
+          const acquainting = priorCount < 3; // regular (3+) skips the formal beat
+          // Does the client want to CONTINUE the last topic? Understood robustly —
+          // any phrasing ("purani baat karte hain", "main wahin atka hoon", …) — via
+          // keywords first, then a cheap Flash read for whatever the keywords miss.
+          if (acquainting) {
+            deterministicBeat = await wantsToContinue(userText, apiKey, configModels);
+          }
+          const recallRule = !acquainting
             ? `- This is a REGULAR client — you know them. Recall naturally and proactively, no formal "let me check my notes". Reference the ongoing thread warmly but with your usual measured dignity — never slangy, never word-for-word.`
-            : `- If they choose to CONTINUE (or ask about the earlier topic): first take a short, human beat, like you're placing them / glancing at your notes ("ek minute, hamari pichli baat zara dekh loon…"), THEN bring up the specific topic SOFTLY, as a question. You handle many people daily, so the recall is EARNED after that beat — never instant, never word-for-word.`;
+            : deterministicBeat
+              ? `- You have JUST said "ek minute, hamari pichli baat dekh loon" to them. So NOW, without repeating that, bring up the specific earlier topic SOFTLY as a question ("pichli baar shaadi ki baat hui thi na — us par kuch aage badha?"). Never word-for-word, never a cold perfect recital.`
+              : `- If they ask about the earlier topic, bring it up SOFTLY as a question, never word-for-word. If they ask something new, just answer that.`;
           system += `\n\n# YOUR LAST CHAT WITH THIS CLIENT (context — they were already greeted based on how well you know them)
 ${recallRule}
 - If they ask something NEW: answer that; bring the past in only if genuinely relevant, don't force it.
@@ -176,6 +186,19 @@ ${priorCtx}`;
         await setTyping(consultationId, c.astrologerId, false);
         logger.warn('onAiChatMessage: rate-limited, skipping generation', { consultationId });
         return;
+      }
+
+      // 5e) The human RECALL BEAT — posted deterministically (never left to the
+      // model) when a returning-but-still-acquainting client asks to continue: she
+      // says "ek minute, pichli baat dekh loon…", pauses as if reading her notes,
+      // THEN composes the specific recall below. Template line → zero LLM cost.
+      if (deterministicBeat) {
+        const beat = conjugateGender(recallBeatLine(), astroGender);
+        await setTyping(consultationId, c.astrologerId, true);
+        await sleep(typingDelayMs(beat));
+        await writeAstro(consultationId, c.astrologerId, beat);
+        await setTyping(consultationId, c.astrologerId, false);
+        await sleep(RECALL_PAUSE_MS);
       }
 
       // 6) Show the typing indicator (dots) while she composes, then generate.
@@ -402,6 +425,51 @@ async function generateGrounded(
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+// Obvious "continue the previous topic" phrasings (Latin + Devanagari). A fast,
+// free first pass — anything not caught here falls through to a Flash read.
+const CONTINUE_LATIN = /(pichhl|pichl|puran|pehl|wahin|wahi baat|wahi topic|jahan ruk|jaha ruk|jahan cho|jaha cho|jahan chh|atk|us baat|usi baat|aage badha|aage kar|aage le|aage bhad|continue|wahi se|wahin se|last waali|pichle)/i;
+const CONTINUE_DEV = /(पिछल|पुरान|पहले|वहीं|वही बात|जहां रुक|जहां छोड|जहाँ रुक|जहाँ छोड|अटक|उस बात|उसी बात|आगे बढ़ा|आगे कर|आगे ले|वहीं से|पिछले)/;
+
+/**
+ * Does the client want to CONTINUE the previous conversation (vs. ask something
+ * new)? Robust to any phrasing: obvious keywords are caught free; anything else is
+ * read by a cheap Flash call that actually understands the sentence. Fails safe to
+ * false (no beat) on any error, so it never blocks or delays a reply on a fault.
+ */
+async function wantsToContinue(
+  userText: string,
+  apiKey: string,
+  configModels?: Partial<Record<'router' | 'filler' | 'reading', string>>,
+): Promise<boolean> {
+  const t = userText.toLowerCase();
+  if (CONTINUE_LATIN.test(t) || CONTINUE_DEV.test(userText)) return true;
+  try {
+    const raw = await llmGenerate(
+      {
+        tier: 'router',
+        system: 'A returning client was just asked whether to CONTINUE the previous conversation or start something NEW. Read their reply (Hindi/Hinglish/English) and answer with ONLY one word — CONTINUE or NEW. If genuinely unclear, answer NEW.',
+        userText,
+        maxOutputTokens: 4,
+      },
+      apiKey,
+      configModels,
+    );
+    return /continue/i.test(String(raw ?? ''));
+  } catch {
+    return false;
+  }
+}
+
+/** The "let me look at our last chat" beat — varied so it isn't identical each time. */
+function recallBeatLine(): string {
+  const opts = [
+    'Thik hai, ek minute — hamari pichli baat zara dekh loon…',
+    'Achha, ek pal rukiye — pichli baar kya baat hui thi, dekh leti hoon…',
+    'Ji, ek minute — aapki pichli baat par ek nazar daal loon…',
+  ];
+  return opts[Math.floor(Math.random() * opts.length)];
 }
 
 /**
