@@ -152,10 +152,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     }
     if (!mounted) return;
     if (profile != null && !profile.hasRecharged) {
-      // Let the home screen settle for a beat before the offer rises, so it
-      // reads as a deliberate reveal rather than popping in on top of a
-      // still-loading screen.
-      await Future<void>.delayed(const Duration(milliseconds: 700));
+      // Let the user land, take in the home screen and even start scrolling
+      // BEFORE the offer rises — so it reads as a considered nudge, not the very
+      // first thing thrust at them the instant the app opens.
+      await Future<void>.delayed(const Duration(milliseconds: 3500));
+      if (!mounted) return;
       if (!mounted) return;
       await showWelcomeOffer(context, chatCreditPaise: profile.chatBonusBalance);
       return;
