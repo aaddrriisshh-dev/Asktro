@@ -158,7 +158,7 @@ class StoreRail extends ConsumerWidget {
         const SizedBox(height: 1),
         const Text('Divine essentials for a better you',
             maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 10, color: _muted, fontWeight: FontWeight.w500)),
+            style: TextStyle(fontSize: 10, color: _muted, fontWeight: FontWeight.w500),),
         const SizedBox(height: 12),
         RichText(
           maxLines: 3,
@@ -186,7 +186,7 @@ class StoreRail extends ConsumerWidget {
         Text(subtext,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 10.5, color: _muted, height: 1.3, fontWeight: FontWeight.w500)),
+            style: const TextStyle(fontSize: 10.5, color: _muted, height: 1.3, fontWeight: FontWeight.w500),),
         const SizedBox(height: 11),
         GestureDetector(
           onTap: () => context.push('/store'),
@@ -207,7 +207,7 @@ class StoreRail extends ConsumerWidget {
                 Flexible(
                   child: Text(cta,
                       maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800)),
+                      style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800),),
                 ),
                 const SizedBox(width: 8),
                 Container(
@@ -242,11 +242,11 @@ class StoreRail extends ConsumerWidget {
               children: [
                 Text('100% Authentic',
                     maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _purple)),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _purple),),
                 SizedBox(height: 1),
                 Text('Energized & Blessed',
                     maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
-                    style: TextStyle(fontSize: 8, color: _muted, fontWeight: FontWeight.w600)),
+                    style: TextStyle(fontSize: 8, color: _muted, fontWeight: FontWeight.w600),),
               ],
             ),
           ],
@@ -405,7 +405,7 @@ class _Celestial extends StatelessWidget {
             ),
         ],
       );
-    });
+    },);
   }
 }
 
@@ -475,11 +475,11 @@ class _CategoryChip extends StatelessWidget {
               children: [
                 Text(category.name,
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: _ink)),
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: _ink),),
                 if (blurb.isNotEmpty)
                   Text(blurb,
                       maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10, color: _muted, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(fontSize: 10, color: _muted, fontWeight: FontWeight.w500),),
               ],
             ),
           ],
