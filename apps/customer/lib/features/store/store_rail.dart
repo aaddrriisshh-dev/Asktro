@@ -170,18 +170,18 @@ class StoreRail extends ConsumerWidget {
     final tail = words.length > 1 ? ' ${words.last}' : '';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 6, 10, 0),
+      padding: const EdgeInsets.fromLTRB(14, 6, 0, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            flex: 53,
+            flex: 42,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 RichText(
-                  maxLines: 2,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   text: TextSpan(
                     style: const TextStyle(fontFamily: 'serif', fontSize: 17.5, fontWeight: FontWeight.w700, height: 1.16, color: _navy),
@@ -240,8 +240,7 @@ class StoreRail extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(width: 2),
-          Expanded(flex: 47, child: Align(alignment: Alignment.bottomCenter, child: _heroArt(image))),
+          Expanded(flex: 58, child: Align(alignment: Alignment.bottomRight, child: _heroArt(image))),
         ],
       ),
     );
@@ -252,7 +251,7 @@ class StoreRail extends ConsumerWidget {
     // overrides it per-campaign.
     if (image.isEmpty) {
       return SizedBox(
-        height: 180,
+        height: 210,
         child: Image.asset(
           'assets/store/hero_products.png',
           fit: BoxFit.contain,
@@ -262,7 +261,7 @@ class StoreRail extends ConsumerWidget {
       );
     }
     return SizedBox(
-      height: 180,
+      height: 210,
       child: CachedNetworkImage(
         imageUrl: image,
         fit: BoxFit.contain,
