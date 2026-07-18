@@ -102,9 +102,13 @@ class StoreRail extends ConsumerWidget {
   // ---- brand row: bag tile + name + tagline + authenticity badge ----
   Widget _brandRow() => Padding(
         padding: const EdgeInsets.fromLTRB(14, 14, 12, 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
             // Purple rounded tile with a white shopping-bag glyph (reference).
             Container(
               width: 38,
@@ -121,21 +125,13 @@ class StoreRail extends ConsumerWidget {
               child: const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 21),
             ),
             const SizedBox(width: 10),
+            // Wordmark takes the row; the tagline gets its own full-width line
+            // below so it always shows complete (a badge would otherwise crowd
+            // it on a narrow phone).
             const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Bold sans wordmark (matches the reference's heavy grotesque).
-                  Text('Asktro Mall',
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _navy, letterSpacing: -0.3)),
-                  SizedBox(height: 1),
-                  Text('Divine essentials for a better you',
-                      maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 10.5, color: _muted, fontWeight: FontWeight.w500)),
-                ],
-              ),
+              child: Text('Asktro Mall',
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _navy, letterSpacing: -0.3)),
             ),
             const SizedBox(width: 8),
             // Authenticity badge — rounded white panel: outline shield + check,
@@ -167,6 +163,13 @@ class StoreRail extends ConsumerWidget {
                   ),
                 ],
               ),
+              ],
+            ),
+            const Padding(
+              padding: EdgeInsets.only(left: 48, top: 2),
+              child: Text('Divine essentials for a better you',
+                  maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 10.5, color: _muted, fontWeight: FontWeight.w500)),
             ),
           ],
         ),
