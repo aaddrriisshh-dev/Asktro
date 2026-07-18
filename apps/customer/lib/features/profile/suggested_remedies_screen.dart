@@ -832,9 +832,10 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
   }
 
   /// A deliberate, reversible opt-out — a confirmation sheet with a required
-  /// checkbox so it can never be triggered by an accidental tap.
-  Future<void> _openManageSheet() async {
-    final optedOut = ref.read(_remedyOptOutProvider).valueOrNull ?? false;
+  /// checkbox so it can never be triggered by an accidental tap. [optedOut] is
+  /// the live state read from the widget build (watched), so the sheet always
+  /// shows the correct direction (turn off vs. turn back on).
+  Future<void> _openManageSheet(bool optedOut) async {
     if (optedOut) {
       // Already off — offer a simple, one-tap re-enable.
       await showModalBottomSheet<void>(
@@ -953,6 +954,9 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
   @override
   Widget build(BuildContext context) {
     final msgs = ref.watch(_remedyThreadProvider(widget.remedyId)).valueOrNull ?? const [];
+    // Watched (not read) so the stream stays live and the manage-sheet always
+    // reflects the current opt-out state.
+    final optedOut = ref.watch(_remedyOptOutProvider).valueOrNull ?? false;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -969,14 +973,35 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
             // set apart from the reply box so it can't be tapped by accident.
             InkWell(
               borderRadius: BorderRadius.circular(20),
-              onTap: _openManageSheet,
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(Icons.more_horiz_rounded, size: 20, color: AppColors.textSecondary),
+              onTap: () => _openManageSheet(optedOut),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(optedOut ? Icons.notifications_off_rounded : Icons.more_horiz_rounded,
+                    size: 20, color: AppColors.textSecondary),
               ),
             ),
           ],
         ),
+        if (optedOut) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.textSecondary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.notifications_off_rounded, size: 14, color: AppColors.textSecondary),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text("Astrologer messages are off. Tap ⋯ above to turn them back on.",
+                      style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         if (msgs.isEmpty)
           Text('${widget.astro} may message you here with guidance. You can reply anytime.',
