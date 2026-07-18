@@ -109,29 +109,19 @@ class StoreRail extends ConsumerWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-            // Purple rounded tile with a white shopping-bag glyph (reference).
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF8A5FDD), Color(0xFF6E4FB8), Color(0xFF4E3596)],
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.38), blurRadius: 10, offset: const Offset(0, 5))],
-              ),
-              child: const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 21),
-            ),
-            const SizedBox(width: 10),
-            // Wordmark takes the row; the tagline gets its own full-width line
-            // below so it always shows complete (a badge would otherwise crowd
-            // it on a narrow phone).
+            // Clean two-tone wordmark — no icon, left-aligned.
             const Expanded(
-              child: Text('Asktro Mall',
-                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _navy, letterSpacing: -0.3)),
+              child: RichText(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                text: TextSpan(
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.3),
+                  children: [
+                    TextSpan(text: 'Asktro ', style: TextStyle(color: _navy)),
+                    TextSpan(text: 'Mall', style: TextStyle(color: _purple)),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(width: 8),
             // Authenticity badge — rounded white panel: outline shield + check,
@@ -165,12 +155,10 @@ class StoreRail extends ConsumerWidget {
               ),
               ],
             ),
-            const Padding(
-              padding: EdgeInsets.only(left: 48, top: 2),
-              child: Text('Divine essentials for a better you',
-                  maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 10.5, color: _muted, fontWeight: FontWeight.w500)),
-            ),
+            const SizedBox(height: 3),
+            const Text('Divine essentials for a better you',
+                maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, color: _muted, fontWeight: FontWeight.w500)),
           ],
         ),
       );
@@ -187,7 +175,7 @@ class StoreRail extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            flex: 60,
+            flex: 53,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -252,33 +240,29 @@ class StoreRail extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(width: 4),
-          Expanded(flex: 40, child: _heroArt(image)),
+          const SizedBox(width: 2),
+          Expanded(flex: 47, child: Align(alignment: Alignment.bottomCenter, child: _heroArt(image))),
         ],
       ),
     );
   }
 
   Widget _heroArt(String image) {
+    // Default to the bundled transparent product shot; a portal `image` URL
+    // overrides it per-campaign.
     if (image.isEmpty) {
-      // Stand-in until the founder uploads the transparent product PNG.
       return SizedBox(
-        height: 150,
-        child: Center(
-          child: Container(
-            width: 108,
-            height: 108,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [_purple.withValues(alpha: 0.16), _purple.withValues(alpha: 0.02)]),
-            ),
-            child: const Center(child: Text('🪔', style: TextStyle(fontSize: 44))),
-          ),
+        height: 180,
+        child: Image.asset(
+          'assets/store/hero_products.png',
+          fit: BoxFit.contain,
+          alignment: Alignment.bottomCenter,
+          errorBuilder: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 44))),
         ),
       );
     }
     return SizedBox(
-      height: 156,
+      height: 180,
       child: CachedNetworkImage(
         imageUrl: image,
         fit: BoxFit.contain,
