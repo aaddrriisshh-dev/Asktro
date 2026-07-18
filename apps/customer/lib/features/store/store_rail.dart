@@ -18,23 +18,16 @@ class StoreRail extends ConsumerWidget {
     if (cats.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      // Bazaar shelf — a warm parchment band framed as a temple-market shelf, the
-      // category tiles sitting on a carved wooden ledge. Distinctive, not generic.
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFEAD9B2), Color(0xFFDCC392)],
-        ),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 14, offset: const Offset(0, 6))],
-      ),
+      width: double.infinity,
+      // Full-bleed band that reaches both screen edges (interim original look —
+      // a new direction is being chosen from previews).
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.only(top: 14, bottom: 14),
+      decoration: const BoxDecoration(gradient: Mall.gheeGradient),
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 13, 12, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 const Text('🪔', style: TextStyle(fontSize: 18)),
@@ -45,25 +38,25 @@ class StoreRail extends ConsumerWidget {
                           fontFamily: 'serif',
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF4A3814),
+                          color: Mall.titleBrown,
                           letterSpacing: 0.3,),),
                 ),
                 GestureDetector(
                   onTap: () => context.push('/store'),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFF5A4218), Color(0xFF3A2A0E)]),
+                      gradient: Mall.goldButton,
                       borderRadius: BorderRadius.circular(18),
-                      boxShadow: [BoxShadow(color: const Color(0xFF3A2A0E).withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))],
+                      boxShadow: [BoxShadow(color: const Color(0xFF966414).withValues(alpha: 0.5), blurRadius: 10, offset: const Offset(0, 5))],
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Visit',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFF3DCA0)),),
+                        Text('Visit Store',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),),
                         SizedBox(width: 3),
-                        Icon(Icons.arrow_forward_rounded, size: 13, color: Color(0xFFF3DCA0)),
+                        Icon(Icons.arrow_forward_rounded, size: 13, color: Colors.white),
                       ],
                     ),
                   ),
@@ -87,18 +80,6 @@ class StoreRail extends ConsumerWidget {
                   onTap: () => context.push('/store/category/${c.id}', extra: c.name),
                 );
               },
-            ),
-          ),
-          const SizedBox(height: 10),
-          // The carved wooden ledge the "stalls" rest on — the shelf motif.
-          Container(
-            height: 8,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFB9975A), Color(0xFF7C5E2A)],
-              ),
             ),
           ),
         ],
