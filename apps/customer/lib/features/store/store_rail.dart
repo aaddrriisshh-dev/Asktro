@@ -329,7 +329,7 @@ class _HeroArtState extends State<_HeroArt> {
     final listener = ImageStreamListener((info, _) {
       final r = info.image.width / info.image.height;
       if (mounted && r > 0 && _ratio != r) setState(() => _ratio = r);
-    }, onError: (_, __) {});
+    }, onError: (_, __) {},);
     stream.addListener(listener);
     _stream = stream;
     _listener = listener;
