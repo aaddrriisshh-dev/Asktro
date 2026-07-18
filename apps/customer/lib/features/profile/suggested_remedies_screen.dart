@@ -55,6 +55,19 @@ final _remedyThreadProvider =
       .map((s) => s.docs.map((d) => {'id': d.id, ...d.data()}).toList());
 });
 
+/// Whether the customer has opted out of proactive astrologer messages. Read
+/// from their own user doc so the manage-sheet reflects the live state.
+final _remedyOptOutProvider = StreamProvider.autoDispose<bool>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return Stream.value(false);
+  return ref
+      .watch(firestoreProvider)
+      .collection('users')
+      .doc(uid)
+      .snapshots()
+      .map((d) => d.data()?['remedyMessagesOptOut'] == true);
+});
+
 class SuggestedRemediesScreen extends ConsumerWidget {
   const SuggestedRemediesScreen({super.key});
 
@@ -801,18 +814,140 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
     }
   }
 
-  Future<void> _stopMessages() async {
+  Future<void> _setOptOut(bool optOut) async {
     try {
       await ref
           .read(functionsProvider)
           .httpsCallable('setRemedyMessagesOptOut')
-          .call<Map<String, dynamic>>({'optOut': true});
+          .call<Map<String, dynamic>>({'optOut': optOut});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("You won't receive astrologer messages anymore.")),
+          SnackBar(
+              content: Text(optOut
+                  ? 'Messages from your astrologer are now turned off.'
+                  : "You'll receive messages from your astrologer again.")),
         );
       }
     } catch (_) {/* best-effort */}
+  }
+
+  /// A deliberate, reversible opt-out — a confirmation sheet with a required
+  /// checkbox so it can never be triggered by an accidental tap.
+  Future<void> _openManageSheet() async {
+    final optedOut = ref.read(_remedyOptOutProvider).valueOrNull ?? false;
+    if (optedOut) {
+      // Already off — offer a simple, one-tap re-enable.
+      await showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: AppColors.card,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        builder: (ctx) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Astrologer messages are off',
+                  style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 16)),
+              const SizedBox(height: 6),
+              Text('You have turned off messages and guidance from your astrologer. You can turn them back on anytime.',
+                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary, height: 1.4)),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _setOptOut(false);
+                  },
+                  child: const Text('Turn messages back on'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    var confirmed = false;
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.only(
+              left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Turn off astrologer messages?',
+                  style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 16)),
+              const SizedBox(height: 6),
+              Text('You will no longer receive any messages or guidance from ${widget.astro} on your remedies. You can turn this back on anytime.',
+                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary, height: 1.4)),
+              const SizedBox(height: 14),
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => setSheet(() => confirmed = !confirmed),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Checkbox(
+                        value: confirmed,
+                        activeColor: AppColors.primary,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        onChanged: (v) => setSheet(() => confirmed = v ?? false),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text("I understand I won't receive any more messages from my astrologer.",
+                              style: AppTypography.caption.copyWith(color: AppColors.textDark, height: 1.4)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    disabledBackgroundColor: AppColors.error.withValues(alpha: 0.35),
+                  ),
+                  onPressed: confirmed ? () => Navigator.of(ctx).pop(true) : null,
+                  child: const Text('Save'),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text('Cancel',
+                      style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).then((v) {
+      if (v == true) _setOptOut(true);
+    });
   }
 
   @override
@@ -825,9 +960,21 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
           children: [
             const Icon(Icons.forum_rounded, size: 15, color: AppColors.primary),
             const SizedBox(width: 6),
-            Text('Chat with ${widget.astro}',
-                style: AppTypography.caption
-                    .copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w700),),
+            Expanded(
+              child: Text('Chat with ${widget.astro}',
+                  style: AppTypography.caption
+                      .copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w700),),
+            ),
+            // Quiet entry point to the message settings — deliberately small and
+            // set apart from the reply box so it can't be tapped by accident.
+            InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: _openManageSheet,
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.more_horiz_rounded, size: 20, color: AppColors.textSecondary),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -863,14 +1010,6 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
               icon: const Icon(Icons.send_rounded, color: AppColors.primary),
             ),
           ],
-        ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            onPressed: _stopMessages,
-            child: Text('Stop messages from astrologers',
-                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),),
-          ),
         ),
       ],
     );

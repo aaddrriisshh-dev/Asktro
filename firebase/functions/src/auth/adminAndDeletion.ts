@@ -211,7 +211,14 @@ export async function runAccountErasure(uid: string): Promise<void> {
       await bucket.deleteFiles({ prefix: `voice_notes/${doc.id}/` }).catch(() => {});
     }
 
-    // Personal advice, support conversations, notifications.
+    // Personal advice, support conversations, notifications. Deleting a remedy
+    // doc does NOT remove its `thread` subcollection (the nurture conversation,
+    // which holds the customer's own reply text) — those would orphan but
+    // survive, so wipe each thread first, then the parent remedies.
+    const remedyDocs = await db.collection('remedies').where('customerId', '==', uid).get();
+    for (const rem of remedyDocs.docs) {
+      await deleteCollection(rem.ref.collection('thread')).catch(() => {});
+    }
     await deleteByQuery(() => db.collection('remedies').where('customerId', '==', uid)).catch(() => {});
 
     const tickets = await db.collection('supportTickets').where('customerId', '==', uid).get();
