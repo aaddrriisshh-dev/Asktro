@@ -68,7 +68,12 @@ class StoreRail extends ConsumerWidget {
         borderRadius: BorderRadius.circular(22),
         // Visible purple outline + a soft purple glow so the Mall shines.
         border: Border.all(color: _purple.withValues(alpha: 0.40), width: 1.2),
-        boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.22), blurRadius: 22, offset: const Offset(0, 8))],
+        // Layered shadows for a raised, three-dimensional lift: a wide ambient
+        // glow plus a tighter contact shadow that grounds the card.
+        boxShadow: [
+          BoxShadow(color: _purple.withValues(alpha: 0.20), blurRadius: 30, offset: const Offset(0, 16)),
+          BoxShadow(color: _purpleDeep.withValues(alpha: 0.16), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
         // White (top-left) → minimal lavender → deeper lavender (bottom-right),
         // deepening toward the products, exactly like the reference.
         gradient: const LinearGradient(
@@ -91,6 +96,25 @@ class StoreRail extends ConsumerWidget {
           ),
           // Bokeh dots + sparkles, concentrated on the right so the copy stays clean.
           const Positioned.fill(child: IgnorePointer(child: _Celestial())),
+          // Soft glossy highlight along the top edge — a subtle 3D sheen so the
+          // card reads as a raised surface.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 46,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.white.withValues(alpha: 0.32), Colors.white.withValues(alpha: 0.0)],
+                  ),
+                ),
+              ),
+            ),
+          ),
           Column(
             children: [
               _heroMiddle(context, headline, subtext, cta, heroImage),
@@ -334,7 +358,12 @@ class _CategoryStripState extends State<_CategoryStrip> {
         color: Colors.white.withValues(alpha: 0.82),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _purple.withValues(alpha: 0.38), width: 1.2),
-        boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.10), blurRadius: 14, offset: const Offset(0, 6))],
+        // Raised 3D feel: a drop shadow to lift it off the card + a faint top
+        // highlight so it reads like a panel floating above the surface.
+        boxShadow: [
+          BoxShadow(color: _purpleDeep.withValues(alpha: 0.14), blurRadius: 16, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.white.withValues(alpha: 0.5), blurRadius: 5, offset: const Offset(0, -2)),
+        ],
       ),
       child: SizedBox(
         height: 60,
