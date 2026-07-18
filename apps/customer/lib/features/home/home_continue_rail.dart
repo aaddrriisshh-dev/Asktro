@@ -98,83 +98,62 @@ class ContinueRail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final chats = ref.watch(_recentChatsProvider).valueOrNull ?? const <Consultation>[];
     if (chats.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 22, 12, 10),
-          child: Row(
-            children: [
-              const Icon(Icons.auto_stories_rounded, size: 17, color: Ob.gold),
-              const SizedBox(width: 7),
-              Expanded(child: Text('Continue your reading', style: Ob.title.copyWith(fontSize: 20))),
-              GestureDetector(
-                onTap: () => Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => const ConsultationsTab())),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text('View all  →',
-                      style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700, fontSize: 13)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 92,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: chats.length,
-            itemBuilder: (_, i) => Padding(
-              padding: const EdgeInsets.only(right: 10),
-              child: _ContinueCard(c: chats[i]),
-            ),
-          ),
-        ),
-        const RailDivider(),
-      ],
-    );
-  }
-}
-
-/// A subtle celestial divider that separates the home rails from one another.
-/// Lives at the bottom of each rail so it never appears for a hidden (empty) one.
-class RailDivider extends StatelessWidget {
-  const RailDivider({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(40, 20, 40, 2),
-      child: Row(
+    return RailBand(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Container(
-              height: 1,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Ob.gold.withValues(alpha: 0), Ob.gold.withValues(alpha: 0.45)],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 12, 10),
+            child: Row(
+              children: [
+                const Icon(Icons.auto_stories_rounded, size: 17, color: Ob.gold),
+                const SizedBox(width: 7),
+                Expanded(child: Text('Continue your reading', style: Ob.title.copyWith(fontSize: 19))),
+                GestureDetector(
+                  onTap: () => Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (_) => const ConsultationsTab())),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Text('View all  →',
+                        style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700, fontSize: 13)),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 9),
-            child: Icon(Icons.auto_awesome, color: Ob.gold, size: 12),
-          ),
-          Expanded(
-            child: Container(
-              height: 1,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Ob.gold.withValues(alpha: 0.45), Ob.gold.withValues(alpha: 0)],
-                ),
+          SizedBox(
+            height: 92,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: chats.length,
+              itemBuilder: (_, i) => Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: _ContinueCard(c: chats[i]),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Wraps a home rail in a soft, full-width tinted band. Sections are separated by
+/// a background colour change (no divider line, no stars) — compact and clean.
+/// Living inside each rail means a hidden (empty) rail shows no band at all.
+class RailBand extends StatelessWidget {
+  const RailBand({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: 8, bottom: 12),
+      decoration: const BoxDecoration(color: Color(0xFFF4F0FB)), // faint lavender band
+      child: child,
     );
   }
 }

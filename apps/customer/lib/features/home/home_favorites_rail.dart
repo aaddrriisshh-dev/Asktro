@@ -6,7 +6,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../profile/favourites_screen.dart';
 import '../profile_setup/onboarding_style.dart';
-import 'home_continue_rail.dart' show RailDivider;
+import 'home_continue_rail.dart' show RailBand;
 
 /// "Your Astrologers" — the user's favourited astrologers (AI or human) as a
 /// horizontal rail. Tap a face to open that astrologer. Hidden when empty.
@@ -17,43 +17,44 @@ class FavoritesRail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ids = ref.watch(myProfileProvider).valueOrNull?.favouriteAstrologers ?? const <String>[];
     if (ids.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 22, 12, 10),
-          child: Row(
-            children: [
-              const Icon(Icons.favorite_rounded, size: 16, color: AppColors.error),
-              const SizedBox(width: 7),
-              Expanded(child: Text('Your Loved Astrologers', style: Ob.title.copyWith(fontSize: 20))),
-              if (ids.length > 4)
-                GestureDetector(
-                  onTap: () => Navigator.of(context)
-                      .push(MaterialPageRoute(builder: (_) => const FavouritesScreen())),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Text('View all  →',
-                        style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700, fontSize: 13)),
+    return RailBand(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 12, 10),
+            child: Row(
+              children: [
+                const Icon(Icons.favorite_rounded, size: 16, color: AppColors.error),
+                const SizedBox(width: 7),
+                Expanded(child: Text('Your Loved Astrologers', style: Ob.title.copyWith(fontSize: 19))),
+                if (ids.length > 4)
+                  GestureDetector(
+                    onTap: () => Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => const FavouritesScreen())),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: Text('View all  →',
+                          style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700, fontSize: 13)),
+                    ),
                   ),
-                ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 108,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            itemCount: ids.length,
-            itemBuilder: (_, i) => Padding(
-              padding: const EdgeInsets.only(right: 14),
-              child: _FavItem(id: ids[i]),
+              ],
             ),
           ),
-        ),
-        const RailDivider(),
-      ],
+          SizedBox(
+            height: 108,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              itemCount: ids.length,
+              itemBuilder: (_, i) => Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: _FavItem(id: ids[i]),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
