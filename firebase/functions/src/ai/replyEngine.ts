@@ -142,11 +142,14 @@ export const onAiChatMessage = onDocumentCreated(
         ? `${systemBase}\n\n# RECENT MESSAGES YOU SENT THIS CLIENT (outside this chat — for continuity; refer to them naturally if relevant, never repeat verbatim)\n${threadCtx}`
         : systemBase;
 
-      // 5c) Cross-session memory (phase 3, light): at the START of a new chat,
-      // fold in the tail of the LAST chat with this client so she opens by
-      // naturally picking up where they left off ("pichhli baar interview ki
-      // baat hui thi — kaisa raha?"). Only at session opening; best-effort.
-      if (isSessionOpening) {
+      // 5c) Cross-session memory (phase 3, light): on the user's FIRST message of
+      // this chat, fold in the tail of the LAST chat with this client so she opens
+      // by naturally picking up where they left off ("pichhli baar interview ki
+      // baat hui thi — kaisa raha?"). We gate on "no user turn yet" — NOT on
+      // isSessionOpening, which is always false here because the automated greeting
+      // ("Namaste ji…") is itself an astrologer turn in history. Best-effort.
+      const isFirstUserTurn = !history.some((t) => t.role === 'user');
+      if (isFirstUserTurn) {
         const priorCtx = await loadPriorSessionContext(
           c.customerId as string, c.astrologerId as string, consultationId);
         if (priorCtx) {

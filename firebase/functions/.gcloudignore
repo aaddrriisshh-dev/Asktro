@@ -10,6 +10,9 @@ node_modules/
 *.log
 .DS_Store
 
+# Local diagnostic scripts — never part of the deployed function.
+diag_*.js
+
 # TypeScript sources & tests aren't needed at runtime (compiled lib/ ships).
 src/
 *.test.ts
