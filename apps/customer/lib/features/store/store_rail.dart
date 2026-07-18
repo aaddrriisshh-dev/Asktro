@@ -1,27 +1,34 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/providers.dart';
 import 'store_models.dart';
 import 'store_providers.dart';
 
-// Palette for the Astro Store hero (soft lavender + purple + gold), matching the
-// approved reference.
-const _lavA = Color(0xFFEFE8FF);
-const _lavB = Color(0xFFF5F0FF);
-const _lavC = Color(0xFFFBF8FF);
+// Palette for the Asktro Store hero — soft celestial lavender + purple + gold.
 const _purple = Color(0xFF6E4FB8);
 const _purpleDeep = Color(0xFF463089);
 const _ink = Color(0xFF2B2140);
 const _muted = Color(0xFF6E6689);
 const _gold = Color(0xFFD9A93A);
 
-/// The home "Astro Store" hero — a premium card: brand row + a spiritual product
-/// hero (headline, gold divider, subtext, Explore CTA, product image) + a category
-/// strip. All content is portal-managed: the hero comes from the storefront hero
-/// banner (image/headline/subtext/CTA); the category taglines are each category's
-/// `blurb`. Hidden entirely when the catalog has no active categories.
+/// Home-screen "Asktro Store" hero — a celestial card: brand row + a spiritual
+/// product hero (headline, gold divider, subtext, Explore CTA, product image) +
+/// the auto-scroll category strip. Hero content (image/headline/subtext/CTA) is
+/// portal-managed via `homeSections/storeHero`; categories from the catalog.
+final _storeHeroProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref
+      .watch(firestoreProvider)
+      .collection('homeSections')
+      .doc('storeHero')
+      .snapshots()
+      .map((d) => d.data() ?? const <String, dynamic>{});
+});
+
 class StoreRail extends ConsumerWidget {
   const StoreRail({super.key});
 
@@ -30,64 +37,61 @@ class StoreRail extends ConsumerWidget {
     final cats = ref.watch(storeRootCategoriesProvider);
     if (cats.isEmpty) return const SizedBox.shrink();
 
-    final banners = ref.watch(storeBannersProvider).valueOrNull ?? const <StoreBanner>[];
-    final hero = banners.isNotEmpty ? banners.first : null;
+    final h = ref.watch(_storeHeroProvider).valueOrNull ?? const <String, dynamic>{};
+    String s(String k, String d) {
+      final v = (h[k] ?? '').toString().trim();
+      return v.isNotEmpty ? v : d;
+    }
 
-    final headline = (hero?.headline.trim().isNotEmpty ?? false)
-        ? hero!.headline.trim()
-        : 'Blessings for Every Aspect of Life';
-    final subtext = (hero?.subtext.trim().isNotEmpty ?? false)
-        ? hero!.subtext.trim()
-        : 'Handpicked spiritual products for peace, positivity & prosperity.';
-    final cta = (hero?.ctaLabel.trim().isNotEmpty ?? false) ? hero!.ctaLabel.trim() : 'Explore Store';
-    final heroImage = hero?.image.trim() ?? '';
+    final headline = s('headline', 'Blessings for Every Aspect of Life');
+    final subtext = s('subtext', 'Handpicked spiritual products for peace, positivity & prosperity.');
+    final cta = s('cta', 'Explore Store');
+    final heroImage = (h['image'] ?? '').toString().trim();
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE6DCFA)),
-        boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.10), blurRadius: 22, offset: const Offset(0, 10))],
+        border: Border.all(color: const Color(0xFFE0D3F7)),
+        boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.12), blurRadius: 22, offset: const Offset(0, 10))],
+        // Celestial gradient ground.
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [_lavA, _lavB, _lavC],
+          colors: [Color(0xFFEDE3FF), Color(0xFFE6DBFF), Color(0xFFF4EEFF)],
         ),
       ),
-      child: Column(
+      child: Stack(
         children: [
-          _brandRow(),
-          _heroBody(context, headline, subtext, cta, heroImage),
-          const SizedBox(height: 14),
-          _categoryStrip(context, cats),
+          // Scattered stars for the celestial vibe (faint, behind everything).
+          const Positioned.fill(child: IgnorePointer(child: _Stars())),
+          Column(
+            children: [
+              _brandRow(),
+              _heroBody(context, headline, subtext, cta, heroImage),
+              const SizedBox(height: 18), // clear separation from the strip below
+              _CategoryStrip(cats: cats),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  // ---- brand row: bag + name + tagline + authentic badge ----
+  // ---- brand row: diya + name + tagline + authentic pill ----
   Widget _brandRow() => Padding(
         padding: const EdgeInsets.fromLTRB(14, 14, 12, 2),
         child: Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_purple, _purpleDeep]),
-                borderRadius: BorderRadius.circular(11),
-                boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 5))],
-              ),
-              child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 19),
-            ),
-            const SizedBox(width: 10),
+            const Text('🪔', style: TextStyle(fontSize: 26)),
+            const SizedBox(width: 9),
             const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Astro Store',
+                  Text('Asktro Store',
                       style: TextStyle(fontFamily: 'serif', fontSize: 17, fontWeight: FontWeight.w800, color: _ink)),
                   SizedBox(height: 1),
                   Text('Divine essentials for a better you',
@@ -97,28 +101,22 @@ class StoreRail extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
+            // Authentic pill — no shield icon, compact single-line text.
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(11),
                 boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 3))],
               ),
-              child: const Row(
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.verified_user_rounded, size: 15, color: _purple),
-                  SizedBox(width: 5),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('100% Authentic',
-                          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: _ink)),
-                      Text('Energized & Blessed',
-                          style: TextStyle(fontSize: 8.5, color: _muted)),
-                    ],
-                  ),
+                  Text('100% Authentic',
+                      maxLines: 1, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: _ink)),
+                  Text('Energized & Blessed',
+                      maxLines: 1, style: TextStyle(fontSize: 7.5, color: _muted, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -126,20 +124,19 @@ class StoreRail extends ConsumerWidget {
         ),
       );
 
-  // ---- hero: headline + gold divider + subtext + CTA, with product image ----
+  // ---- hero: headline + gold divider + subtext + CTA, product image ----
   Widget _heroBody(BuildContext context, String headline, String subtext, String cta, String image) {
-    // Last word of the headline in purple (a subtle accent, like the reference).
     final words = headline.split(' ');
     final head = words.length > 1 ? words.sublist(0, words.length - 1).join(' ') : headline;
     final tail = words.length > 1 ? ' ${words.last}' : '';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 12, 0),
+      padding: const EdgeInsets.fromLTRB(14, 8, 12, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            flex: 62,
+            flex: 60,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -148,7 +145,7 @@ class StoreRail extends ConsumerWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   text: TextSpan(
-                    style: const TextStyle(fontFamily: 'serif', fontSize: 19, fontWeight: FontWeight.w700, height: 1.12, color: _ink),
+                    style: const TextStyle(fontFamily: 'serif', fontSize: 18.5, fontWeight: FontWeight.w700, height: 1.12, color: _ink),
                     children: [
                       TextSpan(text: head),
                       TextSpan(text: tail, style: const TextStyle(color: _purple)),
@@ -177,9 +174,14 @@ class StoreRail extends ConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(15, 9, 7, 9),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [_purple, _purpleDeep]),
+                      // A richer, more visible gradient.
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF9A6BE8), Color(0xFF6E4FB8), Color(0xFF463089)],
+                      ),
                       borderRadius: BorderRadius.circular(22),
-                      boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 6))],
+                      boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.42), blurRadius: 13, offset: const Offset(0, 6))],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -201,7 +203,7 @@ class StoreRail extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 6),
-          Expanded(flex: 38, child: _heroArt(image)),
+          Expanded(flex: 40, child: _heroArt(image)),
         ],
       ),
     );
@@ -209,24 +211,23 @@ class StoreRail extends ConsumerWidget {
 
   Widget _heroArt(String image) {
     if (image.isEmpty) {
-      // Graceful fallback so the hero never looks empty before an image is set.
       return SizedBox(
-        height: 128,
+        height: 132,
         child: Center(
           child: Container(
-            width: 96,
-            height: 96,
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [_purple.withValues(alpha: 0.18), _purple.withValues(alpha: 0.02)]),
+              gradient: RadialGradient(colors: [_purple.withValues(alpha: 0.16), _purple.withValues(alpha: 0.02)]),
             ),
-            child: const Icon(Icons.spa_rounded, size: 42, color: _purple),
+            child: const Center(child: Text('🪔', style: TextStyle(fontSize: 40))),
           ),
         ),
       );
     }
     return SizedBox(
-      height: 132,
+      height: 138,
       child: CachedNetworkImage(
         imageUrl: image,
         fit: BoxFit.contain,
@@ -234,34 +235,122 @@ class StoreRail extends ConsumerWidget {
         placeholder: (_, __) => const Center(
           child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: _purple)),
         ),
-        errorWidget: (_, __, ___) => const Center(child: Icon(Icons.spa_rounded, size: 40, color: _purple)),
+        errorWidget: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 38))),
       ),
     );
   }
 
-  // ---- category strip: icon/image + name + blurb, on a light panel ----
-  Widget _categoryStrip(BuildContext context, List<StoreCategory> cats) {
+}
+
+/// The real category images in a gently auto-scrolling marquee (the "same flow"
+/// the founder liked). The list is doubled so the loop is seamless; any touch
+/// pauses the drift and hands scrolling back to the user.
+class _CategoryStrip extends StatefulWidget {
+  const _CategoryStrip({required this.cats});
+  final List<StoreCategory> cats;
+
+  @override
+  State<_CategoryStrip> createState() => _CategoryStripState();
+}
+
+class _CategoryStripState extends State<_CategoryStrip> {
+  final _ctrl = ScrollController();
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start drifting once laid out; only bother if there's more than a couple.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startDrift());
+  }
+
+  void _startDrift() {
+    _timer?.cancel();
+    if (widget.cats.length < 3) return;
+    // ~40px/sec continuous crawl; when we pass the first (real) copy, jump back
+    // by that width so the doubled list reads as an endless loop.
+    _timer = Timer.periodic(const Duration(milliseconds: 40), (_) {
+      if (!_ctrl.hasClients) return;
+      final max = _ctrl.position.maxScrollExtent;
+      if (max <= 0) return;
+      final half = max / 2;
+      var next = _ctrl.offset + 1.6;
+      if (next >= half) next -= half;
+      _ctrl.jumpTo(next);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Double the list so the crawl can wrap seamlessly.
+    final looped = [...widget.cats, ...widget.cats];
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Color(0xEEFFFFFF),
-        border: Border(top: BorderSide(color: Color(0xFFEDE6FA))),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.82),
+        border: const Border(top: BorderSide(color: Color(0xFFEDE6FA))),
       ),
       child: SizedBox(
-        height: 64,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          itemCount: cats.length,
-          separatorBuilder: (_, __) => Container(
-            width: 1,
-            margin: const EdgeInsets.symmetric(vertical: 14),
-            color: const Color(0xFFEBE3F8),
+        height: 66,
+        child: Listener(
+          // A finger on the strip pauses the drift; it resumes after release.
+          onPointerDown: (_) => _timer?.cancel(),
+          onPointerUp: (_) => _startDrift(),
+          child: ListView.separated(
+            controller: _ctrl,
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: looped.length,
+            separatorBuilder: (_, __) => Container(
+              width: 1,
+              margin: const EdgeInsets.symmetric(vertical: 15),
+              color: const Color(0xFFEBE3F8),
+            ),
+            itemBuilder: (_, i) => _CategoryChip(category: looped[i]),
           ),
-          itemBuilder: (_, i) => _CategoryChip(category: cats[i]),
         ),
       ),
     );
+  }
+}
+
+/// Faint scattered stars behind the hero — the celestial ground.
+class _Stars extends StatelessWidget {
+  const _Stars();
+  static const _pts = [
+    [0.10, 0.22, 2.4, 0.5], [0.26, 0.10, 1.6, 0.35], [0.42, 0.30, 2.0, 0.4],
+    [0.58, 0.12, 1.5, 0.3], [0.72, 0.26, 2.6, 0.5], [0.86, 0.14, 1.8, 0.4],
+    [0.18, 0.44, 1.6, 0.3], [0.66, 0.42, 2.0, 0.35], [0.92, 0.38, 1.6, 0.3],
+    [0.34, 0.18, 1.4, 0.28], [0.5, 0.05, 1.8, 0.35], [0.8, 0.5, 1.5, 0.3],
+  ];
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, c) {
+      return Stack(
+        children: [
+          for (final p in _pts)
+            Positioned(
+              left: p[0] * c.maxWidth,
+              top: p[1] * (c.maxHeight.isFinite ? c.maxHeight : 200),
+              child: Container(
+                width: p[2],
+                height: p[2],
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: (p[0] > 0.5 ? _gold : Colors.white).withValues(alpha: p[3]),
+                ),
+              ),
+            ),
+        ],
+      );
+    });
   }
 }
 
@@ -280,7 +369,7 @@ class _CategoryChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(width: 30, height: 30, child: _icon()),
+            SizedBox(width: 34, height: 34, child: _icon()),
             const SizedBox(width: 8),
             Column(
               mainAxisSize: MainAxisSize.min,
@@ -302,12 +391,13 @@ class _CategoryChip extends StatelessWidget {
   }
 
   Widget _icon() {
+    // The exact category images from the catalog (same source as the store rail).
     if (category.image.trim().isNotEmpty) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(9),
         child: CachedNetworkImage(
           imageUrl: category.image.trim(),
-          width: 30, height: 30, fit: BoxFit.cover,
+          width: 34, height: 34, fit: BoxFit.cover,
           errorWidget: (_, __, ___) => _emojiFallback(),
         ),
       );
@@ -316,8 +406,8 @@ class _CategoryChip extends StatelessWidget {
   }
 
   Widget _emojiFallback() => Container(
-        decoration: BoxDecoration(color: _purple.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: _purple.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(9)),
         alignment: Alignment.center,
-        child: Text(category.emoji.isNotEmpty ? category.emoji : '🪔', style: const TextStyle(fontSize: 15)),
+        child: Text(category.emoji.isNotEmpty ? category.emoji : '🪔', style: const TextStyle(fontSize: 16)),
       );
 }
