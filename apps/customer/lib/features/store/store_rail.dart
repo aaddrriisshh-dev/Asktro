@@ -53,17 +53,22 @@ class StoreRail extends ConsumerWidget {
     }
 
     final headline = s('headline', 'Blessings for Every Aspect of Life');
-    final subtext = s('subtext', 'Our products bring peace, positivity & prosperity.');
+    final subtext = s('subtext', 'Our products bring peace & positivity.');
     final cta = s('cta', 'Explore Mall');
     final heroImage = (h['image'] ?? '').toString().trim();
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      // Full-bleed to the screen edges (no side inset) with softly rounded
+      // corners — a distinct band, not a tab sitting inside the feed. The extra
+      // top/bottom spacing + the purple outline segregate it from the rails
+      // above and the trust band below.
+      margin: const EdgeInsets.fromLTRB(0, 14, 0, 16),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFEADFF9)),
-        boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.12), blurRadius: 24, offset: const Offset(0, 12))],
+        borderRadius: BorderRadius.circular(22),
+        // Visible purple outline + a soft purple glow so the Mall shines.
+        border: Border.all(color: _purple.withValues(alpha: 0.40), width: 1.2),
+        boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.22), blurRadius: 22, offset: const Offset(0, 8))],
         // White (top-left) → minimal lavender → deeper lavender (bottom-right),
         // deepening toward the products, exactly like the reference.
         gradient: const LinearGradient(
@@ -154,7 +159,7 @@ class StoreRail extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 1),
-        const Text('Divine essentials for a better you',
+        const Text('Divine essentials for you',
             maxLines: 1, overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 10, color: _muted, fontWeight: FontWeight.w500),),
         const SizedBox(height: 12),
@@ -326,9 +331,9 @@ class _CategoryStripState extends State<_CategoryStrip> {
       margin: const EdgeInsets.symmetric(horizontal: 12),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.74),
+        color: Colors.white.withValues(alpha: 0.82),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
+        border: Border.all(color: _purple.withValues(alpha: 0.38), width: 1.2),
         boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.10), blurRadius: 14, offset: const Offset(0, 6))],
       ),
       child: SizedBox(

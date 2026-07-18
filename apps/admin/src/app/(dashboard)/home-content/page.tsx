@@ -307,7 +307,7 @@ function StoreHeroEditor() {
             <input
               className="input"
               value={form.subtext}
-              placeholder="Our products bring peace, positivity & prosperity."
+              placeholder="Our products bring peace & positivity."
               onChange={(e) => setForm((f) => ({ ...f, subtext: e.target.value }))}
             />
           </Field>
