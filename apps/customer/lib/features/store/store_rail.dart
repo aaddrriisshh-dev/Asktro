@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -6,16 +7,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
-import '../profile_setup/onboarding_style.dart';
 import 'store_models.dart';
 import 'store_providers.dart';
 
-// Palette for the Asktro Store hero — soft celestial lavender + purple + gold.
+// Palette for the Asktro Mall hero — soft celestial lavender + purple + gold.
 const _purple = Color(0xFF6E4FB8);
 const _purpleDeep = Color(0xFF463089);
 const _ink = Color(0xFF2B2140);
 const _muted = Color(0xFF6E6689);
 const _gold = Color(0xFFC79A33);
+// Headline uses a very dark indigo-blue with a lighter purple accent on the
+// last word, matching the reference.
+const _navy = Color(0xFF221C4A);
+const _lilac = Color(0xFF9173D6);
 
 /// Home-screen "Asktro Store" hero — a single celestial card modeled on the
 /// founder's reference: a white→lavender gradient ground with a faint lotus
@@ -49,7 +53,7 @@ class StoreRail extends ConsumerWidget {
 
     final headline = s('headline', 'Blessings for Every Aspect of Life');
     final subtext = s('subtext', 'Handpicked spiritual products to bring peace, positivity & prosperity.');
-    final cta = s('cta', 'Explore Store');
+    final cta = s('cta', 'Explore Mall');
     final heroImage = (h['image'] ?? '').toString().trim();
 
     return Container(
@@ -70,12 +74,13 @@ class StoreRail extends ConsumerWidget {
       ),
       child: Stack(
         children: [
-          // Faint lotus mandala behind the product cluster (right side).
+          // Faint WHITE lotus mandala with a galaxy ring behind the product
+          // cluster (right side) — drawn, so it carries no dark colours.
           Positioned(
-            right: -26,
-            top: 40,
+            right: -34,
+            top: 34,
             child: IgnorePointer(
-              child: Opacity(opacity: 0.10, child: Image.asset(Ob.pujaMandala, width: 200)),
+              child: CustomPaint(size: const Size(220, 220), painter: _LotusMandalaPainter()),
             ),
           ),
           // Bokeh dots + sparkles, concentrated on the right so the copy stays clean.
@@ -94,49 +99,72 @@ class StoreRail extends ConsumerWidget {
     );
   }
 
-  // ---- brand row: diya + name + tagline + authenticity badge ----
+  // ---- brand row: bag tile + name + tagline + authenticity badge ----
   Widget _brandRow() => Padding(
         padding: const EdgeInsets.fromLTRB(14, 14, 12, 2),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text('🪔', style: TextStyle(fontSize: 26)),
-            const SizedBox(width: 9),
+            // Purple rounded tile with a white shopping-bag glyph (reference).
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF8A5FDD), Color(0xFF6E4FB8), Color(0xFF4E3596)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.38), blurRadius: 10, offset: const Offset(0, 5))],
+              ),
+              child: const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 21),
+            ),
+            const SizedBox(width: 10),
             const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Asktro Store',
-                      style: TextStyle(fontFamily: 'serif', fontSize: 18, fontWeight: FontWeight.w800, color: _ink)),
+                  // Bold sans wordmark (matches the reference's heavy grotesque).
+                  Text('Asktro Mall',
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _navy, letterSpacing: -0.3)),
                   SizedBox(height: 1),
                   Text('Divine essentials for a better you',
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 10.5, color: _muted, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            // Authenticity badge — rounded white panel; purple headline over a
-            // grey line. (Shield intentionally omitted per the founder's note.)
+            // Authenticity badge — rounded white panel: outline shield + check,
+            // purple headline over a grey line.
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              padding: const EdgeInsets.fromLTRB(9, 7, 11, 7),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.92),
+                color: Colors.white.withValues(alpha: 0.94),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.08), blurRadius: 9, offset: const Offset(0, 3))],
               ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('100% Authentic',
-                      maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _purple)),
-                  SizedBox(height: 1),
-                  Text('Energized & Blessed',
-                      maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
-                      style: TextStyle(fontSize: 8, color: _muted, fontWeight: FontWeight.w600)),
+                  Icon(Icons.gpp_good_outlined, size: 17, color: _purple),
+                  SizedBox(width: 6),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('100% Authentic',
+                          maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _purple)),
+                      SizedBox(height: 1),
+                      Text('Energized & Blessed',
+                          maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
+                          style: TextStyle(fontSize: 8, color: _muted, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -156,19 +184,19 @@ class StoreRail extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            flex: 56,
+            flex: 60,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 RichText(
-                  maxLines: 3,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   text: TextSpan(
-                    style: const TextStyle(fontFamily: 'serif', fontSize: 19, fontWeight: FontWeight.w700, height: 1.14, color: _ink),
+                    style: const TextStyle(fontFamily: 'serif', fontSize: 17.5, fontWeight: FontWeight.w700, height: 1.16, color: _navy),
                     children: [
                       TextSpan(text: head),
-                      TextSpan(text: tail, style: const TextStyle(color: _purple)),
+                      TextSpan(text: tail, style: const TextStyle(color: _lilac)),
                     ],
                   ),
                 ),
@@ -222,7 +250,7 @@ class StoreRail extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 4),
-          Expanded(flex: 44, child: _heroArt(image)),
+          Expanded(flex: 40, child: _heroArt(image)),
         ],
       ),
     );
@@ -340,20 +368,21 @@ class _CategoryStripState extends State<_CategoryStrip> {
 }
 
 /// Bokeh dots + four-point sparkles — the celestial ground. Kept to the right
-/// half so the headline stays clean, mirroring the reference.
+/// half so the headline stays clean; brighter/crisper than a faint wash so the
+/// starfield reads clearly, mirroring the reference.
 class _Celestial extends StatelessWidget {
   const _Celestial();
   // white bokeh dots: x, y (fractions), diameter, opacity
   static const _dots = [
-    [0.46, 0.14, 5.0, 0.55], [0.55, 0.30, 3.0, 0.45], [0.40, 0.46, 4.0, 0.40],
-    [0.62, 0.10, 3.5, 0.50], [0.70, 0.50, 3.0, 0.40], [0.33, 0.24, 2.5, 0.40],
-    [0.76, 0.30, 4.5, 0.45], [0.50, 0.58, 2.5, 0.35], [0.86, 0.20, 3.0, 0.40],
+    [0.46, 0.14, 4.0, 0.75], [0.55, 0.30, 2.5, 0.60], [0.40, 0.46, 3.0, 0.55],
+    [0.62, 0.10, 3.0, 0.70], [0.70, 0.50, 2.5, 0.55], [0.33, 0.24, 2.0, 0.55],
+    [0.76, 0.30, 3.5, 0.60], [0.50, 0.58, 2.0, 0.50], [0.86, 0.20, 2.5, 0.55],
   ];
-  // sparkles: x, y, font-size, opacity, gold?(1/0)
+  // sparkles: x, y, font-size, opacity (bright white, crisp)
   static const _sparks = [
-    [0.44, 0.08, 11.0, 0.30, 1.0], [0.58, 0.22, 8.0, 0.24, 0.0], [0.67, 0.40, 10.0, 0.26, 1.0],
-    [0.36, 0.34, 7.0, 0.22, 0.0], [0.73, 0.14, 9.0, 0.28, 1.0], [0.52, 0.48, 7.0, 0.20, 0.0],
-    [0.83, 0.44, 8.0, 0.22, 1.0],
+    [0.44, 0.07, 12.0, 0.85], [0.58, 0.22, 9.0, 0.70], [0.67, 0.40, 11.0, 0.72],
+    [0.36, 0.34, 8.0, 0.62], [0.73, 0.13, 10.0, 0.78], [0.52, 0.48, 8.0, 0.58],
+    [0.83, 0.44, 9.0, 0.65], [0.30, 0.12, 8.0, 0.60],
   ];
   @override
   Widget build(BuildContext context) {
@@ -380,7 +409,8 @@ class _Celestial extends StatelessWidget {
                 style: TextStyle(
                   fontSize: p[2],
                   height: 1,
-                  color: (p[4] == 1.0 ? _gold : _purple).withValues(alpha: p[3]),
+                  color: Colors.white.withValues(alpha: p[3]),
+                  shadows: [Shadow(color: _purple.withValues(alpha: 0.25 * p[3]), blurRadius: 4)],
                 ),
               ),
             ),
@@ -388,6 +418,49 @@ class _Celestial extends StatelessWidget {
       );
     });
   }
+}
+
+/// A white lotus-mandala with a faint galaxy ring — drawn (no dark colours) so
+/// it sits behind the products as a bright, airy watermark.
+class _LotusMandalaPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size s) {
+    final c = Offset(s.width / 2, s.height / 2);
+    final petal = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1
+      ..strokeJoin = StrokeJoin.round
+      ..color = Colors.white.withValues(alpha: 0.60);
+
+    void ring(int n, double inner, double outer, double width) {
+      for (var i = 0; i < n; i++) {
+        canvas.save();
+        canvas.translate(c.dx, c.dy);
+        canvas.rotate(i * 2 * math.pi / n);
+        final path = Path()
+          ..moveTo(0, -inner)
+          ..cubicTo(width, -(inner + outer) / 2, width, -outer, 0, -outer)
+          ..cubicTo(-width, -outer, -width, -(inner + outer) / 2, 0, -inner);
+        canvas.drawPath(path, petal);
+        canvas.restore();
+      }
+    }
+
+    ring(18, s.width * 0.10, s.width * 0.46, s.width * 0.135);
+    ring(18, s.width * 0.05, s.width * 0.27, s.width * 0.085);
+
+    // Faint galaxy rings + a small core.
+    final glow = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8
+      ..color = Colors.white.withValues(alpha: 0.30);
+    canvas.drawCircle(c, s.width * 0.50, glow);
+    canvas.drawCircle(c, s.width * 0.40, glow..color = Colors.white.withValues(alpha: 0.18));
+    canvas.drawCircle(c, s.width * 0.05, Paint()..color = Colors.white.withValues(alpha: 0.5));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _CategoryChip extends StatelessWidget {
