@@ -153,7 +153,11 @@ export const onAiChatMessage = onDocumentCreated(
         const priorCtx = await loadPriorSessionContext(
           c.customerId as string, c.astrologerId as string, consultationId);
         if (priorCtx) {
-          system += `\n\n# LAST TIME WITH THIS CLIENT (your previous chat — open by referencing where you left off, warmly and naturally; never repeat it verbatim, never invent beyond it)\n${priorCtx}`;
+          system += `\n\n# YOUR LAST CHAT WITH THIS CLIENT (context — they were already greeted with a choice: continue where you left off, or ask something new)
+- If they choose to CONTINUE (or ask about the earlier topic): first take a short, human beat, like you're placing them / glancing at your notes ("ek minute, hamari pichli baat zara dekh loon…"), THEN bring up the specific topic SOFTLY, as a question ("pichli baar shaadi ki baat hui thi na — us par kuch aage badha?"). You handle many people daily, so the recall is EARNED after that beat — never instant, never word-for-word.
+- If they ask something NEW: answer that; bring the past in only if genuinely relevant, don't force it.
+- Never recite these messages verbatim, never invent beyond them.
+${priorCtx}`;
         }
       }
 
@@ -286,16 +290,25 @@ export const onAiConsultationCreated = onDocumentCreated(
       const astro = (await db.collection('astrologers').doc(c.astrologerId).get()).data();
       if (!astro || astro.isAI !== true) return;
       const displayName = String(astro.name ?? astro.displayName ?? 'Acharya');
+      const astroGender = astro.gender === 'female' ? 'female' : astro.gender === 'male' ? 'male' : undefined;
+      // Personalise + detect a RETURNING client (cheap reads, no LLM). A returning
+      // client gets a warm "welcome back — continue where we left off, or something
+      // new?" opener; she never asserts the old topic here (that lands softly only
+      // if they choose to continue). A first-timer gets a simple warm greeting.
+      const first = firstName((await db.collection('users').doc(c.customerId).get()).data()?.name) ?? '';
+      const returning = !!(await loadPriorSessionContext(
+        c.customerId as string, c.astrologerId as string, consultationId));
       // Opening ritual: "joining…" → (same line updates to) "<name> has joined" →
-      // typing dots → a SHORT greeting. Updating the SAME status line in place
-      // means "joining…" never lingers next to "joined". Never reveals it's AI
-      // (name only). All free — billing starts on the user's first reply.
+      // typing dots → the greeting. Updating the SAME status line in place means
+      // "joining…" never lingers next to "joined". Never reveals it's AI (name only).
+      // All free — billing starts on the user's first reply.
       const joiningRef = await writeSystem(consultationId, 'Astrologer is joining…');
       await sleep(JOIN_DELAY_MS);
       await joiningRef.update({ text: `${displayName} has joined` });
       await setTyping(consultationId, c.astrologerId, true);
       await sleep(GREETING_GAP_MS);
-      await writeAstro(consultationId, c.astrologerId, 'Namaste ji! Kaise hain aap?');
+      await writeAstro(consultationId, c.astrologerId,
+        conjugateGender(openingGreeting(first, returning), astroGender));
       await setTyping(consultationId, c.astrologerId, false);
     } catch (e) {
       // Never leave the typing dots stuck on if the ritual throws mid-way.
@@ -381,6 +394,32 @@ async function generateGrounded(
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * The opening line. A RETURNING client (has chatted with this astrologer before)
+ * gets a warm "welcome back" that offers to continue where they left off OR start
+ * fresh — she never asserts the old topic here (that lands softly, and only if the
+ * client chooses to continue, in her reply). A first-timer gets a simple warm
+ * greeting. Varied across a few phrasings so it is never word-for-word identical
+ * (repetition is the biggest AI tell).
+ */
+function openingGreeting(first: string, returning: boolean): string {
+  const name = first ? ` ${first}` : '';
+  const nameJi = first ? ` ${first}` : ' ji';
+  const pick = (opts: string[]): string => opts[Math.floor(Math.random() * opts.length)];
+  if (returning) {
+    return pick([
+      `Namaste${name}, wapas dekh kar accha laga. Boliye — aaj kuch naya poochna hai, ya pichli baar jahan hamari baat ruki thi, wahin se aage badhein?`,
+      `Arre${name}, aap wapas aaye — accha laga. Bataiye, aaj koi nayi baat hai, ya pichli baat wahin se aage le chalein?`,
+      `Namaste${nameJi}, phir mile, accha laga. Kuch naya mann mein hai, ya jahan pichli baar ruke the wahin se shuru karein?`,
+    ]);
+  }
+  return pick([
+    `Namaste${nameJi}! Kaise hain aap?`,
+    `Namaste${name}, aaiye. Boliye, aaj kis baare mein jaanna chahenge?`,
+    `Namaste${nameJi}. Bataiye, kya chal raha hai aaj-kal?`,
+  ]);
 }
 function typingDelayMs(text: string): number {
   return Math.min(Math.max(text.length * TYPE_PER_CHAR_MS, TYPE_FLOOR_MS), TYPE_CEIL_MS);
