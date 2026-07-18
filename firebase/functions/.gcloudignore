@@ -1,0 +1,24 @@
+# What NOT to upload into the deployed Cloud Functions bundle.
+# (When this file exists, firebase-tools uses it — not .gitignore — to filter
+#  the upload, so secrets must be listed here explicitly.)
+
+# Dependencies — reinstalled in the cloud from package.json.
+node_modules/
+
+# VCS, logs, editor cruft.
+.git/
+*.log
+.DS_Store
+
+# TypeScript sources & tests aren't needed at runtime (compiled lib/ ships).
+src/
+*.test.ts
+*.itest.ts
+
+# NEVER ship credentials/secrets into the function container.
+serviceAccountKey.json
+*serviceAccount*.json
+*-key.json
+.env
+.env.*
+.runtimeconfig.json
