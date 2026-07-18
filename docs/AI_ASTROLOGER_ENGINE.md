@@ -204,6 +204,28 @@ portal-tunable) enforces the human *timing*. Build during live wiring:
 - Per-age-band reply-register text (young / mid / senior) — see above.
 - (Later) support contacts (email/WhatsApp/URL) for payment redirects.
 
+## Phase plan (locked with founder, Jul 2026)
+Retention engine is split across two phases:
+
+**Phase 3 (building now) — "Continue" + Favorites + light memory.**
+- **Continue your reading** cards on the **home screen**: the astrologer's face,
+  a last-message preview, one-tap re-entry into that chat. The headline surface.
+- **Favorites / "Your Astrologers"** row — the user adopts *their* astrologer.
+- **Light cross-session memory (only as much as phase 3 needs):** enough context
+  that when the user re-enters, the AI knows **where the last chat left off** —
+  a short "last time" recap the reply engine can open with. NOT the full memory
+  model yet (that's phase 4).
+
+**Phase 4 (save for later — founder wants all four discussed then):**
+1. **Full cross-session memory model** — what's remembered, for how long, stored
+   cheaply per user; richer than the phase-3 "where we left off" slice.
+2. **Proactive nudges** — daily/weekly personalized push *from your astrologer*
+   that opens a billed session.
+3. **Life-event triggers** — real dasha/transit change fires a grounded nudge.
+4. **Report generation + remedy upsells** — the ₹149–199 paid reports (Kundali,
+   Marriage, Career, Sade Sati) as a second revenue line, plus product/remedy
+   upselling.
+
 ## Open items / next steps
 - [x] Pricing confirmed: ₹9/min live + 3 free min (₹27 credit) + 2-min recharge nudge.
 - [ ] Blind-test Gemini Pro vs Claude Sonnet on ~50–100 real Hindi/Hinglish prompts.
