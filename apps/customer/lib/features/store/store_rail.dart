@@ -53,7 +53,7 @@ class StoreRail extends ConsumerWidget {
     }
 
     final headline = s('headline', 'Blessings for Every Aspect of Life');
-    final subtext = s('subtext', 'Handpicked spiritual products for peace, positivity & prosperity.');
+    final subtext = s('subtext', 'Our products bring peace, positivity & prosperity.');
     final cta = s('cta', 'Explore Mall');
     final heroImage = (h['image'] ?? '').toString().trim();
 
@@ -112,10 +112,19 @@ class StoreRail extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Expanded(flex: 42, child: _leftColumn(context, headline, cta)),
+              Expanded(flex: 40, child: _leftColumn(context, headline, subtext, cta)),
               Expanded(
-                flex: 58,
-                child: Align(alignment: Alignment.bottomRight, child: _heroArt(image)),
+                flex: 60,
+                // Scaled up + nudged down so the product dominates and its base
+                // lands on the Explore Mall button line, bleeding to the edge.
+                child: Transform.translate(
+                  offset: const Offset(0, 8),
+                  child: Transform.scale(
+                    scale: 1.2,
+                    alignment: Alignment.bottomRight,
+                    child: Align(alignment: Alignment.bottomRight, child: _heroArt(image)),
+                  ),
+                ),
               ),
             ],
           ),
@@ -126,7 +135,7 @@ class StoreRail extends ConsumerWidget {
     );
   }
 
-  Widget _leftColumn(BuildContext context, String headline, String cta) {
+  Widget _leftColumn(BuildContext context, String headline, String subtext, String cta) {
     final words = headline.split(' ');
     final head = words.length > 1 ? words.sublist(0, words.length - 1).join(' ') : headline;
     final tail = words.length > 1 ? ' ${words.last}' : '';
@@ -173,6 +182,11 @@ class StoreRail extends ConsumerWidget {
             Container(width: 12, height: 1.5, color: _gold.withValues(alpha: 0.35)),
           ],
         ),
+        const SizedBox(height: 8),
+        Text(subtext,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 10.5, color: _muted, height: 1.3, fontWeight: FontWeight.w500)),
         const SizedBox(height: 11),
         GestureDetector(
           onTap: () => context.push('/store'),
