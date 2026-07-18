@@ -237,10 +237,7 @@ class _ClaimMarqueeState extends State<ClaimMarquee> with SingleTickerProviderSt
   // Needs a valid duration BEFORE repeat() — a null-duration repeat() throws
   // (in release that surfaces as a gray error box that swallows the page). The
   // real, width-based duration is applied in _measure() once we know the width.
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 12),
-  )..repeat();
+  late final AnimationController _c;
   final GlobalKey _rowKey = GlobalKey();
   double _rowWidth = 0;
 
@@ -249,6 +246,11 @@ class _ClaimMarqueeState extends State<ClaimMarquee> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
+    // Build the controller here, not as a `late` field initializer: if the
+    // widget is unmounted before it ever builds, a lazy initializer would run
+    // for the first time inside dispose(), where repeat() hits a torn-down
+    // ticker and crashes ("Null check operator used on a null value").
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 12))..repeat();
     WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
   }
 

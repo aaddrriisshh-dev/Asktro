@@ -27,9 +27,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Future<void> _run(String q) async {
     setState(() => _loading = true);
-    final results = await ref
-        .read(astrologerRepositoryProvider)
-        .search(q, risingOnly: widget.onlyRisingStars);
+    var results = const <Astrologer>[];
+    try {
+      results = await ref
+          .read(astrologerRepositoryProvider)
+          .search(q, risingOnly: widget.onlyRisingStars);
+    } catch (_) {
+      // A denied/failed directory read (e.g. auth not yet settled) should show
+      // an empty result, not crash the app.
+    }
     if (!mounted) return;
     setState(() {
       _results = results;

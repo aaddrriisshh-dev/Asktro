@@ -14,8 +14,14 @@ class MessagingService {
   Future<void> registerFor(String uid) async {
     await _messaging.requestPermission();
     final token = await _messaging.getToken();
-    if (token != null) await _users.registerFcmToken(uid, token);
-    _messaging.onTokenRefresh.listen((t) => _users.registerFcmToken(uid, t));
+    // Guard the Firestore token write: if it runs before auth has fully settled
+    // (or just after sign-out), the write is permission-denied and, unguarded,
+    // crashes app startup. Best-effort — a missed token just means the next
+    // launch/refresh re-registers it.
+    try {
+      if (token != null) await _users.registerFcmToken(uid, token);
+    } catch (_) {/* non-fatal */}
+    _messaging.onTokenRefresh.listen((t) => _users.registerFcmToken(uid, t).catchError((_) {}));
     // Subscribe to the all-users topic so mass broadcasts reach this device via
     // a single topic message (no per-user fan-out on the server).
     try {

@@ -997,11 +997,17 @@ class _CitySearchFieldState extends State<_CitySearchField> {
               borderRadius: BorderRadius.circular(18),
               boxShadow: Ob.softShadow,
             ),
-            child: Column(
-              children: [
-                for (var i = 0; i < _results.length; i++)
-                  _resultTile(_results[i], divider: i != _results.length - 1),
-              ],
+            clipBehavior: Clip.antiAlias,
+            // Material ancestor so each ListTile paints its ink on it, not on
+            // the coloured DecoratedBox above (which would hide it and warn).
+            child: Material(
+              type: MaterialType.transparency,
+              child: Column(
+                children: [
+                  for (var i = 0; i < _results.length; i++)
+                    _resultTile(_results[i], divider: i != _results.length - 1),
+                ],
+              ),
             ),
           )
         else if (!_loading && q.length >= 2)

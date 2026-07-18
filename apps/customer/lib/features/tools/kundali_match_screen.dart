@@ -453,19 +453,24 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
               margin: const EdgeInsets.only(top: 6),
               decoration: BoxDecoration(
                   color: Ob.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Ob.border),),
-              child: Column(
-                children: [
-                  for (final s in who.suggestions.take(5))
-                    ListTile(
-                      dense: true,
-                      title: Text(s.label, style: Ob.note.copyWith(color: Ob.navy)),
-                      onTap: () => setState(() {
-                        who.placeResult = s;
-                        who.place.text = s.label;
-                        who.suggestions = const [];
-                      }),
-                    ),
-                ],
+              // Material ancestor so ListTile paints its ink on it, not on the
+              // coloured DecoratedBox above (which would hide it and warn).
+              child: Material(
+                type: MaterialType.transparency,
+                child: Column(
+                  children: [
+                    for (final s in who.suggestions.take(5))
+                      ListTile(
+                        dense: true,
+                        title: Text(s.label, style: Ob.note.copyWith(color: Ob.navy)),
+                        onTap: () => setState(() {
+                          who.placeResult = s;
+                          who.place.text = s.label;
+                          who.suggestions = const [];
+                        }),
+                      ),
+                  ],
+                ),
               ),
             ),
         ],

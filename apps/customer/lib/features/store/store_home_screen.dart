@@ -361,7 +361,11 @@ class _Header extends ConsumerWidget {
       child: Row(
         children: [
           if (!embedded)
-            IconButton(icon: const Icon(Icons.arrow_back, color: Mall.titleBrown), onPressed: () => context.pop())
+            IconButton(
+                icon: const Icon(Icons.arrow_back, color: Mall.titleBrown),
+                // The store can be reached as a root tab (nothing to pop) — fall
+                // back to Home instead of throwing "nothing to pop".
+                onPressed: () => context.canPop() ? context.pop() : context.go('/home'),)
           else
             const SizedBox(width: 12),
           const Expanded(
