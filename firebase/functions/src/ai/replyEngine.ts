@@ -26,6 +26,7 @@ import { buildReadingSystem } from './persona';
 import { llmGenerate, LlmTurn } from './provider';
 import { guardReply } from './guard';
 import { conjugateGender } from './gender';
+import { enforceRateLimit } from '../common/rateLimit';
 
 const IST_MS = 5.5 * 3600 * 1000;
 const HISTORY_TURNS = 10;
@@ -153,6 +154,17 @@ export const onAiChatMessage = onDocumentCreated(
         }
       }
 
+      // 5d) Rate-limit premium generations per user so a spamming/scripted client
+      // can't push AI cost above revenue. Generous cap; fails open on infra fault.
+      // Over the cap → skip this generation (no LLM call), never throw.
+      try {
+        await enforceRateLimit('aiChatReply', c.customerId as string);
+      } catch {
+        await setTyping(consultationId, c.astrologerId, false);
+        logger.warn('onAiChatMessage: rate-limited, skipping generation', { consultationId });
+        return;
+      }
+
       // 6) Show the typing indicator (dots) while she composes, then generate.
       await setTyping(consultationId, c.astrologerId, true);
       const envelope = await generateGrounded(system, history, userText, briefing, apiKey, configModels);
@@ -206,6 +218,11 @@ export const onAiChatMessage = onDocumentCreated(
         await setTyping(consultationId, c.astrologerId, false);
         return;
       }
+
+      // 7b) START BILLING on the FIRST real reply — not on chat-open. The joining
+      // ritual + greeting stay free; a user who opens and leaves without engaging
+      // is never charged. No-op once the session is already active.
+      await activateIfWaiting(consultationId);
 
       // 8) Send each bubble one at a time — dots, a human typing-delay sized to
       // THAT bubble, then the bubble; a short gap before the next so the dots
@@ -518,6 +535,35 @@ async function loadPriorSessionContext(
     return lines.length ? lines.join('\n') : '';
   } catch {
     return '';
+  }
+}
+
+/**
+ * Start billing exactly when the AI posts its FIRST real reply. Flips a `waiting`
+ * AI session to `active` and seeds the meter (startTime/lastTickAt) + the customer
+ * billing-frontier marker to now — mirroring activateConsultation, but triggered
+ * by the reply rather than by chat-open. Idempotent: only acts while `waiting`,
+ * so later messages are no-ops. Best-effort — a failure just defers billing.
+ */
+async function activateIfWaiting(consultationId: string): Promise<void> {
+  try {
+    const ref = db.collection('consultations').doc(consultationId);
+    await db.runTransaction(async (tx) => {
+      const d = (await tx.get(ref)).data();
+      if (!d || d.status !== 'waiting') return; // already active/paused/terminal
+      tx.update(ref, {
+        status: 'active',
+        startTime: FieldValue.serverTimestamp(),
+        lastTickAt: FieldValue.serverTimestamp(),
+        customerLastTickAt: FieldValue.serverTimestamp(),
+        paymentStatus: 'pending',
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    });
+  } catch (e) {
+    logger.error('activateIfWaiting failed', {
+      consultationId, error: e instanceof Error ? e.message : String(e),
+    });
   }
 }
 

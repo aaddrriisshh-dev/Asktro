@@ -192,6 +192,12 @@ export async function expirePaused(config: GlobalConfig, nowMs: number): Promise
 // The session never started: NO billing, NO earnings credit, NOT counted.
 async function expireWaiting(config: GlobalConfig, nowMs: number): Promise<void> {
   const waitingCutoff = Timestamp.fromMillis(nowMs - config.requestTimeoutSec * 1000);
+  // An AI chat sits in `waiting` until the user sends their first message (billing
+  // starts on the first AI reply, not chat-open). That is NOT a human failing to
+  // accept, so it gets a much longer leash — a contemplative user reading the
+  // greeting must never be expired mid-thought — while still cleaning up truly
+  // abandoned sessions.
+  const AI_WAITING_TIMEOUT_MS = 5 * 60 * 1000;
   const staleWaiting = await db
     .collection(Collections.consultations)
     .where('status', '==', 'waiting')
@@ -205,6 +211,11 @@ async function expireWaiting(config: GlobalConfig, nowMs: number): Promise<void>
       if (!snap.exists) return;
       const c = snap.data()!;
       if (c.status !== 'waiting') return; // may have just been accepted
+      // AI sessions: only expire once past the longer AI leash.
+      if (c.isAI === true) {
+        const createdMs = (c.createdAt as Timestamp | undefined)?.toMillis() ?? 0;
+        if (createdMs > nowMs - AI_WAITING_TIMEOUT_MS) return;
+      }
 
       tx.update(doc.ref, {
         status: 'expired',

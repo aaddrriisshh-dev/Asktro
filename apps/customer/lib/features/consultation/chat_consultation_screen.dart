@@ -95,7 +95,8 @@ class ChatConsultationScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatConsultationScreen> createState() => _ChatConsultationScreenState();
 }
 
-class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen> {
+class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
+    with WidgetsBindingObserver {
   final _input = TextEditingController();
   bool _lowBalanceShown = false;
   bool _graceShown = false;
@@ -115,25 +116,23 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   void initState() {
     super.initState();
     if (widget.readOnly) return; // history view — never (re)activate/bill.
-    // AI personas have no human to accept, so the customer activates instantly.
-    // For a HUMAN astrologer we must NOT auto-activate: the session has to stay
-    // `waiting` so it appears in the astrologer's request queue and THEY accept
-    // it (activating here would flip it to `active` and steal it from them).
-    if (!widget.astrologer.isAI) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // AI has no human to accept, so the customer activates instantly. Surface
-      // failure instead of leaving the chat silently stuck in `waiting`.
-      final r = await ref.read(consultationControllerProvider(_id).notifier).activate();
-      if (!mounted) return;
-      r.when(
-        success: (_) {},
-        failure: (f) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text("Couldn't start the session: ${f.message}")));
-          Navigator.of(context).maybePop();
-        },
-      );
-    });
+    // Observe app lifecycle so billing pauses when the chat leaves the foreground.
+    WidgetsBinding.instance.addObserver(this);
+    // NOTE: we no longer activate on chat-open. For an AI persona, billing now
+    // starts on the FIRST real AI reply (server-side, in the reply engine), so
+    // the joining ritual + greeting are free and opening-then-leaving costs
+    // nothing. A HUMAN session stays `waiting` until the astrologer accepts.
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (widget.readOnly) return;
+    // Only a fully-resumed app counts as "present in the chat". Anything else
+    // (backgrounded, app switcher, incoming call overlay) pauses the meter.
+    ref
+        .read(consultationControllerProvider(_id).notifier)
+        .setForeground(state == AppLifecycleState.resumed);
   }
 
   // Read-only transcript for a finished consultation (opened from history).
@@ -284,6 +283,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _input.dispose();
     _chimePlayer.dispose();
     super.dispose();
@@ -438,6 +438,11 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   }
 
   Future<void> _handleWarn(ConsultationState s) async {
+    // Before billing has started (session still `waiting` for the first AI reply)
+    // there is nothing to warn about — skip so the seeded warnLevel/remainingSec
+    // never misfires the low-balance dialog during the free opening.
+    if (s.status == ConsultationStatus.waiting) return;
+
     // Grace minute — a one-time gift when the balance ran out. Celebrate it and
     // suppress the low-balance nudge for this cycle so they don't stack.
     if (s.consultation.graceGranted && !_graceShown) {
@@ -732,8 +737,11 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 onEnd: _end,
                 // A paid user (real wallet balance) sees no countdown — only the
                 // 1-minute-before-exhaustion warning. A fresh free user, running
-                // on their 3 free minutes, sees the countdown tick down.
-                showCountdown: (ref.watch(myProfileProvider).valueOrNull?.walletBalance ?? 0) <= 0,
+                // on their 3 free minutes, sees the countdown tick down. Hidden
+                // until the session is active (billing starts on the first reply),
+                // so a `waiting` session never shows a frozen 0:00.
+                showCountdown: s.status == ConsultationStatus.active &&
+                    (ref.watch(myProfileProvider).valueOrNull?.walletBalance ?? 0) <= 0,
               ),
             ),
             _astroBanner(),

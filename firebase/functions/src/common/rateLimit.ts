@@ -30,6 +30,10 @@ export interface RateRule {
 // Per-action caps. 'block' = enforced. A normal user never approaches these.
 export const RATE_RULES: Record<string, RateRule> = {
   createConsultation: { limit: 10, windowSec: 300, mode: 'block' }, // 10 / 5 min
+  // Bounds premium LLM generations per minute so a spamming/scripted user can't
+  // drive AI cost above the ₹9/min revenue. Generous — a real chatter (with the
+  // 3.5s debounce coalescing bursts) never approaches 15 distinct replies/min.
+  aiChatReply: { limit: 15, windowSec: 60, mode: 'block' },
   createRechargeOrder: { limit: 15, windowSec: 3600, mode: 'block' }, // 15 / hour
   verifyRecharge: { limit: 30, windowSec: 3600, mode: 'block' }, // 30 / hour
   prokeralaAstrology: { limit: 60, windowSec: 60, mode: 'block' }, // 60 / min

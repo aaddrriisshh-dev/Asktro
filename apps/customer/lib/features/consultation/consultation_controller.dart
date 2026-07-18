@@ -45,6 +45,11 @@ class ConsultationController extends StateNotifier<AsyncValue<ConsultationState>
   Timer? _heartbeat;
   // Guards the network-loss auto-resume so it fires at most once per pause.
   bool _autoResumeAttempted = false;
+  // The chat is only "present" while the app is in the foreground. When away
+  // (backgrounded / app switcher), we stop heartbeating — the server billing
+  // frontier then caps billing at the last heartbeat, so an away user isn't
+  // billed. Set via setForeground() from the chat screen's lifecycle observer.
+  bool _foreground = true;
 
   ConsultationService get _service => _ref.read(consultationServiceProvider);
 
@@ -84,7 +89,8 @@ class ConsultationController extends StateNotifier<AsyncValue<ConsultationState>
   }
 
   void _syncTimers(ConsultationStatus status) {
-    if (status == ConsultationStatus.active) {
+    // Tick only when the session is active AND the chat is in the foreground.
+    if (status == ConsultationStatus.active && _foreground) {
       _display ??= Timer.periodic(const Duration(seconds: 1), (_) => _tickDisplay());
       _heartbeat ??= Timer.periodic(const Duration(seconds: 10), (_) => sendHeartbeat());
     } else {
@@ -92,6 +98,25 @@ class ConsultationController extends StateNotifier<AsyncValue<ConsultationState>
       _display = null;
       _heartbeat?.cancel();
       _heartbeat = null;
+    }
+  }
+
+  /// Called by the chat screen on app-lifecycle changes. Leaving the foreground
+  /// stops the heartbeat so the server billing frontier caps billing at the last
+  /// heartbeat (+ a short settle window) — an away user is not billed. Returning
+  /// resumes ticking and sends one heartbeat immediately so billing restarts now.
+  void setForeground(bool foreground) {
+    if (_foreground == foreground) return;
+    _foreground = foreground;
+    final s = state.valueOrNull;
+    if (!foreground) {
+      _display?.cancel();
+      _display = null;
+      _heartbeat?.cancel();
+      _heartbeat = null;
+    } else if (s != null) {
+      _syncTimers(s.status);
+      if (s.status == ConsultationStatus.active) sendHeartbeat();
     }
   }
 

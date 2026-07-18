@@ -178,6 +178,7 @@ export const createConsultation = onCall(async (req) => {
     tx.set(consultationRef, {
       customerId,
       astrologerId,
+      isAI: astrologer.isAI === true,
       type,
       pricePerMinute: price,
       pricePerSecond: pricePerSecond(price),
