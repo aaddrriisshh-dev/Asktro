@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../profile/suggested_remedies_screen.dart';
 
 final _notificationsProvider = StreamProvider.autoDispose<List<AppNotification>>((ref) {
   final uid = ref.watch(currentUidProvider);
@@ -37,7 +38,17 @@ class NotificationsTab extends ConsumerWidget {
               final n = list[i];
               return AppCard(
                 color: n.read ? AppColors.card : AppColors.accentLavender,
-                onTap: () => ref.read(notificationRepositoryProvider).markRead(n.id),
+                onTap: () {
+                  ref.read(notificationRepositoryProvider).markRead(n.id);
+                  final rid = n.remedyId;
+                  if (rid != null && rid.isNotEmpty) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => RemedyDetailScreen(data: {'id': rid}),
+                      ),
+                    );
+                  }
+                },
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

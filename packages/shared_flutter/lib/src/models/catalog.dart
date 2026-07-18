@@ -269,6 +269,7 @@ class AppNotification extends Equatable {
     this.landingTitle,
     this.landingBody,
     this.createdAtMs,
+    this.remedyId,
   });
 
   final String id;
@@ -284,6 +285,8 @@ class AppNotification extends Equatable {
   final String? landingTitle;
   final String? landingBody;
   final int? createdAtMs;
+  /// When set, tapping this notification opens that remedy (thread reply/message).
+  final String? remedyId;
 
   factory AppNotification.fromMap(String id, Map<String, dynamic> m, {int? createdAtMs}) =>
       AppNotification(
@@ -300,9 +303,10 @@ class AppNotification extends Equatable {
         landingTitle: m['landingTitle'] as String?,
         landingBody: m['landingBody'] as String?,
         createdAtMs: createdAtMs,
+        remedyId: m['remedyId'] as String?,
       );
 
   @override
   List<Object?> get props => [id, title, body, type, deeplink, read, theme, displayMode,
-        portraitImage, ctaText, landingTitle, landingBody, createdAtMs,];
+        portraitImage, ctaText, landingTitle, landingBody, createdAtMs, remedyId,];
 }

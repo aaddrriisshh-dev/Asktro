@@ -165,6 +165,11 @@ class _RemedyCardState extends State<_RemedyCard> {
     final photo = widget.data['astrologerPhoto'] as String?;
     final answered = widget.data['answered'] == true;
     final awaiting = !answered && widget.data['followUpUsed'] == true;
+    // Unread when a thread message landed after the customer last opened this remedy.
+    final threadLastAt = widget.data['threadLastAt'];
+    final lastReadAt = widget.data['customerLastReadAt'];
+    final hasUnread = threadLastAt is Timestamp &&
+        (lastReadAt is! Timestamp || threadLastAt.compareTo(lastReadAt) > 0);
 
     return AppCard(
       child: Column(
@@ -172,6 +177,14 @@ class _RemedyCardState extends State<_RemedyCard> {
         children: [
           Row(
             children: [
+              if (hasUnread) ...[
+                Container(
+                  width: 9,
+                  height: 9,
+                  decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 7),
+              ],
               const Icon(Icons.self_improvement_rounded, size: 18, color: AppColors.primary),
               const SizedBox(width: 8),
               Expanded(
@@ -313,6 +326,21 @@ class RemedyDetailScreen extends ConsumerStatefulWidget {
 class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
   bool _followed = false;
   bool _sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Opening the remedy clears the customer's unread marker on the thread.
+    final id = (widget.data['id'] ?? '') as String;
+    if (id.isNotEmpty) {
+      ref
+          .read(firestoreProvider)
+          .collection('remedies')
+          .doc(id)
+          .set({'customerLastReadAt': FieldValue.serverTimestamp()}, SetOptions(merge: true))
+          .catchError((_) {/* best-effort */});
+    }
+  }
 
   void _follow() {
     HapticFeedback.mediumImpact();
@@ -756,6 +784,13 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
           .httpsCallable('replyToRemedyThread')
           .call<Map<String, dynamic>>({'remedyId': widget.remedyId, 'text': t});
       _input.clear();
+      // Their own reply shouldn't leave the thread marked unread for them.
+      ref
+          .read(firestoreProvider)
+          .collection('remedies')
+          .doc(widget.remedyId)
+          .set({'customerLastReadAt': FieldValue.serverTimestamp()}, SetOptions(merge: true))
+          .catchError((_) {/* best-effort */});
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
