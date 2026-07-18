@@ -120,7 +120,7 @@ class StoreRail extends ConsumerWidget {
                 child: Transform.translate(
                   offset: const Offset(0, 8),
                   child: Transform.scale(
-                    scale: 1.2,
+                    scale: 1.32,
                     alignment: Alignment.bottomRight,
                     child: Align(alignment: Alignment.bottomRight, child: _heroArt(image)),
                   ),
