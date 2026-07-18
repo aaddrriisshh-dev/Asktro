@@ -231,6 +231,34 @@ we left off" memory is AI-specific (a human astrologer reads the thread himself)
    Marriage, Career, Sade Sati) as a second revenue line, plus product/remedy
    upselling.
 
+### Per-AI persona verticals (design agreed Jul 2026 — build with the engine)
+Launch ~25–30 AI astrologers, each a distinct persona. **Global stays global**
+(safety, grounding, anti-AI-tell rules never vary); only *flavor* varies, each
+knob with a sensible default (launch an AI by picking just tradition +
+specialization + tone).
+- **AI-only behavior knobs:** `tradition` (Vedic/KP/Lal Kitab/Nadi/numerology/
+  tarot/Vastu), `tone`, `verbosity` (this is where message-length lives — a per-AI
+  dial, not one global rule), `languageLean`, `remedyStyle`, free-text `voice`.
+- **Universal tag (AI + HUMAN):** `specializations` — a CONTROLLED list (love,
+  marriage, career, money, health, education, spirituality, remedies), separate
+  from the free-text `expertise` (which stays for display).
+- **Discovery:** home category banners → tap a need → filtered list across ALL
+  astrologers (AI + human mixed) by `specializations`, sorted online-first then
+  rating. e.g. "Love" shows 5 AI + 20 human = 25.
+- Build order: Phase A (fields + persona builder + portal form) → Phase B
+  (category banners + filtered discovery) → Phase C (author the roster).
+
+### FINAL-PHASE: AI cost & margin audit (founder wants this — RECALL when engine is done)
+After the AI engine is complete, measure **how much money the AI is burning** and
+the **real profit margin on Gemini**:
+- Confirm the **3-tier model routing** is actually firing per message intensity:
+  **router + filler → Gemini Flash** (cheap), **reading → Gemini Pro** (premium).
+  (Tiers exist in `ai/provider.ts` TIER_DEFAULTS; verify live usage split.)
+- Compute real ₹/message and ₹/min by tier from live token counts vs the ₹9/min
+  revenue → actual margin. Cross-check against the ~83–87% Gemini-Pro estimate.
+- Re-check the four cost controls end-to-end (output cap ✅, history trim ✅,
+  rate-limit ✅, prompt caching — implicit only; explicit still a TODO).
+
 ## Open items / next steps
 - [x] Pricing confirmed: ₹9/min live + 3 free min (₹27 credit) + 2-min recharge nudge.
 - [ ] Blind-test Gemini Pro vs Claude Sonnet on ~50–100 real Hindi/Hinglish prompts.
