@@ -15,20 +15,23 @@ the Mac.
 
 Project id: `asktro-tech-provate-limited` (from `.firebaserc`).
 
-Deploy pattern (fill KEY_PATH once located — see TODO):
+Key path on the Mac (confirmed):
+`~/Projects/Asktro/firebase/functions/serviceAccountKey.json`
+
+Deploy command (run from repo root `~/Projects/Asktro`):
 
 ```
-export GOOGLE_APPLICATION_CREDENTIALS="KEY_PATH"   # path to the service-account .json on the Mac
-firebase deploy --only functions:<name> --project asktro-tech-provate-limited
+GOOGLE_APPLICATION_CREDENTIALS="$HOME/Projects/Asktro/firebase/functions/serviceAccountKey.json" \
+  firebase deploy --only functions:<name> --project asktro-tech-provate-limited
 ```
 
 - Deploy functions **one at a time** (deploying two at once tends to fail).
 - **New** callable functions also need a Cloud Run invoker grant after deploy
   (org policy blocks the auto-binding) — redeploys of existing functions don't.
 
-**TODO (fill in once confirmed):** exact path to the service-account key on the
-Mac. Founder half-remembers it exists but not where — locate it, then record the
-path here so future sessions can hand over the deploy command directly.
+**Security note:** the key lives inside `firebase/functions/` (the deploy
+source). It must stay in `.gitignore` (never commit) and ideally in
+`functions/.gcloudignore` too, so it isn't bundled into the deployed function.
 
 # Active initiatives
 
