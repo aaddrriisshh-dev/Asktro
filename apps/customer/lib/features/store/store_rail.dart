@@ -55,11 +55,12 @@ class StoreRail extends ConsumerWidget {
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFE0D3F7)),
         boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.12), blurRadius: 22, offset: const Offset(0, 10))],
-        // Celestial gradient ground.
+        // Celestial gradient ground — a deeper dusk lavender so the sparkles and
+        // depth actually read (still light enough for the dark headline).
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFEDE3FF), Color(0xFFE6DBFF), Color(0xFFF4EEFF)],
+          colors: [Color(0xFFDFCBFF), Color(0xFFE7D6FF), Color(0xFFF2E9FF)],
         ),
       ),
       child: Stack(
@@ -114,9 +115,11 @@ class StoreRail extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text('100% Authentic',
-                      maxLines: 1, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: _ink)),
+                      maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
+                      style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: _ink)),
                   Text('Energized & Blessed',
-                      maxLines: 1, style: TextStyle(fontSize: 7.5, color: _muted, fontWeight: FontWeight.w600)),
+                      maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
+                      style: TextStyle(fontSize: 7.5, color: _muted, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -321,30 +324,33 @@ class _CategoryStripState extends State<_CategoryStrip> {
   }
 }
 
-/// Faint scattered stars behind the hero — the celestial ground.
+/// Scattered sparkle glyphs behind the hero — the celestial ground. Sized and
+/// tinted so they clearly read as a starfield without fighting the headline.
 class _Stars extends StatelessWidget {
   const _Stars();
+  // x, y (fractions of the card), font-size, opacity.
   static const _pts = [
-    [0.10, 0.22, 2.4, 0.5], [0.26, 0.10, 1.6, 0.35], [0.42, 0.30, 2.0, 0.4],
-    [0.58, 0.12, 1.5, 0.3], [0.72, 0.26, 2.6, 0.5], [0.86, 0.14, 1.8, 0.4],
-    [0.18, 0.44, 1.6, 0.3], [0.66, 0.42, 2.0, 0.35], [0.92, 0.38, 1.6, 0.3],
-    [0.34, 0.18, 1.4, 0.28], [0.5, 0.05, 1.8, 0.35], [0.8, 0.5, 1.5, 0.3],
+    [0.07, 0.15, 12.0, 0.32], [0.31, 0.08, 8.0, 0.24], [0.53, 0.19, 10.0, 0.26],
+    [0.71, 0.09, 14.0, 0.30], [0.88, 0.21, 9.0, 0.24], [0.20, 0.40, 8.0, 0.22],
+    [0.63, 0.43, 11.0, 0.24], [0.91, 0.52, 9.0, 0.22], [0.43, 0.05, 7.0, 0.18],
+    [0.79, 0.35, 8.0, 0.20], [0.13, 0.63, 9.0, 0.18], [0.50, 0.60, 7.0, 0.16],
   ];
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, c) {
+      final h = c.maxHeight.isFinite ? c.maxHeight : 260.0;
       return Stack(
         children: [
           for (final p in _pts)
             Positioned(
               left: p[0] * c.maxWidth,
-              top: p[1] * (c.maxHeight.isFinite ? c.maxHeight : 200),
-              child: Container(
-                width: p[2],
-                height: p[2],
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: (p[0] > 0.5 ? _gold : Colors.white).withValues(alpha: p[3]),
+              top: p[1] * h,
+              child: Text(
+                '✦',
+                style: TextStyle(
+                  fontSize: p[2],
+                  height: 1,
+                  color: (p[0] > 0.5 ? _gold : _purple).withValues(alpha: p[3]),
                 ),
               ),
             ),
