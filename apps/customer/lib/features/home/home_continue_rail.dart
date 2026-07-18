@@ -132,7 +132,49 @@ class ContinueRail extends ConsumerWidget {
             ),
           ),
         ),
+        const RailDivider(),
       ],
+    );
+  }
+}
+
+/// A subtle celestial divider that separates the home rails from one another.
+/// Lives at the bottom of each rail so it never appears for a hidden (empty) one.
+class RailDivider extends StatelessWidget {
+  const RailDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(40, 20, 40, 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Ob.gold.withValues(alpha: 0), Ob.gold.withValues(alpha: 0.45)],
+                ),
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 9),
+            child: Icon(Icons.auto_awesome, color: Ob.gold, size: 12),
+          ),
+          Expanded(
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Ob.gold.withValues(alpha: 0.45), Ob.gold.withValues(alpha: 0)],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

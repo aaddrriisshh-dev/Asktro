@@ -6,6 +6,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../profile/favourites_screen.dart';
 import '../profile_setup/onboarding_style.dart';
+import 'home_continue_rail.dart' show RailDivider;
 
 /// "Your Astrologers" — the user's favourited astrologers (AI or human) as a
 /// horizontal rail. Tap a face to open that astrologer. Hidden when empty.
@@ -23,7 +24,7 @@ class FavoritesRail extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(12, 22, 12, 10),
           child: Row(
             children: [
-              const Icon(Icons.favorite_rounded, size: 16, color: Ob.gold),
+              const Icon(Icons.favorite_rounded, size: 16, color: AppColors.error),
               const SizedBox(width: 7),
               Expanded(child: Text('Your Loved Astrologers', style: Ob.title.copyWith(fontSize: 20))),
               if (ids.length > 4)
@@ -51,6 +52,7 @@ class FavoritesRail extends ConsumerWidget {
             ),
           ),
         ),
+        const RailDivider(),
       ],
     );
   }
