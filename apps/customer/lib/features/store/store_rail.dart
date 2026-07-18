@@ -112,18 +112,16 @@ class StoreRail extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Expanded(flex: 40, child: _leftColumn(context, headline, subtext, cta)),
+              Expanded(flex: 42, child: _leftColumn(context, headline, subtext, cta)),
               Expanded(
-                flex: 60,
-                // Scaled up + nudged down so the product dominates and its base
-                // lands on the Explore Mall button line, bleeding to the edge.
+                flex: 58,
+                // The product sizes to its own column (never a scale transform —
+                // that paints outside the box and overlaps the text). A small
+                // nudge lets it kiss the bottom-right card edge (clipped there),
+                // so it stays clear of the copy on the left.
                 child: Transform.translate(
-                  offset: const Offset(0, 8),
-                  child: Transform.scale(
-                    scale: 1.32,
-                    alignment: Alignment.bottomRight,
-                    child: Align(alignment: Alignment.bottomRight, child: _heroArt(image)),
-                  ),
+                  offset: const Offset(10, 6),
+                  child: Align(alignment: Alignment.bottomRight, child: _heroArt(image)),
                 ),
               ),
             ],
