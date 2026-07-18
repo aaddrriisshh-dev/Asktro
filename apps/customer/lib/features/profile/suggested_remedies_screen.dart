@@ -843,7 +843,9 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
         backgroundColor: AppColors.card,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        builder: (ctx) => Padding(
+        builder: (ctx) => SafeArea(
+          top: false,
+          child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -870,6 +872,7 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
             ],
           ),
         ),
+        ),
       );
       return;
     }
@@ -884,7 +887,14 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Padding(
           padding: EdgeInsets.only(
-              left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
+              left: 20,
+              right: 20,
+              top: 18,
+              // Keyboard inset + the phone's home-indicator inset, so Save/Cancel
+              // never sit under the bottom safe area.
+              bottom: MediaQuery.of(ctx).viewInsets.bottom +
+                  MediaQuery.of(ctx).viewPadding.bottom +
+                  24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
