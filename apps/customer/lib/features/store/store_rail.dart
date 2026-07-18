@@ -21,13 +21,14 @@ const _gold = Color(0xFFC79A33);
 const _navy = Color(0xFF221C4A);
 const _lilac = Color(0xFF9173D6);
 
-/// Home-screen "Asktro Store" hero — a single celestial card modeled on the
+/// Home-screen "Asktro Mall" hero — a single celestial card modeled on the
 /// founder's reference: a white→lavender gradient ground with a faint lotus
-/// mandala, bokeh dots and sparkles; a brand row + authenticity badge; a
-/// headline / gold divider / subtext / Explore CTA on the left with the product
-/// cluster on the right; and a *floating* auto-scrolling category panel resting
-/// inside the card near the bottom. Hero content (image/headline/subtext/CTA)
-/// is portal-managed via `homeSections/storeHero`; categories from the catalog.
+/// mandala, bokeh dots and sparkles; the wordmark top-left and an authenticity
+/// badge floating top-right; a headline / gold divider / subtext / Explore CTA
+/// on the left with the product cluster centered on the right; and a *floating*
+/// auto-scrolling category panel resting inside the card near the bottom. Hero
+/// content (image/headline/subtext/CTA) is portal-managed via
+/// `homeSections/storeHero`; categories from the catalog.
 final _storeHeroProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) {
   return ref
       .watch(firestoreProvider)
@@ -52,7 +53,7 @@ class StoreRail extends ConsumerWidget {
     }
 
     final headline = s('headline', 'Blessings for Every Aspect of Life');
-    final subtext = s('subtext', 'Handpicked spiritual products to bring peace, positivity & prosperity.');
+    final subtext = s('subtext', 'Handpicked spiritual products for peace, positivity & prosperity.');
     final cta = s('cta', 'Explore Mall');
     final heroImage = (h['image'] ?? '').toString().trim();
 
@@ -78,7 +79,7 @@ class StoreRail extends ConsumerWidget {
           // cluster (right side) — drawn, so it carries no dark colours.
           Positioned(
             right: -34,
-            top: 34,
+            top: 30,
             child: IgnorePointer(
               child: CustomPaint(size: const Size(220, 220), painter: _LotusMandalaPainter()),
             ),
@@ -87,9 +88,8 @@ class StoreRail extends ConsumerWidget {
           const Positioned.fill(child: IgnorePointer(child: _Celestial())),
           Column(
             children: [
-              _brandRow(),
-              _heroBody(context, headline, subtext, cta, heroImage),
-              const SizedBox(height: 14),
+              _heroMiddle(context, headline, subtext, cta, heroImage),
+              const SizedBox(height: 12),
               _CategoryStrip(cats: cats),
               const SizedBox(height: 12), // bottom inset so the panel floats
             ],
@@ -99,179 +99,170 @@ class StoreRail extends ConsumerWidget {
     );
   }
 
-  // ---- brand row: bag tile + name + tagline + authenticity badge ----
-  Widget _brandRow() => Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 12, 2),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-            // Clean two-tone wordmark — no icon, left-aligned.
-            const Expanded(
-              child: RichText(
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                text: TextSpan(
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.3),
-                  children: [
-                    TextSpan(text: 'Asktro ', style: TextStyle(color: _navy)),
-                    TextSpan(text: 'Mall', style: TextStyle(color: _purple)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Authenticity badge — rounded white panel: outline shield + check,
-            // purple headline over a grey line.
-            Container(
-              padding: const EdgeInsets.fromLTRB(9, 7, 11, 7),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.94),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.08), blurRadius: 9, offset: const Offset(0, 3))],
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.gpp_good_outlined, size: 17, color: _purple),
-                  SizedBox(width: 6),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('100% Authentic',
-                          maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _purple)),
-                      SizedBox(height: 1),
-                      Text('Energized & Blessed',
-                          maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
-                          style: TextStyle(fontSize: 8, color: _muted, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ],
-              ),
-              ],
-            ),
-            const SizedBox(height: 3),
-            const Text('Divine essentials for a better you',
-                maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: _muted, fontWeight: FontWeight.w500)),
-          ],
-        ),
-      );
-
-  // ---- hero: headline + gold divider + subtext + CTA on the left, art right ----
-  Widget _heroBody(BuildContext context, String headline, String subtext, String cta, String image) {
-    final words = headline.split(' ');
-    final head = words.length > 1 ? words.sublist(0, words.length - 1).join(' ') : headline;
-    final tail = words.length > 1 ? ' ${words.last}' : '';
-
+  // ---- middle band: text on the left, big product art centered on the right,
+  // authenticity badge floating in the top-right corner (like the reference) ----
+  Widget _heroMiddle(BuildContext context, String headline, String subtext, String cta, String image) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 6, 0, 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      padding: const EdgeInsets.fromLTRB(14, 12, 0, 0),
+      child: Stack(
         children: [
-          Expanded(
-            flex: 42,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                RichText(
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  text: TextSpan(
-                    style: const TextStyle(fontFamily: 'serif', fontSize: 17.5, fontWeight: FontWeight.w700, height: 1.16, color: _navy),
-                    children: [
-                      TextSpan(text: head),
-                      TextSpan(text: tail, style: const TextStyle(color: _lilac)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 9),
-                Row(
-                  children: [
-                    Container(width: 30, height: 1.5, color: _gold.withValues(alpha: 0.75)),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 5),
-                      child: Icon(Icons.auto_awesome, size: 10, color: _gold),
-                    ),
-                    Container(width: 14, height: 1.5, color: _gold.withValues(alpha: 0.35)),
-                  ],
-                ),
-                const SizedBox(height: 9),
-                Text(subtext,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11.5, color: _muted, height: 1.35, fontWeight: FontWeight.w500)),
-                const SizedBox(height: 13),
-                GestureDetector(
-                  onTap: () => context.push('/store'),
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(16, 9, 8, 9),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [Color(0xFF8A5FDD), Color(0xFF6E4FB8), Color(0xFF4E3596)],
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.40), blurRadius: 14, offset: const Offset(0, 6))],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(cta,
-                            style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800)),
-                        const SizedBox(width: 9),
-                        Container(
-                          width: 22,
-                          height: 22,
-                          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                          child: const Icon(Icons.arrow_forward_rounded, size: 13, color: _purple),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(flex: 43, child: _leftColumn(context, headline, subtext, cta)),
+              Expanded(
+                flex: 57,
+                child: Align(alignment: Alignment.centerRight, child: _heroArt(image)),
+              ),
+            ],
           ),
-          Expanded(flex: 58, child: Align(alignment: Alignment.bottomRight, child: _heroArt(image))),
+          // Authenticity badge floats over the top-right corner.
+          Positioned(top: 0, right: 12, child: _badge()),
         ],
       ),
     );
   }
 
-  Widget _heroArt(String image) {
-    // Default to the bundled transparent product shot; a portal `image` URL
-    // overrides it per-campaign.
-    if (image.isEmpty) {
-      return SizedBox(
-        height: 210,
-        child: Image.asset(
-          'assets/store/hero_products.png',
-          fit: BoxFit.contain,
-          alignment: Alignment.bottomCenter,
-          errorBuilder: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 44))),
+  Widget _leftColumn(BuildContext context, String headline, String subtext, String cta) {
+    final words = headline.split(' ');
+    final head = words.length > 1 ? words.sublist(0, words.length - 1).join(' ') : headline;
+    final tail = words.length > 1 ? ' ${words.last}' : '';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Two-tone wordmark — no icon, left-aligned.
+        RichText(
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          text: const TextSpan(
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.3),
+            children: [
+              TextSpan(text: 'Asktro ', style: TextStyle(color: _navy)),
+              TextSpan(text: 'Mall', style: TextStyle(color: _purple)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 2),
+        const Text('Divine essentials for a better you',
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 10.5, color: _muted, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 12),
+        RichText(
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          text: TextSpan(
+            style: const TextStyle(fontFamily: 'serif', fontSize: 16.5, fontWeight: FontWeight.w700, height: 1.16, color: _navy),
+            children: [
+              TextSpan(text: head),
+              TextSpan(text: tail, style: const TextStyle(color: _lilac)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Container(width: 26, height: 1.5, color: _gold.withValues(alpha: 0.75)),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 5),
+              child: Icon(Icons.auto_awesome, size: 9, color: _gold),
+            ),
+            Container(width: 12, height: 1.5, color: _gold.withValues(alpha: 0.35)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(subtext,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, color: _muted, height: 1.32, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: () => context.push('/store'),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(15, 9, 8, 9),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Color(0xFF8A5FDD), Color(0xFF6E4FB8), Color(0xFF4E3596)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.40), blurRadius: 14, offset: const Offset(0, 6))],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(cta,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800)),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: const Icon(Icons.arrow_forward_rounded, size: 13, color: _purple),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _badge() => Container(
+        padding: const EdgeInsets.fromLTRB(9, 7, 11, 7),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.10), blurRadius: 9, offset: const Offset(0, 3))],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.gpp_good_outlined, size: 17, color: _purple),
+            SizedBox(width: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('100% Authentic',
+                    maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _purple)),
+                SizedBox(height: 1),
+                Text('Energized & Blessed',
+                    maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
+                    style: TextStyle(fontSize: 8, color: _muted, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ],
         ),
       );
-    }
-    return SizedBox(
-      height: 210,
-      child: CachedNetworkImage(
-        imageUrl: image,
-        fit: BoxFit.contain,
-        alignment: Alignment.bottomCenter,
-        placeholder: (_, __) => const Center(
-          child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: _purple)),
-        ),
-        errorWidget: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 40))),
-      ),
-    );
+
+  // The product art — vertically centered on the right. AspectRatio keeps the
+  // box the image's own shape (no empty letterbox padding), so the products
+  // read as large as the column width allows.
+  Widget _heroArt(String image) {
+    final Widget img = image.isEmpty
+        ? Image.asset(
+            'assets/store/hero_products.png',
+            fit: BoxFit.contain,
+            alignment: Alignment.centerRight,
+            errorBuilder: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 44))),
+          )
+        : CachedNetworkImage(
+            imageUrl: image,
+            fit: BoxFit.contain,
+            alignment: Alignment.centerRight,
+            placeholder: (_, __) => const Center(
+              child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: _purple)),
+            ),
+            errorWidget: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 40))),
+          );
+    // Trimmed product PNG is ~1169x730; a portal image just uses the same ratio.
+    return AspectRatio(aspectRatio: 1169 / 730, child: img);
   }
 }
 
