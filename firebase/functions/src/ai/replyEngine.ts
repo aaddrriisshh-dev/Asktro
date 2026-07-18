@@ -137,9 +137,21 @@ export const onAiChatMessage = onDocumentCreated(
       // with this client OUTSIDE the chat (portal nurture), so she picks up the
       // context ("the bracelet I suggested…"). Best-effort — never blocks a reply.
       const threadCtx = await loadRemedyThreadContext(c.customerId as string, c.astrologerId as string);
-      const system = threadCtx
+      let system = threadCtx
         ? `${systemBase}\n\n# RECENT MESSAGES YOU SENT THIS CLIENT (outside this chat — for continuity; refer to them naturally if relevant, never repeat verbatim)\n${threadCtx}`
         : systemBase;
+
+      // 5c) Cross-session memory (phase 3, light): at the START of a new chat,
+      // fold in the tail of the LAST chat with this client so she opens by
+      // naturally picking up where they left off ("pichhli baar interview ki
+      // baat hui thi — kaisa raha?"). Only at session opening; best-effort.
+      if (isSessionOpening) {
+        const priorCtx = await loadPriorSessionContext(
+          c.customerId as string, c.astrologerId as string, consultationId);
+        if (priorCtx) {
+          system += `\n\n# LAST TIME WITH THIS CLIENT (your previous chat — open by referencing where you left off, warmly and naturally; never repeat it verbatim, never invent beyond it)\n${priorCtx}`;
+        }
+      }
 
       // 6) Show the typing indicator (dots) while she composes, then generate.
       await setTyping(consultationId, c.astrologerId, true);
@@ -470,6 +482,45 @@ async function loadRemedyThreadContext(customerId: string, astrologerId: string)
     return '';
   }
 }
+/**
+ * Light cross-session memory: the tail (~last 6 text messages) of this client's
+ * most recent PRIOR chat with the same astrologer. Lets a new session open by
+ * referencing where they left off. Read-only, best-effort; no new writes/index
+ * (reuses the customerId+createdAt query the app already uses).
+ */
+async function loadPriorSessionContext(
+  customerId: string,
+  astrologerId: string,
+  currentConsultationId: string,
+): Promise<string> {
+  try {
+    const snap = await db
+      .collection('consultations')
+      .where('customerId', '==', customerId)
+      .orderBy('createdAt', 'desc')
+      .limit(20)
+      .get();
+    const prior = snap.docs
+      .filter((d) => d.id !== currentConsultationId)
+      .map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as Record<string, unknown> & { id: string }))
+      .filter((c) => c.astrologerId === astrologerId && (c.type === 'chat' || c.type == null));
+    if (!prior.length) return '';
+    const top = prior[0]; // newest-first from the ordered query
+    const msgs = await db
+      .collection('consultations').doc(top.id).collection('messages')
+      .orderBy('timestamp', 'desc').limit(6).get();
+    const lines = msgs.docs
+      .map((d) => d.data() as Record<string, unknown>)
+      .reverse()
+      .filter((m) => m.type === 'text' || m.type == null)
+      .map((m) => `${m.senderId === astrologerId ? 'You' : 'Client'}: ${String(m.text ?? '').slice(0, 200)}`)
+      .filter((l) => l.length > 8);
+    return lines.length ? lines.join('\n') : '';
+  } catch {
+    return '';
+  }
+}
+
 function tsMs(v: unknown): number {
   return v && typeof (v as { toMillis?: () => number }).toMillis === 'function'
     ? (v as { toMillis: () => number }).toMillis() : 0;

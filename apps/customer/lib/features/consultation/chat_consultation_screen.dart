@@ -200,9 +200,84 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                         },
                       ),
               ),
+              // Re-engage: start a fresh billed chat with the same astrologer.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    onPressed: _chatAgainBusy ? null : _chatAgain,
+                    icon: _chatAgainBusy
+                        ? const SizedBox(
+                            width: 18, height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),)
+                        : const Icon(Icons.chat_bubble_rounded, size: 18),
+                    label: Text(_chatAgainBusy ? 'Starting…' : 'Chat again',
+                        style: AppTypography.body.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  bool _chatAgainBusy = false;
+
+  /// From a finished (read-only) transcript: start a FRESH billed chat with the
+  /// same astrologer. The AI carries the "where we left off" memory server-side.
+  Future<void> _chatAgain() async {
+    if (_chatAgainBusy) return;
+    setState(() => _chatAgainBusy = true);
+    final a = widget.astrologer;
+    final res = await ref.read(consultationServiceProvider).create(astrologerId: a.id, type: ConsultationType.chat);
+    if (!mounted) return;
+    setState(() => _chatAgainBusy = false);
+    res.when(
+      success: (start) {
+        ref.read(analyticsProvider).logEvent(AnalyticsEvents.consultationStarted, params: {
+          'type': ConsultationType.chat.name,
+          'astrologerId': a.id,
+        });
+        // Replace the transcript so Back doesn't return to a dead session.
+        Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (_) => ChatConsultationScreen(consultationId: start.consultationId, astrologer: a),
+        ));
+      },
+      failure: (f) {
+        if (f.code == 'INSUFFICIENT_BALANCE') {
+          _promptRecharge();
+        } else {
+          _toast(f.message);
+        }
+      },
+    );
+  }
+
+  void _promptRecharge() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Add balance to consult'),
+        content: const Text('You need a minimum wallet balance to start a consultation.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Not now')),
+          PrimaryButton(
+            label: 'Recharge',
+            expand: false,
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/recharge');
+            },
+          ),
+        ],
       ),
     );
   }

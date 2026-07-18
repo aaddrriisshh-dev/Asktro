@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import 'home_continue_rail.dart';
+import 'home_favorites_rail.dart';
 import '../blogs/blogs.dart';
 import 'trust_banner.dart';
 import '../store/store_rail.dart';
@@ -82,6 +84,10 @@ class HomeFeed extends ConsumerWidget {
             const SizedBox(height: 18),
             const _HomeBanners(),
             const SizedBox(height: 6),
+            // Retention surfaces — resume a recent chat, and your adopted
+            // astrologers. Each hides itself when the user has none yet.
+            const ContinueRail(),
+            const FavoritesRail(),
             _AstroCarousel(title: 'Top Astrologers', provider: _topRatedProvider),
             _AstroCarousel(
                 title: 'Rising Stars',
