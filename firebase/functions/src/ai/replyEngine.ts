@@ -150,11 +150,17 @@ export const onAiChatMessage = onDocumentCreated(
       // ("Namaste ji…") is itself an astrologer turn in history. Best-effort.
       const isFirstUserTurn = !history.some((t) => t.role === 'user');
       if (isFirstUserTurn) {
-        const priorCtx = await loadPriorSessionContext(
+        const { text: priorCtx, count: priorCount } = await loadPriorSessionContext(
           c.customerId as string, c.astrologerId as string, consultationId);
         if (priorCtx) {
-          system += `\n\n# YOUR LAST CHAT WITH THIS CLIENT (context — they were already greeted with a choice: continue where you left off, or ask something new)
-- If they choose to CONTINUE (or ask about the earlier topic): first take a short, human beat, like you're placing them / glancing at your notes ("ek minute, hamari pichli baat zara dekh loon…"), THEN bring up the specific topic SOFTLY, as a question ("pichli baar shaadi ki baat hui thi na — us par kuch aage badha?"). You handle many people daily, so the recall is EARNED after that beat — never instant, never word-for-word.
+          // Recall tone scales with familiarity: a near-acquaintance earns the
+          // recall with a brief "let me place you" beat; a regular skips the
+          // formality and recalls naturally (but keeps the astrologer's dignity).
+          const recallRule = priorCount >= 3
+            ? `- This is a REGULAR client — you know them. Recall naturally and proactively, no formal "let me check my notes". Reference the ongoing thread warmly but with your usual measured dignity — never slangy, never word-for-word.`
+            : `- If they choose to CONTINUE (or ask about the earlier topic): first take a short, human beat, like you're placing them / glancing at your notes ("ek minute, hamari pichli baat zara dekh loon…"), THEN bring up the specific topic SOFTLY, as a question. You handle many people daily, so the recall is EARNED after that beat — never instant, never word-for-word.`;
+          system += `\n\n# YOUR LAST CHAT WITH THIS CLIENT (context — they were already greeted based on how well you know them)
+${recallRule}
 - If they ask something NEW: answer that; bring the past in only if genuinely relevant, don't force it.
 - Never recite these messages verbatim, never invent beyond them.
 ${priorCtx}`;
@@ -296,8 +302,10 @@ export const onAiConsultationCreated = onDocumentCreated(
       // new?" opener; she never asserts the old topic here (that lands softly only
       // if they choose to continue). A first-timer gets a simple warm greeting.
       const first = firstName((await db.collection('users').doc(c.customerId).get()).data()?.name) ?? '';
-      const returning = !!(await loadPriorSessionContext(
-        c.customerId as string, c.astrologerId as string, consultationId));
+      // How many times they've chatted with THIS astrologer before → drives how
+      // familiar the opener is (stranger → acquaintance → regular).
+      const priorCount = (await loadPriorSessionContext(
+        c.customerId as string, c.astrologerId as string, consultationId)).count;
       // Opening ritual: "joining…" → (same line updates to) "<name> has joined" →
       // typing dots → the greeting. Updating the SAME status line in place means
       // "joining…" never lingers next to "joined". Never reveals it's AI (name only).
@@ -308,7 +316,7 @@ export const onAiConsultationCreated = onDocumentCreated(
       await setTyping(consultationId, c.astrologerId, true);
       await sleep(GREETING_GAP_MS);
       await writeAstro(consultationId, c.astrologerId,
-        conjugateGender(openingGreeting(first, returning), astroGender));
+        conjugateGender(openingGreeting(first, priorCount), astroGender));
       await setTyping(consultationId, c.astrologerId, false);
     } catch (e) {
       // Never leave the typing dots stuck on if the ritual throws mid-way.
@@ -397,24 +405,39 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * The opening line. A RETURNING client (has chatted with this astrologer before)
- * gets a warm "welcome back" that offers to continue where they left off OR start
- * fresh — she never asserts the old topic here (that lands softly, and only if the
- * client chooses to continue, in her reply). A first-timer gets a simple warm
- * greeting. Varied across a few phrasings so it is never word-for-word identical
- * (repetition is the biggest AI tell).
+ * The opening line, scaled by RELATIONSHIP STAGE so the reentry evolves instead of
+ * repeating the same gesture (repetition is the biggest AI tell):
+ *  - priorCount 0  → first time: a simple warm greeting.
+ *  - priorCount 1–2 → getting acquainted (2nd–3rd visit): a warm "welcome back"
+ *    that offers to continue OR start fresh; she never asserts the old topic here.
+ *  - priorCount 3+  → familiar / regular (4th+ visit): warm & proactive, but still
+ *    the measured, dignified astrologer register — no chummy slang, name used
+ *    sparingly with "ji", references their life/continuity gracefully.
+ * Each stage is varied across a few phrasings so it is never word-for-word identical.
  */
-function openingGreeting(first: string, returning: boolean): string {
+function openingGreeting(first: string, priorCount: number): string {
   const name = first ? ` ${first}` : '';
-  const nameJi = first ? ` ${first}` : ' ji';
+  const nameJi = first ? ` ${first} ji` : ' ji';
   const pick = (opts: string[]): string => opts[Math.floor(Math.random() * opts.length)];
-  if (returning) {
+
+  if (priorCount >= 3) {
+    // Regular — warm, proactive, dignified. Never "arre", name sparing.
     return pick([
-      `Namaste${name}, wapas dekh kar accha laga. Boliye — aaj kuch naya poochna hai, ya pichli baar jahan hamari baat ruki thi, wahin se aage badhein?`,
-      `Arre${name}, aap wapas aaye — accha laga. Bataiye, aaj koi nayi baat hai, ya pichli baat wahin se aage le chalein?`,
-      `Namaste${nameJi}, phir mile, accha laga. Kuch naya mann mein hai, ya jahan pichli baar ruke the wahin se shuru karein?`,
+      `Namaste${nameJi}. Bahut dinon baad aana hua… sab kushal-mangal to hai?`,
+      `Aaiye${nameJi}. Kahiye, aajkal jeevan mein kya chal raha hai?`,
+      `Namaste${nameJi}. Aapko dekh kar accha laga — pichli baar jo baat chal rahi thi, ab uska kya rukh hai?`,
+      `Kahiye${nameJi}, aajkal samay kaisa ja raha hai aapka?`,
     ]);
   }
+  if (priorCount >= 1) {
+    // Getting acquainted — welcome-back + the choice.
+    return pick([
+      `Namaste${name}, wapas dekh kar accha laga. Boliye — aaj kuch naya poochna hai, ya pichli baar jahan hamari baat ruki thi, wahin se aage badhein?`,
+      `Aaiye${nameJi}, phir mile — accha laga. Bataiye, aaj koi nayi baat hai, ya pichli baat wahin se aage le chalein?`,
+      `Namaste${nameJi}. Aap phir aaye, accha laga. Kuch naya mann mein hai, ya jahan pichli baar ruke the wahin se shuru karein?`,
+    ]);
+  }
+  // First time.
   return pick([
     `Namaste${nameJi}! Kaise hain aap?`,
     `Namaste${name}, aaiye. Boliye, aaj kis baare mein jaanna chahenge?`,
@@ -543,15 +566,15 @@ async function loadRemedyThreadContext(customerId: string, astrologerId: string)
 }
 /**
  * Light cross-session memory: the tail (~last 6 text messages) of this client's
- * most recent PRIOR chat with the same astrologer. Lets a new session open by
- * referencing where they left off. Read-only, best-effort; no new writes/index
- * (reuses the customerId+createdAt query the app already uses).
+ * most recent PRIOR chat with the same astrologer, plus how MANY prior chats
+ * they've had with them (drives the relationship stage of the opener). Read-only,
+ * best-effort; no new writes/index (reuses the customerId+createdAt query).
  */
 async function loadPriorSessionContext(
   customerId: string,
   astrologerId: string,
   currentConsultationId: string,
-): Promise<string> {
+): Promise<{ text: string; count: number }> {
   try {
     const snap = await db
       .collection('consultations')
@@ -563,7 +586,7 @@ async function loadPriorSessionContext(
       .filter((d) => d.id !== currentConsultationId)
       .map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as Record<string, unknown> & { id: string }))
       .filter((c) => c.astrologerId === astrologerId && (c.type === 'chat' || c.type == null));
-    if (!prior.length) return '';
+    if (!prior.length) return { text: '', count: 0 };
     const top = prior[0]; // newest-first from the ordered query
     const msgs = await db
       .collection('consultations').doc(top.id).collection('messages')
@@ -574,9 +597,9 @@ async function loadPriorSessionContext(
       .filter((m) => m.type === 'text' || m.type == null)
       .map((m) => `${m.senderId === astrologerId ? 'You' : 'Client'}: ${String(m.text ?? '').slice(0, 200)}`)
       .filter((l) => l.length > 8);
-    return lines.length ? lines.join('\n') : '';
+    return { text: lines.length ? lines.join('\n') : '', count: prior.length };
   } catch {
-    return '';
+    return { text: '', count: 0 };
   }
 }
 
