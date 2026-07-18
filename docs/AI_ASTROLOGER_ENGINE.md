@@ -259,6 +259,20 @@ the **real profit margin on Gemini**:
 - Re-check the four cost controls end-to-end (output cap ✅, history trim ✅,
   rate-limit ✅, prompt caching — implicit only; explicit still a TODO).
 
+### Memory recall — observation to revisit after multi-user testing (Jul 2026)
+Founder tested the returning-client recall on his own account (50+ sessions with
+one AI astrologer). Observed: she kept referring to a **remedy she had sent (a
+one-mukhi rudraksha)** rather than the **last chat's actual topic** (Guru in the
+bhagya sthan / current dasha). Likely cause: the reply engine injects TWO memory
+blocks — `loadRemedyThreadContext` (remedy/product thread) and
+`loadPriorSessionContext` (last-chat tail) — and the model may over-index on the
+concrete remedy over the conversational thread. Also `loadPriorSessionContext`
+only reads the SINGLE most-recent prior session's last 6 messages, so with a very
+long history the "last topic" can be narrow. **Deferred:** founder will have a few
+real users test, then decide. Candidate fix: prioritise last-chat context for the
+"where we left off" recall; make the remedy context secondary (only if directly
+relevant). Founder is not 100% satisfied with the recurring-session feel yet.
+
 ## Open items / next steps
 - [x] Pricing confirmed: ₹9/min live + 3 free min (₹27 credit) + 2-min recharge nudge.
 - [ ] Blind-test Gemini Pro vs Claude Sonnet on ~50–100 real Hindi/Hinglish prompts.

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
@@ -61,8 +62,15 @@ Future<void> _imageFull(BuildContext context, PromoTheme? th, String imageUrl,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(imageUrl, fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: Colors.black)),
+          CachedNetworkImage(
+            imageUrl: imageUrl, fit: BoxFit.cover,
+            width: double.infinity, height: double.infinity,
+            placeholder: (_, __) => const ColoredBox(
+              color: Colors.black,
+              child: Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4)),
+            ),
+            errorWidget: (_, __, ___) => Container(color: Colors.black),
+          ),
           // Bottom scrim so the CTA stays legible over any image.
           const DecoratedBox(
             decoration: BoxDecoration(
@@ -145,16 +153,24 @@ Widget _giftHero(double size) => SizedBox(
 Widget _hero(String? imageUrl, String imageStyle, {double giftSize = 130}) {
   if (imageUrl == null || imageUrl.isEmpty) return _giftHero(giftSize);
   final portrait = imageStyle == 'portrait';
+  final h = portrait ? 250.0 : 150.0;
   return ClipRRect(
     borderRadius: BorderRadius.circular(18),
-    child: Image.network(
-      imageUrl,
-      height: portrait ? 250 : 150,
+    // CachedNetworkImage → disk-cached (instant on repeat opens) + a spinner while
+    // it loads, so the popup never shows a blank/slow-to-fill hole.
+    child: CachedNetworkImage(
+      imageUrl: imageUrl,
+      height: h,
       width: portrait ? 190 : double.infinity,
       // Portrait art is fully designed (9:16 with its own text), so show all of
       // it (contain) rather than cover-cropping; banners still fill their strip.
       fit: portrait ? BoxFit.contain : BoxFit.cover,
-      errorBuilder: (_, __, ___) => _giftHero(giftSize),
+      fadeInDuration: const Duration(milliseconds: 200),
+      placeholder: (_, __) => SizedBox(
+        height: h,
+        child: const Center(child: CircularProgressIndicator(color: Ob.purple, strokeWidth: 2.4)),
+      ),
+      errorWidget: (_, __, ___) => _giftHero(giftSize),
     ),
   );
 }
@@ -205,12 +221,16 @@ Future<void> _center(BuildContext context, PromoTheme? th, String title, String 
             if (hasImage)
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  imageUrl,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
                   height: imageStyle == 'portrait' ? 168 : 118,
                   width: imageStyle == 'portrait' ? 132 : double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  placeholder: (_, __) => SizedBox(
+                    height: imageStyle == 'portrait' ? 168 : 118,
+                    child: const Center(child: CircularProgressIndicator(color: Ob.purple, strokeWidth: 2.4)),
+                  ),
+                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
                 ),
               )
             else
@@ -270,7 +290,6 @@ Future<void> _half(BuildContext context, PromoTheme th, String title, String bod
           child: Stack(
             children: [
               PromoSurface(theme: th, variant: PromoVariant.half, radius: 0, showFrame: false, child: const SizedBox.expand()),
-              Positioned(top: 12, right: 16, child: _closeBtn(ctx, fg)),
               SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(26, 46, 26, 22 + bottom),
                 child: Column(
@@ -289,6 +308,9 @@ Future<void> _half(BuildContext context, PromoTheme th, String title, String bod
                   ],
                 ),
               ),
+              // Close button LAST so it sits on top of the scroll view — otherwise
+              // the scroll view swallowed the tap and the cross did nothing.
+              Positioned(top: 12, right: 16, child: _closeBtn(ctx, fg)),
             ],
           ),
         ),
@@ -321,7 +343,6 @@ Future<void> _full(BuildContext context, PromoTheme th, String title, String bod
           SafeArea(
             child: Stack(
               children: [
-                Positioned(top: 10, right: 16, child: _closeBtn(ctx, fg)),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(28, 40, 28, 40),
                   child: Column(
@@ -368,6 +389,8 @@ Future<void> _full(BuildContext context, PromoTheme th, String title, String bod
                     ],
                   ),
                 ),
+                // Close button LAST so it always sits on top and is tappable.
+                Positioned(top: 10, right: 16, child: _closeBtn(ctx, fg)),
               ],
             ),
           ),
