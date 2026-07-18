@@ -10,7 +10,7 @@ import { storage } from '@/lib/firebase';
  *  the cropped image and returns the URL via onChange. Used everywhere in the
  *  store, so every photo is framed the same way and nothing gets clipped. */
 export function ImageUpload({
-  value, onChange, folder, label = 'Upload Photo', shape = 'square', aspect,
+  value, onChange, folder, label = 'Upload Photo', shape = 'square', aspect, original = false,
 }: {
   value?: string;
   onChange: (url: string) => void;
@@ -19,6 +19,9 @@ export function ImageUpload({
   shape?: 'square' | 'wide' | 'portrait';
   /** width / height of the crop frame. Overrides `shape` when set. */
   aspect?: number;
+  /** Upload the file exactly as chosen — no crop, no JPEG flatten — so a
+   *  transparent PNG keeps its transparency (used for the Mall hero product). */
+  original?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -36,9 +39,22 @@ export function ImageUpload({
     if (!file.type.startsWith('image/')) { setErr('Please choose an image file.'); return; }
     if (file.size > 12 * 1024 * 1024) { setErr('Image must be under 12 MB.'); return; }
     setErr(null);
+    // Transparency-preserving path: upload the chosen file untouched.
+    if (original) { void uploadOriginal(file); return; }
     const reader = new FileReader();
     reader.onload = () => { setSrc(reader.result as string); setCrop({ x: 0, y: 0 }); setZoom(1); };
     reader.readAsDataURL(file);
+  }
+
+  async function uploadOriginal(file: File) {
+    setBusy(true);
+    try {
+      const ext = ((file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'png';
+      const r = ref(storage, `${folder}/${Date.now()}.${ext}`);
+      await uploadBytes(r, file, { contentType: file.type || 'image/png' });
+      onChange(await getDownloadURL(r));
+    } catch (e) { setErr('Upload failed: ' + (e as Error).message); }
+    finally { setBusy(false); }
   }
 
   const onCropComplete = useCallback((_a: Area, px: Area) => setAreaPx(px), []);
@@ -68,7 +84,9 @@ export function ImageUpload({
         <button type="button" className="btn sm secondary" disabled={busy} onClick={() => inputRef.current?.click()}>
           {busy ? 'Uploading…' : (value ? 'Change' : `⬆ ${label}`)}
         </button>
-        <span className="muted" style={{ fontSize: 11 }}>you can crop &amp; reposition · JPG, PNG, WebP</span>
+        <span className="muted" style={{ fontSize: 11 }}>
+          {original ? 'uploaded as-is · transparency kept · PNG / JPG / WebP' : 'you can crop & reposition · JPG, PNG, WebP'}
+        </span>
         {err && <span style={{ color: 'var(--error)', fontSize: 11 }}>{err}</span>}
       </div>
       <input

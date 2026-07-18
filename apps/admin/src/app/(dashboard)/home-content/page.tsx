@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { ImageUpload } from '@/components/ImageUpload';
 
 /** Icon keys the app knows how to render (see trust_banner.dart `_iconFor`). */
 const ICONS: { key: string; label: string }[] = [
@@ -120,10 +121,17 @@ export default function HomeContentPage() {
 
   return (
     <div style={{ maxWidth: 720 }}>
-      <h1 style={{ marginBottom: 2 }}>Home Content — Trust Band</h1>
+      <h1 style={{ marginBottom: 2 }}>Home Screen Content</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-        The &ldquo;Why people trust Asktro&rdquo; assurance strip on the home screen, just below the
-        Asktro Mall store rail. Changes go live in the app instantly — no rebuild.
+        The two home-screen sections you can edit live — the Asktro Mall hero and the trust band below
+        it. Changes go live in the app instantly — no rebuild.
+      </p>
+
+      <StoreHeroEditor />
+
+      <h2 style={{ fontSize: 18, margin: '30px 0 4px' }}>Trust band</h2>
+      <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+        The &ldquo;Why people trust Asktro&rdquo; assurance strip, just below the Asktro Mall store rail.
       </p>
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 8px' }}>
@@ -212,6 +220,114 @@ export default function HomeContentPage() {
         {savedAt && <span className="muted" style={{ fontSize: 13 }}>Saved at {savedAt}</span>}
       </div>
     </div>
+  );
+}
+
+interface StoreHeroDoc {
+  image: string;
+  headline: string;
+  subtext: string;
+  cta: string;
+}
+
+/** The premium "Asktro Mall" hero at the top of the home store rail. Writes the
+ *  single `homeSections/storeHero` doc (image + copy); the app reads it live.
+ *  Everything else in the hero — background, mandala, badge, and the tappable
+ *  category strip — is rendered by the app from your catalog. */
+function StoreHeroEditor() {
+  const [form, setForm] = useState<StoreHeroDoc>({ image: '', headline: '', subtext: '', cta: '' });
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    const ref = doc(db, 'homeSections', 'storeHero');
+    return onSnapshot(ref, (snap) => {
+      const d = (snap.data() ?? {}) as Partial<StoreHeroDoc>;
+      setForm({
+        image: d.image ?? '',
+        headline: d.headline ?? '',
+        subtext: d.subtext ?? '',
+        cta: d.cta ?? '',
+      });
+      setLoaded(true);
+    });
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await setDoc(
+        doc(db, 'homeSections', 'storeHero'),
+        {
+          image: form.image,
+          headline: form.headline.trim(),
+          subtext: form.subtext.trim(),
+          cta: form.cta.trim(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+      setSavedAt(new Date().toLocaleTimeString());
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section style={{ marginTop: 16 }}>
+      <h2 style={{ fontSize: 18, margin: '0 0 4px' }}>Asktro Mall hero (store rail)</h2>
+      <p className="muted" style={{ margin: '0 0 10px', fontSize: 13 }}>
+        The premium banner at the top of the Mall rail. Upload the product image (a transparent PNG of the
+        product cluster) and set the copy. Leave any field blank to use the app&apos;s default.
+      </p>
+      {!loaded ? (
+        <p className="muted">Loading…</p>
+      ) : (
+        <div className="card" style={{ padding: 16, display: 'grid', gap: 14 }}>
+          <Field label="Product image — transparent PNG (the cluster on the pedestal)">
+            <ImageUpload
+              folder="store_images"
+              value={form.image}
+              original
+              onChange={(url) => setForm((f) => ({ ...f, image: url }))}
+              shape="wide"
+              label="Upload product PNG"
+            />
+          </Field>
+          <Field label="Headline (the last word shows in purple)">
+            <input
+              className="input"
+              value={form.headline}
+              placeholder="Blessings for Every Aspect of Life"
+              onChange={(e) => setForm((f) => ({ ...f, headline: e.target.value }))}
+            />
+          </Field>
+          <Field label="Subtext (keep it short — one line)">
+            <input
+              className="input"
+              value={form.subtext}
+              placeholder="Our products bring peace, positivity & prosperity."
+              onChange={(e) => setForm((f) => ({ ...f, subtext: e.target.value }))}
+            />
+          </Field>
+          <Field label="Button label">
+            <input
+              className="input"
+              value={form.cta}
+              placeholder="Explore Mall"
+              onChange={(e) => setForm((f) => ({ ...f, cta: e.target.value }))}
+            />
+          </Field>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button className="btn" onClick={save} disabled={saving}>
+              {saving ? 'Saving…' : 'Save & publish'}
+            </button>
+            {savedAt && <span className="muted" style={{ fontSize: 13 }}>Saved at {savedAt}</span>}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
