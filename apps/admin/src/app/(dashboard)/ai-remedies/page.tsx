@@ -61,10 +61,12 @@ function ProductHookPicker({ onAttach, onClear, attached }: {
 
 /** A remedy conversation: the remedy, any legacy Q&A, the live thread, and a
  *  composer to message the customer (with an optional product hook). */
-function RemedyThread({ r }: { r: Row }) {
+function RemedyThread({ r, collapsible = false }: { r: Row; collapsible?: boolean }) {
   const astro = (r.astrologerName as string) || 'AI Astrologer';
   const title = (r.title as string) || 'Remedy';
   const note = (r.note as string) || '';
+  // Collapsed by default in the history list so the log stays scannable.
+  const [open, setOpen] = useState(!collapsible);
 
   const { rows: thread } = useCollection(`remedies/${r.id}/thread`, useMemo(() => [orderBy('createdAt', 'asc'), limit(100)], []));
 
@@ -94,15 +96,21 @@ function RemedyThread({ r }: { r: Row }) {
 
   return (
     <div className="card" style={{ marginTop: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+      <div
+        onClick={collapsible ? () => setOpen((o) => !o) : undefined}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', cursor: collapsible ? 'pointer' : 'default' }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          {collapsible && <span className="muted" style={{ fontSize: 12, width: 12, flex: 'none' }}>{open ? '▾' : '▸'}</span>}
           <span className="badge purple" style={{ fontSize: 10 }}>AI</span>
           <strong style={{ fontSize: 14 }}>{astro}</strong>
-          <span className="muted" style={{ fontSize: 12 }}>· 🪔 {title} · <Link href={`/users/${r.customerId}`}>{(r.customerId as string)?.slice(0, 10) ?? '—'}</Link></span>
+          <span className="muted" style={{ fontSize: 12 }}>· 🪔 {title} · <Link href={`/users/${r.customerId}`} onClick={(e) => e.stopPropagation()}>{(r.customerId as string)?.slice(0, 10) ?? '—'}</Link></span>
         </div>
         {r.threadUnreadForPortal ? <span className="badge amber" style={{ fontSize: 10 }}>customer replied</span>
           : r.pendingPortal ? <span className="badge amber" style={{ fontSize: 10 }}>awaiting reply</span> : null}
       </div>
+      {open && (
+      <>
       {note ? <div className="muted" style={{ marginTop: 6, fontSize: 12, whiteSpace: 'pre-wrap' }}>{note}</div> : null}
 
       {/* The conversation */}
@@ -129,6 +137,8 @@ function RemedyThread({ r }: { r: Row }) {
         <span className="muted" style={{ fontSize: 11.5 }}>{text.length}/600 · free message · reaches the customer as a notification</span>
         <button className="btn sm" disabled={busy || !text.trim()} onClick={send}>{busy ? 'Sending…' : 'Send message'}</button>
       </div>
+      </>
+      )}
     </div>
   );
 }
@@ -177,7 +187,7 @@ export default function AiRemediesPage() {
       {history.loading ? <p className="muted" style={{ marginTop: 12 }}>Loading…</p>
         : conversations.length === 0 ? (
           <div className="card" style={{ marginTop: 12 }}><p className="drawer-muted" style={{ margin: 0 }}>No conversations yet.</p></div>
-        ) : conversations.map((r) => <RemedyThread key={r.id} r={r} />)}
+        ) : conversations.map((r) => <RemedyThread key={r.id} r={r} collapsible />)}
     </div>
   );
 }
