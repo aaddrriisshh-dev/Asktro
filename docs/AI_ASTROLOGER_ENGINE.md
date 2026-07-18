@@ -208,13 +208,18 @@ portal-tunable) enforces the human *timing*. Build during live wiring:
 Retention engine is split across two phases:
 
 **Phase 3 (building now) — "Continue" + Favorites + light memory.**
-- **Continue your reading** cards on the **home screen**: the astrologer's face,
-  a last-message preview, one-tap re-entry into that chat. The headline surface.
-- **Favorites / "Your Astrologers"** row — the user adopts *their* astrologer.
-- **Light cross-session memory (only as much as phase 3 needs):** enough context
-  that when the user re-enters, the AI knows **where the last chat left off** —
-  a short "last time" recap the reply engine can open with. NOT the full memory
-  model yet (that's phase 4).
+**Scope note: Continue + Favorites cover ALL astrologers — AI *and* human.** A
+user re-enters any recent chat and can favorite any astrologer. Only the "where
+we left off" memory is AI-specific (a human astrologer reads the thread himself).
+- **Continue your reading** cards on the **home screen**: the astrologer's face
+  (AI or human), a last-message preview, one-tap re-entry into that chat. The
+  headline surface. Sourced from the user's recent consultations, newest first.
+- **Favorites / "Your Astrologers"** row — the user adopts *their* astrologer
+  (any astrologer). Tap to open/start a chat.
+- **Light cross-session memory (AI only, only as much as phase 3 needs):** enough
+  context that when the user re-enters an AI chat, the AI knows **where the last
+  chat left off** — a short "last time" recap the reply engine can open with. NOT
+  the full memory model yet (that's phase 4).
 
 **Phase 4 (save for later — founder wants all four discussed then):**
 1. **Full cross-session memory model** — what's remembered, for how long, stored
