@@ -41,6 +41,20 @@ final _remedyDocProvider =
   });
 });
 
+/// The nurture-thread messages on a remedy (astrologer <-> customer), oldest
+/// first — the ongoing conversation for an AI astrologer's remedy.
+final _remedyThreadProvider =
+    StreamProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, id) {
+  return ref
+      .watch(firestoreProvider)
+      .collection('remedies')
+      .doc(id)
+      .collection('thread')
+      .orderBy('createdAt')
+      .snapshots()
+      .map((s) => s.docs.map((d) => {'id': d.id, ...d.data()}).toList());
+});
+
 class SuggestedRemediesScreen extends ConsumerWidget {
   const SuggestedRemediesScreen({super.key});
 
@@ -397,6 +411,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
     final answer = (live['answer'] ?? '') as String;
     final asked = live['followUpUsed'] == true && question.isNotEmpty;
     final answered = live['answered'] == true && answer.isNotEmpty;
+    final isAI = live['isAI'] == true; // AI remedies use the free nurture thread
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -480,15 +495,20 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  _followUpSection(
-                    remedyId: id,
-                    astro: astro,
-                    astrologerId: astrologerId,
-                    question: question,
-                    answer: answer,
-                    asked: asked,
-                    answered: answered,
-                  ),
+                  // AI astrologer → a free ongoing thread (she may reach out with
+                  // guidance + suggestions). Human astrologer → the one-free-follow-up.
+                  if (isAI)
+                    _RemedyThreadView(remedyId: id, astro: astro)
+                  else
+                    _followUpSection(
+                      remedyId: id,
+                      astro: astro,
+                      astrologerId: astrologerId,
+                      question: question,
+                      answer: answer,
+                      asked: asked,
+                      answered: answered,
+                    ),
                 ],
               ),
             ),
@@ -699,6 +719,202 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
             ],
           ),
       ],
+    );
+  }
+}
+
+/// The free nurture thread for an AI astrologer's remedy: the conversation the
+/// astrologer (run from the portal) has with the customer — messages, optional
+/// tappable product hooks (deep-link to the store), a reply box, and the
+/// compliance opt-out.
+class _RemedyThreadView extends ConsumerStatefulWidget {
+  const _RemedyThreadView({required this.remedyId, required this.astro});
+  final String remedyId;
+  final String astro;
+
+  @override
+  ConsumerState<_RemedyThreadView> createState() => _RemedyThreadViewState();
+}
+
+class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
+  final _input = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _input.dispose();
+    super.dispose();
+  }
+
+  Future<void> _reply() async {
+    final t = _input.text.trim();
+    if (t.isEmpty) return;
+    setState(() => _sending = true);
+    try {
+      await ref
+          .read(functionsProvider)
+          .httpsCallable('replyToRemedyThread')
+          .call<Map<String, dynamic>>({'remedyId': widget.remedyId, 'text': t});
+      _input.clear();
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message ?? 'Could not send. Please try again.')));
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _stopMessages() async {
+    try {
+      await ref
+          .read(functionsProvider)
+          .httpsCallable('setRemedyMessagesOptOut')
+          .call<Map<String, dynamic>>({'optOut': true});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("You won't receive astrologer messages anymore.")),
+        );
+      }
+    } catch (_) {/* best-effort */}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final msgs = ref.watch(_remedyThreadProvider(widget.remedyId)).valueOrNull ?? const [];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.forum_rounded, size: 15, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text('Chat with ${widget.astro}',
+                style: AppTypography.caption
+                    .copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w700),),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (msgs.isEmpty)
+          Text('${widget.astro} may message you here with guidance. You can reply anytime.',
+              style: AppTypography.caption.copyWith(color: AppColors.textSecondary),)
+        else
+          ...msgs.map((m) => _bubble(context, m)),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _input,
+                minLines: 1,
+                maxLines: 4,
+                maxLength: 600,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: 'Message ${widget.astro}…',
+                  counterText: '',
+                  filled: true,
+                  fillColor: AppColors.card,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none,),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _sending ? null : _reply,
+              icon: const Icon(Icons.send_rounded, color: AppColors.primary),
+            ),
+          ],
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: _stopMessages,
+            child: Text('Stop messages from astrologers',
+                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _bubble(BuildContext context, Map<String, dynamic> m) {
+    final mine = m['senderRole'] != 'astrologer';
+    final text = (m['text'] ?? '') as String;
+    final hook = m['hook'] as Map<String, dynamic>?;
+    return Align(
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.all(12),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+        decoration: BoxDecoration(
+          gradient: mine
+              ? null
+              : const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFF3ECFF), Color(0xFFFFF6E2)],
+                ),
+          color: mine ? AppColors.primary.withValues(alpha: 0.10) : null,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+              color: mine
+                  ? AppColors.primary.withValues(alpha: 0.25)
+                  : AppColors.warning.withValues(alpha: 0.35),),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(text, style: AppTypography.body.copyWith(height: 1.4)),
+            if (hook != null && hook['productId'] != null) ...[
+              const SizedBox(height: 8),
+              _hookCard(context, hook),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _hookCard(BuildContext context, Map<String, dynamic> hook) {
+    final title = (hook['title'] ?? 'Product') as String;
+    final cta = (hook['cta'] ?? 'View in store') as String;
+    final productId = (hook['productId'] ?? '') as String;
+    return GestureDetector(
+      onTap: productId.isEmpty ? null : () => context.push('/store/product/$productId'),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.shopping_bag_rounded, size: 18, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: AppTypography.body.copyWith(fontWeight: FontWeight.w700, fontSize: 13.5),),
+                  Text(cta,
+                      style: AppTypography.caption
+                          .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
+          ],
+        ),
+      ),
     );
   }
 }
