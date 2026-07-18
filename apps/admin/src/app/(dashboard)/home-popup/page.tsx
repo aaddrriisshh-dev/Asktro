@@ -204,7 +204,7 @@ export default function HomePopupPage() {
 
         <Field label="Image (optional)">
           <ImageUpload
-            folder="promo_images"
+            folder="banner_images"
             value={form.image}
             onChange={(url) => set('image', url)}
             shape={form.imageStyle === 'portrait' ? 'portrait' : 'wide'}
