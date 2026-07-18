@@ -127,8 +127,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <nav className="sidebar__nav">
           {nav.map((n) => {
             const active = pathname === n.href;
+            // The two top-level dashboard buttons get distinct accents (App on the
+            // brand purple, Store on emerald→gold) so they read apart at a glance.
+            const accent = !isMall && n.href === '/' ? ' sidebar__link--app'
+              : !isMall && n.href === '/mall' ? ' sidebar__link--store' : '';
             return (
-              <Link key={n.href} href={n.href} className={`sidebar__link${active ? ' active' : ''}`} title={n.label}>
+              <Link key={n.href} href={n.href} className={`sidebar__link${active ? ' active' : ''}${accent}`} title={n.label}>
                 <span className="sidebar__ico">{n.icon}</span>
                 <span className="sidebar__label">{n.label}</span>
               </Link>

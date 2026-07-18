@@ -139,9 +139,9 @@ class ContinueRail extends ConsumerWidget {
   }
 }
 
-/// Wraps a home rail in a soft, full-width tinted band. Sections are separated by
-/// a background colour change (no divider line, no stars) — compact and clean.
-/// Living inside each rail means a hidden (empty) rail shows no band at all.
+/// Wraps a home rail in a floating white card on the cream page — the clearest,
+/// most premium separation between sections. Living inside each rail means a
+/// hidden (empty) rail shows no card at all.
 class RailBand extends StatelessWidget {
   const RailBand({super.key, required this.child});
   final Widget child;
@@ -149,10 +149,15 @@ class RailBand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 10),
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       padding: const EdgeInsets.only(top: 8, bottom: 12),
-      decoration: const BoxDecoration(color: Color(0xFFF4F0FB)), // faint lavender band
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Ob.border),
+        boxShadow: Ob.softShadow,
+      ),
       child: child,
     );
   }

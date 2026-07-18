@@ -91,9 +91,10 @@ IconData _iconFor(String key) {
   }
 }
 
-/// Full-bleed celestial trust band for the home feed. Reaches both screen
-/// edges (no side margin) and sits on a soft lavender→cream ground with a faint
-/// zodiac watermark, matching the app's onboarding language.
+/// A deep-indigo "assurance card" for the home feed — a celestial night-sky card
+/// with the heading and three assurance columns (soft-ringed icon tile + clean
+/// white label). Content stays portal-managed (homeSections/trust); only the look
+/// is fixed here. No more gold-italic footer.
 class TrustBanner extends ConsumerWidget {
   const TrustBanner({super.key});
 
@@ -103,76 +104,63 @@ class TrustBanner extends ConsumerWidget {
     if (data == null || data.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.only(top: 22, bottom: 20),
-      // Full-bleed band — no border, no side margin. Soft celestial ground.
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFF3EEFF), Color(0xFFFBF7EE)],
+      margin: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: Ob.softShadow,
+        gradient: const RadialGradient(
+          center: Alignment(-0.7, -1),
+          radius: 1.3,
+          colors: [Color(0xFF4B3A8F), Color(0xFF2E2159), Color(0xFF241A47)],
+          stops: [0, 0.55, 1],
         ),
       ),
       child: Stack(
         children: [
+          // Faint gold glow, upper-right — a hint of celestial warmth.
           Positioned(
-            right: -30,
-            top: -18,
+            right: -34,
+            top: -34,
             child: IgnorePointer(
-              child: Opacity(opacity: 0.06, child: Image.asset(Ob.zodiacWheel, width: 150)),
+              child: Container(
+                width: 130,
+                height: 130,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(colors: [Color(0x40EAD079), Color(0x00EAD079)]),
+                ),
+              ),
             ),
           ),
           Column(
             children: [
-              // ---- heading ----
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.auto_awesome, size: 13, color: Ob.gold),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            data.title,
-                            textAlign: TextAlign.center,
-                            style: Ob.title.copyWith(fontSize: 26),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.auto_awesome, size: 13, color: Ob.gold),
-                      ],
-                    ),
-                    if (data.subtitle.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        data.subtitle,
-                        textAlign: TextAlign.center,
-                        style: Ob.subtitle.copyWith(fontSize: 13.5),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              // ---- assurance rows ----
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Column(
-                  children: [
-                    for (var i = 0; i < data.items.length; i++) ...[
-                      _TrustRow(item: data.items[i]),
-                      if (i != data.items.length - 1) const SizedBox(height: 10),
-                    ],
-                  ],
-                ),
+              Text(data.title,
+                  textAlign: TextAlign.center,
+                  style: Ob.title.copyWith(fontSize: 17, color: Colors.white)),
+              if (data.subtitle.isNotEmpty) ...[
+                const SizedBox(height: 5),
+                Text(data.subtitle,
+                    textAlign: TextAlign.center,
+                    style: Ob.note.copyWith(fontSize: 12, color: Colors.white70)),
+              ],
+              const SizedBox(height: 15),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final it in data.items) Expanded(child: _TrustCol(item: it)),
+                ],
               ),
               if (data.footer.isNotEmpty) ...[
-                const SizedBox(height: 18),
-                _FooterStrip(text: data.footer),
+                const SizedBox(height: 14),
+                Text(data.footer,
+                    textAlign: TextAlign.center,
+                    style: Ob.note.copyWith(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.66),
+                    )),
               ],
             ],
           ),
@@ -182,95 +170,46 @@ class TrustBanner extends ConsumerWidget {
   }
 }
 
-class _TrustRow extends StatelessWidget {
-  const _TrustRow({required this.item});
+/// One assurance column: a soft-ringed icon tile + a clean white label.
+class _TrustCol extends StatelessWidget {
+  const _TrustCol({required this.item});
   final TrustItem item;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: Ob.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Ob.border),
-        boxShadow: Ob.softShadow,
-      ),
-      child: Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Gold-gradient medallion with the assurance glyph.
           Container(
-            width: 48,
-            height: 48,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              gradient: Ob.goldCircle,
-              shape: BoxShape.circle,
-              boxShadow: Ob.goldShadow,
+              borderRadius: BorderRadius.circular(13),
+              color: Colors.white.withValues(alpha: 0.08),
+              border: Border.all(color: const Color(0xFFEAD079).withValues(alpha: 0.5)),
             ),
-            child: Icon(_iconFor(item.icon), color: Colors.white, size: 24),
+            child: Icon(_iconFor(item.icon), color: Colors.white, size: 21),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  item.title,
-                  style: Ob.noteTitle.copyWith(fontSize: 15.5, fontWeight: FontWeight.w700),
-                ),
-                if (item.subtitle.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(item.subtitle, style: Ob.note.copyWith(fontSize: 12.5)),
-                ],
-              ],
-            ),
-          ),
+          const SizedBox(height: 8),
+          Text(item.title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700, height: 1.15)),
+          if (item.subtitle.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(item.subtitle,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6), fontSize: 9.5, height: 1.2)),
+          ],
         ],
       ),
     );
   }
-}
-
-class _FooterStrip extends StatelessWidget {
-  const _FooterStrip({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _hairline(),
-        const SizedBox(width: 10),
-        const Icon(Icons.auto_awesome, size: 12, color: Ob.gold),
-        const SizedBox(width: 7),
-        Flexible(
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: Ob.note.copyWith(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: Ob.goldDeep,
-              fontStyle: FontStyle.italic,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ),
-        const SizedBox(width: 7),
-        const Icon(Icons.auto_awesome, size: 12, color: Ob.gold),
-        const SizedBox(width: 10),
-        _hairline(),
-      ],
-    );
-  }
-
-  Widget _hairline() => Container(
-        width: 26,
-        height: 1,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(colors: [Color(0x00D4AF37), Color(0x66D4AF37)]),
-        ),
-      );
 }
