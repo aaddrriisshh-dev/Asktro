@@ -9,6 +9,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 import 'home_feed.dart';
+import 'home_popup_config.dart';
 import '../consultations/consultations_tab.dart';
 import '../wallet/wallet_tab.dart';
 import '../wallet/offers_screen.dart';
@@ -151,6 +152,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       profile = ref.read(myProfileProvider).valueOrNull;
     }
     if (!mounted) return;
+    // A portal-managed home pop-up (targeted paid/unpaid/all) takes priority.
+    if (await _maybeShowHomePopup(profile)) return;
     if (profile != null && !profile.hasRecharged) {
       // Let the user land, take in the home screen and even start scrolling
       // BEFORE the offer rises — so it reads as a considered nudge, not the very
@@ -162,6 +165,45 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       return;
     }
     await _maybeShowOfferPopup();
+  }
+
+  // The portal Home Pop-up (`homeSections/popup`): if active and its audience
+  // matches this user's paid state, show it once per launch and return true so
+  // the welcome/coupon popups stand down. Silent when off or not targeted.
+  Future<bool> _maybeShowHomePopup(dynamic profile) async {
+    if (ref.read(homePopupShownProvider)) return false;
+    var cfg = ref.read(homePopupProvider).valueOrNull;
+    for (var i = 0; i < 8 && cfg == null && mounted; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      cfg = ref.read(homePopupProvider).valueOrNull;
+    }
+    if (!mounted || cfg == null || !cfg.active) return false;
+    final hasRecharged = (profile?.hasRecharged as bool?) ?? false;
+    if (!cfg.matches(hasRecharged: hasRecharged)) return false;
+    if (cfg.title.trim().isEmpty && cfg.body.trim().isEmpty && cfg.image.trim().isEmpty) return false;
+
+    ref.read(homePopupShownProvider.notifier).state = true;
+    // Let the user land first, like the other home popups.
+    await Future<void>.delayed(const Duration(milliseconds: 3200));
+    if (!mounted) return true;
+
+    final theme = promoThemeById(cfg.theme.isEmpty ? null : cfg.theme);
+    // Half/full takeovers need a theme; without one, fall back to the card.
+    final mode = (theme == null && cfg.displayMode != 'small') ? 'small' : cfg.displayMode;
+    await showPromoPopup(
+      context,
+      theme: theme,
+      displayMode: mode,
+      title: cfg.title,
+      body: cfg.body,
+      ctaLabel: cfg.ctaLabel.isNotEmpty ? cfg.ctaLabel : 'Grab this offer',
+      code: cfg.code.isEmpty ? null : cfg.code,
+      imageUrl: cfg.image.isEmpty ? null : cfg.image,
+      imageStyle: cfg.imageStyle,
+      imageFill: cfg.imageFill && cfg.image.isNotEmpty,
+      onAction: () => _followDeeplink(cfg!.deeplink),
+    );
+    return true;
   }
 
   // On app open, surface the newest active coupon once per launch. Silent if
