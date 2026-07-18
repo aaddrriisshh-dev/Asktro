@@ -34,7 +34,9 @@ class _ChatKundliCardState extends ConsumerState<ChatKundliCard> {
     final profile = ref.read(myProfileProvider).valueOrNull;
     final repo = ref.read(prokeralaRepositoryProvider);
     if (profile != null && repo != null) {
-      setState(() => _future = repo.janamKundli(profile));
+      setState(() {
+        _future = repo.janamKundli(profile);
+      });
     }
   }
 

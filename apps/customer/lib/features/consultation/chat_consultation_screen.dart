@@ -286,7 +286,10 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
         .doc(_id)
         .collection('typing')
         .doc(uid)
-        .set({'typing': typing, 'at': FieldValue.serverTimestamp()});
+        .set({'typing': typing, 'at': FieldValue.serverTimestamp()})
+        // Best-effort: a denied typing write (e.g. session just ended) must
+        // never surface as an uncaught crash.
+        .catchError((_) {});
   }
 
   /// Mark the astrologer's delivered-but-unseen messages as seen.
@@ -295,7 +298,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     if (uid == null) return;
     for (final m in messages) {
       if (m['senderId'] != uid && m['seen'] != true) {
-        _messagesCol.doc(m['id'] as String).update({'seen': true});
+        _messagesCol.doc(m['id'] as String).update({'seen': true}).catchError((_) {});
       }
     }
   }
