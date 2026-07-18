@@ -106,13 +106,16 @@ class StoreRail extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(14, 12, 0, 0),
       child: Stack(
         children: [
+          // Bottom-align both sides so the product sits on the floor and rises
+          // to meet the badge — the left text is kept compact to match its
+          // height (like the reference).
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Expanded(flex: 43, child: _leftColumn(context, headline, subtext, cta)),
+              Expanded(flex: 42, child: _leftColumn(context, headline, cta)),
               Expanded(
-                flex: 57,
-                child: Align(alignment: Alignment.centerRight, child: _heroArt(image)),
+                flex: 58,
+                child: Align(alignment: Alignment.bottomRight, child: _heroArt(image)),
               ),
             ],
           ),
@@ -123,7 +126,7 @@ class StoreRail extends ConsumerWidget {
     );
   }
 
-  Widget _leftColumn(BuildContext context, String headline, String subtext, String cta) {
+  Widget _leftColumn(BuildContext context, String headline, String cta) {
     final words = headline.split(' ');
     final head = words.length > 1 ? words.sublist(0, words.length - 1).join(' ') : headline;
     final tail = words.length > 1 ? ' ${words.last}' : '';
@@ -136,30 +139,30 @@ class StoreRail extends ConsumerWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           text: const TextSpan(
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.3),
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -0.3),
             children: [
               TextSpan(text: 'Asktro ', style: TextStyle(color: _navy)),
               TextSpan(text: 'Mall', style: TextStyle(color: _purple)),
             ],
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 1),
         const Text('Divine essentials for a better you',
             maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 10.5, color: _muted, fontWeight: FontWeight.w500)),
+            style: TextStyle(fontSize: 10, color: _muted, fontWeight: FontWeight.w500)),
         const SizedBox(height: 12),
         RichText(
           maxLines: 3,
           overflow: TextOverflow.ellipsis,
           text: TextSpan(
-            style: const TextStyle(fontFamily: 'serif', fontSize: 16.5, fontWeight: FontWeight.w700, height: 1.16, color: _navy),
+            style: const TextStyle(fontFamily: 'serif', fontSize: 16, fontWeight: FontWeight.w700, height: 1.15, color: _navy),
             children: [
               TextSpan(text: head),
               TextSpan(text: tail, style: const TextStyle(color: _lilac)),
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 9),
         Row(
           children: [
             Container(width: 26, height: 1.5, color: _gold.withValues(alpha: 0.75)),
@@ -170,12 +173,7 @@ class StoreRail extends ConsumerWidget {
             Container(width: 12, height: 1.5, color: _gold.withValues(alpha: 0.35)),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(subtext,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, color: _muted, height: 1.32, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 11),
         GestureDetector(
           onTap: () => context.push('/store'),
           child: Container(
