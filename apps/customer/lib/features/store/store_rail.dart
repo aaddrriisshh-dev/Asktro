@@ -150,7 +150,7 @@ class StoreRail extends ConsumerWidget {
                 // so it stays clear of the copy on the left.
                 child: Transform.translate(
                   offset: const Offset(10, 6),
-                  child: Align(alignment: Alignment.bottomRight, child: _heroArt(image)),
+                  child: Align(alignment: Alignment.bottomRight, child: _HeroArt(image: image)),
                 ),
               ),
             ],
@@ -280,28 +280,98 @@ class StoreRail extends ConsumerWidget {
         ),
       );
 
-  // The product art — vertically centered on the right. AspectRatio keeps the
-  // box the image's own shape (no empty letterbox padding), so the products
-  // read as large as the column width allows.
-  Widget _heroArt(String image) {
-    final Widget img = image.isEmpty
+}
+
+/// The product art — auto-sized to whatever image is set. It reads the image's
+/// *real* aspect ratio (from the decoded image), so a square or tall portal
+/// upload fills the slot correctly instead of letterboxing inside a fixed
+/// landscape box. Width is capped to the column and height to [_targetH] so a
+/// tall image can never blow up the card; it's bottom-right anchored.
+class _HeroArt extends StatefulWidget {
+  const _HeroArt({required this.image});
+  final String image; // network URL; empty => bundled default asset
+
+  @override
+  State<_HeroArt> createState() => _HeroArtState();
+}
+
+class _HeroArtState extends State<_HeroArt> {
+  static const _fallbackRatio = 1169 / 730; // the bundled product PNG's ratio
+  static const _targetH = 172.0;
+  double? _ratio;
+  ImageStream? _stream;
+  ImageStreamListener? _listener;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolve();
+  }
+
+  @override
+  void didUpdateWidget(covariant _HeroArt old) {
+    super.didUpdateWidget(old);
+    if (old.image != widget.image) {
+      _ratio = null;
+      _resolve();
+    }
+  }
+
+  ImageProvider get _provider => widget.image.isEmpty
+      ? const AssetImage('assets/store/hero_products.png')
+      : CachedNetworkImageProvider(widget.image);
+
+  // Listen once for the decoded image to learn its true width/height ratio.
+  void _resolve() {
+    final oldStream = _stream;
+    final oldListener = _listener;
+    final stream = _provider.resolve(const ImageConfiguration());
+    final listener = ImageStreamListener((info, _) {
+      final r = info.image.width / info.image.height;
+      if (mounted && r > 0 && _ratio != r) setState(() => _ratio = r);
+    }, onError: (_, __) {});
+    stream.addListener(listener);
+    _stream = stream;
+    _listener = listener;
+    if (oldStream != null && oldListener != null) oldStream.removeListener(oldListener);
+  }
+
+  @override
+  void dispose() {
+    if (_stream != null && _listener != null) _stream!.removeListener(_listener!);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = (_ratio == null || _ratio! <= 0) ? _fallbackRatio : _ratio!;
+    final Widget img = widget.image.isEmpty
         ? Image.asset(
             'assets/store/hero_products.png',
             fit: BoxFit.contain,
-            alignment: Alignment.centerRight,
+            alignment: Alignment.bottomRight,
             errorBuilder: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 44))),
           )
         : CachedNetworkImage(
-            imageUrl: image,
+            imageUrl: widget.image,
             fit: BoxFit.contain,
-            alignment: Alignment.centerRight,
+            alignment: Alignment.bottomRight,
             placeholder: (_, __) => const Center(
               child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: _purple)),
             ),
             errorWidget: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 40))),
           );
-    // Trimmed product PNG is ~1169x730; a portal image just uses the same ratio.
-    return AspectRatio(aspectRatio: 1169 / 730, child: img);
+    return LayoutBuilder(
+      builder: (context, c) {
+        final maxW = c.maxWidth.isFinite ? c.maxWidth : 190.0;
+        // Size to the image's ratio: prefer a target height, but never exceed
+        // the column width (so it can't cross into the copy on the left).
+        var w = _targetH * ratio;
+        if (w > maxW) w = maxW;
+        final h = w / ratio;
+        return SizedBox(width: w, height: h, child: img);
+      },
+    );
   }
 }
 
