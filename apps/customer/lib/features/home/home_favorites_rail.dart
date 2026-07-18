@@ -25,7 +25,7 @@ class FavoritesRail extends ConsumerWidget {
             children: [
               const Icon(Icons.favorite_rounded, size: 16, color: Ob.gold),
               const SizedBox(width: 7),
-              Expanded(child: Text('Your Astrologers', style: Ob.title.copyWith(fontSize: 20))),
+              Expanded(child: Text('Your Loved Astrologers', style: Ob.title.copyWith(fontSize: 20))),
               if (ids.length > 4)
                 GestureDetector(
                   onTap: () => Navigator.of(context)
