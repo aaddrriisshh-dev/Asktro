@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
+import '../profile_setup/onboarding_style.dart';
 import 'store_models.dart';
 import 'store_providers.dart';
 
@@ -14,12 +15,15 @@ const _purple = Color(0xFF6E4FB8);
 const _purpleDeep = Color(0xFF463089);
 const _ink = Color(0xFF2B2140);
 const _muted = Color(0xFF6E6689);
-const _gold = Color(0xFFD9A93A);
+const _gold = Color(0xFFC79A33);
 
-/// Home-screen "Asktro Store" hero — a celestial card: brand row + a spiritual
-/// product hero (headline, gold divider, subtext, Explore CTA, product image) +
-/// the auto-scroll category strip. Hero content (image/headline/subtext/CTA) is
-/// portal-managed via `homeSections/storeHero`; categories from the catalog.
+/// Home-screen "Asktro Store" hero — a single celestial card modeled on the
+/// founder's reference: a white→lavender gradient ground with a faint lotus
+/// mandala, bokeh dots and sparkles; a brand row + authenticity badge; a
+/// headline / gold divider / subtext / Explore CTA on the left with the product
+/// cluster on the right; and a *floating* auto-scrolling category panel resting
+/// inside the card near the bottom. Hero content (image/headline/subtext/CTA)
+/// is portal-managed via `homeSections/storeHero`; categories from the catalog.
 final _storeHeroProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) {
   return ref
       .watch(firestoreProvider)
@@ -44,7 +48,7 @@ class StoreRail extends ConsumerWidget {
     }
 
     final headline = s('headline', 'Blessings for Every Aspect of Life');
-    final subtext = s('subtext', 'Handpicked spiritual products for peace, positivity & prosperity.');
+    final subtext = s('subtext', 'Handpicked spiritual products to bring peace, positivity & prosperity.');
     final cta = s('cta', 'Explore Store');
     final heroImage = (h['image'] ?? '').toString().trim();
 
@@ -52,27 +56,37 @@ class StoreRail extends ConsumerWidget {
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE0D3F7)),
-        boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.12), blurRadius: 22, offset: const Offset(0, 10))],
-        // Celestial gradient ground — a deeper dusk lavender so the sparkles and
-        // depth actually read (still light enough for the dark headline).
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFEADFF9)),
+        boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.12), blurRadius: 24, offset: const Offset(0, 12))],
+        // White (top-left) → minimal lavender → deeper lavender (bottom-right),
+        // deepening toward the products, exactly like the reference.
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFDFCBFF), Color(0xFFE7D6FF), Color(0xFFF2E9FF)],
+          colors: [Color(0xFFFCFBFF), Color(0xFFF2EBFC), Color(0xFFE4D4F6)],
+          stops: [0.0, 0.5, 1.0],
         ),
       ),
       child: Stack(
         children: [
-          // Scattered stars for the celestial vibe (faint, behind everything).
-          const Positioned.fill(child: IgnorePointer(child: _Stars())),
+          // Faint lotus mandala behind the product cluster (right side).
+          Positioned(
+            right: -26,
+            top: 40,
+            child: IgnorePointer(
+              child: Opacity(opacity: 0.10, child: Image.asset(Ob.pujaMandala, width: 200)),
+            ),
+          ),
+          // Bokeh dots + sparkles, concentrated on the right so the copy stays clean.
+          const Positioned.fill(child: IgnorePointer(child: _Celestial())),
           Column(
             children: [
               _brandRow(),
               _heroBody(context, headline, subtext, cta, heroImage),
-              const SizedBox(height: 18), // clear separation from the strip below
+              const SizedBox(height: 14),
               _CategoryStrip(cats: cats),
+              const SizedBox(height: 12), // bottom inset so the panel floats
             ],
           ),
         ],
@@ -80,10 +94,11 @@ class StoreRail extends ConsumerWidget {
     );
   }
 
-  // ---- brand row: diya + name + tagline + authentic pill ----
+  // ---- brand row: diya + name + tagline + authenticity badge ----
   Widget _brandRow() => Padding(
         padding: const EdgeInsets.fromLTRB(14, 14, 12, 2),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Text('🪔', style: TextStyle(fontSize: 26)),
             const SizedBox(width: 9),
@@ -93,7 +108,7 @@ class StoreRail extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text('Asktro Store',
-                      style: TextStyle(fontFamily: 'serif', fontSize: 17, fontWeight: FontWeight.w800, color: _ink)),
+                      style: TextStyle(fontFamily: 'serif', fontSize: 18, fontWeight: FontWeight.w800, color: _ink)),
                   SizedBox(height: 1),
                   Text('Divine essentials for a better you',
                       maxLines: 1, overflow: TextOverflow.ellipsis,
@@ -102,13 +117,14 @@ class StoreRail extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
-            // Authentic pill — no shield icon, compact single-line text.
+            // Authenticity badge — rounded white panel; purple headline over a
+            // grey line. (Shield intentionally omitted per the founder's note.)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(11),
-                boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 3))],
+                color: Colors.white.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.08), blurRadius: 9, offset: const Offset(0, 3))],
               ),
               child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -116,10 +132,11 @@ class StoreRail extends ConsumerWidget {
                 children: [
                   Text('100% Authentic',
                       maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
-                      style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: _ink)),
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _purple)),
+                  SizedBox(height: 1),
                   Text('Energized & Blessed',
                       maxLines: 1, softWrap: false, overflow: TextOverflow.visible,
-                      style: TextStyle(fontSize: 7.5, color: _muted, fontWeight: FontWeight.w600)),
+                      style: TextStyle(fontSize: 8, color: _muted, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -127,19 +144,19 @@ class StoreRail extends ConsumerWidget {
         ),
       );
 
-  // ---- hero: headline + gold divider + subtext + CTA, product image ----
+  // ---- hero: headline + gold divider + subtext + CTA on the left, art right ----
   Widget _heroBody(BuildContext context, String headline, String subtext, String cta, String image) {
     final words = headline.split(' ');
     final head = words.length > 1 ? words.sublist(0, words.length - 1).join(' ') : headline;
     final tail = words.length > 1 ? ' ${words.last}' : '';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 12, 0),
+      padding: const EdgeInsets.fromLTRB(14, 6, 10, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            flex: 60,
+            flex: 56,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -148,55 +165,54 @@ class StoreRail extends ConsumerWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   text: TextSpan(
-                    style: const TextStyle(fontFamily: 'serif', fontSize: 18.5, fontWeight: FontWeight.w700, height: 1.12, color: _ink),
+                    style: const TextStyle(fontFamily: 'serif', fontSize: 19, fontWeight: FontWeight.w700, height: 1.14, color: _ink),
                     children: [
                       TextSpan(text: head),
                       TextSpan(text: tail, style: const TextStyle(color: _purple)),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 9),
                 Row(
                   children: [
-                    Container(width: 26, height: 1.5, color: _gold.withValues(alpha: 0.7)),
+                    Container(width: 30, height: 1.5, color: _gold.withValues(alpha: 0.75)),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 5),
-                      child: Icon(Icons.auto_awesome, size: 9, color: _gold),
+                      child: Icon(Icons.auto_awesome, size: 10, color: _gold),
                     ),
-                    Container(width: 12, height: 1.5, color: _gold.withValues(alpha: 0.35)),
+                    Container(width: 14, height: 1.5, color: _gold.withValues(alpha: 0.35)),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 9),
                 Text(subtext,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 11.5, color: _muted, height: 1.35, fontWeight: FontWeight.w500)),
-                const SizedBox(height: 12),
+                const SizedBox(height: 13),
                 GestureDetector(
                   onTap: () => context.push('/store'),
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(15, 9, 7, 9),
+                    padding: const EdgeInsets.fromLTRB(16, 9, 8, 9),
                     decoration: BoxDecoration(
-                      // A richer, more visible gradient.
                       gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF9A6BE8), Color(0xFF6E4FB8), Color(0xFF463089)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [Color(0xFF8A5FDD), Color(0xFF6E4FB8), Color(0xFF4E3596)],
                       ),
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.42), blurRadius: 13, offset: const Offset(0, 6))],
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.40), blurRadius: 14, offset: const Offset(0, 6))],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(cta,
                             style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800)),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 9),
                         Container(
                           width: 22,
                           height: 22,
-                          decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
-                          child: const Icon(Icons.arrow_forward_rounded, size: 13, color: Colors.white),
+                          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                          child: const Icon(Icons.arrow_forward_rounded, size: 13, color: _purple),
                         ),
                       ],
                     ),
@@ -205,8 +221,8 @@ class StoreRail extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(width: 6),
-          Expanded(flex: 40, child: _heroArt(image)),
+          const SizedBox(width: 4),
+          Expanded(flex: 44, child: _heroArt(image)),
         ],
       ),
     );
@@ -214,23 +230,24 @@ class StoreRail extends ConsumerWidget {
 
   Widget _heroArt(String image) {
     if (image.isEmpty) {
+      // Stand-in until the founder uploads the transparent product PNG.
       return SizedBox(
-        height: 132,
+        height: 150,
         child: Center(
           child: Container(
-            width: 100,
-            height: 100,
+            width: 108,
+            height: 108,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [_purple.withValues(alpha: 0.16), _purple.withValues(alpha: 0.02)]),
             ),
-            child: const Center(child: Text('🪔', style: TextStyle(fontSize: 40))),
+            child: const Center(child: Text('🪔', style: TextStyle(fontSize: 44))),
           ),
         ),
       );
     }
     return SizedBox(
-      height: 138,
+      height: 156,
       child: CachedNetworkImage(
         imageUrl: image,
         fit: BoxFit.contain,
@@ -238,16 +255,16 @@ class StoreRail extends ConsumerWidget {
         placeholder: (_, __) => const Center(
           child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: _purple)),
         ),
-        errorWidget: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 38))),
+        errorWidget: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 40))),
       ),
     );
   }
-
 }
 
-/// The real category images in a gently auto-scrolling marquee (the "same flow"
-/// the founder liked). The list is doubled so the loop is seamless; any touch
-/// pauses the drift and hands scrolling back to the user.
+/// A *floating* category panel — the real catalog images in a gently
+/// auto-scrolling marquee, resting inside the card (inset margins, rounded,
+/// translucent white, soft shadow) exactly like the reference. The list is
+/// doubled for a seamless loop; a finger pauses the drift.
 class _CategoryStrip extends StatefulWidget {
   const _CategoryStrip({required this.cats});
   final List<StoreCategory> cats;
@@ -263,15 +280,12 @@ class _CategoryStripState extends State<_CategoryStrip> {
   @override
   void initState() {
     super.initState();
-    // Start drifting once laid out; only bother if there's more than a couple.
     WidgetsBinding.instance.addPostFrameCallback((_) => _startDrift());
   }
 
   void _startDrift() {
     _timer?.cancel();
     if (widget.cats.length < 3) return;
-    // ~40px/sec continuous crawl; when we pass the first (real) copy, jump back
-    // by that width so the doubled list reads as an endless loop.
     _timer = Timer.periodic(const Duration(milliseconds: 40), (_) {
       if (!_ctrl.hasClients) return;
       final max = _ctrl.position.maxScrollExtent;
@@ -292,28 +306,29 @@ class _CategoryStripState extends State<_CategoryStrip> {
 
   @override
   Widget build(BuildContext context) {
-    // Double the list so the crawl can wrap seamlessly.
     final looped = [...widget.cats, ...widget.cats];
     return Container(
-      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.82),
-        border: const Border(top: BorderSide(color: Color(0xFFEDE6FA))),
+        color: Colors.white.withValues(alpha: 0.74),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
+        boxShadow: [BoxShadow(color: _purpleDeep.withValues(alpha: 0.10), blurRadius: 14, offset: const Offset(0, 6))],
       ),
       child: SizedBox(
-        height: 66,
+        height: 60,
         child: Listener(
-          // A finger on the strip pauses the drift; it resumes after release.
           onPointerDown: (_) => _timer?.cancel(),
           onPointerUp: (_) => _startDrift(),
           child: ListView.separated(
             controller: _ctrl,
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 6),
             itemCount: looped.length,
             separatorBuilder: (_, __) => Container(
               width: 1,
-              margin: const EdgeInsets.symmetric(vertical: 15),
+              margin: const EdgeInsets.symmetric(vertical: 13),
               color: const Color(0xFFEBE3F8),
             ),
             itemBuilder: (_, i) => _CategoryChip(category: looped[i]),
@@ -324,24 +339,39 @@ class _CategoryStripState extends State<_CategoryStrip> {
   }
 }
 
-/// Scattered sparkle glyphs behind the hero — the celestial ground. Sized and
-/// tinted so they clearly read as a starfield without fighting the headline.
-class _Stars extends StatelessWidget {
-  const _Stars();
-  // x, y (fractions of the card), font-size, opacity.
-  static const _pts = [
-    [0.07, 0.15, 12.0, 0.32], [0.31, 0.08, 8.0, 0.24], [0.53, 0.19, 10.0, 0.26],
-    [0.71, 0.09, 14.0, 0.30], [0.88, 0.21, 9.0, 0.24], [0.20, 0.40, 8.0, 0.22],
-    [0.63, 0.43, 11.0, 0.24], [0.91, 0.52, 9.0, 0.22], [0.43, 0.05, 7.0, 0.18],
-    [0.79, 0.35, 8.0, 0.20], [0.13, 0.63, 9.0, 0.18], [0.50, 0.60, 7.0, 0.16],
+/// Bokeh dots + four-point sparkles — the celestial ground. Kept to the right
+/// half so the headline stays clean, mirroring the reference.
+class _Celestial extends StatelessWidget {
+  const _Celestial();
+  // white bokeh dots: x, y (fractions), diameter, opacity
+  static const _dots = [
+    [0.46, 0.14, 5.0, 0.55], [0.55, 0.30, 3.0, 0.45], [0.40, 0.46, 4.0, 0.40],
+    [0.62, 0.10, 3.5, 0.50], [0.70, 0.50, 3.0, 0.40], [0.33, 0.24, 2.5, 0.40],
+    [0.76, 0.30, 4.5, 0.45], [0.50, 0.58, 2.5, 0.35], [0.86, 0.20, 3.0, 0.40],
+  ];
+  // sparkles: x, y, font-size, opacity, gold?(1/0)
+  static const _sparks = [
+    [0.44, 0.08, 11.0, 0.30, 1.0], [0.58, 0.22, 8.0, 0.24, 0.0], [0.67, 0.40, 10.0, 0.26, 1.0],
+    [0.36, 0.34, 7.0, 0.22, 0.0], [0.73, 0.14, 9.0, 0.28, 1.0], [0.52, 0.48, 7.0, 0.20, 0.0],
+    [0.83, 0.44, 8.0, 0.22, 1.0],
   ];
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, c) {
-      final h = c.maxHeight.isFinite ? c.maxHeight : 260.0;
+      final h = c.maxHeight.isFinite ? c.maxHeight : 280.0;
       return Stack(
         children: [
-          for (final p in _pts)
+          for (final d in _dots)
+            Positioned(
+              left: d[0] * c.maxWidth,
+              top: d[1] * h,
+              child: Container(
+                width: d[2],
+                height: d[2],
+                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: d[3])),
+              ),
+            ),
+          for (final p in _sparks)
             Positioned(
               left: p[0] * c.maxWidth,
               top: p[1] * h,
@@ -350,7 +380,7 @@ class _Stars extends StatelessWidget {
                 style: TextStyle(
                   fontSize: p[2],
                   height: 1,
-                  color: (p[0] > 0.5 ? _gold : _purple).withValues(alpha: p[3]),
+                  color: (p[4] == 1.0 ? _gold : _purple).withValues(alpha: p[3]),
                 ),
               ),
             ),
@@ -375,7 +405,7 @@ class _CategoryChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(width: 34, height: 34, child: _icon()),
+            SizedBox(width: 32, height: 32, child: _icon()),
             const SizedBox(width: 8),
             Column(
               mainAxisSize: MainAxisSize.min,
@@ -403,7 +433,7 @@ class _CategoryChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         child: CachedNetworkImage(
           imageUrl: category.image.trim(),
-          width: 34, height: 34, fit: BoxFit.cover,
+          width: 32, height: 32, fit: BoxFit.cover,
           errorWidget: (_, __, ___) => _emojiFallback(),
         ),
       );
