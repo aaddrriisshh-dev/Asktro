@@ -80,6 +80,12 @@ async function run() {
       const u = await auth.createUser({ email: a.email, password, displayName: a.name });
       uid = u.uid;
       created = true;
+    } else {
+      // Existing account → actually ROTATE the password (the old code skipped
+      // this, so a re-run never changed the credential). Also revoke live
+      // sessions so the previous password's tokens stop working immediately.
+      await auth.updateUser(uid, { password });
+      await auth.revokeRefreshTokens(uid);
     }
     await auth.setCustomUserClaims(uid, { role: 'admin', adminRole: a.adminRole });
     await db.collection('adminUsers').doc(uid).set(
