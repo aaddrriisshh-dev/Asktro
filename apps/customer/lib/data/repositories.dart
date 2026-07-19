@@ -134,8 +134,33 @@ class UserRepository {
   }) async {
     final ref = _doc(uid);
     final snap = await ref.get();
-    if (snap.exists) return;
     final resolvedName = (name ?? profile?['name'] as String?)?.trim();
+    if (snap.exists) {
+      // The doc already exists — e.g. the server-side onAuthUserCreate trigger
+      // won the race and created a bare {name:'Guest'} profile. We must NOT skip:
+      // that would silently lose the birth details the user just entered. Merge
+      // the onboarding fields into the existing doc instead. NEVER touch the
+      // money/status/referral fields (function-owned; the client-update rule
+      // rejects them and merging 0 could wipe a live balance), and never clobber
+      // a real name with an empty one.
+      const reserved = {
+        'walletBalance', 'bonusBalance', 'chatBonusBalance', 'lockedBalance',
+        'totalRecharge', 'totalSpent', 'pendingRefund', 'totalConsultations',
+        'referralCode', 'referredBy', 'accountStatus', 'signupBonusGranted',
+        'firstRechargeAt', 'chatGraceUsed',
+      };
+      final merge = <String, dynamic>{
+        for (final e in (profile ?? const {}).entries)
+          if (!reserved.contains(e.key)) e.key: e.value,
+        if (resolvedName != null && resolvedName.isNotEmpty) 'name': resolvedName,
+        if (email != null && email.isNotEmpty) 'email': email,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      // Only write when there's real onboarding content to merge (more than the
+      // always-present updatedAt).
+      if (merge.length > 1) await ref.set(merge, SetOptions(merge: true));
+      return;
+    }
     await ref.set({
       ...?profile, // birth details, gender, languages, onboardingComplete, etc.
       'name': (resolvedName != null && resolvedName.isNotEmpty) ? resolvedName : 'Guest',
