@@ -16,8 +16,8 @@ export const ROLE_LABEL: Record<string, string> = {
 //        auditing session transcripts) + Payouts as view-only.
 const ROLE_ROUTES: Record<AdminRole, string[] | '*'> = {
   super: '*',
-  ops: ['/', '/users', '/astrologers', '/ai-remedies', '/phone-sessions', '/video-sessions', '/plans', '/recharges', '/banners', '/home-popup', '/blogs', '/mall', '/home-content', '/store', '/store-inventory', '/store-orders', '/store-discounts', '/store-shipping', '/store-content', '/store-front', '/coupons', '/broadcast', '/reports', '/kundali-downloads', '/cms', '/audit', '/payouts', '/pricing', '/support', '/moderation'],
-  astrology: ['/astrologers', '/phone-sessions', '/video-sessions', '/payouts', '/audit'],
+  ops: ['/', '/security', '/users', '/astrologers', '/ai-remedies', '/phone-sessions', '/video-sessions', '/plans', '/recharges', '/banners', '/home-popup', '/blogs', '/mall', '/home-content', '/store', '/store-inventory', '/store-orders', '/store-discounts', '/store-shipping', '/store-content', '/store-front', '/coupons', '/broadcast', '/reports', '/kundali-downloads', '/cms', '/audit', '/payouts', '/pricing', '/support', '/moderation'],
+  astrology: ['/security', '/astrologers', '/phone-sessions', '/video-sessions', '/payouts', '/audit'],
 };
 
 // Routes a role may OPEN but not change (view-only). Enforced in the UI and,

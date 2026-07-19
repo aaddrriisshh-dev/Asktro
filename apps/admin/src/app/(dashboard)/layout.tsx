@@ -143,6 +143,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <div className="sidebar__foot">
           <div className="sidebar__email">{user.email}</div>
           <span className="badge">{ROLE_LABEL[adminRole ?? ''] ?? 'Admin'}</span>
+          <Link href="/security" className="sidebar__logout" style={{ textAlign: 'center', textDecoration: 'none', marginBottom: 6 }}>
+            🔒 Security / 2FA
+          </Link>
           <button className="sidebar__logout" onClick={() => logout()}>
             Log out
           </button>

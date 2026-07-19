@@ -103,13 +103,16 @@ async function run() {
     let uid = await findUid(a.email);
     let created = false;
     if (!uid) {
-      const u = await auth.createUser({ email: a.email, password, displayName: a.name });
+      // emailVerified:true so the account can enroll TOTP 2FA (Firebase requires
+      // a verified email). We own these mailboxes, so verifying them directly is
+      // safe and avoids depending on inbound email deliverability.
+      const u = await auth.createUser({ email: a.email, password, displayName: a.name, emailVerified: true });
       uid = u.uid;
       created = true;
     } else {
-      // Existing account → rotate the password and revoke live sessions so the
-      // old password's tokens stop working immediately.
-      await auth.updateUser(uid, { password });
+      // Existing account → rotate the password, mark verified (for 2FA), and
+      // revoke live sessions so the old password's tokens stop working now.
+      await auth.updateUser(uid, { password, emailVerified: true });
       await auth.revokeRefreshTokens(uid);
     }
     await auth.setCustomUserClaims(uid, { role: 'admin', adminRole: a.adminRole });
