@@ -40,6 +40,10 @@ export const RATE_RULES: Record<string, RateRule> = {
   purchaseKundliMatch: { limit: 20, windowSec: 3600, mode: 'block' }, // 20 / hour
   createStoreOrder: { limit: 20, windowSec: 3600, mode: 'block' }, // 20 / hour
   verifyStoreOrder: { limit: 40, windowSec: 3600, mode: 'block' }, // 40 / hour
+  // Coupon validation is an enumeration surface (probe codes to find valid ones).
+  // A real user tries a handful; this throttles brute-force scanning. Paired with
+  // a generic "invalid" response for non-existent/inactive/expired codes.
+  validateCoupon: { limit: 20, windowSec: 3600, mode: 'block' }, // 20 / hour
 };
 
 const TTL_BUFFER_SEC = 120; // keep the doc a little past the window before TTL reclaim

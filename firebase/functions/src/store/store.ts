@@ -325,6 +325,16 @@ export async function confirmStoreOrderPaid(
         { usedCount: FieldValue.increment(1) },
         { merge: true },
       );
+      // Immutable per-order redemption record (keyed by orderId → written exactly
+      // once, since confirmStoreOrderPaid early-returns on an already-confirmed
+      // order). Gives an audit trail and lets checkout enforce a per-user coupon
+      // limit against real redemptions instead of only the global usedCount.
+      tx.set(db.collection('storeCouponRedemptions').doc(storeOrderId), {
+        couponCode: coupon,
+        userId: (o.userId as string) ?? null,
+        orderId: storeOrderId,
+        redeemedAt: FieldValue.serverTimestamp(),
+      });
     }
 
     logger.info('store order confirmed', { storeOrderId, orderNo, paymentId, source });

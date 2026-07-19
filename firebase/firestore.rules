@@ -321,6 +321,12 @@ service cloud.firestore {
       // super-admin only (mirrors the wallet `coupons` gate above).
       allow write: if isSuperAdmin();
     }
+    // Per-order store-coupon redemptions — written ONLY by the store confirm
+    // path (Admin SDK, bypasses rules); admins read for audit. Clients never touch.
+    match /storeCouponRedemptions/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
     // Orders: a customer reads only their own; admins read all. Orders are
     // created + mutated ONLY by the store callables/webhook (server computes the
     // price, decrements stock, advances status) — never by the client.

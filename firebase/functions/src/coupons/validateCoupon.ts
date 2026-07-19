@@ -8,9 +8,20 @@ import { onCall } from 'firebase-functions/v2/https';
 import { db, Timestamp } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertAuthed, badRequest, failedPrecondition, notFound } from '../common/errors';
+import { enforceRateLimit } from '../common/rateLimit';
+
+// One generic message for every "this code isn't usable" case that would
+// otherwise reveal whether a code EXISTS (not-found / inactive / expired). An
+// attacker probing codes gets the same answer for a typo and for a real-but-
+// disabled code, so the endpoint can't be used as an existence oracle. Genuinely
+// actionable failures for a code the user is legitimately trying (minimum
+// recharge, wrong plan, audience, already used) stay specific.
+const INVALID = 'This coupon code is not valid.';
 
 export const validateCoupon = onCall(async (req) => {
   const userId = assertAuthed(req);
+  // Throttle brute-force code scanning (a real user tries only a handful).
+  await enforceRateLimit('validateCoupon', userId);
   const { code, planId } = (req.data ?? {}) as { code?: string; planId?: string };
   if (!code) badRequest('Coupon code is required.');
   if (!planId) badRequest('planId is required.');
@@ -20,13 +31,13 @@ export const validateCoupon = onCall(async (req) => {
     .where('code', '==', code!.trim().toUpperCase())
     .limit(1)
     .get();
-  if (q.empty) notFound('COUPON_NOT_FOUND');
+  if (q.empty) failedPrecondition(INVALID);
   const doc = q.docs[0];
   const cp = doc.data();
 
-  if (cp.active === false) failedPrecondition('COUPON_INACTIVE');
+  if (cp.active === false) failedPrecondition(INVALID);
   if (cp.expiry && (cp.expiry as Timestamp).toMillis() < Timestamp.now().toMillis()) {
-    failedPrecondition('COUPON_EXPIRED');
+    failedPrecondition(INVALID);
   }
 
   // Audience targeting: 'all' (default) | 'paid' | 'unpaid'.
