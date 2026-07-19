@@ -79,7 +79,10 @@ service cloud.firestore {
       allow get: if isAdmin() || isSelf(userId)
         || (isAstrologer()
             && exists(/databases/$(database)/documents/astrologerCustomers/$(uid())/customers/$(userId)));
-      allow list: if isAdmin();
+      // Bulk-listing the whole customer directory is a super/ops action (the
+      // /users console). The astrology tier has no customer-list route, so it
+      // must not enumerate every customer's birth details straight from Firestore.
+      allow list: if canReadLedger();
       allow write: if false; // only Cloud Functions (Admin SDK) write this
     }
 
