@@ -5,16 +5,18 @@
  */
 import { onCall } from 'firebase-functions/v2/https';
 import { Transaction } from 'firebase-admin/firestore';
-import { db, FieldValue } from '../common/admin';
+import { auth, db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertRole, assertAdminTier, badRequest, failedPrecondition, notFound } from '../common/errors';
 import { writeLedger, writeAstrologerLedger } from '../wallet/ledger';
 import { adminName } from '../common/actor';
+import { assertTokenNotRevoked } from '../common/session';
 
 /** Credit or debit a user's wallet (super admin only — money action). */
 export const adjustWallet = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
   if (req.auth?.token?.adminRole !== 'super') failedPrecondition('Requires a super admin.');
+  await assertTokenNotRevoked(req);
 
   const { userId, amountPaise, reason, opId } = (req.data ?? {}) as {
     userId?: string;
@@ -136,6 +138,7 @@ export async function applyPayoutDecision(
 export const processPayout = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
   if (req.auth?.token?.adminRole !== 'super') failedPrecondition('Requires a super admin.');
+  await assertTokenNotRevoked(req);
 
   const { payoutId, decision } = (req.data ?? {}) as {
     payoutId?: string;
@@ -170,6 +173,21 @@ export const setAstrologerStatus = onCall(async (req) => {
     patch.approvedBy = actor;
     patch.approvedByName = nm;
     patch.approvedAt = FieldValue.serverTimestamp();
+  }
+
+  // Suspending/rejecting/disabling must end the astrologer's access *now* — force
+  // them offline, disable the login, and revoke live tokens so an unexpired
+  // session can't keep taking consultations. Reactivating clears the lockout.
+  const locked = status === 'suspended' || status === 'rejected' || status === 'disabled';
+  if (locked) {
+    patch.onlineStatus = false;
+    patch.available = false;
+    try {
+      await auth.updateUser(astrologerId!, { disabled: true });
+      await auth.revokeRefreshTokens(astrologerId!);
+    } catch { /* legacy random-id docs may have no auth user */ }
+  } else if (status === 'approved') {
+    try { await auth.updateUser(astrologerId!, { disabled: false }); } catch { /* no auth user */ }
   }
 
   await db.collection(Collections.astrologers).doc(astrologerId!).set(patch, { merge: true });

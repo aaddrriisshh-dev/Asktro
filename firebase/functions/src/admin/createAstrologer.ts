@@ -224,6 +224,8 @@ export const deleteAstrologer = onCall(async (req) => {
 
   try {
     await auth.updateUser(astrologerId!, { disabled: true });
+    // End any live session immediately, not just when the current token lapses.
+    await auth.revokeRefreshTokens(astrologerId!);
   } catch {
     // Auth user may not exist for legacy random-id docs — still disable the profile.
   }

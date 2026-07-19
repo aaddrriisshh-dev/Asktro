@@ -14,6 +14,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { auth, db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertRole, badRequest, failedPrecondition, HttpsError } from '../common/errors';
+import { assertTokenNotRevoked } from '../common/session';
 
 export const ADMIN_ROLES = ['super', 'ops', 'astrology'] as const;
 type AdminRole = (typeof ADMIN_ROLES)[number];
@@ -25,9 +26,11 @@ function tempPassword(): string {
   return out;
 }
 
-function requireSuper(req: Parameters<Parameters<typeof onCall>[0]>[0]): string {
+async function requireSuper(req: Parameters<Parameters<typeof onCall>[0]>[0]): Promise<string> {
   const actor = assertRole(req, 'admin');
   if (req.auth?.token?.adminRole !== 'super') failedPrecondition('Only a super-admin can manage the admin team.');
+  // Admin-team management grants/revokes privilege — reject a revoked session.
+  await assertTokenNotRevoked(req);
   return actor;
 }
 
@@ -39,7 +42,7 @@ async function actorName(uid: string): Promise<string> {
 
 /** Create an admin: Auth account (or reuse an existing email) + role claim + profile. */
 export const createAdmin = onCall(async (req) => {
-  const actor = requireSuper(req);
+  const actor = await requireSuper(req);
   const { name, email, adminRole, password } = (req.data ?? {}) as {
     name?: string; email?: string; adminRole?: AdminRole; password?: string;
   };
@@ -88,12 +91,15 @@ export const createAdmin = onCall(async (req) => {
 
 /** Change an existing admin's role (super-only). */
 export const setAdminRole = onCall(async (req) => {
-  const actor = requireSuper(req);
+  const actor = await requireSuper(req);
   const { targetUid, adminRole } = (req.data ?? {}) as { targetUid?: string; adminRole?: AdminRole };
   if (!targetUid || !adminRole) badRequest('targetUid and adminRole are required.');
   if (!ADMIN_ROLES.includes(adminRole!)) badRequest('adminRole must be super, ops or astrology.');
 
   await auth.setCustomUserClaims(targetUid!, { role: 'admin', adminRole });
+  // Invalidate existing sessions so the new (possibly lower) tier takes effect
+  // immediately instead of after the old ID token expires.
+  await auth.revokeRefreshTokens(targetUid!);
   await db.collection(Collections.adminUsers).doc(targetUid!).set(
     { adminRole, updatedAt: FieldValue.serverTimestamp() }, { merge: true },
   );
@@ -107,13 +113,16 @@ export const setAdminRole = onCall(async (req) => {
 
 /** Revoke an admin: disable the login and remove their admin profile + claims. */
 export const removeAdmin = onCall(async (req) => {
-  const actor = requireSuper(req);
+  const actor = await requireSuper(req);
   const { targetUid } = (req.data ?? {}) as { targetUid?: string };
   if (!targetUid) badRequest('targetUid is required.');
   if (targetUid === actor) failedPrecondition('You cannot remove your own admin access.');
 
   try { await auth.setCustomUserClaims(targetUid!, {}); } catch { /* claims may already be clear */ }
   try { await auth.updateUser(targetUid!, { disabled: true }); } catch { /* auth user may be gone */ }
+  // Kill any live session immediately (disable alone lets an unexpired ID token
+  // keep calling until it lapses).
+  try { await auth.revokeRefreshTokens(targetUid!); } catch { /* auth user may be gone */ }
   await db.collection(Collections.adminUsers).doc(targetUid!).set(
     { adminRole: 'revoked', disabled: true, updatedAt: FieldValue.serverTimestamp() }, { merge: true },
   );

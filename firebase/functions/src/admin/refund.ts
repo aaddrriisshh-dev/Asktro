@@ -10,6 +10,7 @@ import { Transaction } from 'firebase-admin/firestore';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertRole, badRequest, failedPrecondition, notFound } from '../common/errors';
+import { assertTokenNotRevoked } from '../common/session';
 import { writeLedger, writeAstrologerLedger } from '../wallet/ledger';
 import { astrologerNetEarning } from '../billing/engine';
 import { getGlobalConfig } from '../common/config';
@@ -176,6 +177,7 @@ export async function applyRefund(
 export const refundConsultation = onCall(async (req) => {
   const actor = assertRole(req, 'admin');
   if (req.auth?.token?.adminRole !== 'super') failedPrecondition('Requires a super admin.');
+  await assertTokenNotRevoked(req);
 
   const { consultationId, amountPaise, reason, opId } = (req.data ?? {}) as {
     consultationId?: string;
