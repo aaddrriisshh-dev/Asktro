@@ -8,7 +8,7 @@ _Read-only CTO-grade fan-out audit — **no code was changed, nothing has been f
 |---|---|--:|--:|--:|--:|--:|--:|
 | Correctness (verified) | ✅ complete | 0 | 9 | 32 | 66 | 26 | 133 |
 | Security | ✅ verified | 1 | 3 | 18 | 17 | 7 | 46 |
-| Scale → 50k | ❌ did not run | | | | | | — |
+| Scale → 50k | ✅ verified — **NO-GO** (conditional) | 0 | 8 | 11 | 0 | 0 | 49 |
 | App Store / Play review | ❌ did not run | | | | | | — |
 
 > This is a **review list**, not a work order. Nothing here is fixed. We go through it together and decide what to change.
@@ -501,9 +501,117 @@ _Read-only CTO-grade fan-out audit — **no code was changed, nothing has been f
 
 ---
 
-## 3. Not yet run (blocked earlier by the usage limit)
+---
 
-- **Scale to 50,000 concurrent users** — 10 agents (hot-doc contention, heartbeat write load, sweep fan-out, listener fan-out, function concurrency, indexes, quotas, broadcast, cost projection, read amplification).
-- **App Store / Play review** — 8 agents (Apple IAP/UGC/privacy/misc; Google billing/data-safety/permissions/UGC).
+## 3. Scale to 50,000 concurrent users — VERIFIED (49 findings)
 
-Both can be completed by resuming the same workflow; the finished tracks replay from cache, so only these re-run.
+> **Verdict: NO-GO (conditional).** No P0 data/money-loss defects, but **8 P1 launch-blockers** — it browns out between ~2k–10k concurrent as-is. Fix the P1 set + load-test → reaches ~50k.
+
+#### 1. Verdict: **NO-GO** (conditional)
+
+Asktro **cannot safely absorb 50,000 concurrent users today.** The architecture is fundamentally sound (server-authoritative billing with clamped server-time deltas means there is no runaway-overcharge money bug), but it will **brown out at a fraction of target load** on two independent failure modes:
+
+- **Firestore single-document write ceilings (~1 sustained write/sec/doc).** Every billing heartbeat, session settlement, rating, coupon redemption, and signup funnels into a handful of shared hot documents (`dailyStats/{day}`, the shared AI-persona `astrologers/{id}` doc, promo coupon docs). These serialize and exhaust transaction retries **inside the money path**, so under load recharges and settlements start failing, not just analytics.
+- **Client-facing broadcast + fan-out correctness.** `sendBroadcast` runs up to 200k sequential writes inline under a 60s callable timeout with no idempotency — at launch scale it half-sends, times out, and re-sends duplicates to the entire base.
+
+There are **no P0 (data-loss / money-loss) defects** — the billing clamp and in-transaction status re-checks hold. But there are **8 P1 launch-blockers.** Fix the P1 set and the app reaches ~50k; ship as-is and it degrades between 2k–10k concurrent.
+
+**Conditional GO** once every P1 below is closed and load-tested against real active-chat and billing-tick concurrency.
+
+---
+
+#### 2. The Bottlenecks (system view)
+
+| Bottleneck | Mechanism | Bites at |
+|---|---|---|
+| **Hot-doc contention** | `dailyStats/{day}`, shared AI `astrologers/{id}`, promo coupons, `counters/storeOrders` all take an in-transaction increment; >1 write/sec/doc serializes and aborts. | Well below 50k — any popular persona or promo code |
+| **Billing write amplification** | ~10s heartbeat writes a `walletTransactions` ledger row **per tick** (~120–240 rows / 20-min session), each with 3 composite indexes, each triggering the `dailyStats` rollup. | Multiplies every other Firestore limit ~6x |
+| **Dual-tick call billing** | Customer **and** astrologer both heartbeat; two full billing transactions contend on the same consultation doc every 10s. | Every concurrent call |
+| **Sweep throughput** | `limit(500)`/job/minute, no pagination loop; equality reconcile jobs truncate at first-500-by-ID. | Correlated disconnect of >500, or >500 human astrologers online |
+| **Client listener fan-out** | Home mounts unfiltered `limit(100)` live listeners x2 + up to 8 per-chat message listeners + all 6 tabs eager via IndexedStack, per session. | Read cost + hot-doc re-delivery scales with every concurrent user |
+| **Function concurrency** | Global `maxInstances:100 x concurrency:80 ≈ 8000` in-flight; AI reply handler holds a slot 30–60s on in-request pacing sleeps. | AI active-chat concurrency, not total users |
+| **Downstream quota** | Gemini reading-tier calls have no global rate limit; 429 returns `null` with no retry → silent dropped replies. | Gemini per-project quota |
+| **Broadcast fan-out** | Inline 200k writes under 60s timeout, no idempotency, shares the ring-push instance pool. | First large campaign |
+| **Cold starts** | No `minInstances` on money/call-join callables. | Launch spike + post-idle |
+
+---
+
+#### 3. Findings by Severity
+
+##### P1 — Launch blockers (must fix before 50k)
+
+- **`dailyStats/{day}` single hot document** — `stats/dailyStats.ts:49,120` — every `walletTransactions` create (i.e. every billing tick), every consultation, and every signup opens a same-doc transaction on one day-doc; the `applied/{sourceId}` subcollection also grows unbounded. At scale this is a serialization/retry storm and analytics silently undercount (errors swallowed). **Fix:** shard the day counter (`dailyStats/{day}/shards/{0..N}`, sum on read) **and** cut per-tick ledger volume (below); add deterministic-id dedupe/TTL on `applied/`.
+
+- **Shared AI-persona doc incremented inside the money-settlement transaction** — `billing/endConsultation.ts:124–132` (repeated `sweepSessions.ts:158–171`) — `settleConsultation` does `totalConsultations`/`earnings`/`pendingPayout` increments on one shared `astrologers/{aiId}` doc with **no `isAI` guard**, inside the same atomic tx that debits the customer. AI chats are also **uncapped** (`createConsultation.ts:96–119` only caps humans). Concurrent settlements for one popular persona serialize → the money transaction aborts and retries exhaust. **Fix:** guard on `isAI` (skip totalConsultations/earnings/pendingPayout entirely for AI); for humans move `totalConsultations` to a sharded counter **outside** the settlement tx so a hot public doc can never block money settlement.
+
+- **Per-tick `walletTransactions` ledger row (write amplification ~6x)** — `billing/tickConsultation.ts:158` — `writeLedger` fires every tick where `chargedPaise>0`, but the consultation doc already accumulates the identical cumulative totals. ~120–240 redundant micro-rows per session, each = 1 doc + 5–7 index writes, and each is what fans into the `dailyStats` hotspot. **Fix:** write **one** consolidated `walletTransactions` row at `endConsultation`/`expirePaused` from the accumulated totals; if a trail is needed, batch to ≤1 row/minute.
+
+- **Home rails: unfiltered `limit(100).snapshots()` x2, permanently mounted** — `apps/customer/lib/data/repositories.dart:49,63` — `watchTopRated` + `watchRisingStars` open two live listeners over the same first-100 shared `astrologers` docs, never auto-disposed (IndexedStack index 0). Every backend write to those public docs (totalConsultations, rating, onlineStatus) is pushed to **all** concurrent watchers and billed as reads — read fan-out scales with concurrent users x write rate on the exact docs that are already hot. **Fix:** serve rails from one small server-maintained `homeSections/topAstrologers` rollup doc (or one-shot `.get()` + pull-to-refresh); collapse the two listeners into one; move `onlineStatus` churn to a presence rollup off the watched doc.
+
+- **Astrologer ranking over a doc-ID-truncated window** — `apps/customer/lib/data/repositories.dart:49` — `limit(100)`/`limit(500)` with **no `orderBy`** returns an arbitrary `__name__`-ordered slice, then sorts client-side. Once the roster exceeds the cap, genuinely top-rated astrologers become permanently invisible and search can't find anyone past the 500th. Correctness defect that manifests exactly as the marketplace grows. **Fix:** deploy the composite indexes and query server-side `orderBy('rating', desc).limit(n)`; back search with a real index (Algolia/Typesense or keyword array).
+
+- **`sendBroadcast` times out and half-sends** — `notifications/sender.ts:98` — no `timeoutSeconds` (inherits 60s), does up to 200 sequential paged queries + ~500 sequential `batch.commit()` for MAX_TARGETS=200k; killed with DEADLINE_EXCEEDED mid-loop, leaving audit/broadcast docs unwritten. **Fix:** `onCall({ timeoutSeconds: 540, memory: '1GiB' })` as immediate mitigation, then move fan-out to a checkpointed Cloud-Tasks/Firestore-triggered worker.
+
+- **`sendBroadcast` has no idempotency** — `notifications/sender.ts:98` — no idempotency key, no create-if-absent guard; a retry or admin double-click re-blasts the entire base (compounded by the timeout-forced re-send above). **Fix:** require a client `broadcastId`, transactionally create `broadcasts/{id}` and short-circuit if present; disable the portal Send button after first click.
+
+- **No explicit Gemini context caching** — `ai/provider.ts:104` — the full static `PERSONA_V5` + gender + output-contract + chart-facts prefix is re-sent uncached on **every** reading call, re-billed at 1x input. This is the single largest avoidable cost line (see §5). **Fix:** create one `cachedContent` object per consultation for the static prefix (TTL = session length); send only per-turn history/userText fresh.
+
+##### P2 — Fix before or immediately after launch
+
+- **Dual-tick call billing** — `billing/tickConsultation.ts:219` — astrologer heartbeat runs the full billing tx and contends on the consultation doc with the customer tick every 10s. **Fix:** make the astrologer tick presence-only (`astrologerLastTickAt` stamp), let customer tick + sweep bill.
+- **Reconcile jobs starve past 500 astrologers** — `billing/sweepSessions.ts:271,248` — equality queries with no `orderBy` re-scan the same first-500-by-ID every run; anyone past the 500th is never reconciled, defeating self-heal at peak. **Fix:** paginate with `startAfter`, or `orderBy('updatedAt')` + watermark + index.
+- **IndexedStack eagerly builds all 6 tabs** — `home_shell.dart:275` — every tab's listeners (incl. 6 store streams) fire at launch for every user. **Fix:** lazy-build tab subtrees on first selection.
+- **ContinueRail mounts up to 8 per-chat message listeners** — `home_continue_rail.dart:40` — live `messages` subcollection listeners just for previews, permanently on Home. **Fix:** denormalize `lastMessageText/At`/`unreadCount` onto the consultation doc.
+- **Two identical unfiltered home listeners** / **Search fetches 500 on open + every clear** / **history rail read patterns** — `repositories.dart:49`, `search_screen.dart:50` — read duplication and full-scan on the directory. **Fix:** single shared provider, paginate search, debounce, denormalize astrologer name/photo onto consultations.
+- **`onAiChatMessage` under 60s default timeout** — `ai/replyEngine.ts:46` — serial paced pipeline can exceed 60s; hard kill leaves stuck typing dots. **Fix:** `timeoutSeconds:180`, cap the repair loop, move pacing sleeps out of the request path.
+- **Pacing sleeps hold a concurrency slot 30–60s** — `ai/replyEngine.ts:74` — 8000 slots saturate below 50k active AI chat. **Fix:** generate once, enqueue timed bubble delivery via Cloud Tasks so the trigger returns in ~1–2s.
+- **No global rate control / no 429 backoff on Gemini** — `ai/provider.ts:87` — quota errors return `null` → silent dropped replies. **Fix:** global token-bucket/semaphore + 429-aware exponential backoff.
+- **Promo coupon `usedCount` contends in the recharge transaction** — `wallet/creditRecharge.ts:130` — a launch on one/few promo codes serializes money transactions on one doc (ABORTED "recharge failed" at peak). **Fix:** derive usage from `couponRedemptions`, enforce caps with a sharded counter.
+- **Thinking model with no `thinkingBudget`** / **3-tier routing not realized (all traffic on Gemini Pro)** / **chart cached per-consultation not per-user** — `provider.ts:43`, `replyEngine.ts:412,361` — unbounded reasoning tokens, premium tier for greetings, 3 fresh Prokerala calls per session. Cost multipliers. **Fix:** set `thinkingBudget`, route filler turns to Flash, cache natal+advanced per user.
+- **Broadcast starves ring pushes / omitted segment blasts everyone / fcmTokens >500 throws every push** — `notifications/sender.ts:42,144` — segment validation gap, unbounded token array. **Fix:** validate segment against an allow-list, separate call pushes from bulk, trim tokens to most-recent N and chunk `sendEachForMulticast` ≤500.
+
+##### P3 — Hardening / cleanup
+
+- Sweep `limit(500)`/min ceiling can't drain a mass disconnect (`sweepSessions.ts:32`) — bounded impact (clamped billing), paginate to drain within the run.
+- `sweepStaleSessions` no `maxInstances:1`/`concurrency:1` (`sweepSessions.ts:49`) — overlap is idempotent, pin it anyway.
+- Reconcile budget wasted on AI personas + N+1 (`sweepSessions.ts:255`); `counters/storeOrders` allocator serializes checkouts (`store.ts:126`); coupon `usedCount`/product stock hot in order tx (`store.ts:324`); AI reply idempotency gap (`replyEngine.ts:46`); both triggers do a consultation read before bailing on AI/system bubbles (`replyEngine.ts:63`); `wantsToContinue` maxOutputTokens:4 likely returns empty (`replyEngine.ts:454`); chat retention purge default-OFF (`ops/retention.ts:30`); missing `astrologerId+customerId+createdAt` index for an unused method (`astrologer_repository.dart:157`); topic subscription best-effort no retry; `list` segment no dedupe.
+- No `minInstances` on hot money/call-join callables (`index.ts:12`) — intentional cost tradeoff; add a small warm pool for launch to hide cold-start latency on `createConsultation`/`verifyRecharge`/`generateAgoraToken`/`tickConsultation`.
+
+---
+
+#### 4. Getting to 50k — Ordered Action List
+
+1. **Kill per-tick ledger writes.** Write one consolidated `walletTransactions` row at settlement. Single highest-leverage change — removes ~6x write amplification and drains the `dailyStats` fan-in at the source.
+2. **Shard `dailyStats/{day}`** (`shards/{0..N}`, sum on read) + dedupe `applied/` markers.
+3. **`isAI`-guard the settlement transaction** and move human `totalConsultations` to a sharded counter outside the money tx; cap concurrent AI sessions per persona.
+4. **Make the astrologer call heartbeat presence-only.**
+5. **Fix `sendBroadcast`:** `timeoutSeconds:540` + idempotency key + async checkpointed worker + segment allow-list; separate ring pushes; trim fcmTokens.
+6. **Move Gemini reading-tier off the request path:** generate once, deliver bubbles via Cloud Tasks; add a global rate-limiter + 429 backoff; set `timeoutSeconds:180`.
+7. **Cut LLM cost:** explicit context caching, `thinkingBudget`, route filler turns to Flash, cache natal/advanced chart per user.
+8. **Client read fan-out:** server-maintained `homeSections` rollup for home rails; lazy-build tabs; denormalize chat previews + astrologer name/photo onto consultation docs; paginate search.
+9. **Deploy composite indexes** and move ranking/search server-side (`orderBy` + `limit`); fix reconcile pagination/starvation.
+10. **Shard remaining hot counters** (coupons, store order allocator, product stock) and add `minInstances` warm pools on money/call-join callables.
+11. **Load-test** against realistic *active-chat* and *billing-tick* concurrency (not total-user count) before opening the gate.
+
+---
+
+#### 5. Monthly Cost Ballpark @ 50k concurrent
+
+Order-of-magnitude only; re-derive from live token counts before scaling ad spend.
+
+| Driver | Rough monthly | Notes |
+|---|---|---|
+| **Gemini reading-tier tokens** | **₹8–20 lakh** | **Single biggest driver.** Every customer AI message hits Gemini Pro (thinking, no budget cap, 3072 out) with the full persona prefix re-billed uncached each turn. Findings 7-8 (caching + thinkingBudget + Flash routing) plausibly cut this **50–70%** on their own. |
+| Firestore reads/writes | ₹2–5 lakh | Dominated by per-tick ledger amplification + client listener fan-out; both action items 1 and 8 shrink this sharply. |
+| Agora call minutes | ₹1–3 lakh | Scales with paid call volume (revenue-linked). |
+| Razorpay MDR | ~2% of recharge GMV | Revenue-linked, not a true cost risk. |
+| Cloud Functions compute | ₹1–2 lakh | Inflated by in-request AI pacing sleeps holding slots; action item 6 reduces it. |
+| Prokerala | modest | 3 calls/consultation → ~1 after per-user chart caching. |
+
+**Bottom line:** Gemini output tokens are the P&L. The cost structure and the scale structure share the same fixes — caching, budgeting, and moving work off the synchronous request path both cut the bill and lift the ceiling. Treat the four LLM-cost findings (P1 caching + P2 budget/routing/chart-cache) as cost *and* capacity work, and re-measure ₹/min against live token counts before committing to a 50k launch.
+
+---
+
+## 4. Not yet run
+
+- **App Store / Play review** — 8 reviewer agents (Apple IAP/UGC/privacy/misc; Google billing/data-safety/permissions/UGC). Resume the same workflow to complete it.
