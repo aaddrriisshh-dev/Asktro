@@ -49,9 +49,12 @@ export function ImageUpload({
   async function uploadOriginal(file: File) {
     setBusy(true);
     try {
-      const ext = ((file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'png';
-      const r = ref(storage, `${folder}/${Date.now()}.${ext}`);
-      await uploadBytes(r, file, { contentType: file.type || 'image/png' });
+      // No crop, but still optimize: cap dimensions + re-encode (WebP keeps the
+      // transparency, so a heavy PNG becomes a light transparent WebP).
+      const dataUrl = await fileToDataUrl(file);
+      const out = await renderToBlob(dataUrl, { alpha: true });
+      const r = ref(storage, `${folder}/${Date.now()}.${out.ext}`);
+      await uploadBytes(r, out.blob, { contentType: out.type });
       onChange(await getDownloadURL(r));
     } catch (e) { setErr('Upload failed: ' + (e as Error).message); }
     finally { setBusy(false); }
@@ -63,9 +66,9 @@ export function ImageUpload({
     if (!src || !areaPx) return;
     setBusy(true);
     try {
-      const blob = await cropToBlob(src, areaPx);
-      const r = ref(storage, `${folder}/${Date.now()}.jpg`);
-      await uploadBytes(r, blob, { contentType: 'image/jpeg' });
+      const out = await renderToBlob(src, { alpha: false, area: areaPx });
+      const r = ref(storage, `${folder}/${Date.now()}.${out.ext}`);
+      await uploadBytes(r, out.blob, { contentType: out.type });
       onChange(await getDownloadURL(r));
       setSrc(null);
     } catch (e) { setErr('Upload failed: ' + (e as Error).message); }
@@ -85,7 +88,7 @@ export function ImageUpload({
           {busy ? 'Uploading…' : (value ? 'Change' : `⬆ ${label}`)}
         </button>
         <span className="muted" style={{ fontSize: 11 }}>
-          {original ? 'uploaded as-is · transparency kept · PNG / JPG / WebP' : 'you can crop & reposition · JPG, PNG, WebP'}
+          {original ? 'optimized for fast loading · transparency kept · PNG / JPG / WebP' : 'you can crop & reposition · JPG, PNG, WebP'}
         </span>
         {err && <span style={{ color: 'var(--error)', fontSize: 11 }}>{err}</span>}
       </div>
@@ -129,27 +132,66 @@ export function ImageUpload({
   );
 }
 
-/** Draw the selected crop region to a canvas (capped to 1600px on the long side)
- *  and return a JPEG blob. */
-async function cropToBlob(src: string, area: { x: number; y: number; width: number; height: number }): Promise<Blob> {
+/** Long-side pixel cap applied to every upload — plenty for any phone screen,
+ *  and what keeps files small so the app never waits on a giant image. */
+const MAX_DIM = 1600;
+
+type Rect = { x: number; y: number; width: number; height: number };
+
+/** Render an image (optionally a crop region) to a size-capped, compressed blob.
+ *  When `alpha` is true the transparency is preserved (WebP); otherwise the image
+ *  is flattened onto white. Encodes to WebP when the browser supports it (much
+ *  smaller), falling back to PNG (alpha) or JPEG (opaque). */
+async function renderToBlob(
+  src: string,
+  opts: { alpha: boolean; area?: Rect },
+): Promise<{ blob: Blob; ext: string; type: string }> {
   const img = await loadImage(src);
-  const MAX = 1600;
-  const scale = Math.min(1, MAX / Math.max(area.width, area.height));
-  const w = Math.max(1, Math.round(area.width * scale));
-  const h = Math.max(1, Math.round(area.height * scale));
+  const sx = opts.area ? opts.area.x : 0;
+  const sy = opts.area ? opts.area.y : 0;
+  const sw = opts.area ? opts.area.width : img.naturalWidth || img.width;
+  const sh = opts.area ? opts.area.height : img.naturalHeight || img.height;
+  const scale = Math.min(1, MAX_DIM / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * scale));
+  const h = Math.max(1, Math.round(sh * scale));
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas unsupported');
-  // Flatten onto white first — otherwise transparent PNG areas become black when
-  // exported to JPEG (which has no alpha channel).
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, w, h);
+  if (!opts.alpha) {
+    // JPEG/opaque path — flatten onto white so transparent areas don't go black.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+  }
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, w, h);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+
+  const toBlob = (type: string, q?: number) =>
+    new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), type, q));
+
+  // Prefer WebP (30–40% smaller); some older Safari builds silently emit PNG when
+  // asked, so verify true WebP support before trusting it.
+  const webpOk = canvas.toDataURL('image/webp').startsWith('data:image/webp');
+  if (webpOk) {
+    const b = await toBlob('image/webp', opts.alpha ? 0.9 : 0.85);
+    if (b && b.size > 0) return { blob: b, ext: 'webp', type: 'image/webp' };
+  }
+  if (opts.alpha) {
+    const b = await toBlob('image/png');
+    if (b) return { blob: b, ext: 'png', type: 'image/png' };
+  }
+  const b = await toBlob('image/jpeg', 0.9);
+  if (b) return { blob: b, ext: 'jpg', type: 'image/jpeg' };
+  throw new Error('Could not process image');
+}
+
+function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not process image'))), 'image/jpeg', 0.9);
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Could not read image'));
+    reader.readAsDataURL(file);
   });
 }
 

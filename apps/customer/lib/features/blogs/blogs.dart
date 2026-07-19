@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -175,7 +176,7 @@ class _BlogCard extends StatelessWidget {
                 SizedBox(
                   height: 92,
                   width: double.infinity,
-                  child: _cover(blog.coverImage),
+                  child: _cover(blog.coverImage, decodeWidth: 420),
                 ),
                 if (blog.views > 0)
                   Positioned(top: 9, right: 9, child: _viewsPill(blog.views)),
@@ -221,19 +222,24 @@ class _BlogCard extends StatelessWidget {
   }
 }
 
-Widget _cover(String url) {
+/// A blog cover image. [decodeWidth] is the pixel width to decode at — pass the
+/// slot's on-screen width ×2-ish for crisp-but-cheap thumbnails. Uses the shared
+/// disk cache (so covers don't re-download every app open) and a calm lavender
+/// placeholder that fills instantly instead of a spinner.
+Widget _cover(String url, {required int decodeWidth}) {
   if (url.isEmpty) {
     return Container(
       decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF5E3FBE), Color(0xFF7E57C2)])),
       child: const Center(child: Icon(Icons.auto_stories_rounded, color: Colors.white, size: 34)),
     );
   }
-  return Image.network(
-    url,
+  return CachedNetworkImage(
+    imageUrl: url,
     fit: BoxFit.cover,
-    errorBuilder: (_, __, ___) => Container(color: Ob.lavenderChip),
-    loadingBuilder: (ctx, child, progress) =>
-        progress == null ? child : Container(color: Ob.lavenderChip, child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Ob.purple))),
+    memCacheWidth: decodeWidth,
+    fadeInDuration: const Duration(milliseconds: 180),
+    placeholder: (_, __) => Container(color: Ob.lavenderChip),
+    errorWidget: (_, __, ___) => Container(color: Ob.lavenderChip),
   );
 }
 
@@ -314,7 +320,7 @@ class _BlogListRow extends StatelessWidget {
             children: [
               Stack(
                 children: [
-                  SizedBox(width: 118, height: double.infinity, child: _cover(blog.coverImage)),
+                  SizedBox(width: 118, height: double.infinity, child: _cover(blog.coverImage, decodeWidth: 300)),
                   if (blog.views > 0)
                     Positioned(top: 8, left: 8, child: _viewsPill(blog.views)),
                 ],
@@ -391,7 +397,7 @@ class BlogReaderScreen extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.only(top: topPad),
-                  child: SizedBox(height: 236, width: double.infinity, child: _cover(blog.coverImage)),
+                  child: SizedBox(height: 236, width: double.infinity, child: _cover(blog.coverImage, decodeWidth: 1080)),
                 ),
               ),
               SliverToBoxAdapter(

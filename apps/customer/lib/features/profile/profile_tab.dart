@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -146,8 +147,9 @@ class ProfileTab extends ConsumerWidget {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: (profile?.profilePhoto != null && profile!.profilePhoto!.isNotEmpty)
-                    ? Image.network(profile.profilePhoto!, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _initial(initial),)
+                    ? CachedNetworkImage(imageUrl: profile.profilePhoto!, fit: BoxFit.cover,
+                        memCacheWidth: 220,
+                        errorWidget: (_, __, ___) => _initial(initial),)
                     : _initial(initial),
               ),
               const SizedBox(width: 16),

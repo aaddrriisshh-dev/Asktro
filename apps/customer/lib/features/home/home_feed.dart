@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -245,8 +246,10 @@ class HomeFeed extends ConsumerWidget {
                       boxShadow: Ob.softShadow,
                     ),
                     child: hasPhoto
-                        ? Image.network(photo, width: 46, height: 46, fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
+                        ? CachedNetworkImage(
+                            imageUrl: photo, width: 46, height: 46, fit: BoxFit.cover,
+                            memCacheWidth: 140,
+                            errorWidget: (_, __, ___) =>
                                 Text(initial, style: Ob.title.copyWith(color: Colors.white, fontSize: 20)),)
                         : Text(initial, style: Ob.title.copyWith(color: Colors.white, fontSize: 20)),
                   ),
@@ -536,8 +539,10 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
             fit: StackFit.expand,
             children: [
               if (hasImg)
-                Image.network(b.image, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),),
+                CachedNetworkImage(imageUrl: b.image, fit: BoxFit.cover,
+                    memCacheWidth: 1080,
+                    fadeInDuration: const Duration(milliseconds: 180),
+                    errorWidget: (_, __, ___) => const SizedBox.shrink(),),
               if (hasImg)
                 const DecoratedBox(
                   decoration: BoxDecoration(
