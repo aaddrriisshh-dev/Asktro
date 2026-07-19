@@ -155,17 +155,13 @@ export async function applyTick(
       updatedAt: FieldValue.serverTimestamp(),
     });
   }
-  if (result.chargedPaise > 0) {
-    writeLedger(tx, {
-      userId: c.customerId,
-      kind: 'consultation',
-      amount: -result.chargedPaise,
-      balanceBefore: wallet0 + combinedBonus,
-      balanceAfter: result.remainingSpendablePaise,
-      refId: consultationId,
-      note: `${c.type} consultation billing`,
-    });
-  }
+  // NOTE: the per-tick consultation charge is NOT written to walletTransactions
+  // here. The wallet balance is debited live each tick (above), but the customer-
+  // facing ledger row is written ONCE at settlement (settleConsultation /
+  // expirePaused) as a single "chat consultation · 12m" line — instead of a
+  // confusing row every ~10 seconds. Running totals (totalCharged, billedSeconds,
+  // chargedFromWallet/Bonus) are accumulated on the consultation doc below so the
+  // settle step has the full figures.
   if (graceBonus > 0) {
     writeLedger(tx, {
       userId: c.customerId,

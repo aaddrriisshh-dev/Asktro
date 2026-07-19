@@ -150,6 +150,15 @@ export function computeTick(input: TickInput): TickResult {
   };
 }
 
+/** Human-readable session length for a ledger note, e.g. "12m 30s", "5m", "45s". */
+export function durationLabel(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  if (m <= 0) return `${r}s`;
+  return r > 0 ? `${m}m ${r}s` : `${m}m`;
+}
+
 /** Map remaining seconds to a UI warning level (Part 4 low-balance levels). */
 export function deriveWarnLevel(
   remainingSec: number,

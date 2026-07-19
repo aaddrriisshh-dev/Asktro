@@ -21,8 +21,8 @@ import { Collections } from '../common/collections';
 import { getGlobalConfig } from '../common/config';
 import { GlobalConfig } from '../common/types';
 import { applyTick } from './tickConsultation';
-import { astrologerNetEarning, MAX_TICK_ELAPSED_MS } from './engine';
-import { writeAstrologerLedger } from '../wallet/ledger';
+import { astrologerNetEarning, durationLabel, MAX_TICK_ELAPSED_MS } from './engine';
+import { writeAstrologerLedger, writeLedger } from '../wallet/ledger';
 
 const OPEN_STATUSES = ['waiting', 'active', 'paused'];
 const isCall = (type: unknown) => type === 'voice' || type === 'video';
@@ -171,6 +171,22 @@ export async function expirePaused(config: GlobalConfig, nowMs: number): Promise
       );
       if (net > 0) {
         writeAstrologerLedger(tx, { astrologerId: c.astrologerId, kind: 'earning', amount: net, refId: doc.id, note: `${c.type} consultation earning (timed out)` });
+      }
+      // ONE consolidated customer ledger row for the whole (timed-out) session —
+      // matches the settleConsultation path so the customer sees a single clean
+      // charge line, not a row per tick.
+      const gross = c.totalCharged ?? 0;
+      if (gross > 0) {
+        const finalSpendable = typeof c.walletAfter === 'number' ? c.walletAfter : 0;
+        writeLedger(tx, {
+          userId: c.customerId,
+          kind: 'consultation',
+          amount: -gross,
+          balanceBefore: finalSpendable + gross,
+          balanceAfter: finalSpendable,
+          refId: doc.id,
+          note: `${c.type} consultation · ${durationLabel(c.billedSeconds ?? 0)} (timed out)`,
+        });
       }
       // Mirror endConsultation's customer-side counters so a timed-out session
       // still counts and its billed time shows in the admin usage table (which

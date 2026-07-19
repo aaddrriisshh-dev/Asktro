@@ -12,8 +12,8 @@ import { Collections } from '../common/collections';
 import { getGlobalConfig } from '../common/config';
 import { assertAuthed, badRequest, failedPrecondition, notFound } from '../common/errors';
 import { applyTick, TickOutcome, TickerParty } from './tickConsultation';
-import { astrologerNetEarning } from './engine';
-import { writeAstrologerLedger } from '../wallet/ledger';
+import { astrologerNetEarning, durationLabel } from './engine';
+import { writeAstrologerLedger, writeLedger } from '../wallet/ledger';
 import { GlobalConfig } from '../common/types';
 
 function receiptNumber(consultationId: string, nowMs: number): string {
@@ -154,6 +154,24 @@ export async function settleConsultation(
       },
       { merge: true },
     );
+
+    // ONE consolidated customer ledger row for the whole session — the wallet was
+    // debited live per tick, but the transaction history gets a single clean line
+    // ("chat consultation · 12m") instead of a row every ~10 seconds.
+    if (grossEarned > 0) {
+      const finalSpendable = tick
+        ? tick.walletBalance + tick.bonusBalance
+        : (typeof c.walletAfter === 'number' ? c.walletAfter : 0);
+      writeLedger(tx, {
+        userId: c.customerId,
+        kind: 'consultation',
+        amount: -grossEarned,
+        balanceBefore: finalSpendable + grossEarned,
+        balanceAfter: finalSpendable,
+        refId: consultationId!,
+        note: `${c.type} consultation · ${durationLabel(finalBilledSeconds)}`,
+      });
+    }
 
   return {
     alreadyEnded: false,

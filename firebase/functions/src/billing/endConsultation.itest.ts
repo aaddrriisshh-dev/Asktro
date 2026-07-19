@@ -57,6 +57,14 @@ describe('settleConsultation (emulator)', () => {
     expect(ledger.size).toBe(1);
     expect(ledger.docs[0].data().amount).toBe(720);
 
+    // ONE consolidated customer ledger row for the whole session (not per-tick):
+    // a single consultation debit of the gross charge, tagged to the session.
+    const custLedger = await db.collection('walletTransactions')
+      .where('userId', '==', cust).where('kind', '==', 'consultation').get();
+    expect(custLedger.size).toBe(1);
+    expect(custLedger.docs[0].data().amount).toBe(-900);
+    expect(custLedger.docs[0].data().refId).toBe(cid);
+
     // Re-end (double click / race) → idempotent no-op, NO second credit.
     const again = await db.runTransaction((tx) =>
       settleConsultation(tx, cid, CONFIG, Date.now(), { uid: astro, isAdmin: false }));
@@ -65,6 +73,10 @@ describe('settleConsultation (emulator)', () => {
     expect(fin2.earnings).toBe(720); // unchanged — not 1440
     const ledger2 = await db.collection('astrologerLedger').where('astrologerId', '==', astro).get();
     expect(ledger2.size).toBe(1); // still one row
+    // And still exactly ONE customer consultation row (no duplicate on re-end).
+    const custLedger2 = await db.collection('walletTransactions')
+      .where('userId', '==', cust).where('kind', '==', 'consultation').get();
+    expect(custLedger2.size).toBe(1);
   });
 
   it('a session ended while still waiting is cancelled with no earnings', async () => {
