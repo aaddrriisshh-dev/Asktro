@@ -184,6 +184,14 @@ export async function applyTick(
   const chargedFromBonusThisTick = consumedBonus;
   const chargedFromWalletThisTick = Math.max(0, result.chargedPaise - consumedBonus);
 
+  // Advance the billed-to marker only by the WHOLE seconds actually billed, not
+  // all the way to billToMs. computeTick floors the elapsed span to whole
+  // seconds, so the <1s remainder must carry into the next tick — otherwise it
+  // is silently dropped every tick (a small systematic under-charge). This is
+  // always <= billToMs, so it still can't push billing past the presence
+  // frontier, and never goes backwards (billedSeconds >= 0).
+  const billedToMs = lastTickAtMs + result.billedSeconds * 1000;
+
   tx.update(consultationRef, {
     billedSeconds: FieldValue.increment(result.billedSeconds),
     totalCharged: FieldValue.increment(result.chargedPaise),
@@ -192,15 +200,15 @@ export async function applyTick(
     walletAfter: finalSpendable,
     remainingSec: finalRemainingSec,
     warnLevel: finalWarnLevel,
-    // Advance the billed-to marker to the (clamped) frontier, not raw nowMs, so
-    // a non-customer tick can never push billing past the customer's presence.
-    lastTickAt: Timestamp.fromMillis(billToMs),
+    lastTickAt: Timestamp.fromMillis(billedToMs),
     // Record each party's true last-seen time only when they drove the tick.
     ...(ticker === 'customer' ? { customerLastTickAt: Timestamp.fromMillis(nowMs) } : {}),
     ...(ticker === 'astrologer' ? { astrologerLastTickAt: Timestamp.fromMillis(nowMs) } : {}),
     networkStatus: networkStatus ?? c.networkStatus ?? 'ok',
-    ...(grantGrace ? { graceGranted: true, graceGrantedAt: Timestamp.fromMillis(billToMs) } : {}),
-    ...(willPause ? { status: 'paused', pausedAt: Timestamp.fromMillis(billToMs) } : {}),
+    // Grace/pause happen at the instant the balance was exhausted = the billed
+    // frontier, not the later billToMs.
+    ...(grantGrace ? { graceGranted: true, graceGrantedAt: Timestamp.fromMillis(billedToMs) } : {}),
+    ...(willPause ? { status: 'paused', pausedAt: Timestamp.fromMillis(billedToMs) } : {}),
     updatedAt: FieldValue.serverTimestamp(),
   });
 
