@@ -119,26 +119,29 @@ export async function settleConsultation(
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Credit net earning + bump counts (both chat and call). Release the
-    // exclusive lock ONLY for a call — a chat never held it.
+    // An AI persona is a SHARED doc every one of its concurrent chats settles
+    // against — so its money/counter writes must stay OUT of this transaction or
+    // they serialise (and can starve) settlement at scale. Only a HUMAN accrues
+    // earnings (AI has no payout); the session counter is bumped best-effort AFTER
+    // commit for everyone (see the callable) so it never gates the money path.
+    const isAI = c.isAI === true;
     const astrologerRef = db.collection(Collections.astrologers).doc(c.astrologerId);
-    const astrologerUpdate: Record<string, unknown> = {
-      totalConsultations: FieldValue.increment(1),
-      updatedAt: FieldValue.serverTimestamp(),
-    };
-    if (c.type === 'voice' || c.type === 'video') {
-      astrologerUpdate.available = true;
-    }
-    tx.set(astrologerRef, astrologerUpdate, { merge: true });
-    // Earnings/pendingPayout live in private/financials, off the public doc.
-    tx.set(
-      astrologerRef.collection('private').doc('financials'),
-      { earnings: FieldValue.increment(net), pendingPayout: FieldValue.increment(net), updatedAt: FieldValue.serverTimestamp() },
-      { merge: true },
-    );
-    // Append-only earnings trail (reconciles the bare counters).
-    if (net > 0) {
-      writeAstrologerLedger(tx, { astrologerId: c.astrologerId, kind: 'earning', amount: net, refId: consultationId!, note: `${c.type} consultation earning` });
+    if (!isAI) {
+      // Release the exclusive lock ONLY for a call — a chat never held it. AI is
+      // always available, so it never needs releasing.
+      if (c.type === 'voice' || c.type === 'video') {
+        tx.set(astrologerRef, { available: true, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      }
+      // Earnings/pendingPayout live in private/financials, off the public doc.
+      tx.set(
+        astrologerRef.collection('private').doc('financials'),
+        { earnings: FieldValue.increment(net), pendingPayout: FieldValue.increment(net), updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      // Append-only earnings trail (reconciles the bare counters).
+      if (net > 0) {
+        writeAstrologerLedger(tx, { astrologerId: c.astrologerId, kind: 'earning', amount: net, refId: consultationId!, note: `${c.type} consultation earning` });
+      }
     }
 
     const customerRef = db.collection(Collections.users).doc(c.customerId);
@@ -193,7 +196,29 @@ export const endConsultation = onCall(async (req) => {
   const nowMs = Timestamp.now().toMillis();
   const isAdmin = req.auth?.token?.role === 'admin';
 
-  return db.runTransaction((tx) =>
+  const result = await db.runTransaction((tx) =>
     settleConsultation(tx, consultationId!, config, nowMs, { uid, isAdmin }),
   );
+
+  // Bump the astrologer's session counter OUTSIDE the money transaction: a
+  // best-effort, non-blocking write so a hot shared AI-persona doc (many
+  // concurrent chats) can never serialise or starve settlement. Only on a real
+  // settle (not an idempotent re-end or a cancelled/never-started session). A
+  // rare lost increment on a display counter is an acceptable trade for keeping
+  // the money path contention-free.
+  if (result.alreadyEnded === false && result.cancelled !== true && result.astrologerId) {
+    await bumpAstrologerSessions(result.astrologerId as string);
+  }
+  return result;
 });
+
+/** Fire-and-forget increment of an astrologer's session counter, isolated so a
+ *  failure never surfaces to the caller (the money already settled). */
+async function bumpAstrologerSessions(astrologerId: string): Promise<void> {
+  try {
+    await db.collection(Collections.astrologers).doc(astrologerId).set(
+      { totalConsultations: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+  } catch { /* best-effort display counter — never block on it */ }
+}

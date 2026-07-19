@@ -79,6 +79,41 @@ describe('settleConsultation (emulator)', () => {
     expect(custLedger2.size).toBe(1);
   });
 
+  it('an AI persona accrues NO earnings/ledger (kept out of the money tx), but the customer is still charged', async () => {
+    const cid = 'c_end_ai', cust = 'u_end_ai', astro = 'a_end_ai';
+    const T = Date.now();
+    await db.collection('users').doc(cust).set({ walletBalance: 5000, bonusBalance: 0, totalConsultations: 0 });
+    await db.collection('astrologers').doc(astro).set({ name: 'AI', isAI: true, totalConsultations: 0, available: true });
+    await db.collection('astrologers').doc(astro).collection('private').doc('financials')
+      .set({ earnings: 0, pendingPayout: 0, commissionPercent: 20 });
+    await db.collection('consultations').doc(cid).set({
+      customerId: cust, astrologerId: astro, type: 'chat', isAI: true,
+      status: 'active', pricePerMinute: 900, commissionPercent: 20,
+      billedSeconds: 60, totalCharged: 900,
+      lastTickAt: Timestamp.fromMillis(T), customerLastTickAt: Timestamp.fromMillis(T),
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    const out = await db.runTransaction((tx) =>
+      settleConsultation(tx, cid, CONFIG, T, { uid: cust, isAdmin: false }));
+    expect(out.alreadyEnded).toBe(false);
+    expect(out.totalCharged).toBe(900);
+
+    // AI: no earnings, no pendingPayout, no earnings-ledger row (never enters the
+    // money transaction against the shared persona doc).
+    const fin = (await db.collection('astrologers').doc(astro).collection('private').doc('financials').get()).data()!;
+    expect(fin.earnings).toBe(0);
+    expect(fin.pendingPayout).toBe(0);
+    const ledger = await db.collection('astrologerLedger').where('astrologerId', '==', astro).get();
+    expect(ledger.size).toBe(0);
+
+    // But the customer IS charged — one consolidated consultation row.
+    const custLedger = await db.collection('walletTransactions')
+      .where('userId', '==', cust).where('kind', '==', 'consultation').get();
+    expect(custLedger.size).toBe(1);
+    expect(custLedger.docs[0].data().amount).toBe(-900);
+  });
+
   it('a session ended while still waiting is cancelled with no earnings', async () => {
     const cid = 'c_end_2', cust = 'u_end_2', astro = 'a_end_2';
     await db.collection('astrologers').doc(astro).collection('private').doc('financials')

@@ -134,12 +134,12 @@ export async function expirePaused(config: GlobalConfig, nowMs: number): Promise
     .limit(SWEEP_LIMIT)
     .get();
 
-  await forEachLimited(expired.docs, SWEEP_CONCURRENCY, (doc) =>
-    db.runTransaction(async (tx) => {
+  await forEachLimited(expired.docs, SWEEP_CONCURRENCY, async (doc) => {
+    const astrologerId = await db.runTransaction(async (tx) => {
       const snap = await tx.get(doc.ref);
-      if (!snap.exists) return;
+      if (!snap.exists) return null;
       const c = snap.data()!;
-      if (c.status !== 'paused') return;
+      if (c.status !== 'paused') return null;
 
       // Use the per-astrologer commission snapshotted on the session at start —
       // NOT the current global config — so a session that ends via this sweep
@@ -155,22 +155,24 @@ export async function expirePaused(config: GlobalConfig, nowMs: number): Promise
         duration: c.billedSeconds ?? 0,
         updatedAt: FieldValue.serverTimestamp(),
       });
-      const astroRef = db.collection(Collections.astrologers).doc(c.astrologerId);
-      const update: Record<string, unknown> = {
-        totalConsultations: FieldValue.increment(1),
-        updatedAt: FieldValue.serverTimestamp(),
-      };
-      // Release the exclusive lock only for a call — chats never held it.
-      if (isCall(c.type)) update.available = true;
-      tx.set(astroRef, update, { merge: true });
-      // Earnings/pendingPayout live in private/financials, off the public doc.
-      tx.set(
-        astroRef.collection('private').doc('financials'),
-        { earnings: FieldValue.increment(net), pendingPayout: FieldValue.increment(net), updatedAt: FieldValue.serverTimestamp() },
-        { merge: true },
-      );
-      if (net > 0) {
-        writeAstrologerLedger(tx, { astrologerId: c.astrologerId, kind: 'earning', amount: net, refId: doc.id, note: `${c.type} consultation earning (timed out)` });
+      // Only a HUMAN accrues earnings + needs the call lock released; an AI persona
+      // is a shared doc that must stay out of this money transaction (see
+      // settleConsultation). Its session counter is bumped best-effort after commit.
+      const isAI = c.isAI === true;
+      if (!isAI) {
+        const astroRef = db.collection(Collections.astrologers).doc(c.astrologerId);
+        // Release the exclusive lock only for a call — chats never held it.
+        if (isCall(c.type)) {
+          tx.set(astroRef, { available: true, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        }
+        tx.set(
+          astroRef.collection('private').doc('financials'),
+          { earnings: FieldValue.increment(net), pendingPayout: FieldValue.increment(net), updatedAt: FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+        if (net > 0) {
+          writeAstrologerLedger(tx, { astrologerId: c.astrologerId, kind: 'earning', amount: net, refId: doc.id, note: `${c.type} consultation earning (timed out)` });
+        }
       }
       // ONE consolidated customer ledger row for the whole (timed-out) session —
       // matches the settleConsultation path so the customer sees a single clean
@@ -200,8 +202,18 @@ export async function expirePaused(config: GlobalConfig, nowMs: number): Promise
         },
         { merge: true },
       );
-    }),
-  );
+      return c.astrologerId as string;
+    });
+
+    // Bump the astrologer's session counter OUTSIDE the money transaction — a
+    // best-effort write so a hot shared AI-persona doc never serialises settlement.
+    if (astrologerId) {
+      await db.collection(Collections.astrologers).doc(astrologerId).set(
+        { totalConsultations: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      ).catch(() => { /* best-effort display counter */ });
+    }
+  });
 }
 
 // --- 3. Waiting requests never accepted → expire and free the astrologer ---
