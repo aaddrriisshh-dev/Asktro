@@ -64,7 +64,11 @@ export const onAiChatMessage = onDocumentCreated(
       const c = cSnap.data();
       if (!c) return;
       if (c.type !== 'chat') return;
-      if (['ended', 'cancelled', 'expired'].includes(c.status)) return;
+      // Never generate a (free) AI reply on a terminal OR paused session. A chat
+      // pauses when the wallet is exhausted; if the customer keeps typing without
+      // recharging, the AI must stay silent until they resume (resumeConsultation
+      // on recharge flips it back to active) — otherwise the reading is free.
+      if (['ended', 'cancelled', 'expired', 'paused'].includes(c.status)) return;
       // LOOP GUARD: only reply to the customer's own messages.
       if (senderId !== c.customerId) return;
 

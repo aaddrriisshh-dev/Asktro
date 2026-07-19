@@ -48,6 +48,12 @@ export const activateConsultation = onCall(async (req) => {
       // bills past the customer's last confirmed heartbeat + a short settle
       // window) starts from the session's own start, not the epoch.
       customerLastTickAt: FieldValue.serverTimestamp(),
+      // For a HUMAN session, also seed the astrologer-presence marker: they just
+      // accepted, so their presence is confirmed at start, and the frontier
+      // should gate on BOTH parties from the first tick (mirrors resume). AI
+      // sessions must NOT seed this — no human ever ticks, so a frozen marker
+      // would freeze the frontier and stall billing.
+      ...(!isAI ? { astrologerLastTickAt: FieldValue.serverTimestamp() } : {}),
       paymentStatus: 'pending',
       updatedAt: FieldValue.serverTimestamp(),
     });

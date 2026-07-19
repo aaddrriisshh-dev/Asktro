@@ -190,9 +190,15 @@ service cloud.firestore {
           || isSelf(parent().customerId)
           || isSelf(parent().astrologerId);
         // a participant may append their own messages; delivery/seen flags may
-        // be flipped by the counterpart. No edits/deletes.
+        // be flipped by the counterpart. No edits/deletes. A message may only be
+        // sent while the session is live (active) or opening (waiting) — never on
+        // a paused (wallet-exhausted) or terminal session, so a customer can't
+        // keep chatting a paused AI/human session for free. Resume (on recharge)
+        // flips it back to active first. System messages are function-written and
+        // bypass these rules.
         allow create: if (isSelf(parent().customerId) || isSelf(parent().astrologerId))
-          && request.resource.data.senderId == uid();
+          && request.resource.data.senderId == uid()
+          && (parent().status == 'active' || parent().status == 'waiting');
         allow update: if (isSelf(parent().customerId) || isSelf(parent().astrologerId))
           && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['delivered','seen']);
