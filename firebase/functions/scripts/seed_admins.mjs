@@ -43,6 +43,9 @@ const auth = getAuth();
 const db = getFirestore();
 
 const clear = process.argv.includes('--clear');
+// Mark the admin emails verified (needed for 2FA enrollment) WITHOUT touching
+// passwords — so we don't force another rotation just to enable 2FA.
+const verifyOnly = process.argv.includes('--verify');
 
 /** Read a line from the terminal with the typed characters hidden (no echo), so
  *  the password never lands in the shell history, argv, or the screen. */
@@ -88,6 +91,18 @@ async function run() {
       await db.collection('adminUsers').doc(uid).delete().catch(() => {});
       console.log(`✓ removed ${a.email}`);
     }
+    return;
+  }
+
+  if (verifyOnly) {
+    console.log('\nMarking admin emails verified (no password change):\n');
+    for (const a of ADMINS) {
+      const uid = await findUid(a.email);
+      if (!uid) { console.log(`- ${a.email}: not found`); continue; }
+      await auth.updateUser(uid, { emailVerified: true });
+      console.log(`✓ verified ${a.email}`);
+    }
+    console.log('\nDone. These accounts can now enrol two-factor at /security.\n');
     return;
   }
 
