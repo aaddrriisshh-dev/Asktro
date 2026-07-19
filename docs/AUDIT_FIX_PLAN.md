@@ -32,6 +32,13 @@ Rough effort is a senior-dev estimate; real numbers depend on test depth.
 This is the biggest and scariest cluster. It's mostly small, surgical changes (rules +
 tier checks), not rewrites.
 
+> **Progress (2026-07-19):** items 3–6 are **DONE & pushed** (code + rules). Item 1 is an
+> **owner task** (password rotation / git-history scrub / MFA — a destructive history
+> rewrite the assistant must not do unilaterally). Item 2 (App Check) is a **Console
+> toggle**. Decisions recorded on item 6: the **astrology tier keeps transcript access**
+> (consultation/message reads unchanged — matches Neeraj's documented audit role), and the
+> **astrologerCustomers birth-data marker is left as-is for now** (no TTL/snapshot yet).
+
 1. **[P0] Rotate admin password + scrub git history + add MFA.**
    `seed_admins.mjs` — `Asktro@2026` is recoverable from history (commits `3785187`/`fd06067`).
    → Rotate all admin creds (distinct + forced reset), add portal MFA, then `git filter-repo`/BFG
