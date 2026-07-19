@@ -98,17 +98,6 @@ class StoreRepository {
           ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)),);
   }
 
-  /// "Why us" / how-to videos (active), sorted client-side.
-  Stream<List<StoreVideo>> watchVideos() {
-    return _db
-        .collection('storeVideos')
-        .where('active', isEqualTo: true)
-        .limit(30)
-        .snapshots()
-        .map((s) => s.docs.map(StoreVideo.fromDoc).toList()
-          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)),);
-  }
-
   /// Store FAQs (active), sorted client-side.
   Stream<List<StoreFaq>> watchFaqs() {
     return _db
@@ -336,10 +325,6 @@ final storeReviewsProvider = StreamProvider.family<List<StoreReview>, String>(
 
 final storeTestimonialsProvider = StreamProvider<List<StoreTestimonial>>(
   (ref) => ref.watch(storeRepositoryProvider).watchTestimonials(),
-);
-
-final storeVideosProvider = StreamProvider<List<StoreVideo>>(
-  (ref) => ref.watch(storeRepositoryProvider).watchVideos(),
 );
 
 final storeFaqsProvider = StreamProvider<List<StoreFaq>>(

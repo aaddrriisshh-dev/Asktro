@@ -39,7 +39,6 @@ class StoreHomeScreen extends ConsumerWidget {
     final combos = products.where((p) => p.combo).toList();
 
     final testimonials = ref.watch(storeTestimonialsProvider).valueOrNull ?? const [];
-    final videos = ref.watch(storeVideosProvider).valueOrNull ?? const [];
     final faqs = ref.watch(storeFaqsProvider).valueOrNull ?? const [];
 
     // Claim-strip phrases are portal-editable; fall back to the built-in set.
@@ -84,8 +83,6 @@ class StoreHomeScreen extends ConsumerWidget {
               ),
             if (testimonials.isNotEmpty)
               SliverToBoxAdapter(child: _testimonialBand(testimonials)),
-            if (videos.isNotEmpty)
-              SliverToBoxAdapter(child: _videoBand(context, videos)),
             if (faqs.isNotEmpty)
               SliverToBoxAdapter(child: _faqBand(faqs)),
             const SliverToBoxAdapter(child: SizedBox(height: 22)),
@@ -304,34 +301,6 @@ class StoreHomeScreen extends ConsumerWidget {
         ),
       ],
     ), ground: _Ground.cream,);
-  }
-
-  Widget _videoBand(BuildContext context, List<StoreVideo> items) {
-    return _band(Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _sectionHeader('Watch & learn', 'Guides & Stories'),
-        SizedBox(
-          height: 200,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(14, 2, 14, 0),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) => VideoCard(
-              video: items[i],
-              onTap: () => ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(const SnackBar(
-                  content: Text('Video player coming soon'),
-                  duration: Duration(milliseconds: 1100),
-                  behavior: SnackBarBehavior.floating,
-                ),),
-            ),
-          ),
-        ),
-      ],
-    ),);
   }
 
   Widget _faqBand(List<StoreFaq> items) {
