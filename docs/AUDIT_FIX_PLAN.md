@@ -63,6 +63,16 @@ tier checks), not rewrites.
 
 ## Phase 1 — Money-path correctness & abuse  🟠 _before real money_ (~2–3 days)
 
+> **Progress (2026-07-19):** items 7, 9–16 are **DONE & pushed**, each verified against the
+> Firestore-emulator money-path suite (143 unit + 63 integration green). Plus a founder-
+> requested extra — **per-tick billing consolidated into one clean transaction per session**
+> (audit #46), so a customer sees `−₹45 · chat · 12m` instead of ~30 tiny rows.
+> **Deferred:** item 8 (backgrounded dead-air over-bill) — it reworks the core billing
+> frontier and the audit's one-line suggestion doesn't fully fix it (the settle-window +
+> lastTickAt clamp defer the over-bill rather than remove it). Bounded impact (~15–30s on a
+> 15–45s app-switch; >45s already pauses). Needs a dedicated pass with focused emulator
+> tests. Everything here needs the batched **backend deploy** to take effect.
+
 7. **[Correctness P1] Sub-second billing leak** — `tickConsultation.ts:197`: persist
    `lastTickAt = lastTickAtMs + billedSeconds*1000` (not `billToMs`) so the <1s remainder carries.
    (Currently a small systematic **under**-charge — customer-favorable, but fix for accuracy.)
