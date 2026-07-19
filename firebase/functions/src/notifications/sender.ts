@@ -95,9 +95,14 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
   }
 });
 
-export const sendBroadcast = onCall(async (req) => {
+export const sendBroadcast = onCall(
+  // A paged per-user send (paid/unpaid, up to 200k) can run well past the 60s
+  // default — give it room so it can't time out mid-fan-out (which, without the
+  // broadcastId idempotency below, would double-send on retry).
+  { timeoutSeconds: 540, memory: '512MiB' },
+  async (req) => {
   const actor = assertAdminTier(req, ['super', 'ops']);
-  const { title, body, type, deeplink, image, imageStyle, bgColor, textColor, displayMode, portraitImage, ctaText, landingTitle, landingBody, landingBgColor, landingTextColor, theme, segment, uids } = (req.data ?? {}) as {
+  const { title, body, type, deeplink, image, imageStyle, bgColor, textColor, displayMode, portraitImage, ctaText, landingTitle, landingBody, landingBgColor, landingTextColor, theme, segment, uids, broadcastId } = (req.data ?? {}) as {
     title?: string;
     body?: string;
     type?: string;
@@ -116,8 +121,22 @@ export const sendBroadcast = onCall(async (req) => {
     theme?: string;
     segment?: 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers' | 'list';
     uids?: string[];
+    broadcastId?: string;
   };
   if (!title || !body) badRequest('title and body are required.');
+
+  // Idempotency: the portal mints a broadcastId once per compose and reuses it on
+  // retry. Claim it create-if-absent BEFORE sending, so a timed-out or
+  // double-clicked send finds the id already claimed and never fans out twice.
+  const bId = typeof broadcastId === 'string' && broadcastId.trim() ? broadcastId.trim() : null;
+  const broadcastRef = bId ? db.collection('broadcasts').doc(bId) : db.collection('broadcasts').doc();
+  if (bId) {
+    try {
+      await broadcastRef.create({ status: 'sending', title, body, segment: segment ?? 'all_users', createdAt: FieldValue.serverTimestamp() });
+    } catch {
+      return { ok: true, alreadySent: true };
+    }
+  }
 
   // Common data payload for every push (topic or per-user).
   const dataPayload: Record<string, string> = {
@@ -209,7 +228,10 @@ export const sendBroadcast = onCall(async (req) => {
 
   // One compact summary per send, so the portal can list broadcast history
   // (the per-user notification docs above are the actual delivered messages).
-  await db.collection('broadcasts').add({
+  // Written to the claimed idempotency doc (merge) when a broadcastId was given,
+  // else a fresh doc — either way one row per send.
+  await broadcastRef.set({
+    status: 'sent',
     title,
     body,
     segment: segment ?? 'all_users',

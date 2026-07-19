@@ -45,6 +45,10 @@ export default function BroadcastPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [theme, setTheme] = useState('');
+  // One idempotency key per compose; reused if a send is retried (timeout /
+  // double-click) so the server never fans the broadcast out twice, then rotated
+  // after a successful send for the next message.
+  const [broadcastId, setBroadcastId] = useState(() => crypto.randomUUID());
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
   function applyTheme(t: PromoTheme | null) {
@@ -59,7 +63,8 @@ export default function BroadcastPage() {
     if (!confirm(`Push this notification to ${label}?`)) return;
     setBusy(true); setResult(null);
     try {
-      const res = await callFn<{ delivered: number }>('sendBroadcast', {
+      const res = await callFn<{ delivered?: number; alreadySent?: boolean }>('sendBroadcast', {
+        broadcastId,
         title: f.title.trim(), body: f.body.trim(), segment, type: 'announcement',
         deeplink: f.deeplink.trim() || undefined,
         image: f.image.trim() || undefined,
@@ -74,7 +79,10 @@ export default function BroadcastPage() {
         landingTextColor: displayMode !== 'small' ? lFg : undefined,
         theme: theme || undefined,
       });
-      setResult(`✓ Pushed to ${res.delivered} ${label}.`);
+      setResult(res.alreadySent
+        ? '✓ Already sent (this message was submitted before).'
+        : `✓ Pushed to ${res.delivered ?? 0} ${label}.`);
+      setBroadcastId(crypto.randomUUID()); // fresh key for the next message
       setF({ title: '', body: '', deeplink: '', image: '' });
       setTheme('');
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
