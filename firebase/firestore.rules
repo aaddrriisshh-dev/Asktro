@@ -108,12 +108,17 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (isAdmin() && notChanging([
             'verified','accountStatus','ratePerMinutePaise','commissionPercent',
+            // per-type rates are billing inputs — super-only, same as the base rate
+            'chatRatePaise','voiceRatePaise','videoRatePaise',
             'earnings','pendingPayout','isAI'
           ]))
         || (isSelf(astrologerId) && notChanging([
         'rating','totalReviews','totalConsultations','followers','earnings',
         'pendingPayout','verified','featured','accountStatus',
         'commissionPercent','ratePerMinutePaise','available',
+        // an astrologer must never self-edit their billed rates or their stated
+        // experience (a trust signal shown to customers) — admin-owned.
+        'chatRatePaise','voiceRatePaise','videoRatePaise','experience',
         // admin-owned flags: an astrologer must not self-promote or self-mark AI
         'isAI','risingStar'
       ]));
@@ -270,7 +275,10 @@ service cloud.firestore {
     }
     match /storeProducts/{productId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      // Any admin may author catalog copy, but price & stock are money-sensitive:
+      // only a Super Admin may set/change them (mirrors coupons/commission).
+      allow write: if isSuperAdmin()
+        || (isAdmin() && notChanging(['pricePaise','stock']));
       // Product reviews — read for signed-in users; authored/moderated by admins
       // for now (customer submission with moderation comes later).
       match /reviews/{reviewId} {
@@ -300,7 +308,9 @@ service cloud.firestore {
     // admins author them, and usedCount is bumped server-side on paid orders.
     match /storeCoupons/{code} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      // A store coupon grants a discount — authoring one is a money action, so
+      // super-admin only (mirrors the wallet `coupons` gate above).
+      allow write: if isSuperAdmin();
     }
     // Orders: a customer reads only their own; admins read all. Orders are
     // created + mutated ONLY by the store callables/webhook (server computes the

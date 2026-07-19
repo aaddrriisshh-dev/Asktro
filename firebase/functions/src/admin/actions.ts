@@ -7,7 +7,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { Transaction } from 'firebase-admin/firestore';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
-import { assertRole, badRequest, failedPrecondition, notFound } from '../common/errors';
+import { assertRole, assertAdminTier, badRequest, failedPrecondition, notFound } from '../common/errors';
 import { writeLedger, writeAstrologerLedger } from '../wallet/ledger';
 import { adminName } from '../common/actor';
 
@@ -189,7 +189,7 @@ export const setAstrologerStatus = onCall(async (req) => {
 
 /** Suspend, reactivate or soft-delete a customer (ops/super admin). */
 export const setUserStatus = onCall(async (req) => {
-  const actor = assertRole(req, 'admin');
+  const actor = assertAdminTier(req, ['super', 'ops']);
   const { userId, status } = (req.data ?? {}) as {
     userId?: string;
     status?: 'active' | 'blocked' | 'deleted';

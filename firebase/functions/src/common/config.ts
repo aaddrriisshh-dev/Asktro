@@ -5,6 +5,7 @@ import { GlobalConfig } from './types';
 
 export const DEFAULT_CONFIG: GlobalConfig = {
   consultationPricePerMinutePaise: 900, // ₹9/min
+  maxConsultationPricePerMinutePaise: 50000, // ₹500/min hard ceiling — sanity clamp
   minWalletToStartPaise: 1800, // 2 minutes
   warnLevel1Sec: 60, // low-balance popup fires ~1 minute before exhaustion
   warnLevel2Sec: 20,

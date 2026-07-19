@@ -158,11 +158,21 @@ export function AstrologerFormModal({
                 <option value="male">Male</option>
               </select>
             </label>
-            <label className="af"><span>Chat rate (₹/min){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="25" value={f.chatRate} onChange={(e) => set('chatRate', e.target.value)} /></label>
-            <label className="af"><span>Voice rate (₹/min)</span><input className="input" placeholder="29" value={f.voiceRate} onChange={(e) => set('voiceRate', e.target.value)} /></label>
-            <label className="af"><span>Video rate (₹/min)</span><input className="input" placeholder="45" value={f.videoRate} onChange={(e) => set('videoRate', e.target.value)} /></label>
-            <label className="af"><span>Astrologer share (%){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="65" value={f.astrologerShare} onChange={(e) => set('astrologerShare', e.target.value)} /></label>
+            {/* Rates & commission are money inputs — only a Super Admin can set
+                them (the server strips them otherwise). Non-super onboards the
+                profile; a Super sets pricing at approval. */}
+            {isSuper && <>
+              <label className="af"><span>Chat rate (₹/min){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="25" value={f.chatRate} onChange={(e) => set('chatRate', e.target.value)} /></label>
+              <label className="af"><span>Voice rate (₹/min)</span><input className="input" placeholder="29" value={f.voiceRate} onChange={(e) => set('voiceRate', e.target.value)} /></label>
+              <label className="af"><span>Video rate (₹/min)</span><input className="input" placeholder="45" value={f.videoRate} onChange={(e) => set('videoRate', e.target.value)} /></label>
+              <label className="af"><span>Astrologer share (%){mode === 'create' ? ' *' : ''}</span><input className="input" placeholder="65" value={f.astrologerShare} onChange={(e) => set('astrologerShare', e.target.value)} /></label>
+            </>}
           </div>
+          {!isSuper && (
+            <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+              Rates, commission and AI status are set by a Super Admin at approval.
+            </p>
+          )}
 
           {mode === 'create' && (
             <label className="af" style={{ marginTop: 12 }}>
@@ -192,9 +202,11 @@ export function AstrologerFormModal({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <input type="checkbox" checked={isAI} onChange={(e) => setIsAI(e.target.checked)} /> AI astrologer (adds a subtle “AI” tag in the app)
-            </label>
+            {isSuper && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                <input type="checkbox" checked={isAI} onChange={(e) => setIsAI(e.target.checked)} /> AI astrologer (adds a subtle “AI” tag in the app)
+              </label>
+            )}
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <input type="checkbox" checked={risingStar} onChange={(e) => setRisingStar(e.target.checked)} /> ★ Rising Star (features them in the app’s Rising Stars rail)
             </label>

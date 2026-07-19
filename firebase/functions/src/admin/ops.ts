@@ -8,12 +8,12 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
-import { assertRole, badRequest } from '../common/errors';
+import { assertAdminTier, badRequest } from '../common/errors';
 
 const RESOLVABLE = new Set(['reports', 'alerts', 'failedWebhookCredits', 'imageModeration']);
 
 export const resolveOpsItem = onCall(async (req) => {
-  const actor = assertRole(req, 'admin');
+  const actor = assertAdminTier(req, ['super', 'ops']);
   const { collection, id } = (req.data ?? {}) as { collection?: string; id?: string };
   if (!collection || !id) badRequest('collection and id are required.');
   if (!RESOLVABLE.has(collection!)) badRequest('Unsupported collection.');

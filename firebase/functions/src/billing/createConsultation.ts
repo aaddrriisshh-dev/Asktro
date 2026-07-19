@@ -129,12 +129,16 @@ export const createConsultation = onCall(async (req) => {
       type === 'voice' ? 'voiceRatePaise' : type === 'video' ? 'videoRatePaise' : 'chatRatePaise';
     const typeRate = astrologer[typeRateField] as number | undefined;
     const legacyRate = astrologer.ratePerMinutePaise as number | undefined;
-    const price =
+    const rawPrice =
       typeof typeRate === 'number' && typeRate > 0
         ? typeRate
         : typeof legacyRate === 'number' && legacyRate > 0
           ? legacyRate
           : config.consultationPricePerMinutePaise;
+    // Clamp against a server-config ceiling so a corrupted/absurd astrologer rate
+    // can never price a session above the sane maximum, and never negative/NaN.
+    const maxRate = config.maxConsultationPricePerMinutePaise ?? 50000;
+    const price = Number.isFinite(rawPrice) && rawPrice > 0 ? Math.min(rawPrice, maxRate) : config.consultationPricePerMinutePaise;
 
     // The one-time free CHAT credit (chatBonusBalance) is usable ONLY with AI or
     // base-rate astrologers. Premium human astrologers charge from the first

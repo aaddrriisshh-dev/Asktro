@@ -22,6 +22,10 @@ export type TxnKind =
 
 export interface GlobalConfig {
   consultationPricePerMinutePaise: number;
+  /** Hard ceiling on a per-minute consultation rate (paise). Defends billing
+   *  against a corrupted/absurd astrologer rate — the resolved rate is clamped
+   *  to this before a session is priced. */
+  maxConsultationPricePerMinutePaise?: number;
   minWalletToStartPaise: number;
   warnLevel1Sec: number;
   warnLevel2Sec: number;

@@ -15,6 +15,26 @@ export function assertRole(req: CallableRequest, role: 'astrologer' | 'admin'): 
   return uid;
 }
 
+export type AdminTier = 'super' | 'ops' | 'astrology';
+
+/** Assert the caller is an admin whose tier is one of `tiers`. Use this for any
+ *  privileged admin action so a lower tier can't reach a money/privilege path
+ *  just by being *some* admin (e.g. broadcast, user status, ops resolve are
+ *  super/ops; money mints are super). */
+export function assertAdminTier(req: CallableRequest, tiers: AdminTier[]): string {
+  const uid = assertRole(req, 'admin');
+  const tier = req.auth?.token?.adminRole as AdminTier | undefined;
+  if (!tier || !tiers.includes(tier)) {
+    throw new HttpsError('permission-denied', `Requires admin tier: ${tiers.join(' or ')}.`);
+  }
+  return uid;
+}
+
+/** True when the caller is a super admin. */
+export function isSuperAdmin(req: CallableRequest): boolean {
+  return req.auth?.token?.role === 'admin' && req.auth?.token?.adminRole === 'super';
+}
+
 export function badRequest(message: string): never {
   throw new HttpsError('invalid-argument', message);
 }

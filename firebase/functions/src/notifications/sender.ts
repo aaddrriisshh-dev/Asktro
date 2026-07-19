@@ -10,7 +10,7 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onCall } from 'firebase-functions/v2/https';
 import { db, messaging, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
-import { assertRole, badRequest } from '../common/errors';
+import { assertAdminTier, badRequest } from '../common/errors';
 import { adminName } from '../common/actor';
 
 export const onNotificationCreated = onDocumentCreated('notifications/{id}', async (event) => {
@@ -96,7 +96,7 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
 });
 
 export const sendBroadcast = onCall(async (req) => {
-  const actor = assertRole(req, 'admin');
+  const actor = assertAdminTier(req, ['super', 'ops']);
   const { title, body, type, deeplink, image, imageStyle, bgColor, textColor, displayMode, portraitImage, ctaText, landingTitle, landingBody, landingBgColor, landingTextColor, theme, segment, uids } = (req.data ?? {}) as {
     title?: string;
     body?: string;

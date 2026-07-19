@@ -29,6 +29,29 @@ function requireOpsOrSuper(req: Parameters<Parameters<typeof onCall>[0]>[0]): st
   return actor;
 }
 
+// Money / trust fields: only a Super Admin may set an astrologer's commission,
+// per-minute rates or AI flag. Ops/Astrology can onboard & edit the profile, but
+// these value-minting fields are stripped from their payload server-side (Super
+// sets them at approval). Mirrors the super-only writes in firestore.rules.
+const PRIVILEGED_ASTRO_FIELDS = [
+  'commissionPercent', 'ratePerMinutePaise', 'chatRatePaise', 'voiceRatePaise', 'videoRatePaise', 'isAI',
+] as const;
+
+function stripPrivilegedForNonSuper<T extends Record<string, unknown>>(
+  req: Parameters<Parameters<typeof onCall>[0]>[0],
+  data: T,
+): { stripped: string[] } {
+  if (req.auth?.token?.adminRole === 'super') return { stripped: [] };
+  const stripped: string[] = [];
+  for (const k of PRIVILEGED_ASTRO_FIELDS) {
+    if (k in data && data[k] !== undefined) {
+      delete data[k];
+      stripped.push(k);
+    }
+  }
+  return { stripped };
+}
+
 /** Create an astrologer: Auth account + role claim + profile at astrologers/{uid}. */
 export const createAstrologer = onCall(async (req) => {
   const actor = requireOpsOrSuper(req);
@@ -42,6 +65,9 @@ export const createAstrologer = onCall(async (req) => {
     age?: number; gender?: string;
   };
   if (!d.name || !d.email) badRequest('name and email are required.');
+
+  // Non-super admins can't set commission / rates / AI status — strip them.
+  stripPrivilegedForNonSuper(req, d);
 
   const password = d.password && d.password.length >= 6 ? d.password : tempPassword();
 
@@ -153,6 +179,10 @@ export const updateAstrologer = onCall(async (req) => {
   const actor = requireOpsOrSuper(req);
   const { astrologerId, ...rest } = (req.data ?? {}) as { astrologerId?: string } & Record<string, unknown>;
   if (!astrologerId) badRequest('astrologerId is required.');
+
+  // Non-super admins can't change commission / rates / AI status — strip them so
+  // an ops/astrology edit can't mint value or alter billing.
+  stripPrivilegedForNonSuper(req, rest);
 
   const allowed = ['name', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'chatRatePaise', 'voiceRatePaise', 'videoRatePaise', 'profilePhoto', 'isAI', 'featured', 'risingStar', 'age', 'gender'];
   const patch: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
