@@ -24,8 +24,11 @@ export const adjustWallet = onCall(async (req) => {
     reason?: string;
     opId?: string;
   };
-  if (!userId || typeof amountPaise !== 'number' || amountPaise === 0) {
-    badRequest('userId and a non-zero amountPaise are required.');
+  // Number.isFinite rejects NaN/±Infinity — which are typeof 'number' and would
+  // otherwise corrupt the balance through FieldValue.increment. Also require an
+  // integer paise amount.
+  if (!userId || !Number.isFinite(amountPaise) || !Number.isInteger(amountPaise) || amountPaise === 0) {
+    badRequest('userId and a non-zero integer amountPaise are required.');
   }
 
   const duplicate = await db.runTransaction(async (tx) => {

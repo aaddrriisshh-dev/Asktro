@@ -39,6 +39,10 @@ function SessionCard({ c, meId, astroName }: { c: Any; meId: string; astroName: 
   const refunded0 = (c.refundedPaise as number) ?? 0;
   const [refunding, setRefunding] = useState(false);
   const [didRefund, setDidRefund] = useState(false);
+  // Mint the idempotency key ONCE per session row and reuse it on every retry, so
+  // a timed-out-but-actually-succeeded refund can't double-apply when re-clicked
+  // (the server dedupes on opId). A row only ever refunds once (didRefund gate).
+  const [refundOpId] = useState(() => crypto.randomUUID());
   const refundable = Math.max(0, charged - refunded0);
   const canRefund = (status === 'completed' || status === 'expired') && refundable > 0 && !didRefund;
 
@@ -53,7 +57,7 @@ function SessionCard({ c, meId, astroName }: { c: Any; meId: string; astroName: 
     }
     setRefunding(true);
     try {
-      await callFn('refundConsultation', { consultationId: c.id, ...(amountPaise !== undefined ? { amountPaise } : {}), reason, opId: crypto.randomUUID() });
+      await callFn('refundConsultation', { consultationId: c.id, ...(amountPaise !== undefined ? { amountPaise } : {}), reason, opId: refundOpId });
       setDidRefund(true);
       alert('Refund processed — the customer was credited and the astrologer’s accrual reversed.');
     } catch (e) {

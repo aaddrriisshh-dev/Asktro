@@ -44,7 +44,7 @@ export { onAiChatMessage, onAiConsultationCreated } from './ai/replyEngine';
 export { purchaseKundliMatch } from './astrology/kundliMatch';
 
 // ---- AstroMall store (physical-goods checkout) ----
-export { createStoreOrder, verifyStoreOrder } from './store/store';
+export { createStoreOrder, verifyStoreOrder, reconcileFailedStoreConfirms } from './store/store';
 
 // ---- Auth / account lifecycle ----
 export { onAuthUserCreate } from './auth/onAuthUserCreate';

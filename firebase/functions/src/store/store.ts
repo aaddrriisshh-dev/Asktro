@@ -15,6 +15,7 @@
  * plumbing already trusted for wallet recharges.
  */
 import { onCall } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions/v2';
 import { db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
@@ -356,16 +357,111 @@ export async function tryConfirmStoreCapture(
   if (!orderId || !paymentId) return false;
   const bind = (await db.collection(Collections.storeOrderBindings).doc(orderId).get()).data();
   if (!bind) return false; // not a store order — let the recharge path handle it
+  const storeOrderId = bind.storeOrderId as string;
   // Amount guard: a store binding whose captured amount differs from what we
-  // bound is suspicious — do NOT confirm; leave it pending for manual review.
+  // bound is suspicious — do NOT confirm; dead-letter it for MANUAL review (never
+  // auto-retry, since auto-confirming a mismatched amount is exactly wrong).
   if (typeof entity.amount === 'number' && typeof bind.totalPaise === 'number' && entity.amount !== bind.totalPaise) {
     logger.error('store webhook: captured amount != bound total', { orderId, paymentId, captured: entity.amount, bound: bind.totalPaise });
+    await recordStoreConfirmFailure(
+      { orderId, paymentId, storeOrderId },
+      `captured ${entity.amount} != bound ${bind.totalPaise}`,
+      { manualOnly: true },
+    );
     return true; // it IS a store order (handled = true) — just not auto-confirmed
   }
   try {
-    await confirmStoreOrderPaid(bind.storeOrderId as string, paymentId, 'webhook');
+    await confirmStoreOrderPaid(storeOrderId, paymentId, 'webhook');
   } catch (e) {
+    // Don't swallow behind the webhook 200: dead-letter + alert so a paid-but-
+    // unconfirmed order is surfaced and auto-retried (parity with recharge).
     logger.error('store webhook: confirm failed', { orderId, paymentId, error: e instanceof Error ? e.message : String(e) });
+    await recordStoreConfirmFailure({ orderId, paymentId, storeOrderId }, e);
   }
   return true;
 }
+
+const STORE_DEAD_LETTER = 'failedStoreConfirms';
+const STORE_MAX_ATTEMPTS = 10;
+
+/** Persist a failed store-order confirm + raise an admin alert. Keyed by
+ *  paymentId so webhook retries update one row. `manualOnly` (amount mismatch)
+ *  is surfaced for a human and never auto-confirmed. */
+async function recordStoreConfirmFailure(
+  p: { orderId: string; paymentId: string; storeOrderId: string },
+  err: unknown,
+  opts: { manualOnly?: boolean } = {},
+): Promise<void> {
+  const message = err instanceof Error ? err.message : String(err);
+  const manualOnly = opts.manualOnly === true;
+  const ref = db.collection(STORE_DEAD_LETTER).doc(p.paymentId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    tx.set(ref, {
+      storeOrderId: p.storeOrderId,
+      orderId: p.orderId,
+      paymentId: p.paymentId,
+      lastError: message,
+      attempts: FieldValue.increment(1),
+      resolved: false,
+      ...(manualOnly ? { manualOnly: true } : {}),
+      ...(snap.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    tx.set(db.collection('alerts').doc(`store_confirm_${p.paymentId}`), {
+      kind: manualOnly ? 'store_amount_mismatch' : 'store_confirm_failed',
+      severity: 'critical',
+      message: manualOnly
+        ? `MANUAL REVIEW: store order ${p.storeOrderId} (payment ${p.paymentId}) had a captured-amount mismatch and was NOT confirmed: ${message}. Verify against Razorpay before shipping.`
+        : `Store order ${p.storeOrderId} (payment ${p.paymentId}) was paid but confirm failed: ${message}`,
+      refId: p.paymentId,
+      resolved: false,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+}
+
+/** Retry unresolved store-confirm dead-letters. confirmStoreOrderPaid is
+ *  idempotent (early-returns once confirmed), so retrying a row that a late
+ *  webhook already settled is safe. Amount-mismatch rows are manual-only. */
+export const reconcileFailedStoreConfirms = onSchedule('every 5 minutes', async () => {
+  const pending = await db.collection(STORE_DEAD_LETTER)
+    .where('resolved', '==', false)
+    .limit(50)
+    .get();
+
+  for (const doc of pending.docs) {
+    const d = doc.data();
+    if (d.manualOnly === true) continue; // amount mismatch — human reconciles
+    if ((d.attempts ?? 0) > STORE_MAX_ATTEMPTS) {
+      if (!d.escalated) {
+        await db.collection('alerts').doc(`store_confirm_exhausted_${d.paymentId}`).set({
+          kind: 'store_confirm_retry_exhausted',
+          severity: 'critical',
+          message: `MANUAL ACTION: store order ${d.storeOrderId} (payment ${d.paymentId}) failed to confirm after ${STORE_MAX_ATTEMPTS} retries. Customer paid but order not confirmed.`,
+          refId: d.paymentId,
+          resolved: false,
+          createdAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        await doc.ref.set({ escalated: true, escalatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        logger.error('reconcileFailedStoreConfirms: EXHAUSTED', { paymentId: d.paymentId, storeOrderId: d.storeOrderId });
+      }
+      continue;
+    }
+    try {
+      await confirmStoreOrderPaid(d.storeOrderId as string, d.paymentId as string, 'webhook');
+      await doc.ref.set({ resolved: true, resolvedAt: FieldValue.serverTimestamp() }, { merge: true });
+      await db.collection('alerts').doc(`store_confirm_${d.paymentId}`).set(
+        { resolved: true, resolvedAt: FieldValue.serverTimestamp() }, { merge: true },
+      );
+      logger.info('reconcileFailedStoreConfirms: recovered', { paymentId: d.paymentId, storeOrderId: d.storeOrderId });
+    } catch (e) {
+      await doc.ref.set(
+        { attempts: FieldValue.increment(1), lastError: e instanceof Error ? e.message : String(e), updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      logger.error('reconcileFailedStoreConfirms: retry failed', { paymentId: d.paymentId, error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+});

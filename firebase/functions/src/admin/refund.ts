@@ -186,8 +186,10 @@ export const refundConsultation = onCall(async (req) => {
     reason?: string;
   };
   if (!consultationId) badRequest('consultationId is required.');
-  if (amountPaise !== undefined && (typeof amountPaise !== 'number' || amountPaise <= 0)) {
-    badRequest('amountPaise, if given, must be a positive number.');
+  // Number.isFinite rejects NaN/±Infinity (NaN <= 0 is false, so it slips past a
+  // bare comparison and would corrupt the balance). Require a positive integer.
+  if (amountPaise !== undefined && (!Number.isFinite(amountPaise) || !Number.isInteger(amountPaise) || amountPaise <= 0)) {
+    badRequest('amountPaise, if given, must be a positive integer.');
   }
 
   const config = await getGlobalConfig();

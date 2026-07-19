@@ -472,6 +472,12 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if false;
     }
+    // Store-order confirm dead-letters — function-written retry queue for paid
+    // orders whose confirm failed; admins read for audit.
+    match /failedStoreConfirms/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
 
     // ================= admin-only areas =================
     match /adminUsers/{uid} {
