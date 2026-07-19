@@ -317,8 +317,13 @@ class _HeroArtState extends State<_HeroArt> {
     }
   }
 
+  // Bundled product art — a light (~200 KB) transparent WebP, decoded at the
+  // display height so it paints instantly and doubles as the network
+  // placeholder.
+  static const _assetPath = 'assets/store/hero_products.webp';
+
   ImageProvider get _provider => widget.image.isEmpty
-      ? const AssetImage('assets/store/hero_products.png')
+      ? const AssetImage(_assetPath)
       : CachedNetworkImageProvider(widget.image);
 
   // Listen once for the decoded image to learn its true width/height ratio.
@@ -345,21 +350,38 @@ class _HeroArtState extends State<_HeroArt> {
   @override
   Widget build(BuildContext context) {
     final ratio = (_ratio == null || _ratio! <= 0) ? _fallbackRatio : _ratio!;
+    // Decode at ~2× the display height (172pt) so even high-DPI screens stay
+    // crisp while the decode stays cheap — this is what removes the load lag.
+    const decodeH = 360;
     final Widget img = widget.image.isEmpty
         ? Image.asset(
-            'assets/store/hero_products.png',
+            _assetPath,
             fit: BoxFit.contain,
             alignment: Alignment.bottomRight,
+            cacheHeight: decodeH,
             errorBuilder: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 44))),
           )
         : CachedNetworkImage(
             imageUrl: widget.image,
             fit: BoxFit.contain,
             alignment: Alignment.bottomRight,
-            placeholder: (_, __) => const Center(
-              child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: _purple)),
+            memCacheHeight: decodeH,
+            maxHeightDiskCache: decodeH,
+            fadeInDuration: const Duration(milliseconds: 180),
+            // Show the bundled product instantly while the network image loads,
+            // so the hero is never blank or spinning.
+            placeholder: (_, __) => Image.asset(
+              _assetPath,
+              fit: BoxFit.contain,
+              alignment: Alignment.bottomRight,
+              cacheHeight: decodeH,
             ),
-            errorWidget: (_, __, ___) => const Center(child: Text('🪔', style: TextStyle(fontSize: 40))),
+            errorWidget: (_, __, ___) => Image.asset(
+              _assetPath,
+              fit: BoxFit.contain,
+              alignment: Alignment.bottomRight,
+              cacheHeight: decodeH,
+            ),
           );
     return LayoutBuilder(
       builder: (context, c) {
