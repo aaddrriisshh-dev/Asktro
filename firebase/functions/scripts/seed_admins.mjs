@@ -1,19 +1,19 @@
 /**
- * Create the three SUPER ADMIN accounts (Adrish, Vineet, Sanjay) for testing.
+ * Create / rotate the admin accounts (3 super, 1 ops, 1 astrology).
  *
- * Silent: the Admin SDK's createUser sends NO email/notification — the accounts
- * simply exist with the password below. Nobody is alerted; only you have the
- * credentials. Safe to run while the portal is still private.
+ * Silent: the Admin SDK's createUser/updateUser sends NO email/notification —
+ * the accounts simply exist with the password you type. Nobody is alerted.
  *
- *   node scripts/seed_admins.mjs 'MyStr0ng!Pass'  # create/reset with THIS password
- *   node scripts/seed_admins.mjs --clear          # disable + remove these admins
+ *   node scripts/seed_admins.mjs          # prompt (hidden) for a new password
+ *   node scripts/seed_admins.mjs --clear  # disable + remove these admins
  *
- * SECURITY: there is no built-in default password — you must pass one. Never
- * commit a real password to this file or to any doc. Rotate immediately if a
- * password was ever shared or committed.
+ * SECURITY: no default password, and the password is read from a HIDDEN prompt
+ * (never argv, shell history, or the screen) so a credential can never leak into
+ * this repo, your history, or a chat log. Never commit a real password anywhere.
+ * Rotate immediately if a password was ever shared or committed.
  *
  * Run from the firebase/functions folder (needs serviceAccountKey.json).
- * Each account gets: role=admin, adminRole=super, and an adminUsers/{uid}
+ * Each account gets: role=admin, its adminRole claim, and an adminUsers/{uid}
  * profile (so the roster + "added by / approved by" attribution show real names).
  */
 import { initializeApp, cert } from 'firebase-admin/app';
@@ -43,17 +43,36 @@ const auth = getAuth();
 const db = getFirestore();
 
 const clear = process.argv.includes('--clear');
-const password = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : null;
 
-// No hardcoded fallback: refuse to run (except --clear) without an explicit,
-// reasonably strong password so a credential can never live in this repo again.
-if (!clear && (!password || password.length < 10)) {
-  console.error(
-    '\nRefusing to run: pass a strong password (>=10 chars) as the first arg,\n' +
-    "e.g.  node scripts/seed_admins.mjs 'MyStr0ng!Pass'\n" +
-    'Never commit the password anywhere.\n',
-  );
-  process.exit(1);
+/** Read a line from the terminal with the typed characters hidden (no echo), so
+ *  the password never lands in the shell history, argv, or the screen. */
+function promptHidden(query) {
+  return new Promise((resolve) => {
+    const stdin = process.stdin;
+    process.stdout.write(query);
+    stdin.setRawMode?.(true);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+    let buf = '';
+    const onData = (ch) => {
+      const code = ch.charCodeAt(0);
+      if (code === 13 || code === 10) {        // Enter
+        stdin.setRawMode?.(false);
+        stdin.pause();
+        stdin.removeListener('data', onData);
+        process.stdout.write('\n');
+        resolve(buf);
+      } else if (code === 3) {                 // Ctrl-C
+        process.stdout.write('\n');
+        process.exit(1);
+      } else if (code === 127 || code === 8) { // Backspace
+        buf = buf.slice(0, -1);
+      } else {
+        buf += ch;
+      }
+    };
+    stdin.on('data', onData);
+  });
 }
 
 async function findUid(email) {
@@ -72,7 +91,14 @@ async function run() {
     return;
   }
 
-  console.log('\nCreating super admins (no emails are sent):\n');
+  // Password comes from a hidden prompt — never argv/history/screen.
+  const password = await promptHidden('New admin password (hidden, min 10 chars): ');
+  if (!password || password.length < 10) {
+    console.error('\nRefusing to run: password must be at least 10 characters.\n');
+    process.exit(1);
+  }
+
+  console.log('\nRotating admin accounts (no emails are sent):\n');
   for (const a of ADMINS) {
     let uid = await findUid(a.email);
     let created = false;
@@ -81,9 +107,8 @@ async function run() {
       uid = u.uid;
       created = true;
     } else {
-      // Existing account → actually ROTATE the password (the old code skipped
-      // this, so a re-run never changed the credential). Also revoke live
-      // sessions so the previous password's tokens stop working immediately.
+      // Existing account → rotate the password and revoke live sessions so the
+      // old password's tokens stop working immediately.
       await auth.updateUser(uid, { password });
       await auth.revokeRefreshTokens(uid);
     }
@@ -92,10 +117,11 @@ async function run() {
       { name: a.name, email: a.email, adminRole: a.adminRole, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() },
       { merge: true },
     );
-    console.log(`✓ ${a.name.padEnd(10)} ${a.email.padEnd(24)} ${(ROLE_LABEL[a.adminRole] ?? a.adminRole).padEnd(18)} ${created ? '(new)' : '(updated)'}`);
+    console.log(`✓ ${a.name.padEnd(10)} ${a.email.padEnd(24)} ${(ROLE_LABEL[a.adminRole] ?? a.adminRole).padEnd(18)} ${created ? '(new)' : '(rotated)'}`);
   }
-  console.log(`\nAll accounts share the login password: ${password}`);
-  console.log('They send/receive no notifications. Sign in at the portal to test each role.\n');
+  // NEVER print the password. You typed it; you know it.
+  console.log('\nDone. All 5 accounts share the new password and their old sessions were revoked.');
+  console.log('Sign in at the portal to confirm each role.\n');
 }
 
 run().then(() => process.exit(0)).catch((e) => { console.error('\nFailed:', e.message); process.exit(1); });
