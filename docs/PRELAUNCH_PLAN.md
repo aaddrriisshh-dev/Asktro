@@ -66,8 +66,10 @@ shipped an Indian consultation app on iOS before the iOS submission._
   Privacy require a live URL).
 - [ ] **Public web account-deletion URL** (Google Play requires this even though
   in-app deletion exists).
-- [ ] **In-app "for entertainment purposes" disclaimer + <18 age gate**
-  (fortune-telling norms + DPDP §9).
+- [x] **In-app "for entertainment purposes" disclaimer + <18 age gate** —
+  DONE (2026-07-19): login gate now reads "I am 18 or older and agree to…"
+  (required for phone + Google/Apple), plus a visible astrology guidance/
+  entertainment disclaimer. Ships in the next customer-app rebuild.
 - [ ] **Chat-image NSFW auto-scan** — currently manual-queue only; wire the
   Vision API scan (UGC risk for both stores).
 - [ ] **iOS: Apple IAP decision** (see §1).
