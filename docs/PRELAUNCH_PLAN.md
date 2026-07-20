@@ -41,9 +41,14 @@ lot of the checklist below.
   gates, remedies-update allowlist, storage content-type allowlists).
 - **Admin portal (Vercel): deployed** ✅ — `asktro-admin.vercel.app` rebuilt,
   including the live-sessions realtime fix.
-- **Customer app: NOT yet rebuilt** ⏳ — the app-side changes below are committed
-  but need a build to reach users' phones (see §5). These are **display/UX only**;
-  no money logic depends on the rebuild.
+- **#38 dead-air overcharge fix — DEPLOYED (2026-07-20)** ✅ — `tickConsultation` /
+  `endConsultation` / `sweepStaleSessions` redeployed; a dropped/backgrounded party
+  can no longer be billed past their last confirmed heartbeat (healthy sessions
+  unchanged). 143 unit + 65 integration tests green.
+- **Customer app: rebuilt & tested on-device (2026-07-20)** ✅ — runs on the new
+  `in.asktro.customer` package with phone + Google auth + data intact, plus the
+  login redesign (real Google logo, dedicated Disclaimer page, passive consent).
+  A store-uploadable **release** build still needs the keystore (§2.C).
 
 ### The "scattered transactions" (`−2, −1, −3, −5…`) fix — LIVE ✅
 The confusing per-tick rows are **gone for new sessions.** The wallet still debits
@@ -97,37 +102,33 @@ shipped an Indian consultation app on iOS before the iOS submission._
 
 ### A. Legal / store-rejection (owner content + a little code)
 
-> **DRAFTS READY (2026-07-19)** — three review-ready HTML pages are in
-> `docs/legal/`: `privacy-policy.html`, `terms-of-service.html`,
-> `account-deletion.html`. Built accurately from what the app actually does. They
-> are **drafts, not final** — do NOT publish until the checklist below is done.
+> **FILLED + LIVE IN-APP (2026-07-20)** — the legal content is no longer a draft.
+> All placeholders are filled with the **real company details**: Asktro Tech
+> Private Limited, registered office **B-76 Sector 64, Gautam Buddha Nagar, Noida,
+> UP 201301**, Grievance Officer **Sanjay Tyagi / grievance@asktro.in**,
+> support@asktro.in, effective **20 July 2026**, jurisdiction **Noida**. Four pages
+> — Privacy, Terms, **Disclaimer** (new), Account-Deletion — are:
+> - **Published to the in-app CMS** (`cms/privacy|terms|disclaimer`) → live in the
+>   app now via `seed_legal.mjs --yes`; editable in the portal `/cms` without an app
+>   update.
+> - **Delivered as filled HTML** (`docs/legal/*.html`) to the owner to forward to
+>   the web developer for hosting.
 >
-> **Before publishing (when you have time):**
-> 1. **Legal counsel review all three** — esp. Terms §5–6 (payments/refunds vs.
->    Indian consumer law), Terms §10 (liability), and the Privacy Policy vs. the
->    **DPDP Act** (grievance officer is legally required).
-> 2. **Fill every `[…]` placeholder** — legal entity (Asktro Tech Private Limited),
->    effective date, grievance officer name+email, registered address, jurisdiction
->    city, liability-cap window.
-> 3. **Verify facts match reality** — third-party list (Razorpay, Agora, Firebase,
->    Gemini, ProKerala), refund policy, data collected.
-> 4. **Host at stable public URLs** on your domain: `asktro.in/privacy`,
->    `asktro.in/terms`, `asktro.in/account-deletion`.
-> 5. **Wire them in:** Privacy URL → Play Data Safety + Apple App Privacy;
->    account-deletion URL → Play Console → App content → Data deletion; make the
->    app's login Terms/Privacy links point to the hosted URLs (or keep the in-app
->    CMS copy byte-identical so a reviewer sees no mismatch); footer link on the
->    website.
+> **What's LEFT (owner):** (1) developer **hosts** the 4 pages at `asktro.in/privacy`,
+> `/terms`, `/disclaimer`, `/account-deletion`; (2) wire the URLs → Play Data Safety
+> + Apple App Privacy + Play → App content → Data deletion; (3) a **legal-counsel
+> review** pass (recommended, not blocking) — esp. Terms refund (§6) + liability
+> (§10) vs. Indian consumer law + DPDP.
 
-- [ ] **Legal docs are placeholders** — `[EFFECTIVE DATE]`, office address,
-  grievance officer, support email in `seed_legal.mjs` **and** the 3 drafts above.
-  Fill real values.
-- [ ] **Public hosted Privacy Policy URL** — draft ready (`docs/legal/privacy-policy.html`);
-  review + fill + host, then add to both stores' Data Safety / App Privacy.
-- [ ] **Public web account-deletion URL** — draft ready (`docs/legal/account-deletion.html`);
-  review + host, then add to Play → App content → Data deletion.
-- [ ] **Terms of Service URL** — draft ready (`docs/legal/terms-of-service.html`);
-  review + fill + host at `asktro.in/terms`.
+- [x] **Legal placeholders filled with real values** — DONE (2026-07-20) in
+  `seed_legal.mjs` + all `docs/legal/*.html`; grievance officer aligned with the
+  live Razorpay website (Sanjay Tyagi / grievance@asktro.in).
+- [x] **In-app legal pages live** — Privacy + Terms + Disclaimer published to the
+  CMS; login shows tappable Terms/Privacy/Disclaimer links + a compact
+  age/entertainment consent line (AstroTalk-style passive consent).
+- [ ] 👤 **Host the 4 filled pages** (`docs/legal/*.html`) at public URLs, then wire
+  into Play Data Safety + Apple App Privacy + Play account-deletion. Files ready.
+- [ ] 👤 **Legal-counsel review** (recommended, not a launch blocker).
 - [x] **In-app "for entertainment purposes" disclaimer + <18 age gate** —
   DONE + **now in the rebuilt customer app** (2026-07-20): login gate reads "I am
   18 or older and agree to…" (required for phone + Google/Apple), plus a visible
@@ -216,12 +217,12 @@ billed rate label) are **committed** and go live on the **next customer-app buil
 (§5c). Store-review audit refreshed (`docs/STORE_REVIEW.md`); legal drafts in
 `docs/legal/` (review/host still owner-side).
 
-### 5c. Customer app rebuild — IN PROGRESS
-Committed app changes need a build to reach devices. `flutter pub get` done; build
-via `flutter run --release` (test) — a store-uploadable release is still gated on
-the keystore + real package IDs (§2.A/C). The disclaimer + age-gate only appear on
-the **login screen** (sign out to see them); billing consolidation is backend and
-already live regardless of the app build.
+### 5c. Customer app rebuild — DONE & TESTED ON-DEVICE (2026-07-20)
+Built and run on-device on the new `in.asktro.customer` package: phone + Google
+auth working, data intact, login redesign visible (real Google logo, Disclaimer
+page, passive consent). Package IDs (§2.C) now DONE; the only remaining ship gate
+for a **store upload** is the release keystore. Billing consolidation + #38 are
+backend and already live regardless of the app build.
 
 ### 5a. Design/portal/retention batch (2026-07-18) — DONE
 - Asktro **Mall hero** — full redesign, full-bleed, purple outline, subtle 3D
