@@ -202,7 +202,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const TextSpan(text: '.'),
                       ],
                     ),
-                    textAlign: TextAlign.center,
+                    textAlign: TextAlign.left,
                   ),
                   const SizedBox(height: 7),
                   Text.rich(
@@ -213,7 +213,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TextSpan(text: 'Disclaimer', style: const TextStyle(color: Ob.grey, decoration: TextDecoration.underline, decorationColor: Ob.grey), recognizer: _disclaimerTap),
                       ],
                     ),
-                    textAlign: TextAlign.center,
+                    textAlign: TextAlign.left,
                   ),
                   const SizedBox(height: 10),
                 ],
