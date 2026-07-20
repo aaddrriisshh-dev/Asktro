@@ -23,7 +23,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _phone = TextEditingController();
-  bool _agreed = false;
   bool _loading = false;
   String? _error;
 
@@ -47,10 +46,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool get _validPhone => _phone.text.trim().length == 10;
 
   Future<void> _continue() async {
-    if (!_agreed) {
-      setState(() => _error = 'Please confirm you’re 18+ and accept the Terms & Privacy Policy to continue.');
-      return;
-    }
     if (!_validPhone) {
       setState(() => _error = 'Enter a valid 10-digit mobile number.');
       return;
@@ -82,12 +77,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _social(Future<Result<void>> Function() action) async {
-    // Consent gate applies to EVERY sign-in path, not just phone — a user must
-    // never be able to create an account via Google/Apple without agreeing.
-    if (!_agreed) {
-      setState(() => _error = 'Please confirm you’re 18+ and accept the Terms & Privacy Policy to continue.');
-      return;
-    }
+    // Consent is the passive "by continuing you agree…" notice shown beneath the
+    // sign-in buttons (18+ + Terms/Privacy), so tapping any of them = agreeing.
     setState(() {
       _loading = true;
       _error = null;
@@ -169,82 +160,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Text('Log in to consult trusted astrologers, anytime.', style: Ob.subtitle),
                   const SizedBox(height: 30),
                   _phoneField(),
-                  const SizedBox(height: 4),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Checkbox(
-                        value: _agreed,
-                        activeColor: Ob.purple,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                        onChanged: (v) => setState(() => _agreed = v ?? false),
-                      ),
-                      Expanded(
-                        // Combines the required 18+ age gate with the Terms/Privacy
-                        // acceptance in one checkbox the user must tick to continue.
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text.rich(
-                                TextSpan(
-                                  style: Ob.note,
-                                  children: [
-                                    const TextSpan(text: 'I am 18 or older and agree to the '),
-                                    TextSpan(
-                                      text: 'Terms of Service',
-                                      style: TextStyle(
-                                        color: Ob.purple,
-                                        fontWeight: FontWeight.w600,
-                                        decoration: TextDecoration.underline,
-                                        decorationColor: Ob.purple,
-                                      ),
-                                      recognizer: _termsTap,
-                                    ),
-                                    const TextSpan(text: ' and '),
-                                    TextSpan(
-                                      text: 'Privacy Policy',
-                                      style: TextStyle(
-                                        color: Ob.purple,
-                                        fontWeight: FontWeight.w600,
-                                        decoration: TextDecoration.underline,
-                                        decorationColor: Ob.purple,
-                                      ),
-                                      recognizer: _privacyTap,
-                                    ),
-                                    const TextSpan(text: '.'),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 7),
-                              // Compact disclaimer — same font as the consent line
-                              // above, aligned under it (shares this column). Full
-                              // text is one tap away on the Disclaimer page.
-                              Text.rich(
-                                TextSpan(
-                                  style: Ob.note,
-                                  children: [
-                                    const TextSpan(text: 'For guidance & entertainment only — not professional advice. '),
-                                    TextSpan(
-                                      text: 'Disclaimer',
-                                      style: TextStyle(
-                                        color: Ob.purple,
-                                        fontWeight: FontWeight.w600,
-                                        decoration: TextDecoration.underline,
-                                        decorationColor: Ob.purple,
-                                      ),
-                                      recognizer: _disclaimerTap,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  const SizedBox(height: 14),
                   if (_error != null) ...[
                     const SizedBox(height: 6),
                     Text(_error!, style: Ob.note.copyWith(color: const Color(0xFFD25360))),
@@ -271,6 +187,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: _loading ? null : () => _social(auth.signInWithApple),
                     ),
                   ],
+                  const SizedBox(height: 20),
+                  // Passive consent (AstroTalk-style): tapping any sign-in button
+                  // above = agreeing. Small + muted so it isn't a burden, but the
+                  // 18+ affirmation + tappable policy links keep it compliant.
+                  Text.rich(
+                    TextSpan(
+                      style: Ob.note.copyWith(color: Ob.grey, fontSize: 11, height: 1.4),
+                      children: [
+                        const TextSpan(text: 'By continuing, you confirm you’re 18+ and agree to our '),
+                        TextSpan(text: 'Terms of Service', style: const TextStyle(color: Ob.grey, decoration: TextDecoration.underline, decorationColor: Ob.grey), recognizer: _termsTap),
+                        const TextSpan(text: ' and '),
+                        TextSpan(text: 'Privacy Policy', style: const TextStyle(color: Ob.grey, decoration: TextDecoration.underline, decorationColor: Ob.grey), recognizer: _privacyTap),
+                        const TextSpan(text: '.'),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 7),
+                  Text.rich(
+                    TextSpan(
+                      style: Ob.note.copyWith(color: Ob.grey, fontSize: 11, height: 1.4),
+                      children: [
+                        const TextSpan(text: 'For guidance & entertainment only. '),
+                        TextSpan(text: 'Disclaimer', style: const TextStyle(color: Ob.grey, decoration: TextDecoration.underline, decorationColor: Ob.grey), recognizer: _disclaimerTap),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 10),
                 ],
               ),
