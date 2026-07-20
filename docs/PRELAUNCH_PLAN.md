@@ -152,8 +152,13 @@ shipped an Indian consultation app on iOS before the iOS submission._
 
 ### C. Ship mechanics (owner tasks — literally cannot ship without)
 - [ ] **Android release keystore** + `key.properties` (currently debug-signed).
-- [ ] **Package IDs off `com.example.*`** (Play bans the prefix; register real
-  IDs in Firebase).
+- [x] **Package IDs off `com.example.*`** — DONE + verified on-device (2026-07-20):
+  `in.asktro.customer` / `in.asktro.astrologer` (Android applicationId + iOS bundle
+  IDs). Both apps re-registered in Firebase with debug SHA-1/256 fingerprints and
+  fresh `google-services.json`. Verified: both build & reach login on the new IDs;
+  customer confirmed phone + Google auth + data intact. NOTE: `google-services.json`
+  is gitignored (re-download from Firebase console if ever needed on a fresh clone);
+  the internal Android `namespace` stays `com.example.*` (invisible, harmless).
 - [ ] **Google Play ($25) + Apple Developer ($99/yr) accounts.**
 - [ ] **iOS APNs push** — Apple Dev account, `.p8` key → Firebase, plist +
   capabilities, real-device test.
