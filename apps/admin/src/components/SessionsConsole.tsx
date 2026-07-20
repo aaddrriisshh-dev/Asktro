@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatPaise } from '@/lib/format';
 import { useCardFilter } from '@/lib/useCardFilter';
@@ -31,33 +31,43 @@ export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video'
     })().catch(() => {});
   }, []);
 
+  // LIVE panel — real-time listener so an admin watching active calls sees them
+  // start/pause/end without refreshing. Bounded by concurrency (a handful of
+  // calls at once), so streaming the whole set is cheap.
+  useEffect(() => {
+    const unsub = onSnapshot(
+      query(
+        collection(db, 'consultations'),
+        where('type', '==', type),
+        where('status', 'in', ['active', 'paused']),
+      ),
+      (snap) => {
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Any[];
+        setLive(rows.sort((a, b) => ms(b, 'createdAt') - ms(a, 'createdAt')));
+      },
+      () => setLive([]),
+    );
+    return () => unsub();
+  }, [type]);
+
+  // COMPLETED panel — bounded one-shot query (date range + hard limit). No need
+  // for realtime here; it's historical. (Needs the composite indexes in
+  // firestore.indexes.json.)
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // Two BOUNDED queries instead of downloading every consultation of this
-      // type: live is bounded by concurrency; completed is bounded by the range
-      // + a hard limit. (Needs the composite indexes in firestore.indexes.json.)
-      const [liveSnap, doneSnap] = await Promise.all([
-        getDocs(query(
-          collection(db, 'consultations'),
-          where('type', '==', type),
-          where('status', 'in', ['active', 'paused']),
-        )),
-        getDocs(query(
-          collection(db, 'consultations'),
-          where('type', '==', type),
-          where('status', 'in', ['completed', 'expired']),
-          where('createdAt', '>=', Timestamp.fromMillis(range.start)),
-          where('createdAt', '<', Timestamp.fromMillis(range.end)),
-          orderBy('createdAt', 'desc'),
-          limit(200),
-        )),
-      ]);
+      const doneSnap = await getDocs(query(
+        collection(db, 'consultations'),
+        where('type', '==', type),
+        where('status', 'in', ['completed', 'expired']),
+        where('createdAt', '>=', Timestamp.fromMillis(range.start)),
+        where('createdAt', '<', Timestamp.fromMillis(range.end)),
+        orderBy('createdAt', 'desc'),
+        limit(200),
+      ));
       if (cancelled) return;
-      const map = (s: typeof liveSnap) => s.docs.map((d) => ({ id: d.id, ...d.data() })) as Any[];
-      setLive(map(liveSnap).sort((a, b) => ms(b, 'createdAt') - ms(a, 'createdAt')));
-      setDone(map(doneSnap)); // already ordered createdAt desc by the query
-    })().catch(() => { if (!cancelled) { setLive([]); setDone([]); } });
+      setDone(doneSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as Any[]); // already createdAt desc
+    })().catch(() => { if (!cancelled) setDone([]); });
     return () => { cancelled = true; };
   }, [type, range.start, range.end]);
 
