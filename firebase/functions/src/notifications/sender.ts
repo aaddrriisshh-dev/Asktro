@@ -5,6 +5,8 @@
  *    written (by any function). Centralizes push so callers just write a doc.
  *  - sendBroadcast (callable, admin): create notification docs for a segment
  *    (all users / astrologers / a list of uids) — fan-out then per-doc push.
+ *    Large static audiences go out as ONE FCM topic; dynamic segments stream in
+ *    pages with the cursor CHECKPOINTED so the send is resumable (#49).
  */
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onCall } from 'firebase-functions/v2/https';
@@ -95,172 +97,225 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
   }
 });
 
-export const sendBroadcast = onCall(
-  // A paged per-user send (paid/unpaid, up to 200k) can run well past the 60s
-  // default — give it room so it can't time out mid-fan-out (which, without the
-  // broadcastId idempotency below, would double-send on retry).
-  { timeoutSeconds: 540, memory: '512MiB' },
-  async (req) => {
-  const actor = assertAdminTier(req, ['super', 'ops']);
-  const { title, body, type, deeplink, image, imageStyle, bgColor, textColor, displayMode, portraitImage, ctaText, landingTitle, landingBody, landingBgColor, landingTextColor, theme, segment, uids, broadcastId } = (req.data ?? {}) as {
-    title?: string;
-    body?: string;
-    type?: string;
-    deeplink?: string;
-    image?: string;
-    imageStyle?: 'banner' | 'portrait';
-    bgColor?: string;
-    textColor?: string;
-    displayMode?: 'small' | 'half' | 'full';
-    portraitImage?: string;
-    ctaText?: string;
-    landingTitle?: string;
-    landingBody?: string;
-    landingBgColor?: string;
-    landingTextColor?: string;
-    theme?: string;
-    segment?: 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers' | 'list';
-    uids?: string[];
-    broadcastId?: string;
+// ---- Broadcast (segment fan-out) ---------------------------------------------
+
+export interface BroadcastParams {
+  title: string;
+  body: string;
+  type?: string;
+  deeplink?: string;
+  image?: string;
+  imageStyle?: 'banner' | 'portrait';
+  bgColor?: string;
+  textColor?: string;
+  displayMode?: 'small' | 'half' | 'full';
+  portraitImage?: string;
+  ctaText?: string;
+  landingTitle?: string;
+  landingBody?: string;
+  landingBgColor?: string;
+  landingTextColor?: string;
+  theme?: string;
+  segment?: 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers' | 'list';
+  uids?: string[];
+}
+
+/** The per-user notification doc the onNotificationCreated trigger pushes. */
+function buildNotifDoc(uid: string, p: BroadcastParams) {
+  return {
+    userId: uid, title: p.title, body: p.body,
+    type: p.type ?? 'announcement',
+    deeplink: p.deeplink ?? null, image: p.image ?? null, imageStyle: p.imageStyle ?? null,
+    bgColor: p.bgColor ?? null, textColor: p.textColor ?? null, displayMode: p.displayMode ?? 'small',
+    portraitImage: p.portraitImage ?? null, ctaText: p.ctaText ?? null,
+    landingTitle: p.landingTitle ?? null, landingBody: p.landingBody ?? null,
+    landingBgColor: p.landingBgColor ?? null, landingTextColor: p.landingTextColor ?? null,
+    theme: p.theme ?? null, read: false, createdAt: FieldValue.serverTimestamp(),
   };
-  if (!title || !body) badRequest('title and body are required.');
+}
 
-  // Idempotency: the portal mints a broadcastId once per compose and reuses it on
-  // retry. Claim it create-if-absent BEFORE sending, so a timed-out or
-  // double-clicked send finds the id already claimed and never fans out twice.
-  const bId = typeof broadcastId === 'string' && broadcastId.trim() ? broadcastId.trim() : null;
-  const broadcastRef = bId ? db.collection('broadcasts').doc(bId) : db.collection('broadcasts').doc();
-  if (bId) {
-    try {
-      await broadcastRef.create({ status: 'sending', title, body, segment: segment ?? 'all_users', createdAt: FieldValue.serverTimestamp() });
-    } catch {
-      return { ok: true, alreadySent: true };
-    }
-  }
+const MAX_TARGETS = 200_000;
 
-  // Common data payload for every push (topic or per-user).
-  const dataPayload: Record<string, string> = {
-    type: String(type ?? 'announcement'),
-    deeplink: String(deeplink ?? ''),
-    image: String(image ?? ''),
-    imageStyle: String(imageStyle ?? ''),
-    displayMode: String(displayMode ?? 'small'),
-    portraitImage: String(portraitImage ?? ''),
-    ctaText: String(ctaText ?? ''),
-    landingTitle: String(landingTitle ?? ''),
-    landingBody: String(landingBody ?? ''),
-    bgColor: String(bgColor ?? ''),
-    textColor: String(textColor ?? ''),
-    theme: String(theme ?? ''),
-  };
+/**
+ * Deliver a broadcast, RESUMABLE across invocations (#49).
+ *
+ * - **all_users / astrologers** → ONE FCM topic message (devices subscribe at
+ *   token registration). O(1) regardless of audience size — never a timeout risk.
+ * - **paid_users / unpaid_users / list** → a notification doc per user (the
+ *   onNotificationCreated trigger pushes each), streamed in pages. After every
+ *   page the cursor + count are CHECKPOINTED on the broadcast doc, so an
+ *   invocation that hits the soft time budget returns `complete:false` and a
+ *   re-invoke (same broadcastId) continues from the checkpoint instead of
+ *   restarting or stalling.
+ *
+ * Reads any prior checkpoint from `broadcastRef`. Pure Firestore for the per-user
+ * path (no FCM in this function — the trigger sends), so it is emulator-testable.
+ */
+export async function runBroadcast(
+  broadcastRef: FirebaseFirestore.DocumentReference,
+  params: BroadcastParams,
+  opts: { softDeadlineMs?: number; pageSize?: number; now?: () => number } = {},
+): Promise<{ delivered: number; channel: 'topic' | 'per_user'; complete: boolean }> {
+  const { segment, uids } = params;
+  const now = opts.now ?? (() => Date.now());
+  const softDeadlineMs = opts.softDeadlineMs ?? 480_000; // headroom under the 540s hard cap
+  const pageSize = opts.pageSize ?? 1000;
+  const started = now();
 
-  // Large, static audiences (all users / all astrologers) go out as ONE FCM
-  // topic message — devices subscribe to the topic at token registration. This
-  // avoids loading millions of user docs into memory and writing a doc + push
-  // per user (the launch-scale hazard). The single `broadcasts` doc below is the
-  // in-app record for these; the app surfaces it as a global announcement.
-  const TOPIC: Record<string, string> = { all_users: 'all_users', astrologers: 'astrologers' };
-  const topic = !segment || segment === 'all_users' ? TOPIC.all_users
-    : segment === 'astrologers' ? TOPIC.astrologers
+  const topic = !segment || segment === 'all_users' ? 'all_users'
+    : segment === 'astrologers' ? 'astrologers'
     : null;
 
-  let delivered = 0;
   if (topic) {
     await messaging.send({
       topic,
-      notification: { title, body, ...(image ? { imageUrl: String(image) } : {}) },
-      data: dataPayload,
+      notification: { title: params.title, body: params.body, ...(params.image ? { imageUrl: String(params.image) } : {}) },
+      data: {
+        type: String(params.type ?? 'announcement'),
+        deeplink: String(params.deeplink ?? ''),
+        image: String(params.image ?? ''),
+        imageStyle: String(params.imageStyle ?? ''),
+        displayMode: String(params.displayMode ?? 'small'),
+        portraitImage: String(params.portraitImage ?? ''),
+        ctaText: String(params.ctaText ?? ''),
+        landingTitle: String(params.landingTitle ?? ''),
+        landingBody: String(params.landingBody ?? ''),
+        bgColor: String(params.bgColor ?? ''),
+        textColor: String(params.textColor ?? ''),
+        theme: String(params.theme ?? ''),
+      },
     });
-    delivered = -1; // topic fan-out count is not known up-front
-  } else {
-    // Bounded, dynamic segments (paid/unpaid) or an explicit uid list. Stream
-    // in pages so memory stays flat, cap the total, and write per-user docs
-    // (the trigger pushes each) so they land in the in-app bell.
-    const MAX_TARGETS = 200_000;
-    async function collectPaged(): Promise<string[]> {
-      if (segment === 'list') return (uids ?? []).slice(0, MAX_TARGETS);
-      const op = segment === 'paid_users' ? '>' : '==';
-      const ids: string[] = [];
-      let cursor: FirebaseFirestore.QueryDocumentSnapshot | null = null;
-      // A range filter (paid_users '>') REQUIRES the first orderBy to be on that
-      // same field, else Firestore rejects the query — so order by totalRecharge
-      // first, with __name__ as a stable tiebreaker for the cursor. The equality
-      // case ('==' unpaid) can order by __name__ alone. Both are served by the
-      // automatic single-field index; no composite index needed.
-      while (ids.length < MAX_TARGETS) {
-        let q = db.collection(Collections.users).where('totalRecharge', op, 0);
-        q = segment === 'paid_users'
-          ? q.orderBy('totalRecharge').orderBy('__name__')
-          : q.orderBy('__name__');
-        q = q.limit(1000);
-        if (cursor) q = q.startAfter(cursor);
-        const page = await q.get();
-        if (page.empty) break;
-        for (const d of page.docs) if (d.data().accountStatus !== 'deleted') ids.push(d.id);
-        cursor = page.docs[page.docs.length - 1];
-        if (page.size < 1000) break;
-      }
-      return ids;
-    }
-    const targetIds = await collectPaged();
-    delivered = targetIds.length;
-
-    let batch = db.batch();
-    let count = 0;
-    for (const id of targetIds) {
-      const ref = db.collection(Collections.notifications).doc();
-      batch.set(ref, {
-        userId: id, title, body,
-        type: type ?? 'announcement',
-        deeplink: deeplink ?? null, image: image ?? null, imageStyle: imageStyle ?? null,
-        bgColor: bgColor ?? null, textColor: textColor ?? null, displayMode: displayMode ?? 'small',
-        portraitImage: portraitImage ?? null, ctaText: ctaText ?? null,
-        landingTitle: landingTitle ?? null, landingBody: landingBody ?? null,
-        landingBgColor: landingBgColor ?? null, landingTextColor: landingTextColor ?? null,
-        theme: theme ?? null, read: false, createdAt: FieldValue.serverTimestamp(),
-      });
-      if (++count % 400 === 0) { await batch.commit(); batch = db.batch(); }
-    }
-    if (count % 400 !== 0) await batch.commit();
+    return { delivered: -1, channel: 'topic', complete: true };
   }
 
-  const actorName = await adminName(actor);
+  // Per-user fan-out. Resume from the last checkpoint on the broadcast doc.
+  const saved = (await broadcastRef.get()).data() ?? {};
+  let sentCount: number = saved.sentCount ?? 0;
 
-  // One compact summary per send, so the portal can list broadcast history
-  // (the per-user notification docs above are the actual delivered messages).
-  // Written to the claimed idempotency doc (merge) when a broadcastId was given,
-  // else a fresh doc — either way one row per send.
-  await broadcastRef.set({
-    status: 'sent',
-    title,
-    body,
-    segment: segment ?? 'all_users',
-    type: type ?? 'announcement',
-    theme: theme ?? null,
-    displayMode: displayMode ?? 'small',
-    image: image ?? null,
-    deeplink: deeplink ?? null,
-    delivered: delivered >= 0 ? delivered : null,
-    channel: topic ? 'topic' : 'per_user',
-    // Full payload so the app can render a topic broadcast as a rich in-app
-    // announcement (topic sends write no per-user doc).
-    imageStyle: imageStyle ?? null,
-    portraitImage: portraitImage ?? null,
-    ctaText: ctaText ?? null,
-    landingTitle: landingTitle ?? null,
-    landingBody: landingBody ?? null,
-    bgColor: bgColor ?? null,
-    textColor: textColor ?? null,
-    sentBy: actor,
-    sentByName: actorName,
-    createdAt: FieldValue.serverTimestamp(),
-  });
+  // --- explicit uid list: `sentCount` doubles as the resume index ---
+  if (segment === 'list') {
+    const all = (uids ?? []).slice(0, MAX_TARGETS);
+    let complete = true;
+    let batch = db.batch(); let inBatch = 0;
+    while (sentCount < all.length) {
+      batch.set(db.collection(Collections.notifications).doc(), buildNotifDoc(all[sentCount], params));
+      inBatch++; sentCount++;
+      if (inBatch % 400 === 0) {
+        await batch.commit(); batch = db.batch();
+        await broadcastRef.set({ sentCount, status: 'sending' }, { merge: true });
+        if (now() - started > softDeadlineMs) { complete = false; break; }
+      }
+    }
+    if (inBatch % 400 !== 0) await batch.commit();
+    await broadcastRef.set({ sentCount, status: 'sending' }, { merge: true });
+    return { delivered: sentCount, channel: 'per_user', complete };
+  }
 
-  await db.collection(Collections.auditLogs).add({
-    actorUid: actor, actorRole: 'admin', actorName,
-    action: 'sendBroadcast', targetType: 'segment', targetId: segment ?? 'all_users',
-    after: { title, delivered, channel: topic ? 'topic' : 'per_user' }, createdAt: FieldValue.serverTimestamp(),
-  });
+  // --- paid_users / unpaid_users: paged query with a checkpointed cursor ---
+  // A range filter (paid '>') must order by that field first. We page with a
+  // DocumentSnapshot cursor (works for any orderBy) and checkpoint its id; on
+  // resume we re-fetch that anchor doc. If the exact anchor was deleted between a
+  // timed-out send and its resume (rare), we restart — some notifications for the
+  // overlap re-send, which is harmless (non-money).
+  const op = segment === 'paid_users' ? '>' : '==';
+  let cursor: FirebaseFirestore.DocumentSnapshot | null = null;
+  if (saved.cursorId) {
+    const anchor = await db.collection(Collections.users).doc(saved.cursorId as string).get();
+    if (anchor.exists) cursor = anchor;
+  }
+  let complete = true;
+  while (sentCount < MAX_TARGETS) {
+    let q = db.collection(Collections.users).where('totalRecharge', op, 0);
+    q = segment === 'paid_users' ? q.orderBy('totalRecharge').orderBy('__name__') : q.orderBy('__name__');
+    if (cursor) q = q.startAfter(cursor);
+    q = q.limit(pageSize);
+    const page = await q.get();
+    if (page.empty) break;
 
-  return { ok: true, delivered, channel: topic ? 'topic' : 'per_user' };
-});
+    let batch = db.batch(); let inBatch = 0;
+    for (const dsnap of page.docs) {
+      if (dsnap.data().accountStatus === 'deleted') continue;
+      batch.set(db.collection(Collections.notifications).doc(), buildNotifDoc(dsnap.id, params));
+      if (++inBatch % 400 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+    if (inBatch % 400 !== 0) await batch.commit();
+    sentCount += inBatch;
+
+    cursor = page.docs[page.docs.length - 1];
+    await broadcastRef.set({ cursorId: cursor.id, sentCount, status: 'sending' }, { merge: true });
+
+    if (page.size < pageSize) break; // last page
+    if (now() - started > softDeadlineMs) { complete = false; break; }
+  }
+  return { delivered: sentCount, channel: 'per_user', complete };
+}
+
+export const sendBroadcast = onCall(
+  // A paged per-user send can run past the 60s default — give it room. The
+  // checkpoint in runBroadcast makes a timed-out send resumable rather than a
+  // stuck partial; the broadcastId claim below stops a double-CLICK re-send.
+  { timeoutSeconds: 540, memory: '512MiB' },
+  async (req) => {
+    const actor = assertAdminTier(req, ['super', 'ops']);
+    const d = (req.data ?? {}) as BroadcastParams & { broadcastId?: string };
+    if (!d.title || !d.body) badRequest('title and body are required.');
+
+    // Idempotency + resume. The portal mints a broadcastId once per compose and
+    // reuses it on retry. Claim it create-if-absent: a fresh id starts a new send;
+    // an existing 'sent' id is a duplicate → no-op; an existing 'sending' id means
+    // a prior run stopped mid-fan-out → runBroadcast resumes from its checkpoint.
+    const bId = typeof d.broadcastId === 'string' && d.broadcastId.trim() ? d.broadcastId.trim() : null;
+    const broadcastRef = bId ? db.collection('broadcasts').doc(bId) : db.collection('broadcasts').doc();
+    if (bId) {
+      try {
+        await broadcastRef.create({
+          status: 'sending', title: d.title, body: d.body,
+          segment: d.segment ?? 'all_users', sentCount: 0, createdAt: FieldValue.serverTimestamp(),
+        });
+      } catch {
+        const cur = (await broadcastRef.get()).data();
+        if (cur?.status === 'sent') return { ok: true, alreadySent: true };
+        // else fall through — resume from the checkpoint.
+      }
+    }
+
+    const { delivered, channel, complete } = await runBroadcast(broadcastRef, d);
+    const actorName = await adminName(actor);
+
+    // Finalize only when the fan-out actually completed. A partial send stays
+    // 'sending' with its checkpoint so a re-invoke resumes it.
+    if (complete) {
+      await broadcastRef.set({
+        status: 'sent',
+        title: d.title, body: d.body,
+        segment: d.segment ?? 'all_users',
+        type: d.type ?? 'announcement',
+        theme: d.theme ?? null,
+        displayMode: d.displayMode ?? 'small',
+        image: d.image ?? null,
+        deeplink: d.deeplink ?? null,
+        delivered: delivered >= 0 ? delivered : null,
+        channel,
+        imageStyle: d.imageStyle ?? null,
+        portraitImage: d.portraitImage ?? null,
+        ctaText: d.ctaText ?? null,
+        landingTitle: d.landingTitle ?? null,
+        landingBody: d.landingBody ?? null,
+        bgColor: d.bgColor ?? null,
+        textColor: d.textColor ?? null,
+        sentBy: actor,
+        sentByName: actorName,
+        sentAt: FieldValue.serverTimestamp(),
+        ...(bId ? {} : { createdAt: FieldValue.serverTimestamp() }),
+      }, { merge: true });
+
+      await db.collection(Collections.auditLogs).add({
+        actorUid: actor, actorRole: 'admin', actorName,
+        action: 'sendBroadcast', targetType: 'segment', targetId: d.segment ?? 'all_users',
+        after: { title: d.title, delivered, channel }, createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    return { ok: true, delivered, channel, complete };
+  },
+);
