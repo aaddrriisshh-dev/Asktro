@@ -96,11 +96,23 @@ class Astrologer extends Equatable {
   /// Online but not startable right now (busy) — distinct from offline.
   bool get isBusy => isOnline && !isConsultable && status == AstrologerStatus.approved;
 
-  /// Display label for the per-minute price, e.g. "₹9/min" or "₹12.50/min".
+  /// Display label for the per-minute price, e.g. "₹9/min" or "from ₹12.50/min".
+  /// Derived from the SAME per-type rates the server bills (chat/voice/video with
+  /// fallback), so the headline can never show a different number than what the
+  /// customer is actually charged. When the three types cost the same, shows a
+  /// single rate; when they differ, shows the starting ("from") rate so the label
+  /// never understates a call.
   String get rateLabel {
-    final r = ratePerMinutePaise / 100;
+    final rates = [
+      rateForTypePaise(ConsultationType.chat),
+      rateForTypePaise(ConsultationType.voice),
+      rateForTypePaise(ConsultationType.video),
+    ];
+    final minPaise = rates.reduce((a, b) => a < b ? a : b);
+    final maxPaise = rates.reduce((a, b) => a > b ? a : b);
+    final r = minPaise / 100;
     final s = r == r.roundToDouble() ? r.toStringAsFixed(0) : r.toStringAsFixed(2);
-    return '₹$s/min';
+    return minPaise == maxPaise ? '₹$s/min' : 'from ₹$s/min';
   }
 
   factory Astrologer.fromMap(String id, Map<String, dynamic> m) {
