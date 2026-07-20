@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useCollection, Row } from '@/lib/hooks';
 import { formatPaise } from '@/lib/format';
 import { MobileSection } from '@/components/MobileSection';
+import { DrawerFilter } from '@/components/DrawerFilter';
+import { useCardFilter } from '@/lib/useCardFilter';
 
 const msOf = (t: { toMillis?: () => number } | undefined) => t?.toMillis?.() ?? 0;
 const lastActive = (u: Row) => msOf(u.updatedAt) || msOf(u.createdAt);
@@ -54,13 +56,20 @@ function CustomerBox({ title, icon, accent, list, live }: { title: string; icon:
 export default function CustomerManagementPage() {
   const { rows, loading } = useCollection('users');
   const [search, setSearch] = useState('');
+  // Same date presets as the rest of the portal. Scopes the lists by SIGNUP date
+  // (createdAt); defaults to All Time so the view is unchanged until a range is picked.
+  const { preset, setPreset, custom, setCustom, range } = useCardFilter('customers', 'allTime');
 
   const base = useMemo(() => {
     const q = search.trim().toLowerCase();
     let r = rows.filter((u) => u.accountStatus !== 'deleted');
+    r = r.filter((u) => {
+      const m = msOf(u.createdAt);
+      return m >= range.start && m < range.end;
+    });
     if (q) r = r.filter((u) => (u.name ?? '').toLowerCase().includes(q) || (u.phone ?? '').includes(q) || u.id.includes(q));
     return r;
-  }, [rows, search]);
+  }, [rows, search, range.start, range.end]);
 
   const live = useMemo(() => base.filter((u) => isLive(lastActive(u))).sort((a, b) => lastActive(b) - lastActive(a)), [base]);
   const paid = useMemo(() => base.filter((u) => ((u.totalRecharge ?? 0) as number) > 0).sort((a, b) => msOf(b.createdAt) - msOf(a.createdAt)), [base]);
@@ -71,9 +80,13 @@ export default function CustomerManagementPage() {
       <div className="uat-head">
         <div>
           <h1 style={{ marginBottom: 2 }}>Customer Management</h1>
-          <p className="muted" style={{ margin: 0, fontSize: 13 }}>Live customers, and all customers split by paid vs unpaid.</p>
+          <p className="muted" style={{ margin: 0, fontSize: 13 }}>Live customers, and all customers split by paid vs unpaid — by signup date ({range.label}).</p>
         </div>
         <input className="input uat-search" placeholder="Search name or phone…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+
+      <div style={{ marginTop: 12, marginBottom: 4 }}>
+        <DrawerFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} />
       </div>
 
       {loading ? <p className="muted" style={{ marginTop: 16 }}>Loading…</p> : (
