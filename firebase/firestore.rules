@@ -156,11 +156,12 @@ service cloud.firestore {
         && isSelf(request.resource.data.astrologerId)
         && request.resource.data.customerId is string
         && exists(/databases/$(database)/documents/astrologerCustomers/$(uid())/customers/$(request.resource.data.customerId));
-      // the customer may only flip the `done` flag — never rewrite the content
-      allow update: if isSelf(resource.data.customerId) && notChanging([
-        'customerId','astrologerId','astrologerName','astrologerPhoto',
-        'consultationId','title','note','createdAt'
-      ]);
+      // The customer may ONLY touch their own progress/read state — never the
+      // remedy content. Allowlist (hasOnly) instead of a denylist, so a field
+      // added later can't accidentally become client-writable.
+      allow update: if isSelf(resource.data.customerId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['done','doneAt','customerLastReadAt','updatedAt']);
       allow delete: if false;
 
       // The nurture thread (astrologer <-> customer messages). Readable by the

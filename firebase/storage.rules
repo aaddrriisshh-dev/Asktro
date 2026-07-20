@@ -88,9 +88,13 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*|application/pdf');
     }
 
-    // Scratch uploads, owner-scoped.
+    // Scratch uploads, owner-scoped. Content-type allowlist (images/PDF only) so
+    // the bucket can't be used to stash arbitrary files (HTML/scripts/executables)
+    // under a user's own folder.
     match /temp_uploads/{userId}/{fileName} {
-      allow read, write: if isSignedIn() && uid() == userId && underMB(20);
+      allow read: if isSignedIn() && uid() == userId;
+      allow write: if isSignedIn() && uid() == userId && underMB(20)
+        && request.resource.contentType.matches('image/.*|application/pdf');
     }
 
     match /{allPaths=**} {

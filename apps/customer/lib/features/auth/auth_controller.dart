@@ -97,7 +97,14 @@ class AuthController {
     }
   }
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    // Also clear the cached Google session — otherwise Firebase signs out but
+    // Google keeps the account cached, so the next "Continue with Google"
+    // silently re-picks the same account (the user can't switch, and a shared
+    // device leaks the last account).
+    try { await GoogleSignIn().signOut(); } catch (_) {/* not signed in via Google */}
+    await _auth.signOut();
+  }
 
   Future<void> _ensureProfile(UserCredential cred, {required String phone, String? name, String? email}) async {
     final uid = cred.user?.uid;
