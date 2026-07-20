@@ -166,9 +166,12 @@ export async function creditRecharge(params: {
       });
     }
 
-    // Referral reward on first successful recharge (resolved in read phase).
+    // Referral reward on first successful recharge (resolved in read phase). The
+    // referred user's welcome-bonus ledger row chains from `balanceAfter` — their
+    // spendable total once the recharge rows above are applied — so the running
+    // balance is continuous (#51).
     if (referralCredit) {
-      applyReferralCredit(tx, referralCredit, { referredUserId: userId, paymentId });
+      applyReferralCredit(tx, referralCredit, { referredUserId: userId, paymentId, referredBalanceBefore: balanceAfter });
     }
 
     // Stamp the order as credited by THIS payment (backs the per-order guard).

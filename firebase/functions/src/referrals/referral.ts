@@ -18,6 +18,10 @@ export interface ReferralCredit {
   referrerId: string;
   referrerRef: FirebaseFirestore.DocumentReference;
   referralRef: FirebaseFirestore.DocumentReference;
+  /** Referrer's spendable balance (wallet + bonus) captured at read time, so the
+   *  reward's ledger row shows a correct running balance instead of 0 → 0 (#51).
+   *  The referrer is not otherwise touched in this transaction, so this is exact. */
+  referrerBalanceBefore: number;
 }
 
 /**
@@ -38,6 +42,8 @@ export async function readReferralCredit(
   if (referrerQ.empty) return null;
   const referrerRef = referrerQ.docs[0].ref;
   const referrerId = referrerQ.docs[0].id;
+  const referrerData = referrerQ.docs[0].data();
+  const referrerBalanceBefore = (referrerData.walletBalance ?? 0) + (referrerData.bonusBalance ?? 0);
   if (referrerId === referredUserId) return null; // no self-referral
 
   // Guard against a second credit for this pair.
@@ -51,17 +57,23 @@ export async function readReferralCredit(
   if (!existing.empty && existing.docs[0].data().status === 'credited') return null;
 
   const referralRef = existing.empty ? db.collection(Collections.referrals).doc() : existing.docs[0].ref;
-  return { referrerId, referrerRef, referralRef };
+  return { referrerId, referrerRef, referralRef, referrerBalanceBefore };
 }
 
 /** WRITE phase — apply the referral credit resolved by readReferralCredit. */
 export function applyReferralCredit(
   tx: Transaction,
   credit: ReferralCredit,
-  params: { referredUserId: string; paymentId: string },
+  params: {
+    referredUserId: string;
+    paymentId: string;
+    /** Referred user's spendable balance (wallet + bonus) AFTER the recharge rows
+     *  in this same transaction — the welcome-bonus row chains from here (#51). */
+    referredBalanceBefore: number;
+  },
 ): void {
-  const { referredUserId, paymentId } = params;
-  const { referrerId, referrerRef, referralRef } = credit;
+  const { referredUserId, paymentId, referredBalanceBefore } = params;
+  const { referrerId, referrerRef, referralRef, referrerBalanceBefore } = credit;
 
   // Credit both wallets (as bonus balance).
   tx.update(referrerRef, {
@@ -77,8 +89,8 @@ export function applyReferralCredit(
     userId: referrerId,
     kind: 'bonus',
     amount: REFERRER_REWARD_PAISE,
-    balanceBefore: 0,
-    balanceAfter: 0,
+    balanceBefore: referrerBalanceBefore,
+    balanceAfter: referrerBalanceBefore + REFERRER_REWARD_PAISE,
     refId: paymentId,
     note: 'Referral reward',
   });
@@ -86,8 +98,8 @@ export function applyReferralCredit(
     userId: referredUserId,
     kind: 'bonus',
     amount: REFERRED_REWARD_PAISE,
-    balanceBefore: 0,
-    balanceAfter: 0,
+    balanceBefore: referredBalanceBefore,
+    balanceAfter: referredBalanceBefore + REFERRED_REWARD_PAISE,
     refId: paymentId,
     note: 'Referral welcome bonus',
   });

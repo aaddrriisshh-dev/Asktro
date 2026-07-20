@@ -102,4 +102,42 @@ describe('creditRecharge (emulator)', () => {
     // Must stay null — seeding it would freeze the AI meter + auto-pause the chat.
     expect(c.astrologerLastTickAt ?? null).toBeNull();
   });
+
+  it('#51: referral reward ledger rows chain the running balance (not 0 → 0)', async () => {
+    const referrer = 'u_ref_er'; const referred = 'u_ref_ed';
+    // Referrer already holds a balance — the reward row must chain FROM it.
+    await db.collection('users').doc(referrer).set({
+      name: 'Referrer', walletBalance: 500, bonusBalance: 300, totalRecharge: 5000,
+      referralCode: 'REF123', accountStatus: 'active', createdAt: FieldValue.serverTimestamp(),
+    });
+    // Referred user's FIRST recharge, referred by REF123.
+    await db.collection('users').doc(referred).set({
+      name: 'Referred', walletBalance: 0, bonusBalance: 0, totalRecharge: 0,
+      referredBy: 'REF123', accountStatus: 'active', createdAt: FieldValue.serverTimestamp(),
+    });
+    await seedPlan('planRef'); await seedOrder('ordRef', referred, 'planRef');
+
+    await creditRecharge({ userId: referred, paymentId: 'payRef', orderId: 'ordRef', planId: 'planRef', source: 'callable' });
+
+    // Referrer reward chains from 500+300 = 800 spendable → 2800.
+    const rewardRow = (await db.collection('walletTransactions')
+      .where('userId', '==', referrer).where('note', '==', 'Referral reward').limit(1).get()).docs[0]?.data();
+    expect(rewardRow).toBeTruthy();
+    expect(rewardRow!.balanceBefore).toBe(800);
+    expect(rewardRow!.balanceAfter).toBe(2800); // 800 + ₹20 reward — NOT the old 0 → 0
+
+    // Referred welcome bonus chains AFTER the recharge rows: 10000 wallet + 2000
+    // bonus = 12000 spendable → 14000.
+    const welcomeRow = (await db.collection('walletTransactions')
+      .where('userId', '==', referred).where('note', '==', 'Referral welcome bonus').limit(1).get()).docs[0]?.data();
+    expect(welcomeRow).toBeTruthy();
+    expect(welcomeRow!.balanceBefore).toBe(12000);
+    expect(welcomeRow!.balanceAfter).toBe(14000);
+
+    // And the ledger's ending figures match the users' actual balances.
+    const er = (await db.collection('users').doc(referrer).get()).data()!;
+    expect((er.walletBalance ?? 0) + (er.bonusBalance ?? 0)).toBe(2800);
+    const ed = (await db.collection('users').doc(referred).get()).data()!;
+    expect((ed.walletBalance ?? 0) + (ed.bonusBalance ?? 0)).toBe(14000);
+  });
 });
