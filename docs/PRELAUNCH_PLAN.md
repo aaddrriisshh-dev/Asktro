@@ -60,12 +60,38 @@ shipped an Indian consultation app on iOS before the iOS submission._
 ## 2. Pre-launch blockers  🔴
 
 ### A. Legal / store-rejection (owner content + a little code)
+
+> **DRAFTS READY (2026-07-19)** — three review-ready HTML pages are in
+> `docs/legal/`: `privacy-policy.html`, `terms-of-service.html`,
+> `account-deletion.html`. Built accurately from what the app actually does. They
+> are **drafts, not final** — do NOT publish until the checklist below is done.
+>
+> **Before publishing (when you have time):**
+> 1. **Legal counsel review all three** — esp. Terms §5–6 (payments/refunds vs.
+>    Indian consumer law), Terms §10 (liability), and the Privacy Policy vs. the
+>    **DPDP Act** (grievance officer is legally required).
+> 2. **Fill every `[…]` placeholder** — legal entity (Asktro Tech Private Limited),
+>    effective date, grievance officer name+email, registered address, jurisdiction
+>    city, liability-cap window.
+> 3. **Verify facts match reality** — third-party list (Razorpay, Agora, Firebase,
+>    Gemini, ProKerala), refund policy, data collected.
+> 4. **Host at stable public URLs** on your domain: `asktro.in/privacy`,
+>    `asktro.in/terms`, `asktro.in/account-deletion`.
+> 5. **Wire them in:** Privacy URL → Play Data Safety + Apple App Privacy;
+>    account-deletion URL → Play Console → App content → Data deletion; make the
+>    app's login Terms/Privacy links point to the hosted URLs (or keep the in-app
+>    CMS copy byte-identical so a reviewer sees no mismatch); footer link on the
+>    website.
+
 - [ ] **Legal docs are placeholders** — `[EFFECTIVE DATE]`, office address,
-  grievance officer, support email in `seed_legal.mjs`. Fill real values.
-- [ ] **Public hosted Privacy Policy URL** (both stores' Data Safety / App
-  Privacy require a live URL).
-- [ ] **Public web account-deletion URL** (Google Play requires this even though
-  in-app deletion exists).
+  grievance officer, support email in `seed_legal.mjs` **and** the 3 drafts above.
+  Fill real values.
+- [ ] **Public hosted Privacy Policy URL** — draft ready (`docs/legal/privacy-policy.html`);
+  review + fill + host, then add to both stores' Data Safety / App Privacy.
+- [ ] **Public web account-deletion URL** — draft ready (`docs/legal/account-deletion.html`);
+  review + host, then add to Play → App content → Data deletion.
+- [ ] **Terms of Service URL** — draft ready (`docs/legal/terms-of-service.html`);
+  review + fill + host at `asktro.in/terms`.
 - [x] **In-app "for entertainment purposes" disclaimer + <18 age gate** —
   DONE (2026-07-19): login gate now reads "I am 18 or older and agree to…"
   (required for phone + Google/Apple), plus a visible astrology guidance/
