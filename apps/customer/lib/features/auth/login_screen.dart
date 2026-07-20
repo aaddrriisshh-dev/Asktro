@@ -34,6 +34,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       TapGestureRecognizer()..onTap = () => _openCms('terms', 'Terms of Service');
   late final TapGestureRecognizer _privacyTap =
       TapGestureRecognizer()..onTap = () => _openCms('privacy', 'Privacy Policy');
+  late final TapGestureRecognizer _disclaimerTap =
+      TapGestureRecognizer()..onTap = () => _openCms('disclaimer', 'Disclaimer');
 
   void _openCms(String page, String title) {
     Navigator.of(context).push(
@@ -105,6 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _phone.dispose();
     _termsTap.dispose();
     _privacyTap.dispose();
+    _disclaimerTap.dispose();
     super.dispose();
   }
 
@@ -215,12 +218,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  // Astrology/fortune-telling disclaimer (store + regulatory norms).
+                  // Compact astrology/entertainment disclaimer. The full text
+                  // lives on the tappable "Disclaimer" page (Profile menu + here),
+                  // so signup stays clean while the notice is still visible and
+                  // one tap away (store + regulatory norms).
                   Padding(
                     padding: const EdgeInsets.only(left: 4, right: 4),
-                    child: Text(
-                      'Asktro’s astrology content is for guidance and entertainment purposes only and is not a substitute for professional legal, medical, financial or psychological advice.',
-                      style: Ob.note.copyWith(color: Ob.grey, fontSize: 11, height: 1.35, fontStyle: FontStyle.italic),
+                    child: Text.rich(
+                      TextSpan(
+                        style: Ob.note.copyWith(color: Ob.grey, fontSize: 11, height: 1.35, fontStyle: FontStyle.italic),
+                        children: [
+                          const TextSpan(text: 'For guidance & entertainment only — not professional advice. '),
+                          TextSpan(
+                            text: 'Disclaimer',
+                            style: TextStyle(
+                              color: Ob.purple,
+                              fontWeight: FontWeight.w600,
+                              fontStyle: FontStyle.normal,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Ob.purple,
+                            ),
+                            recognizer: _disclaimerTap,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   if (_error != null) ...[

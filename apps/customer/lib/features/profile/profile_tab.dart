@@ -87,6 +87,8 @@ class ProfileTab extends ConsumerWidget {
                   onTap: () => _push(context, const CmsViewerScreen(page: 'privacy', title: 'Privacy Policy')),),
               _row(Icons.description_outlined, 'Terms of Service',
                   onTap: () => _push(context, const CmsViewerScreen(page: 'terms', title: 'Terms of Service')),),
+              _row(Icons.gpp_maybe_outlined, 'Disclaimer',
+                  onTap: () => _push(context, const CmsViewerScreen(page: 'disclaimer', title: 'Disclaimer')),),
               _row(Icons.info_outline_rounded, 'About ASKTRO',
                   onTap: () => _push(context, const CmsViewerScreen(page: 'about', title: 'About ASKTRO')),),
             ]),
