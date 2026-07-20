@@ -129,9 +129,10 @@ shipped an Indian consultation app on iOS before the iOS submission._
 - [ ] **Terms of Service URL** — draft ready (`docs/legal/terms-of-service.html`);
   review + fill + host at `asktro.in/terms`.
 - [x] **In-app "for entertainment purposes" disclaimer + <18 age gate** —
-  DONE (2026-07-19): login gate now reads "I am 18 or older and agree to…"
-  (required for phone + Google/Apple), plus a visible astrology guidance/
-  entertainment disclaimer. Ships in the next customer-app rebuild.
+  DONE + **now in the rebuilt customer app** (2026-07-20): login gate reads "I am
+  18 or older and agree to…" (required for phone + Google/Apple), plus a visible
+  astrology guidance/entertainment disclaimer. Verify on-device by signing out to
+  reach the login screen.
 - [ ] **Chat-image NSFW auto-scan** — currently manual-queue only; wire the
   Vision API scan (UGC risk for both stores).
 - [ ] **iOS: Apple IAP decision** (see §1).
