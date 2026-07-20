@@ -1,6 +1,6 @@
 # Asktro — Pre-Launch Plan (single source of truth)
 
-_Last updated: 2026-07-18._
+_Last updated: 2026-07-20._
 
 **Why this doc exists.** The older tracking docs (`AUDIT.md`, `OUTSTANDING.md`,
 `MASTER_TODO.md`, `WHATS_LEFT.md`, `PRODUCTION_READINESS_AUDIT.md`,
@@ -17,6 +17,42 @@ of auth toggles, and ONE authoritative live-money test** — plus the **iOS
 payments decision** below.
 
 Status legend: 🔴 blocker · 🟡 verify (claimed fixed) · 🟢 done · ⏸️ deferred
+
+---
+
+## 0. Deployment status — 2026-07-20 (what is LIVE right now)  🟢
+
+The full backend batch is **deployed and verified in production**. This settles a
+lot of the checklist below.
+
+- **Cloud Functions: 66/66 deployed** ✅ — verified against `index.ts` via
+  `firebase functions:list` (all `asia-south1` except `onChatImageUploaded` in
+  `us-east1` and the v1 `onAuthUserCreate`). Nothing left undeployed. This batch
+  re-deployed the **17 changed** functions one-at-a-time (the bulk deploy 409s on
+  this project until the Node-20→22 bump); the other 49 were already live.
+  - Included: **Phase 0 security** (admin-tier gates, astrologer self-edit
+    lockdown, token/session revocation, PII read-scoping), **Phase 1 money**
+    (sub-second remainder, promo-farm close, coupon rate-limit, store-order
+    dead-letter + NaN reject), the **per-tick transaction consolidation**, and
+    **Phase 2 #45/#49** (AI persona out of the settlement txn; sendBroadcast
+    hardening) + store-confirm reconcile.
+- **Firestore + Storage rules: deployed** ✅ — Phase 0/1/3 hardening live
+  (astrologer self-edit lockdown, money-read scoping, store coupon/redemption
+  gates, remedies-update allowlist, storage content-type allowlists).
+- **Admin portal (Vercel): deployed** ✅ — `asktro-admin.vercel.app` rebuilt,
+  including the live-sessions realtime fix.
+- **Customer app: NOT yet rebuilt** ⏳ — the app-side changes below are committed
+  but need a build to reach users' phones (see §5). These are **display/UX only**;
+  no money logic depends on the rebuild.
+
+### The "scattered transactions" (`−2, −1, −3, −5…`) fix — LIVE ✅
+The confusing per-tick rows are **gone for new sessions.** The wallet still debits
+live every ~10s tick, but the **customer-facing ledger row is now written once at
+settlement** as a single line — e.g. *"chat consultation · 12m … −₹108"*
+(`tickConsultation.ts:158`, `endConsultation.ts:168`, both deployed). It is a
+**backend** fix (no app rebuild needed) and it is **independent of the AI-persona
+work** — that item was separately deferred. Note: **old** consultations keep their
+existing scattered history; only sessions from 2026-07-20 onward show the clean row.
 
 ---
 
@@ -101,11 +137,15 @@ shipped an Indian consultation app on iOS before the iOS submission._
 - [ ] **iOS: Apple IAP decision** (see §1).
 
 ### B. Auth / security
-- [ ] **Purge committed admin password (`Asktro@2026`) from git history** — it
-  was rotated, but the literal still lives in repo history (`seed_admins.mjs`,
-  `docs/PENDING.md`).
-- [ ] **Add portal MFA/2FA** — the portal controls real money and is
-  internet-reachable with email+password only. Do before real money flows.
+- [x] **Admin password rotated** — DONE (2026-07-20) via `seed_admins.mjs` hidden
+  prompt (updateUser + revokeRefreshTokens + emailVerified); login confirmed.
+- [ ] **Purge the old literal (`Asktro@2026`) from git history** — password is
+  rotated so the risk is **defused**, but the literal still lives in repo history
+  (`seed_admins.mjs`, `docs/PENDING.md`). Low urgency now; scrub when convenient.
+- [x] **Portal MFA/2FA is BUILT** — DONE (2026-07-20): login MFA challenge
+  (`login/page.tsx`) + a `/security` TOTP enrollment page. **Activation deferred** —
+  it needs a one-way GCIP upgrade + each admin to enroll. Turn on before real money
+  flows at scale; the code is ready and shipped in the portal build.
 - [ ] **Enable App Check enforcement** on callables at launch (code ready; needs
   the toggle + Play Integrity / App Attest provisioned).
 
@@ -152,17 +192,32 @@ move on:
 - **Memory-recall rebalance** (last-chat vs remedy context) — after multi-user testing.
 - **Node 20 → 22** runtime — hard deadline **2026-10-30** (also cures deploy-409),
   not a launch gate.
-- **UX polish**: portal live-session views → `onSnapshot`, astrologer typing
-  indicator, banner placements 2–5, safe-card staleness, customer app-icon regen,
-  2px RenderFlex overflow (astrologer, non-fatal).
+- **UX polish**: ~~portal live-session views → `onSnapshot`~~ **DONE (2026-07-20)**,
+  astrologer typing indicator, banner placements 2–5, safe-card staleness, customer
+  app-icon regen, 2px RenderFlex overflow (astrologer, non-fatal).
 - **Voice notes in chat** — undecided; do NOT build without go-ahead.
 
 ---
 
-## 5. Today's batch (2026-07-18) — status  🟢
+## 5. Batches shipped this cycle  🟢
 
-Design + portal + retention polish. **Built, committed, pushed; app rebuild +
-portal deploy in progress.**
+### 5b. Audit-fix + deploy batch (2026-07-19 → 20) — DONE & DEPLOYED
+See §0. Phase 0 security + Phase 1 money + per-tick transaction consolidation +
+Phase 2 #45/#49, all 66 functions verified live, rules deployed, portal deployed.
+App-side changes (login disclaimer/age-gate, Mall hero instant-load + portal image
+auto-compressor, blog image caching, signOut Google-session clear, displayed-vs-
+billed rate label) are **committed** and go live on the **next customer-app build**
+(§5c). Store-review audit refreshed (`docs/STORE_REVIEW.md`); legal drafts in
+`docs/legal/` (review/host still owner-side).
+
+### 5c. Customer app rebuild — IN PROGRESS
+Committed app changes need a build to reach devices. `flutter pub get` done; build
+via `flutter run --release` (test) — a store-uploadable release is still gated on
+the keystore + real package IDs (§2.A/C). The disclaimer + age-gate only appear on
+the **login screen** (sign out to see them); billing consolidation is backend and
+already live regardless of the app build.
+
+### 5a. Design/portal/retention batch (2026-07-18) — DONE
 - Asktro **Mall hero** — full redesign, full-bleed, purple outline, subtle 3D
   lift, auto-fit-any-image (reads real aspect ratio).
 - Portal **Asktro Mall hero editor** (`homeSections/storeHero`: image + copy).
@@ -179,8 +234,10 @@ billing, rate-limit) — `docs/AI_ASTROLOGER_ENGINE.md` is stale where it says
 
 ## 6. Recommended sequence
 
-1. Ship today's batch (app rebuild + portal deploy). ← in progress
-2. **Code review + security review** of today's diff (already caught 1 real bug —
+1. ~~Ship the audit-fix batch (functions + rules + portal).~~ **DONE (2026-07-20)** —
+   66/66 functions live, rules + portal deployed. **Customer app build is the only
+   ship step left for this batch** (§5c).
+2. **Code review + security review** of the diff (already caught 1 real bug —
    the `promo_images` upload folder).
 3. Knock out **§2 blockers** — legal content + URLs, keystore/IDs/accounts, auth
    toggles — most are owner tasks that run in parallel.
