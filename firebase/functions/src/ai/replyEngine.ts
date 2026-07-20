@@ -23,7 +23,7 @@ import { extractChartData, ChartData } from './chartFacts';
 import { assembleSlice } from './selector';
 import { classifyIntentHeuristic } from './router';
 import { buildReadingSystem } from './persona';
-import { llmGenerate, LlmTurn } from './provider';
+import { llmGenerate, LlmTurn, LlmInlineImage } from './provider';
 import { guardReply } from './guard';
 import { conjugateGender } from './gender';
 import { enforceRateLimit } from '../common/rateLimit';
@@ -43,6 +43,27 @@ const MAX_BUBBLES = 2; // she may send at most two short, paced bubbles per repl
 const INTER_BUBBLE_MS = 1400; // gap between bubbles so the dots visibly re-appear and it never feels rushed
 const RECALL_PAUSE_MS = 2600; // the "reading our last chat" pause after the beat, before she recalls
 
+// Vision read of a client photo. Gemini accepts inline images up to ~20MB; we cap
+// tighter — a chat photo is small, and a giant payload just burns tokens/latency.
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// Stand-in "burst" when the client sent ONLY a photo (no words) — the model still
+// needs a final user turn; the actual image rides alongside as an inline part.
+const PHOTO_ONLY_TEXT = '(the client has shared a photo with you, without any words)';
+// Folded into the system prompt only when a photo is attached. Keeps her in
+// character, steers each photo type sensibly, and protects the computed kundli
+// from being overridden by an unverifiable chart screenshot.
+const IMAGE_ADDENDUM = `
+
+# THE CLIENT HAS SHARED A PHOTO WITH YOU
+- Look at the attached image and react to what you ACTUALLY see, warmly and in character. NEVER say you "can't see images", "can't open photos", or anything that hints you are an AI/system — a real astrologer simply looks.
+- Keep it to your usual 1–2 short bubbles. Do NOT narrate the image clinically ("I see a photo of…"); respond as a person naturally would.
+- If it's a PALM (hasta rekha): give a brief, warm reading of what stands out (jeevan/hriday/bhagya rekha), then gently note that their janm-kundli is the deeper guide and tie back to it.
+- If it's a FACE/person: at most a light, respectful samudrik-shastra observation. NEVER comment on attractiveness/appearance, age, or anyone's body.
+- If it's a KUNDLI / birth-chart SCREENSHOT: acknowledge it, but rely on THE KUNDLI DATA already given to you for this person — do NOT read planetary positions off a screenshot you cannot verify, and never contradict the computed chart.
+- If it's an OBJECT / gemstone / rudraksha / deity / temple / place: respond meaningfully — a short blessing or guidance tied to their question or chart.
+- If the image is UNCLEAR, blank, or unrelated to a reading: gently ask, in one line, what they'd like you to look at.
+- Never claim to see detail that isn't there, and never invent chart placements from a picture.`;
+
 export const onAiChatMessage = onDocumentCreated(
   {
     document: 'consultations/{consultationId}/messages/{messageId}',
@@ -58,7 +79,10 @@ export const onAiChatMessage = onDocumentCreated(
     try {
       const text = String(msg.text ?? '').trim();
       const senderId = msg.senderId as string | undefined;
-      if (!text || msg.type === 'image') return; // nothing to read (Stage 1: text only)
+      const isImageMsg = msg.type === 'image';
+      // Proceed on a text message OR a photo (she now looks at what the client
+      // shares). Only a genuinely empty, non-image message is nothing to read.
+      if (!text && !isImageMsg) return;
 
       const cSnap = await db.collection('consultations').doc(consultationId).get();
       const c = cSnap.data();
@@ -107,9 +131,17 @@ export const onAiChatMessage = onDocumentCreated(
       }
 
       // 2) Aggregate the settled burst + rolling history (system/join messages
-      // are excluded from context).
-      const { burst, history } = await loadBurstAndHistory(consultationId, c.customerId, c.astrologerId);
-      const userText = burst || text;
+      // are excluded from context). A photo in the burst is carried as imageUrl.
+      const { burst, history, imageUrl } = await loadBurstAndHistory(consultationId, c.customerId, c.astrologerId);
+
+      // If the client shared a photo, fetch it for a vision read. On any failure
+      // (already removed by the NSFW sweep, too large, network) imageInline is
+      // null and we fall back to answering the words — or stay silent if there
+      // were none, rather than bluffing about a photo we couldn't load.
+      const imageInline = imageUrl ? await fetchInlineImage(imageUrl) : null;
+      if (!burst && !imageInline) return;
+
+      const userText = burst || (imageInline ? PHOTO_ONLY_TEXT : text);
       const isSessionOpening = !history.some((t) => t.role === 'model');
 
       // 3) Intent → 4) slice → 5) persona system prompt.
@@ -205,9 +237,17 @@ ${priorCtx}`;
         await sleep(RECALL_PAUSE_MS);
       }
 
+      // 5f) If a photo is attached, fold in the vision instructions so she looks
+      // at it and reacts IN CHARACTER (never "I can't see images"), while still
+      // trusting the computed kundli over any chart screenshot she can't verify.
+      if (imageInline) system += IMAGE_ADDENDUM;
+
       // 6) Show the typing indicator (dots) while she composes, then generate.
       await setTyping(consultationId, c.astrologerId, true);
-      const envelope = await generateGrounded(system, history, userText, briefing, apiKey, configModels);
+      const envelope = await generateGrounded(
+        system, history, userText, briefing, apiKey, configModels,
+        imageInline ? [imageInline] : undefined,
+      );
       if (!envelope) {
         await setTyping(consultationId, c.astrologerId, false);
         return;
@@ -409,11 +449,16 @@ async function generateGrounded(
   briefing: string,
   apiKey: string,
   configModels?: Partial<Record<'router' | 'filler' | 'reading', string>>,
+  images?: LlmInlineImage[],
 ) {
   for (let attempt = 0; attempt <= 1; attempt++) {
     const turns = attempt === 0 ? history : history; // history is stable across the single repair
     const raw = await llmGenerate(
-      { tier: 'reading', system, history: turns, userText, json: true },
+      // Vision reads keep the provider safety layer ON (disableSafety:false) so an
+      // explicit photo is blocked → null → the engine stays silent, rather than
+      // being described. Text-only calls stay BLOCK_NONE (persona owns boundaries).
+      { tier: 'reading', system, history: turns, userText, json: true,
+        images, disableSafety: images?.length ? false : undefined },
       apiKey,
       configModels,
     );
@@ -571,7 +616,7 @@ async function loadBurstAndHistory(
   consultationId: string,
   customerId: string,
   astrologerId: string,
-): Promise<{ burst: string; history: LlmTurn[] }> {
+): Promise<{ burst: string; history: LlmTurn[]; imageUrl: string | null }> {
   const q = await db
     .collection('consultations')
     .doc(consultationId)
@@ -585,12 +630,20 @@ async function loadBurstAndHistory(
     return t && m.type !== 'image' && m.type !== 'system' ? t : null;
   };
   // Trailing run of the customer's own messages (newest-first) = settled burst.
+  // A photo the customer sent in that run doesn't end the burst; we keep the
+  // NEWEST image url so she can look at what they just shared.
   const burstParts: string[] = [];
+  let imageUrl: string | null = null;
   let i = 0;
   for (; i < docs.length; i++) {
-    const t = usable(docs[i]);
-    if (docs[i].senderId === customerId && t) burstParts.push(t);
-    else break;
+    const d = docs[i];
+    if (d.senderId !== customerId) break; // a non-customer message ends the burst
+    const t = usable(d);
+    if (t) burstParts.push(t);
+    else if (d.type === 'image' && typeof d.image === 'string' && !imageUrl) {
+      imageUrl = d.image as string; // newest image in the burst
+    }
+    // other non-text customer messages are skipped but don't terminate the burst
   }
   const burst = burstParts.reverse().join('\n').trim();
   // Everything older = rolling history (chronological).
@@ -601,7 +654,7 @@ async function loadBurstAndHistory(
     history.push({ role: docs[j].senderId === astrologerId ? 'model' : 'user', text: t });
   }
   history.reverse();
-  return { burst, history };
+  return { burst, history, imageUrl };
 }
 
 /**
@@ -707,6 +760,27 @@ async function activateIfWaiting(consultationId: string): Promise<void> {
 function tsMs(v: unknown): number {
   return v && typeof (v as { toMillis?: () => number }).toMillis === 'function'
     ? (v as { toMillis: () => number }).toMillis() : 0;
+}
+
+/**
+ * Fetch a chat image (a Firebase Storage download URL) and return it as an inline
+ * base64 part for the vision model, or null on ANY problem — a missing/removed
+ * file (the NSFW sweep may have deleted it first), a non-image, an oversized
+ * payload, or a network fault. Best-effort by contract: the reply engine degrades
+ * to answering the words (or staying silent), never throws on a bad photo.
+ */
+async function fetchInlineImage(url: string): Promise<LlmInlineImage | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const ct = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+    if (!ct.startsWith('image/')) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length === 0 || buf.length > MAX_IMAGE_BYTES) return null;
+    return { data: buf.toString('base64'), mimeType: ct };
+  } catch {
+    return null;
+  }
 }
 
 // ---- helpers ------------------------------------------------------------

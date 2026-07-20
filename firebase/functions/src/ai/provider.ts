@@ -54,6 +54,14 @@ export interface LlmTurn {
   text: string;
 }
 
+/** An image attached to the final user turn for a vision read (base64 payload). */
+export interface LlmInlineImage {
+  /** base64-encoded bytes (no data: prefix). */
+  data: string;
+  /** e.g. "image/jpeg", "image/png". */
+  mimeType: string;
+}
+
 export interface LlmGenerateOptions {
   tier: LlmTier;
   /** The persona / task system prompt. Static per session → prompt-cacheable. */
@@ -62,6 +70,10 @@ export interface LlmGenerateOptions {
   history?: LlmTurn[];
   /** The current user burst to answer (appended as the final user turn). */
   userText: string;
+  /** Inline images attached to the final user turn (vision read). When present,
+   *  the provider's safety layer is LEFT ON unless disableSafety is set — a
+   *  vision read of an explicit photo should be blocked, not described. */
+  images?: LlmInlineImage[];
   /** Force strict JSON output (reading tier returns the envelope). */
   json?: boolean;
   /** Override the resolved model id (e.g. a pinned fallback). */
@@ -69,6 +81,11 @@ export interface LlmGenerateOptions {
   /** Per-call overrides for the tier defaults. */
   temperature?: number;
   maxOutputTokens?: number;
+  /** Turn the provider's safety layer OFF (BLOCK_NONE on all categories). Default
+   *  ON for image reads (so explicit photos are blocked), OFF for text — where the
+   *  persona owns its own boundaries and a canned "I can't answer that" is a fatal
+   *  AI tell. Undefined → OFF for text-only calls, ON when images are attached. */
+  disableSafety?: boolean;
 }
 
 /** Resolve the model id for a tier, honouring config overrides then defaults. */
@@ -96,10 +113,22 @@ export async function llmGenerate(
   const model = opts.model || resolveModel(opts.tier, configModels);
   const tierDefault = TIER_DEFAULTS[opts.tier];
 
+  // Final user turn: the burst text plus any inline images (vision read). Gemini
+  // takes text + inline_data parts in the same turn.
+  const finalParts: Array<Record<string, unknown>> = [{ text: opts.userText }];
+  for (const img of opts.images ?? []) {
+    finalParts.push({ inline_data: { mime_type: img.mimeType, data: img.data } });
+  }
   const contents = [
     ...(opts.history ?? []).map((t) => ({ role: t.role, parts: [{ text: t.text }] })),
-    { role: 'user' as const, parts: [{ text: opts.userText }] },
+    { role: 'user' as const, parts: finalParts },
   ];
+
+  // Safety: OFF by default for text (the persona owns its boundaries; a canned
+  // "I can't answer that" is a fatal AI tell). When a photo is attached we leave
+  // it ON unless explicitly disabled — an explicit image should be BLOCKED (→ the
+  // engine stays silent and the NSFW pipeline removes it), never described.
+  const safetyOff = opts.disableSafety ?? (opts.images?.length ? false : true);
 
   const body: Record<string, unknown> = {
     system_instruction: { parts: [{ text: opts.system }] },
@@ -109,15 +138,16 @@ export async function llmGenerate(
       maxOutputTokens: opts.maxOutputTokens ?? tierDefault.maxOutputTokens,
       ...(opts.json ? { responseMimeType: 'application/json' } : {}),
     },
-    // Do NOT let the provider's safety layer hijack a reply with a canned "I
-    // can't answer that" (a fatal AI tell). The persona sets its OWN in-character
-    // boundaries on abuse/sexual input; we handle escalation in code.
-    safetySettings: [
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-    ],
+    ...(safetyOff
+      ? {
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          ],
+        }
+      : {}),
   };
 
   const url = `${GEMINI_BASE}/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
