@@ -28,7 +28,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _continue() async {
     if (!_agreed) {
-      setState(() => _error = 'Please accept the Terms & Privacy Policy to continue.');
+      setState(() => _error = 'Please confirm you’re 18+ and accept the Terms & Privacy Policy to continue.');
       return;
     }
     if (!_validPhone) {
@@ -65,7 +65,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // Consent gate applies to EVERY sign-in path, not just phone — a user must
     // never be able to create an account via Google/Apple without agreeing.
     if (!_agreed) {
-      setState(() => _error = 'Please accept the Terms & Privacy Policy to continue.');
+      setState(() => _error = 'Please confirm you’re 18+ and accept the Terms & Privacy Policy to continue.');
       return;
     }
     setState(() {
@@ -148,6 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   _phoneField(),
                   const SizedBox(height: 4),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Checkbox(
                         value: _agreed,
@@ -156,9 +157,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         onChanged: (v) => setState(() => _agreed = v ?? false),
                       ),
                       Expanded(
-                        child: Text('I agree to the Terms of Service and Privacy Policy.', style: Ob.note),
+                        // Combines the required 18+ age gate with the Terms/Privacy
+                        // acceptance in one checkbox the user must tick to continue.
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text('I am 18 or older and agree to the Terms of Service and Privacy Policy.', style: Ob.note),
+                        ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 6),
+                  // Astrology/fortune-telling disclaimer (store + regulatory norms).
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, right: 4),
+                    child: Text(
+                      'Asktro’s astrology content is for guidance and entertainment purposes only and is not a substitute for professional legal, medical, financial or psychological advice.',
+                      style: Ob.note.copyWith(color: Ob.grey, fontSize: 11, height: 1.35, fontStyle: FontStyle.italic),
+                    ),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 6),
