@@ -12,7 +12,7 @@
  * Real company details are filled in below (2026-07-20):
  *   Entity            Asktro Tech Private Limited (formerly XOBO Digitex Pvt Ltd)
  *   Registered office B-76, Sector 64, Gautam Buddha Nagar, Noida, UP 201301, India
- *   Grievance officer Adrish Mullick — aaddrriisshh@gmail.com
+ *   Grievance officer Sanjay Tyagi — grievance@asktro.in
  *   Support           support@asktro.in
  *   Effective date    20 July 2026 · Jurisdiction: Noida, UP
  * NOTE: legal counsel should still review before/soon after launch.
@@ -89,8 +89,8 @@ We may update this Policy from time to time. The "Last updated" date reflects th
 
 13. GRIEVANCE OFFICER
 In accordance with the Information Technology Act, 2000 and rules thereunder, the Grievance Officer for the Platform is:
-   Name: Adrish Mullick
-   Email: aaddrriisshh@gmail.com
+   Name: Sanjay Tyagi
+   Email: grievance@asktro.in
    Address: B-76, Sector 64, Gautam Buddha Nagar, Noida, Uttar Pradesh 201301, India
 We will acknowledge your complaint within 24 hours and endeavour to resolve it within 15 days of receipt.
 
@@ -148,7 +148,7 @@ We may suspend or terminate your access to the Platform at any time, with or wit
 These Terms are governed by the laws of India. Subject to applicable law, the courts at Noida, Uttar Pradesh, India shall have exclusive jurisdiction over any dispute arising out of or relating to these Terms or the Platform. Before initiating any formal proceeding, you agree to first contact us to seek an amicable resolution.
 
 15. GRIEVANCE REDRESSAL
-For complaints regarding content or these Terms, you may contact our Grievance Officer at aaddrriisshh@gmail.com. We will acknowledge complaints within 24 hours and endeavour to resolve them within 15 days.
+For complaints regarding content or these Terms, you may contact our Grievance Officer at grievance@asktro.in. We will acknowledge complaints within 24 hours and endeavour to resolve them within 15 days.
 
 16. CHANGES TO THESE TERMS
 We may update these Terms from time to time. Material changes will be notified through the app or by other reasonable means, and the "Last updated" date will be revised. Your continued use of the Platform after changes take effect constitutes acceptance of the revised Terms.
