@@ -29,11 +29,11 @@ android {
     }
 
     defaultConfig {
-        // NOTE: `com.example.*` is BANNED by Play. Change to your real domain ID
-        // (e.g. com.asktro.customer) AFTER registering that package in the
-        // Firebase console and adding the matching google-services.json. See the
-        // audit's B3 remediation step.
-        applicationId = "com.example.asktro_customer"
+        // Real store package ID (Play bans `com.example.*`). This must have a
+        // matching Android app registered in the Firebase console with an updated
+        // google-services.json, or the Google Services plugin fails the build.
+        // `namespace` above stays internal (users never see it) and need not match.
+        applicationId = "in.asktro.customer"
         minSdk = 24
         targetSdk = 36
         versionCode = flutter.versionCode
