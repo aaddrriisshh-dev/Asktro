@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { where, orderBy, limit } from 'firebase/firestore';
+import { where, orderBy, limit, doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useCollection, callFn, Row } from '@/lib/hooks';
 
 const fmt = (t: unknown) => {
@@ -46,6 +47,50 @@ function SectionCard({ title, count, children }: { title: string; count: number;
         <span className="udet-total">{count}</span>
       </div>
       {children}
+    </div>
+  );
+}
+
+/** Super-admin toggle for config/global.featureFlags.imageModeration — turns the
+ *  Cloud Vision auto-scan of chat images on/off. (The Vision API must be enabled
+ *  on the GCP project for a live scan; otherwise images stay queued for review.) */
+function ImageScanToggle() {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => onSnapshot(doc(db, 'config', 'global'), (s) => {
+    const ff = (s.data()?.featureFlags ?? {}) as { imageModeration?: boolean };
+    setEnabled(ff.imageModeration === true);
+  }), []);
+  const on = enabled === true;
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      // merge:true deep-merges the nested map, so sibling flags stay intact.
+      await setDoc(doc(db, 'config', 'global'), { featureFlags: { imageModeration: !on } }, { merge: true });
+    } catch (e) {
+      alert('Failed (Super Admin only): ' + ((e as Error).message ?? String(e)));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+      <button
+        onClick={toggle}
+        disabled={busy || enabled === null}
+        style={{
+          padding: '6px 14px', borderRadius: 20, border: 'none', fontWeight: 700, fontSize: 12.5,
+          cursor: busy || enabled === null ? 'default' : 'pointer',
+          background: on ? '#2f9c63' : '#c9ccd6', color: '#fff',
+        }}
+      >
+        {enabled === null ? '…' : on ? '● Auto-scan ON' : '○ Auto-scan OFF'}
+      </button>
+      <span className="muted" style={{ fontSize: 12 }}>
+        {on
+          ? 'New chat images are auto-scanned (Cloud Vision) and unsafe ones removed + flagged. Needs the Vision API enabled on the project.'
+          : 'Off — every chat image is queued below for manual review. Turn on once the Cloud Vision API is enabled.'}
+      </span>
     </div>
   );
 }
@@ -149,8 +194,9 @@ export default function ModerationPage() {
 
       {/* 4. Chat image review queue */}
       <SectionCard title="🖼️ Chat image review queue" count={images.rows.length}>
+        <ImageScanToggle />
         {images.loading ? <p className="muted">Loading…</p>
-          : images.rows.length === 0 ? <p className="drawer-muted">No images queued. (Auto-scan enables via config.featureFlags.imageModeration.)</p>
+          : images.rows.length === 0 ? <p className="drawer-muted">No images queued.</p>
             : (
               <div style={{ overflowX: 'auto' }}>
                 <table className="cardify">

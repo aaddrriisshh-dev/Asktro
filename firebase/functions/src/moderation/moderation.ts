@@ -150,10 +150,16 @@ export const onChatMessageCreated = onDocumentCreated(
  * and the Cloud Vision package + API are provisioned — auto-scan for adult /
  * violent content and delete + flag anything that trips the SafeSearch bar.
  *
- * The Vision client is loaded via a NON-LITERAL dynamic import so the build never
- * hard-depends on '@google-cloud/vision' being installed; enabling real scanning
- * is a provisioning step (install the dep + enable the Vision API), not a code
- * change. Until then, images are queued for manual admin review.
+ * '@google-cloud/vision' now ships as a dependency, loaded via a dynamic import
+ * so it is only required at runtime when the flag is on (keeps it off the cold
+ * path of every other function). Activating real scanning is therefore a
+ * CONSOLE-only step — no code change or dep install:
+ *   1. Enable the Cloud Vision API on the GCP project.
+ *   2. Set config/global.featureFlags.imageModeration = true.
+ *   3. Redeploy onChatImageUploaded once so the runtime has the new dep.
+ * (The Storage service-agent → pubsub.publisher IAM grant is already in place —
+ * this function is deployed.) Until enabled, every image is queued for manual
+ * admin review in the portal Moderation page.
  */
 // A Storage trigger MUST run in the same region as the bucket. The default
 // bucket for this project lives in us-east1, so we pin this one function there
