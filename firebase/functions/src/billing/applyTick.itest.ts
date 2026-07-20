@@ -89,26 +89,24 @@ describe('applyTick (emulator)', () => {
     expect(u.walletBalance).toBe(850);    // 1000 - 150 (10s @ 900/min)
   });
 
-  it('P0-1: an astrologer-only heartbeat cannot bill past the customer presence frontier', async () => {
+  it('#38: an astrologer heartbeat does NOT bill a customer who dropped more than a settle window ago', async () => {
     const uid = 'u_tick_3'; const cid = 'c_tick_3';
-    // Customer left 60s ago (lastTick + customerLastTick = now-60). Wallet is huge.
+    // Customer left 60s ago (> the 15s settle window) — a real drop, not jitter.
     const T = Date.now();
     await seedSession(cid, uid, 60_000, T, { wallet: 100_000 });
 
-    // Astrologer tick (tickedByCustomer=false): may bill only up to customer's
-    // last tick + 15s settle = 15s of the 60s gap, NOT the whole gap.
+    // Astrologer ticks. The customer is overdue (last heartbeat > one window ago),
+    // so billing halts at their last CONFIRMED presence — ZERO dead air. (Before
+    // the #38 fix this billed the 15s settle window past an already-gone customer.)
     const first = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'astrologer'));
-    expect(first!.billedSeconds).toBe(15);
-    expect(first!.chargedPaise).toBe(225); // 15s @ 900/min
+    expect(first!.billedSeconds).toBe(0);
+    expect(first!.chargedPaise).toBe(0);
 
-    // A SECOND astrologer tick bills nothing — the meter has reached the frontier
-    // and halts until the customer returns. The absent customer is not drained.
     const second = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'astrologer'));
     expect(second!.billedSeconds).toBe(0);
-    expect(second!.chargedPaise).toBe(0);
 
     const u = (await db.collection('users').doc(uid).get()).data()!;
-    expect(u.walletBalance).toBe(100_000 - 225); // only the 15s settle, ever
+    expect(u.walletBalance).toBe(100_000); // absent customer not drained at all
   });
 
   it('P1-2: a single customer catch-up tick after a long freeze is clamped to the settle window', async () => {
@@ -150,20 +148,35 @@ describe('applyTick (emulator)', () => {
     }
   });
 
-  it('symmetry: an astrologer drop halts billing even while the customer keeps ticking', async () => {
+  it('#38 symmetry: a customer heartbeat does NOT bill for an astrologer who dropped more than a settle window ago', async () => {
     const uid = 'u_tick_5'; const cid = 'c_tick_5';
-    // Both parties last seen 60s ago; the astrologer never returns, the customer
-    // resumes ticking. Billing must stop at the astrologer's last presence + settle.
+    // Astrologer last seen 60s ago (> settle window); the customer keeps ticking.
+    // Billing must stop at the astrologer's last CONFIRMED presence — no dead air.
     const T = Date.now();
     await seedSession(cid, uid, 60_000, T, { wallet: 100_000, astroAgoMs: 60_000 });
 
     const first = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'customer'));
-    expect(first!.billedSeconds).toBe(15); // only the settle window past the astrologer's last tick
+    expect(first!.billedSeconds).toBe(0); // astrologer long gone → no dead air
 
     const second = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'customer'));
-    expect(second!.billedSeconds).toBe(0); // halted — the astrologer is still absent
+    expect(second!.billedSeconds).toBe(0);
 
     const u = (await db.collection('users').doc(uid).get()).data()!;
-    expect(u.walletBalance).toBe(100_000 - 225); // customer not billed for astrologer dead air
+    expect(u.walletBalance).toBe(100_000); // customer not billed for astrologer dead air
+  });
+
+  it('#38: a party seen WITHIN the settle window still bills to now (jitter tolerance + end-of-session tail preserved)', async () => {
+    const uid = 'u_tick_6'; const cid = 'c_tick_6';
+    // 10s since the last bill; the astrologer's last heartbeat was 8s ago — within
+    // the 15s window, so treated as present. Billing must still reach `now`. This is
+    // exactly how a healthy session bills continuously AND how endConsultation
+    // captures the final seconds (its final applyTick has the ending party at `now`
+    // and the other party recent) — so the fix costs zero legitimate revenue.
+    const T = Date.now();
+    await seedSession(cid, uid, 10_000, T, { wallet: 100_000, astroAgoMs: 8_000 });
+
+    const out = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'customer'));
+    expect(out!.billedSeconds).toBe(10);  // full elapsed billed, not gated
+    expect(out!.chargedPaise).toBe(150);  // 10s @ 900/min
   });
 });

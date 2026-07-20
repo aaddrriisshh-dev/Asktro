@@ -81,10 +81,22 @@ export async function applyTick(
     ? nowMs
     : ((c.astrologerLastTickAt as Timestamp | null)?.toMillis() ?? nowMs);
 
-  // Bill only up to the EARLIER confirmed presence + one settle window, clamp the
-  // single-tick span, and never go backwards.
-  const frontierMs = astroTracked ? Math.min(custLastMs, astroLastMs) : custLastMs;
-  let billToMs = Math.min(nowMs, frontierMs + MAX_TICK_ELAPSED_MS);
+  // Each party's billable presence reaches one settle window past their last
+  // heartbeat — BUT only while that heartbeat is itself within the window. The
+  // client heartbeats every ~10s and stops the moment it is backgrounded, so a
+  // party silent for LONGER than the window (15s) has clearly dropped, not merely
+  // jittered. For a dropped party we bill only up to their LAST CONFIRMED
+  // heartbeat, never into the dead air past it (#38). The caller's own presence is
+  // `now`, so this can only ever constrain the OTHER, silent party — a present or
+  // ending party is within the window and billed exactly as before, so healthy
+  // sessions (and the end-of-session tail settled via endConsultation → applyTick)
+  // are unchanged. Then clamp the single-tick span and never go backwards.
+  const presenceHorizon = (lastSeenMs: number): number =>
+    nowMs - lastSeenMs > MAX_TICK_ELAPSED_MS ? lastSeenMs : lastSeenMs + MAX_TICK_ELAPSED_MS;
+  const frontierMs = astroTracked
+    ? Math.min(presenceHorizon(custLastMs), presenceHorizon(astroLastMs))
+    : presenceHorizon(custLastMs);
+  let billToMs = Math.min(nowMs, frontierMs);
   billToMs = Math.min(billToMs, lastTickAtMs + MAX_TICK_ELAPSED_MS);
   billToMs = Math.max(billToMs, lastTickAtMs);
 
