@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'auth_controller.dart';
 import 'otp_screen.dart';
+import '../profile/cms_viewer_screen.dart';
 import '../profile_setup/onboarding_style.dart';
 import '../profile_setup/onboarding_widgets.dart';
 
@@ -23,6 +25,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _agreed = false;
   bool _loading = false;
   String? _error;
+
+  // Make the "Terms of Service" / "Privacy Policy" words in the consent line
+  // tappable — a user must be able to READ what they're agreeing to for the
+  // consent (and DPDP consent) to be meaningful. Opens the same in-app CMS
+  // viewer the Profile tab uses. Recognizers are disposed with the screen.
+  late final TapGestureRecognizer _termsTap =
+      TapGestureRecognizer()..onTap = () => _openCms('terms', 'Terms of Service');
+  late final TapGestureRecognizer _privacyTap =
+      TapGestureRecognizer()..onTap = () => _openCms('privacy', 'Privacy Policy');
+
+  void _openCms(String page, String title) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => CmsViewerScreen(page: page, title: title)),
+    );
+  }
 
   bool get _validPhone => _phone.text.trim().length == 10;
 
@@ -86,6 +103,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void dispose() {
     _phone.dispose();
+    _termsTap.dispose();
+    _privacyTap.dispose();
     super.dispose();
   }
 
@@ -161,7 +180,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         // acceptance in one checkbox the user must tick to continue.
                         child: Padding(
                           padding: const EdgeInsets.only(top: 12),
-                          child: Text('I am 18 or older and agree to the Terms of Service and Privacy Policy.', style: Ob.note),
+                          child: Text.rich(
+                            TextSpan(
+                              style: Ob.note,
+                              children: [
+                                const TextSpan(text: 'I am 18 or older and agree to the '),
+                                TextSpan(
+                                  text: 'Terms of Service',
+                                  style: TextStyle(
+                                    color: Ob.purple,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: Ob.purple,
+                                  ),
+                                  recognizer: _termsTap,
+                                ),
+                                const TextSpan(text: ' and '),
+                                TextSpan(
+                                  text: 'Privacy Policy',
+                                  style: TextStyle(
+                                    color: Ob.purple,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: Ob.purple,
+                                  ),
+                                  recognizer: _privacyTap,
+                                ),
+                                const TextSpan(text: '.'),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ],
