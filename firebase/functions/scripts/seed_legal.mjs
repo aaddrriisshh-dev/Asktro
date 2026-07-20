@@ -9,13 +9,13 @@
  * Run from firebase/functions (needs serviceAccountKey.json or
  * GOOGLE_APPLICATION_CREDENTIALS pointing at the key).
  *
- * ── BEFORE PUBLISHING, fill in the [BRACKETED] placeholders below ──
- *   [EFFECTIVE DATE]           e.g. 8 July 2026
- *   [REGISTERED OFFICE ADDRESS]
- *   [SUPPORT EMAIL]            e.g. support@asktro.app
- *   [GRIEVANCE OFFICER NAME]
- *   [GRIEVANCE EMAIL]          e.g. grievance@asktro.app
- *   [CITY]                     seat of jurisdiction, e.g. Kolkata
+ * Real company details are filled in below (2026-07-20):
+ *   Entity            Asktro Tech Private Limited (formerly XOBO Digitex Pvt Ltd)
+ *   Registered office B-76, Sector 64, Gautam Buddha Nagar, Noida, UP 201301, India
+ *   Grievance officer Adrish Mullick — aaddrriisshh@gmail.com
+ *   Support           support@asktro.in
+ *   Effective date    20 July 2026 · Jurisdiction: Noida, UP
+ * NOTE: legal counsel should still review before/soon after launch.
  */
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
@@ -35,14 +35,14 @@ const YES = process.argv.includes('--yes');
 
 const PRIVACY = `ASKTRO — PRIVACY POLICY
 
-Last updated: [EFFECTIVE DATE]
+Last updated: 20 July 2026
 
 This Privacy Policy explains how Asktro Tech Private Limited ("Asktro", "we", "us" or "our") collects, uses, discloses and protects your information when you use the Asktro mobile application and related services (collectively, the "Platform"). Asktro provides astrology consultations and related content. By creating an account or using the Platform, you consent to the practices described in this Policy. If you do not agree, please do not use the Platform.
 
 This Policy is published in accordance with the Digital Personal Data Protection Act, 2023, the Information Technology Act, 2000 and the rules made thereunder, including the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011 and the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021.
 
 1. WHO WE ARE
-Asktro Tech Private Limited is the data fiduciary responsible for your personal data processed through the Platform. Registered office: [REGISTERED OFFICE ADDRESS]. Contact: [SUPPORT EMAIL].
+Asktro Tech Private Limited is the data fiduciary responsible for your personal data processed through the Platform. Registered office: B-76, Sector 64, Gautam Buddha Nagar, Noida, Uttar Pradesh 201301, India. Contact: support@asktro.in.
 
 2. INFORMATION WE COLLECT
 (a) Information you give us:
@@ -76,7 +76,7 @@ We retain your personal data for as long as your account is active or as needed 
 We implement reasonable security practices and procedures — including encryption in transit, access controls and authentication — designed to protect your information. No method of transmission or storage is completely secure, and we cannot guarantee absolute security. You are responsible for keeping your account credentials confidential.
 
 9. YOUR RIGHTS AND CHOICES
-Subject to applicable law, you may: access and review your personal data; correct or update inaccurate data (in-app via Edit Profile); withdraw consent; and request erasure of your account and data. You can delete your account directly in the app under Profile > Delete account, or by writing to us at [SUPPORT EMAIL]. On deletion, we remove your profile and personal data except where retention is legally required. You may also nominate another individual to exercise your rights in the event of death or incapacity as provided under the Digital Personal Data Protection Act, 2023.
+Subject to applicable law, you may: access and review your personal data; correct or update inaccurate data (in-app via Edit Profile); withdraw consent; and request erasure of your account and data. You can delete your account directly in the app under Profile > Delete account, or by writing to us at support@asktro.in. On deletion, we remove your profile and personal data except where retention is legally required. You may also nominate another individual to exercise your rights in the event of death or incapacity as provided under the Digital Personal Data Protection Act, 2023.
 
 10. CHILDREN
 The Platform is intended only for individuals who are 18 years of age or older. We do not knowingly collect personal data from children. If we learn that we have collected data from a child, we will delete it. A parent or legal guardian may contact us to report such collection.
@@ -89,19 +89,19 @@ We may update this Policy from time to time. The "Last updated" date reflects th
 
 13. GRIEVANCE OFFICER
 In accordance with the Information Technology Act, 2000 and rules thereunder, the Grievance Officer for the Platform is:
-   Name: [GRIEVANCE OFFICER NAME]
-   Email: [GRIEVANCE EMAIL]
-   Address: [REGISTERED OFFICE ADDRESS]
+   Name: Adrish Mullick
+   Email: aaddrriisshh@gmail.com
+   Address: B-76, Sector 64, Gautam Buddha Nagar, Noida, Uttar Pradesh 201301, India
 We will acknowledge your complaint within 24 hours and endeavour to resolve it within 15 days of receipt.
 
 14. CONTACT US
-For any questions about this Policy or your data, contact us at [SUPPORT EMAIL].
+For any questions about this Policy or your data, contact us at support@asktro.in.
 
 © Asktro Tech Private Limited. All rights reserved.`;
 
 const TERMS = `ASKTRO — TERMS OF SERVICE
 
-Last updated: [EFFECTIVE DATE]
+Last updated: 20 July 2026
 
 These Terms of Service ("Terms") are a legally binding agreement between you and Asktro Tech Private Limited ("Asktro", "we", "us" or "our") governing your access to and use of the Asktro mobile application and related services (the "Platform"). By creating an account or using the Platform, you agree to these Terms and to our Privacy Policy. If you do not agree, do not use the Platform.
 
@@ -145,22 +145,22 @@ You agree to indemnify and hold harmless Asktro and its personnel from any claim
 We may suspend or terminate your access to the Platform at any time, with or without notice, if you breach these Terms or where we are required to do so by law. You may stop using the Platform and delete your account at any time under Profile > Delete account. Provisions that by their nature should survive termination will survive.
 
 14. GOVERNING LAW AND DISPUTES
-These Terms are governed by the laws of India. Subject to applicable law, the courts at [CITY], India shall have exclusive jurisdiction over any dispute arising out of or relating to these Terms or the Platform. Before initiating any formal proceeding, you agree to first contact us to seek an amicable resolution.
+These Terms are governed by the laws of India. Subject to applicable law, the courts at Noida, Uttar Pradesh, India shall have exclusive jurisdiction over any dispute arising out of or relating to these Terms or the Platform. Before initiating any formal proceeding, you agree to first contact us to seek an amicable resolution.
 
 15. GRIEVANCE REDRESSAL
-For complaints regarding content or these Terms, you may contact our Grievance Officer at [GRIEVANCE EMAIL]. We will acknowledge complaints within 24 hours and endeavour to resolve them within 15 days.
+For complaints regarding content or these Terms, you may contact our Grievance Officer at aaddrriisshh@gmail.com. We will acknowledge complaints within 24 hours and endeavour to resolve them within 15 days.
 
 16. CHANGES TO THESE TERMS
 We may update these Terms from time to time. Material changes will be notified through the app or by other reasonable means, and the "Last updated" date will be revised. Your continued use of the Platform after changes take effect constitutes acceptance of the revised Terms.
 
 17. CONTACT
-Questions about these Terms may be sent to [SUPPORT EMAIL].
+Questions about these Terms may be sent to support@asktro.in.
 
 © Asktro Tech Private Limited. All rights reserved.`;
 
 const DISCLAIMER = `ASKTRO — DISCLAIMER
 
-Last updated: [EFFECTIVE DATE]
+Last updated: 20 July 2026
 
 1. FOR GUIDANCE AND ENTERTAINMENT ONLY
 All astrology content, readings, predictions, horoscopes, birth charts, remedies and consultations provided on the Asktro platform ("Platform") are intended for guidance, self-reflection and entertainment purposes only. They are NOT a substitute for professional advice of any kind — medical, psychological, psychiatric, legal, financial or otherwise. You should always seek the advice of a qualified professional for any such matters, and you should never disregard or delay seeking professional advice because of anything you read or hear on the Platform.
@@ -180,7 +180,7 @@ The Platform is intended only for individuals who are 18 years of age or older.
 6. DECISIONS ARE YOUR OWN
 You are solely responsible for the choices and decisions you make. Asktro and its astrologers accept no liability for any action taken, or not taken, on the basis of content or consultations obtained through the Platform, to the maximum extent permitted by law.
 
-For questions about this Disclaimer, contact us at [SUPPORT EMAIL].
+For questions about this Disclaimer, contact us at support@asktro.in.
 
 © Asktro Tech Private Limited. All rights reserved.`;
 
