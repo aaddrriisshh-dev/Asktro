@@ -1,0 +1,150 @@
+{
+  "project_info": {
+    "project_number": "234450497443",
+    "project_id": "asktro-tech-provate-limited",
+    "storage_bucket": "asktro-tech-provate-limited.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:234450497443:android:db9b7956f99ffc88ef3416",
+        "android_client_info": {
+          "package_name": "com.example.asktro_astrologer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "234450497443-ij2b9sqv2em58j3hl8mm6nbr8ag9pcgt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTgJRhfYDXivkNOzPkSBi6ysW9osb4f0A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "234450497443-ij2b9sqv2em58j3hl8mm6nbr8ag9pcgt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:234450497443:android:082535cecdff8711ef3416",
+        "android_client_info": {
+          "package_name": "com.example.asktro_customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "234450497443-5buiekuuh4grasiu3ffn8mmbuqffe5pc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.asktro_customer",
+            "certificate_hash": "ca6a928751e5ad8ffb8c27b090f75c63aca17b94"
+          }
+        },
+        {
+          "client_id": "234450497443-ij2b9sqv2em58j3hl8mm6nbr8ag9pcgt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTgJRhfYDXivkNOzPkSBi6ysW9osb4f0A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "234450497443-ij2b9sqv2em58j3hl8mm6nbr8ag9pcgt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:234450497443:android:61583f32134edde2ef3416",
+        "android_client_info": {
+          "package_name": "in.asktro.astrologer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "234450497443-ttc315rivng71f3fh3uim7og0l0bie2p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "in.asktro.astrologer",
+            "certificate_hash": "ca6a928751e5ad8ffb8c27b090f75c63aca17b94"
+          }
+        },
+        {
+          "client_id": "234450497443-ij2b9sqv2em58j3hl8mm6nbr8ag9pcgt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTgJRhfYDXivkNOzPkSBi6ysW9osb4f0A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "234450497443-ij2b9sqv2em58j3hl8mm6nbr8ag9pcgt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:234450497443:android:8719a2434d2d4570ef3416",
+        "android_client_info": {
+          "package_name": "in.asktro.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "234450497443-bh2drrscp0mgg5d9feganqqmalogltp7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "in.asktro.customer",
+            "certificate_hash": "ca6a928751e5ad8ffb8c27b090f75c63aca17b94"
+          }
+        },
+        {
+          "client_id": "234450497443-ij2b9sqv2em58j3hl8mm6nbr8ag9pcgt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTgJRhfYDXivkNOzPkSBi6ysW9osb4f0A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "234450497443-ij2b9sqv2em58j3hl8mm6nbr8ag9pcgt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
