@@ -83,22 +83,28 @@ class SecondaryButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.leading,
     this.expand = true,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
+  // Custom leading widget (e.g. a real brand logo). Takes precedence over [icon]
+  // when provided — lets callers show an actual logo instead of a Material glyph.
+  final Widget? leading;
   final bool expand;
 
   @override
   Widget build(BuildContext context) {
+    final Widget iconSlot = leading ??
+        (icon == null ? const SizedBox.shrink() : Icon(icon, size: 20, color: AppColors.primary));
     return SizedBox(
       height: AppSizes.buttonHeight,
       width: expand ? double.infinity : null,
       child: OutlinedButton.icon(
         onPressed: onPressed,
-        icon: icon == null ? const SizedBox.shrink() : Icon(icon, size: 20, color: AppColors.primary),
+        icon: iconSlot,
         label: Text(label, style: AppTypography.button.copyWith(color: AppColors.primary)),
         style: OutlinedButton.styleFrom(
           backgroundColor: AppColors.card,

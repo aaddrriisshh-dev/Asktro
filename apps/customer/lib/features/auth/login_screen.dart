@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
@@ -183,66 +184,66 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         // acceptance in one checkbox the user must tick to continue.
                         child: Padding(
                           padding: const EdgeInsets.only(top: 12),
-                          child: Text.rich(
-                            TextSpan(
-                              style: Ob.note,
-                              children: [
-                                const TextSpan(text: 'I am 18 or older and agree to the '),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text.rich(
                                 TextSpan(
-                                  text: 'Terms of Service',
-                                  style: TextStyle(
-                                    color: Ob.purple,
-                                    fontWeight: FontWeight.w600,
-                                    decoration: TextDecoration.underline,
-                                    decorationColor: Ob.purple,
-                                  ),
-                                  recognizer: _termsTap,
+                                  style: Ob.note,
+                                  children: [
+                                    const TextSpan(text: 'I am 18 or older and agree to the '),
+                                    TextSpan(
+                                      text: 'Terms of Service',
+                                      style: TextStyle(
+                                        color: Ob.purple,
+                                        fontWeight: FontWeight.w600,
+                                        decoration: TextDecoration.underline,
+                                        decorationColor: Ob.purple,
+                                      ),
+                                      recognizer: _termsTap,
+                                    ),
+                                    const TextSpan(text: ' and '),
+                                    TextSpan(
+                                      text: 'Privacy Policy',
+                                      style: TextStyle(
+                                        color: Ob.purple,
+                                        fontWeight: FontWeight.w600,
+                                        decoration: TextDecoration.underline,
+                                        decorationColor: Ob.purple,
+                                      ),
+                                      recognizer: _privacyTap,
+                                    ),
+                                    const TextSpan(text: '.'),
+                                  ],
                                 ),
-                                const TextSpan(text: ' and '),
+                              ),
+                              const SizedBox(height: 7),
+                              // Compact disclaimer — same font as the consent line
+                              // above, aligned under it (shares this column). Full
+                              // text is one tap away on the Disclaimer page.
+                              Text.rich(
                                 TextSpan(
-                                  text: 'Privacy Policy',
-                                  style: TextStyle(
-                                    color: Ob.purple,
-                                    fontWeight: FontWeight.w600,
-                                    decoration: TextDecoration.underline,
-                                    decorationColor: Ob.purple,
-                                  ),
-                                  recognizer: _privacyTap,
+                                  style: Ob.note,
+                                  children: [
+                                    const TextSpan(text: 'For guidance & entertainment only — not professional advice. '),
+                                    TextSpan(
+                                      text: 'Disclaimer',
+                                      style: TextStyle(
+                                        color: Ob.purple,
+                                        fontWeight: FontWeight.w600,
+                                        decoration: TextDecoration.underline,
+                                        decorationColor: Ob.purple,
+                                      ),
+                                      recognizer: _disclaimerTap,
+                                    ),
+                                  ],
                                 ),
-                                const TextSpan(text: '.'),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 6),
-                  // Compact astrology/entertainment disclaimer. The full text
-                  // lives on the tappable "Disclaimer" page (Profile menu + here),
-                  // so signup stays clean while the notice is still visible and
-                  // one tap away (store + regulatory norms).
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, right: 4),
-                    child: Text.rich(
-                      TextSpan(
-                        style: Ob.note.copyWith(color: Ob.grey, fontSize: 11, height: 1.35, fontStyle: FontStyle.italic),
-                        children: [
-                          const TextSpan(text: 'For guidance & entertainment only — not professional advice. '),
-                          TextSpan(
-                            text: 'Disclaimer',
-                            style: TextStyle(
-                              color: Ob.purple,
-                              fontWeight: FontWeight.w600,
-                              fontStyle: FontStyle.normal,
-                              decoration: TextDecoration.underline,
-                              decorationColor: Ob.purple,
-                            ),
-                            recognizer: _disclaimerTap,
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 6),
@@ -259,7 +260,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 22),
                   SecondaryButton(
                     label: 'Continue with Google',
-                    icon: Icons.g_mobiledata_rounded,
+                    leading: SvgPicture.asset('assets/brand/google_g.svg', width: 20, height: 20),
                     onPressed: _loading ? null : () => _social(auth.signInWithGoogle),
                   ),
                   if (Theme.of(context).platform == TargetPlatform.iOS) ...[

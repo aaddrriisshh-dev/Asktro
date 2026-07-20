@@ -104,6 +104,7 @@ flutter_launcher_icons:
 flutter:
   uses-material-design: true
   assets:
+    - assets/brand/
     - assets/illustrations/
     - assets/onboarding/
     - assets/promo/
