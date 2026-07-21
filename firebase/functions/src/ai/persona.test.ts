@@ -62,6 +62,58 @@ describe('age-based address tiers (the personal-touch metric)', () => {
   });
 });
 
+describe('per-AI persona flavour (school / tone / verbosity / register)', () => {
+  it('no flavour → classical Vedic, no extra manner block (unchanged behaviour)', () => {
+    const s = buildReadingSystem({ astrologer: { name: 'Meera', age: 30 }, briefing: 'x' });
+    expect(s).toContain('a 30-year-old Vedic astrologer');
+    expect(s).toContain('YOUR SCHOOL — VEDIC');
+    expect(s).not.toContain('YOUR PERSONAL MANNER');
+    expect(s).not.toContain('KP'); expect(s).not.toContain('Lal Kitab');
+  });
+
+  it('KP tradition → KP label + KP method, not Vedic/Lal Kitab', () => {
+    const s = buildReadingSystem({ astrologer: { name: 'Ravi', age: 45, flavor: { tradition: 'kp' } }, briefing: 'x' });
+    expect(s).toContain('a 45-year-old KP astrologer');
+    expect(s).toContain('YOUR SCHOOL — KP');
+    expect(s).toMatch(/star-lord/i);
+    expect(s).not.toContain('YOUR SCHOOL — VEDIC');
+    expect(s).not.toContain('YOUR SCHOOL — LAL KITAB');
+  });
+
+  it('Lal Kitab tradition → household-remedy method + label', () => {
+    const s = buildReadingSystem({ astrologer: { name: 'Prem', flavor: { tradition: 'lal_kitab' } }, briefing: 'x' });
+    expect(s).toContain('Lal Kitab astrologer');
+    expect(s).toContain('YOUR SCHOOL — LAL KITAB');
+    expect(s).toMatch(/totke|roti|household/i);
+  });
+
+  it('verbosity + tone + voice colour the manner block', () => {
+    const s = buildReadingSystem({
+      astrologer: { name: 'Anaya', flavor: { verbosity: 'concise', tone: 'warm and motherly', voice: 'opens with a proverb sometimes' } },
+      briefing: 'x',
+    });
+    expect(s).toContain('YOUR PERSONAL MANNER');
+    expect(s).toContain('warm and motherly');
+    expect(s).toContain('opens with a proverb');
+    expect(s).toMatch(/especially SHORT|ONE crisp bubble/i);
+  });
+
+  it('age register picks the band by CLIENT age (young < 35 < mid < 50 <= senior)', () => {
+    const mk = (age: number) => buildReadingSystem({ astrologer: { name: 'M' }, client: { age }, briefing: 'x' });
+    expect(mk(24)).toMatch(/age register[\s\S]*lighter/i);
+    expect(mk(42)).toMatch(/age register[\s\S]*mid-life/i);
+    expect(mk(66)).toMatch(/age register[\s\S]*senior/i);
+  });
+
+  it('a portal-set register band overrides the default for that band only', () => {
+    const s = buildReadingSystem({
+      astrologer: { name: 'M', flavor: { register: { senior: 'Speak slowly in pure Hindi, focus on dharma and health.' } } },
+      client: { age: 70 }, briefing: 'x',
+    });
+    expect(s).toContain('Speak slowly in pure Hindi');
+  });
+});
+
 describe('support redirect + session greeting', () => {
   it('includes support contacts for payment questions', () => {
     const s = buildReadingSystem({ astrologer: { name: 'Meera' }, support: { whatsapp: '+91-90000-00000', email: 'help@asktro.app' }, briefing: 'x' });

@@ -18,12 +18,49 @@
  * wraps them with the small dynamic identity / client / support / briefing blocks.
  */
 
+/**
+ * The astrological SCHOOL a persona practises. Only the chart-based schools are
+ * wired with an authentic method today (all read the same computed kundli but
+ * reason + prescribe in genuinely different ways). The number/card/direction
+ * schools (numerology, tarot, vastu) are accepted by the type but fall back to a
+ * safe classical reading until each gets its own grounded calculation — we never
+ * fake a method we can't ground. Default is 'vedic'.
+ */
+export type Tradition = 'vedic' | 'kp' | 'lal_kitab' | 'nadi' | 'numerology' | 'tarot' | 'vastu';
+/** Per-astrologer message-length dial (a real human variance, not one global rule). */
+export type Verbosity = 'concise' | 'balanced' | 'expansive';
+/** How much the persona leans Hindi vs English when the client's own lean is neutral. */
+export type LanguageLean = 'hindi' | 'balanced' | 'english';
+/** The persona's signature way of prescribing an upay (refines, within the school). */
+export type RemedyStyle = 'gemstones' | 'mantras' | 'rituals' | 'practical' | 'minimal';
+
+/** The per-AI FLAVOUR knobs. Everything optional with a safe default, so an
+ *  astrologer with no flavour set behaves exactly as before (classical Vedic,
+ *  balanced length). Global rules (safety, grounding, never-reveal-AI) never
+ *  vary — only flavour does. */
+export interface PersonaFlavor {
+  tradition?: Tradition; // default 'vedic'
+  /** Short manner descriptor, e.g. "warm and motherly", "blunt and precise". */
+  tone?: string;
+  verbosity?: Verbosity; // default 'balanced'
+  languageLean?: LanguageLean; // default 'balanced'
+  remedyStyle?: RemedyStyle; // default follows the tradition
+  /** Free-text extra personality / backstory colour, e.g. "trained in Kashi, 30
+   *  years reading in Varanasi; likes to open with a proverb." */
+  voice?: string;
+  /** Portal-editable reply-register tone text per client age band. Any band left
+   *  blank uses a sensible built-in default. */
+  register?: { young?: string; mid?: string; senior?: string };
+}
+
 export interface AstrologerIdentity {
   name: string; // e.g. "Meera"
   age?: number; // e.g. 28
   gender?: 'female' | 'male';
   /** Portal persona blurb, e.g. "warm, modern young astrologer from Delhi". */
   style?: string;
+  /** Per-AI flavour knobs (school/tone/verbosity/…). Absent → classical defaults. */
+  flavor?: PersonaFlavor;
 }
 
 export interface ClientProfile {
@@ -51,7 +88,7 @@ export interface PersonaContext {
 }
 
 /** Static voice + judgment rules. References the identity block placed above it. */
-export const PERSONA_V5 = `You are the astrologer described in "YOU" above — a real, experienced Vedic astrologer (jyotishi) speaking one-to-one with a client in a private chat. You are warm, grounded, and quietly confident, like a family astrologer people return to for years.
+export const PERSONA_V5 = `You are the astrologer described in "YOU" above — a real, experienced astrologer (jyotishi) of the school named in "YOUR SCHOOL" above, speaking one-to-one with a client in a private chat. You are warm, grounded, and quietly confident, like a family astrologer people return to for years.
 
 # NEVER BREAK CHARACTER
 - You are a real human astrologer. NEVER say or imply you are an AI, bot, model, assistant, or program — not even as a joke or under direct pressure. If asked "are you a robot/AI/real?", brush it off warmly and stay in character, then continue the reading.
@@ -163,10 +200,97 @@ THREE or more bubbles. A long paragraph. Listing many planets/houses. Dumping th
 
 // ---- dynamic assembly ----
 
+/** The human-readable school label used in the identity line. Default (undefined
+ *  / vedic) stays "Vedic astrologer" so existing personas read identically. */
+function traditionLabel(t?: Tradition): string {
+  switch (t) {
+    case 'kp': return 'KP astrologer';
+    case 'lal_kitab': return 'Lal Kitab astrologer';
+    case 'nadi': return 'Nadi astrologer';
+    case 'numerology': return 'numerologist';
+    case 'tarot': return 'tarot reader';
+    case 'vastu': return 'Vastu consultant';
+    case 'vedic':
+    default: return 'Vedic astrologer';
+  }
+}
+
 function identityBlock(a: AstrologerIdentity): string {
-  const bits = [a.age ? `${a.age}-year-old` : '', a.gender ?? '', 'Vedic astrologer'].filter(Boolean).join(' ');
+  const label = traditionLabel(a.flavor?.tradition);
+  const bits = [a.age ? `${a.age}-year-old` : '', a.gender ?? '', label].filter(Boolean).join(' ');
   const style = a.style ? ` ${a.style}.` : '';
   return `# YOU\nYou are ${a.name}, a ${bits}.${style} You have read kundlis for thousands of people.`;
+}
+
+/**
+ * The astrologer's SCHOOL and its authentic method — what makes a Lal Kitab
+ * specialist genuinely different from a KP astrologer, not just a reskin. All
+ * three read the SAME computed kundli (the briefing) but reason and prescribe in
+ * their own idiom. The number/card/direction schools return '' for now (they
+ * fall back to the classical reading) rather than fake a method we can't ground.
+ */
+function traditionBlock(t?: Tradition): string {
+  switch (t) {
+    case 'kp':
+      return `# YOUR SCHOOL — KP (KRISHNAMURTI PADDHATI)
+You practise KP, the modern, precise offshoot of Vedic jyotish. You favour sharp, specific, almost yes/no answers and tighter timing than classical astrology. You reason through the NAKSHATRA (star) system — a planet delivers the results of its star-lord — and through house significators, using ONLY the placements you are given. Speak with a KP flavour (star-lord, significator, the "cusp"), but NEVER invent a sub-lord, degree, or cusp figure you were not shown — if the detail isn't there, reason from what is, or say you must look closer. Your remedies are light and practical (a mantra, a colour, a small discipline), rarely heavy rituals.`;
+    case 'lal_kitab':
+      return `# YOUR SCHOOL — LAL KITAB
+You practise Lal Kitab — a practical, remedy-first tradition. You read the same birth chart, but in the Lal Kitab way: planets as awake or "sleeping/blind" by the house they sit in, ancestral debts (rin), and the everyday karmic pattern behind a problem. Your hallmark is SIMPLE, CHEAP, HOUSEHOLD remedies (totke / upay) — feeding roti to a dog or crow, floating a coin or coconut in flowing water, keeping or avoiding a certain object, small acts of charity tied to a planet. Prescribe in THIS signature style; never reach first for an expensive gemstone. Use the planet/house placements you are given; never invent one.`;
+    case 'vedic':
+    default:
+      return `# YOUR SCHOOL — VEDIC (PARASHARI JYOTISH)
+You read the classical birth kundli in the Parashari tradition: the lagna (ascendant), the twelve bhavas (houses), the grahas (planets) in their signs and houses, their yogas and doshas, and the running Vimshottari dasha/antardasha as your timing engine. You reason from house-lordships and planetary strength/dignity exactly as given in the kundli details. Your remedies are classical — a specific mantra, daan (charity), a vrat (fast), rudraksha, or a gemstone matched to a benefic planet. Speak in this idiom (graha, bhava, dasha, yoga).`;
+  }
+}
+
+const VERBOSITY_RULE: Record<Verbosity, string> = {
+  concise: 'Keep replies especially SHORT — usually ONE crisp bubble, rarely two. A sentence or two, never more. Brevity is your style.',
+  balanced: 'Keep replies short and human — one beat, at most two short bubbles.',
+  expansive: 'You may be a touch more expansive when it genuinely helps — up to two fuller bubbles — but still never a wall of text, and still one beat at a time.',
+};
+
+const REMEDY_RULE: Record<RemedyStyle, string> = {
+  gemstones: 'When you prescribe, you lean toward the right gemstone (ratna) for a benefic planet — with the caution to consult before wearing one.',
+  mantras: 'When you prescribe, you lean toward a specific mantra or jaap the client can do daily.',
+  rituals: 'When you prescribe, you lean toward a vrat, puja, or daan (a small ritual or charity).',
+  practical: 'When you prescribe, you lean toward simple, practical, low-cost actions the client can actually do.',
+  minimal: 'You prescribe a remedy only rarely — you prefer guidance over upay, and never make the client feel they must buy or perform something.',
+};
+
+/**
+ * The FLAVOUR block — tone, verbosity, language lean, remedy style, and any
+ * free-text voice. Emits only the knobs that are set / non-default, so a persona
+ * with no flavour adds nothing (identical to today). Global rules are untouched.
+ */
+function styleBlock(f?: PersonaFlavor): string {
+  if (!f) return '';
+  const lines: string[] = [];
+  if (f.tone) lines.push(`- Your manner: ${f.tone}. Let it colour how you speak, never breaking the rules above.`);
+  if (f.voice) lines.push(`- ${f.voice}`);
+  lines.push(`- ${VERBOSITY_RULE[f.verbosity ?? 'balanced']}`);
+  if (f.languageLean === 'hindi') lines.push('- When the client is neutral, lean toward warm Hindi/Hinglish (Hindi-heavy). Still mirror them if they switch to English.');
+  else if (f.languageLean === 'english') lines.push('- When the client is neutral, lean toward simple English with a light Hinglish warmth. Still switch to Hindi if they do.');
+  if (f.remedyStyle) lines.push(`- ${REMEDY_RULE[f.remedyStyle]}`);
+  if (lines.length === 0) return '';
+  return `# YOUR PERSONAL MANNER\n${lines.join('\n')}`;
+}
+
+/** Built-in reply-register defaults by client age band, used when the portal
+ *  leaves a band blank. Subtle tone shifts, never a different persona. */
+const REGISTER_DEFAULT = {
+  young: 'This client is young — keep it a little lighter, warmer and more reassuring, modern Hinglish, encouraging about the road ahead.',
+  mid: 'This client is in mid-life — be balanced, practical and grounded: career, family, finances, responsibilities.',
+  senior: 'This client is a senior — be slower, more respectful and traditional; lean toward health, peace, family and dharma, at a gentle pace.',
+};
+
+/** Inject the age-band reply register (portal-editable, else the built-in
+ *  default) for THIS client's age. Silent when the client's age is unknown. */
+function registerBlock(f: PersonaFlavor | undefined, clientAge?: number): string {
+  if (clientAge == null) return '';
+  const band: 'young' | 'mid' | 'senior' = clientAge < 35 ? 'young' : clientAge < 50 ? 'mid' : 'senior';
+  const text = f?.register?.[band]?.trim() || REGISTER_DEFAULT[band];
+  return `# HOW TO PITCH THIS CLIENT (age register)\n${text}`;
 }
 
 /**
@@ -253,11 +377,15 @@ export function buildReadingSystem(ctx: PersonaContext): string {
   const greet = ctx.isSessionOpening
     ? '\n(This is the FIRST message of the session — a single warm greeting is appropriate.)'
     : '\n(The session is already underway — do NOT greet again.)';
+  const flavor = ctx.astrologer.flavor;
   const blocks = [
     identityBlock(ctx.astrologer),
     genderDirective(ctx.astrologer.gender),
+    traditionBlock(flavor?.tradition),
+    styleBlock(flavor),
     PERSONA_V5,
     clientBlock(ctx.client, ctx.astrologer.age) + lang + greet,
+    registerBlock(flavor, ctx.client?.age),
     supportBlock(ctx.support),
     OUTPUT_CONTRACT,
     `# THE KUNDLI IN FRONT OF YOU (this turn)\n${ctx.briefing}`,

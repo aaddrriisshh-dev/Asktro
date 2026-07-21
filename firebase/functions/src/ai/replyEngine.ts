@@ -22,7 +22,9 @@ import { PROKERALA_CLIENT_ID, PROKERALA_CLIENT_SECRET, prokeralaGet } from '../p
 import { extractChartData, ChartData } from './chartFacts';
 import { assembleSlice } from './selector';
 import { classifyIntentHeuristic } from './router';
-import { buildReadingSystem } from './persona';
+import {
+  buildReadingSystem, PersonaFlavor, Tradition, Verbosity, LanguageLean, RemedyStyle,
+} from './persona';
 import { llmGenerate, LlmTurn, LlmInlineImage } from './provider';
 import { guardReply } from './guard';
 import { conjugateGender } from './gender';
@@ -158,7 +160,10 @@ export const onAiChatMessage = onDocumentCreated(
           name: astro.name ?? astro.displayName ?? 'Guru ji',
           age: typeof astro.age === 'number' ? astro.age : undefined,
           gender: astroGender,
-          style: astro.persona ?? astro.bio ?? undefined,
+          // `about` is the field the portal actually writes; persona/bio kept as
+          // legacy fallbacks. Feeds the free-text style line in the identity block.
+          style: str(astro.persona) ?? str(astro.bio) ?? str(astro.about) ?? undefined,
+          flavor: readFlavor(astro),
         },
         client: {
           name: clientName,
@@ -760,6 +765,38 @@ async function activateIfWaiting(consultationId: string): Promise<void> {
 function tsMs(v: unknown): number {
   return v && typeof (v as { toMillis?: () => number }).toMillis === 'function'
     ? (v as { toMillis: () => number }).toMillis() : 0;
+}
+
+// Persona-flavour whitelists — only accept values the engine actually understands,
+// so a stray/legacy field on an astrologer doc can never inject junk into the
+// prompt. Anything unknown is dropped and the persona falls back to its default.
+const TRADITIONS: Tradition[] = ['vedic', 'kp', 'lal_kitab', 'nadi', 'numerology', 'tarot', 'vastu'];
+const VERBOSITIES: Verbosity[] = ['concise', 'balanced', 'expansive'];
+const LANGUAGE_LEANS: LanguageLean[] = ['hindi', 'balanced', 'english'];
+const REMEDY_STYLES: RemedyStyle[] = ['gemstones', 'mantras', 'rituals', 'practical', 'minimal'];
+const inList = <T extends string>(v: unknown, list: T[]): T | undefined =>
+  typeof v === 'string' && (list as string[]).includes(v) ? (v as T) : undefined;
+
+/** Map an astrologer doc's persona fields to a validated PersonaFlavor. Returns
+ *  undefined when nothing is set, so a plain astrologer behaves exactly as before.
+ *  Best-effort and defensive: unknown enum values are ignored, not passed through. */
+function readFlavor(astro: Record<string, unknown>): PersonaFlavor | undefined {
+  const p = (astro.persona && typeof astro.persona === 'object' ? astro.persona : astro) as Record<string, unknown>;
+  const reg = p.register && typeof p.register === 'object' ? p.register as Record<string, unknown> : undefined;
+  const register = reg
+    ? { young: str(reg.young), mid: str(reg.mid), senior: str(reg.senior) }
+    : undefined;
+  const flavor: PersonaFlavor = {
+    tradition: inList(p.tradition, TRADITIONS),
+    tone: str(p.tone),
+    verbosity: inList(p.verbosity, VERBOSITIES),
+    languageLean: inList(p.languageLean, LANGUAGE_LEANS),
+    remedyStyle: inList(p.remedyStyle, REMEDY_STYLES),
+    voice: str(p.voice),
+    register: register && (register.young || register.mid || register.senior) ? register : undefined,
+  };
+  // Collapse to undefined if every knob is empty (keeps the default persona path).
+  return Object.values(flavor).some((v) => v !== undefined) ? flavor : undefined;
 }
 
 /**
