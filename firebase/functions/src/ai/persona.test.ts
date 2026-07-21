@@ -117,6 +117,29 @@ describe('per-AI persona flavour (school / tone / verbosity / register)', () => 
     expect(s).not.toContain('YOUR SCHOOL — VEDIC');
   });
 
+  it('tarot → cards school + label, never the kundli label', () => {
+    const s = buildReadingSystem({
+      astrologer: { name: 'Tanya', flavor: { tradition: 'tarot' } },
+      briefing: 'THE CARDS YOU DREW: - Situation: The Sun (upright)',
+    });
+    expect(s).toContain('tarot reader');
+    expect(s).toContain('YOUR SCHOOL — TAROT');
+    expect(s).toContain('THE CARDS YOU HAVE DRAWN');
+    expect(s).not.toContain('THE KUNDLI IN FRONT OF YOU');
+  });
+
+  it('vastu → spatial-consultation school + label', () => {
+    const s = buildReadingSystem({
+      astrologer: { name: 'Mahesh', flavor: { tradition: 'vastu' } },
+      briefing: 'This is a VASTU consultation.',
+    });
+    expect(s).toContain('Vastu consultant');
+    expect(s).toContain('YOUR SCHOOL — VASTU');
+    expect(s).toMatch(/direction/i);
+    expect(s).toContain('YOUR VASTU CONSULTATION');
+    expect(s).not.toContain('THE KUNDLI IN FRONT OF YOU');
+  });
+
   it('a portal-set register band overrides the default for that band only', () => {
     const s = buildReadingSystem({
       astrologer: { name: 'M', flavor: { register: { senior: 'Speak slowly in pure Hindi, focus on dharma and health.' } } },

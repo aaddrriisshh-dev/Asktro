@@ -22,6 +22,7 @@ import { PROKERALA_CLIENT_ID, PROKERALA_CLIENT_SECRET, prokeralaGet } from '../p
 import { extractChartData, ChartData } from './chartFacts';
 import { assembleSlice } from './selector';
 import { buildNumerologyBriefing } from './numerology';
+import { buildTarotBriefing } from './tarot';
 import { classifyIntentHeuristic } from './router';
 import {
   buildReadingSystem, PersonaFlavor, Tradition, Verbosity, LanguageLean, RemedyStyle,
@@ -52,6 +53,13 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 // Stand-in "burst" when the client sent ONLY a photo (no words) — the model still
 // needs a final user turn; the actual image rides alongside as an inline part.
 const PHOTO_ONLY_TEXT = '(the client has shared a photo with you, without any words)';
+// A Vastu consultant has no chart or numbers to ground on — the "facts" are the
+// client's own space, which the persona gathers by asking. This just frames it.
+const VASTU_BRIEFING =
+  'This is a VASTU (spatial) consultation — there is no birth chart or number to read. '
+  + 'Ground your guidance in the client\'s SPACE: ask for the home / main-door facing '
+  + 'direction or the specific room/corner in question, then advise by direction and '
+  + 'placement with simple, doable corrections.';
 // Folded into the system prompt only when a photo is attached. Keeps her in
 // character, steers each photo type sensibly, and protects the computed kundli
 // from being overridden by an unverifiable chart screenshot.
@@ -128,19 +136,25 @@ export const onAiChatMessage = onDocumentCreated(
         | Partial<Record<'router' | 'filler' | 'reading', string>>
         | undefined;
 
-      // 1) Grounding facts — a Vedic/KP/Lal-Kitab persona reads the birth CHART;
-      // a numerologist reads the person's NUMBERS instead (no chart). Compute the
-      // persona flavour once and branch on the school.
+      // 1) Grounding facts by SCHOOL. Vedic/KP/Lal-Kitab read the birth CHART; a
+      // numerologist reads the person's NUMBERS; a tarot reader the CARDS drawn
+      // for the question (built at step 3, once we have the question); a Vastu
+      // consultant runs a spatial consultation (no chart/number needed). Compute
+      // the persona flavour once and branch on the school.
       const flavor = readFlavor(astro);
-      const isNumerology = flavor?.tradition === 'numerology';
+      const tradition = flavor?.tradition ?? 'vedic';
       let chart: ChartData | null = null;
-      let numerologyBriefing: string | null = null;
-      if (isNumerology) {
-        numerologyBriefing = buildNumerologyBriefing(num(user.birthDateMs), str(user.name));
-        if (!numerologyBriefing) {
+      let altBriefing: string | null = null; // non-chart schools' facts block
+      if (tradition === 'numerology') {
+        altBriefing = buildNumerologyBriefing(num(user.birthDateMs), str(user.name));
+        if (!altBriefing) {
           logger.warn('onAiChatMessage: no numbers (missing birth date?)', { consultationId });
           return;
         }
+      } else if (tradition === 'vastu') {
+        altBriefing = VASTU_BRIEFING; // spatial consultation — no birth data needed
+      } else if (tradition === 'tarot') {
+        altBriefing = null; // the spread is drawn at step 3 from the question
       } else {
         chart = await getOrBuildChart(consultationId, user);
         if (!chart) {
@@ -165,15 +179,18 @@ export const onAiChatMessage = onDocumentCreated(
       const userText = burst || (imageInlines.length ? PHOTO_ONLY_TEXT : text);
       const isSessionOpening = !history.some((t) => t.role === 'model');
 
-      // 3) Intent → 4) slice → 5) persona system prompt. A numerologist skips the
-      // chart slice and reads the precomputed numbers instead.
+      // 3) Intent → 4) slice → 5) persona system prompt. Non-chart schools skip the
+      // chart slice: a tarot reader draws the spread for THIS question now; the
+      // others already have their facts block (numbers / Vastu).
       const intent = classifyIntentHeuristic(userText);
-      const briefing = numerologyBriefing ?? assembleSlice(chart!, {
-        themes: intent.themes,
-        subIntent: intent.subIntent,
-        gender: user.gender === 'female' ? 'female' : user.gender === 'male' ? 'male' : undefined,
-        overview: intent.overview,
-      });
+      const briefing = tradition === 'tarot'
+        ? buildTarotBriefing(consultationId, userText)
+        : (altBriefing ?? assembleSlice(chart!, {
+            themes: intent.themes,
+            subIntent: intent.subIntent,
+            gender: user.gender === 'female' ? 'female' : user.gender === 'male' ? 'male' : undefined,
+            overview: intent.overview,
+          }));
       const astroGender = astro.gender === 'female' ? 'female' : astro.gender === 'male' ? 'male' : undefined;
       const systemBase = buildReadingSystem({
         astrologer: {
