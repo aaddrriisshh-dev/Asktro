@@ -65,28 +65,26 @@ class OnboardingScaffold extends StatelessWidget {
                   const SizedBox(height: 18),
                   StepBar(currentIndex: stepIndex!, total: totalSteps, currentIcon: stepIcon),
                 ],
+                // Content and the CTA scroll together, so the button sits DIRECTLY
+                // under wherever the content ends — not pinned to the screen bottom
+                // with a blank gap above it. Any leftover space falls BELOW the
+                // button and just shows the celestial background. On the rare tall
+                // step (or with the keyboard up) the whole thing scrolls as one,
+                // so nothing is ever clipped.
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    // generous bottom padding so the last item never crowds the CTA
                     padding: const EdgeInsets.fromLTRB(
-                        Ob.screenPad, Ob.section, Ob.screenPad, 28,),
-                    child: content,
-                  ),
-                ),
-                // Fade-to-background scrim: scrolling content and scenery fade
-                // out cleanly so the CTA + "secure" line sit on a solid base.
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Ob.bgColor.withValues(alpha: 0), Ob.bgColor],
-                      stops: const [0, 0.5],
+                        Ob.screenPad, Ob.section, Ob.screenPad, 24,),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        content,
+                        const SizedBox(height: 24),
+                        footer,
+                      ],
                     ),
                   ),
-                  padding: const EdgeInsets.fromLTRB(Ob.screenPad, 22, Ob.screenPad, 14),
-                  child: footer,
                 ),
               ],
             ),

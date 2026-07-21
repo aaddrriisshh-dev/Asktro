@@ -202,10 +202,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         // Constrain the heading so long titles wrap on the left and never run
         // under the upper-right illustration.
         SizedBox(width: 250, child: obTitle(title, accent: accent)),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         const SparkleDivider(),
-        const SizedBox(height: 16),
-        SizedBox(width: 240, child: Text(subtitle, style: Ob.subtitle)),
+        // Subtitle is optional — an empty string collapses it so the step stays
+        // compact and fits the viewport without scrolling.
+        if (subtitle.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          SizedBox(width: 240, child: Text(subtitle, style: Ob.subtitle)),
+        ],
       ],
     );
   }
@@ -341,13 +345,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 34),
+          const SizedBox(height: 18),
           Text('Hey there!', style: Ob.hero),
           const SizedBox(height: 6),
           Text('What is your name?', style: Ob.subtitleLg),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           const SparkleDivider(),
-          const SizedBox(height: 44),
+          const SizedBox(height: 28),
           _textField(
             controller: _name,
             hint: 'Enter your name',
@@ -371,8 +375,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-          _stepHead('What is your gender?', 'This helps us personalize your experience.'),
-          const SizedBox(height: 34),
+          _stepHead('What is your gender?', ''),
+          const SizedBox(height: 22),
           Row(
             children: [
               Expanded(child: _genderCard('male', Icons.man, 'Male', Ob.gold)),
@@ -392,7 +396,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       onTap: () => setState(() => _gender = value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        height: 230,
+        height: 196,
         decoration: BoxDecoration(
           color: selected ? Ob.selectedFill : Ob.surface,
           borderRadius: BorderRadius.circular(26),
@@ -467,8 +471,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-          _stepHead('Enter your birth date', 'This helps us create your personalized horoscope.'),
-          const SizedBox(height: 26),
+          _stepHead('Enter your birth date', 'For your personalised horoscope.'),
+          const SizedBox(height: 22),
           _wheelCard(
             topLabels: const ['Month', 'Day', 'Year'],
             topIcon: Icons.calendar_today_rounded,
@@ -477,12 +481,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               _WheelSpec(count: 31, initial: _birthDate.day - 1, label: (i) => '${i + 1}', onChanged: (i) => _syncDate(day: i + 1)),
               _WheelSpec(count: 2010 - 1920 + 1, initial: _birthDate.year - 1920, label: (i) => '${1920 + i}', onChanged: (i) => _syncDate(year: 1920 + i)),
             ],
-          ),
-          const SizedBox(height: 20),
-          const InfoNote(
-            icon: Icons.auto_awesome_rounded,
-            title: 'Why we ask this?',
-            body: 'Your birth date is essential to generate accurate astrological insights just for you.',
           ),
         ],
       ),
@@ -507,8 +505,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-          _stepHead('Enter your birth time', 'Accurate birth time allows us to give more precise predictions.'),
-          const SizedBox(height: 26),
+          _stepHead('Enter your birth time', ''),
+          const SizedBox(height: 22),
           Opacity(
             opacity: _timeUnknown ? 0.45 : 1,
             child: IgnorePointer(
@@ -580,8 +578,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-          _stepHead('Where were you born?', 'Your birth place helps us calculate accurate planetary positions.'),
-          const SizedBox(height: 22),
+          _stepHead('Where were you born?', ''),
+          const SizedBox(height: 18),
           _CitySearchField(
             initial: _birthPlace,
             onSelected: (p) => setState(() {
@@ -605,25 +603,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-          _stepHead('Tell us your relationship status',
-              'This helps our astrologers give you more relevant and personalized guidance.',
-              accent: 'relationship',),
-          const SizedBox(height: 22),
-          Row(
-            children: [
-              const Icon(Icons.auto_awesome, color: Ob.gold, size: 14),
-              const SizedBox(width: 6),
-              Text('Choose your status', style: Ob.sectionLabel),
-            ],
-          ),
-          const SizedBox(height: 14),
+          _stepHead('Your relationship status', '', accent: 'relationship'),
+          const SizedBox(height: 20),
           OptionRow(icon: Icons.person_rounded, iconBg: Ob.lavenderChip, iconColor: Ob.purple, label: 'Single', selected: _relationship == 'single', onTap: () => setState(() => _relationship = 'single')),
           const SizedBox(height: 12),
           OptionRow(icon: Icons.favorite_rounded, iconBg: const Color(0xFFFBE0E0), iconColor: const Color(0xFFD86C6C), label: 'In a Relationship', selected: _relationship == 'in_relationship', onTap: () => setState(() => _relationship = 'in_relationship')),
           const SizedBox(height: 12),
           OptionRow(icon: Icons.favorite_rounded, iconBg: const Color(0xFFFBEECB), iconColor: const Color(0xFFCFA232), label: 'Married', selected: _relationship == 'married', onTap: () => setState(() => _relationship = 'married')),
-          const SizedBox(height: 16),
-          const InfoNote(icon: Icons.lock_outline_rounded, title: 'You can change this anytime', body: 'Your answers are private and secure.'),
         ],
       ),
       footer: _footer('Next'),
@@ -644,9 +630,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-          _stepHead('Select all your languages',
-              "Choose the languages you're comfortable in. You can always change this later.",),
-          const SizedBox(height: 22),
+          _stepHead('Your languages', ''),
+          const SizedBox(height: 18),
           LayoutBuilder(builder: (context, c) {
             const spacing = 10.0;
             final w = (c.maxWidth - spacing) / 2;
@@ -656,29 +641,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               children: [for (final l in langs) SizedBox(width: w, child: _languageTile(l[0], l[1]))],
             );
           },),
-          const SizedBox(height: 18),
-          TextField(
-            controller: _referral,
-            textCapitalization: TextCapitalization.characters,
-            style: Ob.option,
-            decoration: InputDecoration(
-              labelText: 'Referral code (optional)',
-              hintText: 'e.g. ASK1234',
-              prefixIcon: const Icon(Icons.card_giftcard_rounded, color: Ob.purple),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Ob.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Ob.border),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          const InfoNote(icon: Icons.language_rounded, body: 'You can add or remove languages anytime from your profile settings.'),
         ],
       ),
       footer: _footer('Start chat with Astrologer'),
@@ -900,48 +862,20 @@ class _CitySearchField extends StatefulWidget {
 class _CitySearchFieldState extends State<_CitySearchField> {
   final _service = PlaceSearchService();
   late final TextEditingController _c = TextEditingController(text: widget.initial ?? '');
-  // Anchor + portal so the suggestions float ABOVE the footer CTA and background
-  // scenery instead of being crushed inline by the on-screen keyboard (where
-  // they read as "hidden underneath the screen"). The dropdown pins to the
-  // field's bottom edge and scrolls within its own capped height.
-  final _link = LayerLink();
-  final _portal = OverlayPortalController();
-  final _focus = FocusNode();
   Timer? _debounce;
   bool _loading = false;
-  String _query = '';
   List<PlaceResult> _results = const [];
-
-  @override
-  void initState() {
-    super.initState();
-    _focus.addListener(_syncOverlay);
-  }
 
   @override
   void dispose() {
     _debounce?.cancel();
-    _focus.removeListener(_syncOverlay);
-    _focus.dispose();
     _c.dispose();
     super.dispose();
   }
 
-  // Show the dropdown whenever the field is focused and the user has typed a real
-  // query — it then holds the spinner, the results, or the "no matches" line.
-  void _syncOverlay() {
-    final show = _focus.hasFocus && _query.trim().length >= 2;
-    if (show && !_portal.isShowing) {
-      _portal.show();
-    } else if (!show && _portal.isShowing) {
-      _portal.hide();
-    }
-  }
-
   void _onChanged(String v) {
     widget.onSelected(PlaceResult(label: v)); // free text keeps the CTA usable (no coords)
-    setState(() => _query = v);
-    _syncOverlay();
+    setState(() {});
     _debounce?.cancel();
     final q = v.trim();
     if (q.length < 2) {
@@ -965,129 +899,81 @@ class _CitySearchFieldState extends State<_CitySearchField> {
   void _pick(PlaceResult p) {
     _c.text = p.label;
     _c.selection = TextSelection.collapsed(offset: p.label.length);
-    setState(() {
-      _query = p.label;
-      _results = const [];
-    });
+    setState(() => _results = const []);
     widget.onSelected(p); // carries lat/lon
-    _portal.hide();
     FocusScope.of(context).unfocus();
   }
 
   @override
   Widget build(BuildContext context) {
-    return OverlayPortal(
-      controller: _portal,
-      overlayChildBuilder: _buildDropdown,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CompositedTransformTarget(
-            link: _link,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(Ob.inputRadius),
+            boxShadow: Ob.softShadow,
+          ),
+          child: TextField(
+            controller: _c,
+            autofocus: true,
+            style: Ob.option.copyWith(fontSize: 16),
+            cursorColor: Ob.purple,
+            onChanged: _onChanged,
+            decoration: InputDecoration(
+              hintText: 'Search your town, city or village',
+              hintStyle: Ob.option.copyWith(color: const Color(0xFF9E98B0), fontSize: 16),
+              prefixIcon: const Icon(Icons.location_on_outlined, color: Ob.purple),
+              suffixIcon: _loading
+                  ? const Padding(
+                      padding: EdgeInsets.all(15),
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2.2, color: Ob.purple),
+                      ),
+                    )
+                  : const Icon(Icons.search_rounded, color: Ob.purple),
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+            ),
+          ),
+        ),
+        // Suggestions in a CAPPED inline card that lives in the content area,
+        // ABOVE the Next button — it never floats over the CTA. At most ~3 show;
+        // the rest scroll within the card.
+        if (_results.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 168),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(Ob.inputRadius),
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: Ob.softShadow,
               ),
-              child: TextField(
-                controller: _c,
-                focusNode: _focus,
-                autofocus: true,
-                style: Ob.option.copyWith(fontSize: 16),
-                cursorColor: Ob.purple,
-                onChanged: _onChanged,
-                decoration: InputDecoration(
-                  hintText: 'Search your town, city or village',
-                  hintStyle: Ob.option.copyWith(color: const Color(0xFF9E98B0), fontSize: 16),
-                  prefixIcon: const Icon(Icons.location_on_outlined, color: Ob.purple),
-                  suffixIcon: _loading
-                      ? const Padding(
-                          padding: EdgeInsets.all(15),
-                          child: SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2.2, color: Ob.purple),
-                          ),
-                        )
-                      : const Icon(Icons.search_rounded, color: Ob.purple),
-                  filled: false,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
+              clipBehavior: Clip.antiAlias,
+              child: Material(
+                type: MaterialType.transparency,
+                child: ListView.separated(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  physics: const ClampingScrollPhysics(),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  itemCount: _results.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, indent: 66, endIndent: 16, color: Ob.border),
+                  itemBuilder: (_, i) => _resultTile(_results[i]),
                 ),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDropdown(BuildContext context) {
-    // Match the field's width and pin the panel just below its bottom edge.
-    final width = MediaQuery.of(context).size.width - 2 * Ob.screenPad;
-    return CompositedTransformFollower(
-      link: _link,
-      showWhenUnlinked: false,
-      targetAnchor: Alignment.bottomLeft,
-      followerAnchor: Alignment.topLeft,
-      offset: const Offset(0, 8),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(
-          width: width,
-          child: Material(
-            color: Colors.white,
-            elevation: 10,
-            shadowColor: Colors.black26,
-            borderRadius: BorderRadius.circular(18),
-            clipBehavior: Clip.antiAlias,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 280),
-              child: _dropdownBody(),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _dropdownBody() {
-    if (_results.isNotEmpty) {
-      return ListView.separated(
-        padding: EdgeInsets.zero,
-        shrinkWrap: true,
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        itemCount: _results.length,
-        separatorBuilder: (_, __) =>
-            const Divider(height: 1, indent: 66, endIndent: 16, color: Ob.border),
-        itemBuilder: (_, i) => _resultTile(_results[i]),
-      );
-    }
-    if (_loading) {
-      return _statusRow(
-        const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2, color: Ob.purple)),
-        'Searching places…',
-      );
-    }
-    return _statusRow(
-      const Icon(Icons.search_off_rounded, color: Ob.grey, size: 20),
-      'No matching places found. Try a different spelling.',
-    );
-  }
-
-  Widget _statusRow(Widget leading, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-      child: Row(
-        children: [
-          leading,
-          const SizedBox(width: 12),
-          Expanded(child: Text(text, style: Ob.note)),
-        ],
-      ),
+      ],
     );
   }
 
