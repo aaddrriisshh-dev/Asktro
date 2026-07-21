@@ -118,25 +118,22 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   /// home gate). If a user is already signed in (e.g. editing later), save now.
   Future<void> _completeSetup(Map<String, dynamic> data) async {
     setState(() => _saving = true);
+    // ALWAYS buffer the details in memory AND on disk, whether or not a uid
+    // already exists. Setup normally runs before login (no uid), but a persisted
+    // Firebase session can leave a STALE uid here — if we only wrote to that uid
+    // and skipped the buffer, the details would never reach the account the user
+    // actually logs into next, and they'd land as a nameless "Guest". Buffering
+    // unconditionally means the home-gate backstop can always recover them.
+    ref.read(pendingProfileProvider.notifier).state = data;
+    await writePendingProfile(data);
     final uid = ref.read(currentUidProvider);
     if (uid != null) {
       try {
-        await ref.read(userRepositoryProvider).updateProfile(uid, data);
+        await ref.read(userRepositoryProvider).applyOnboarding(uid, data);
         ref.read(analyticsProvider).logEvent('profile_setup_complete');
       } catch (_) {
-        if (mounted) {
-          setState(() => _saving = false);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Could not save your details. Please try again.'),
-          ),);
-        }
-        return;
+        // Non-fatal: the buffer is on disk and the home-gate backstop retries.
       }
-    } else {
-      // No uid yet (setup runs before login). Buffer in memory AND on disk so
-      // the details survive an app restart during the login/OTP step.
-      ref.read(pendingProfileProvider.notifier).state = data;
-      await writePendingProfile(data);
     }
     await setSetupDone();
     ref.read(setupDoneProvider.notifier).state = true;
@@ -903,21 +900,48 @@ class _CitySearchField extends StatefulWidget {
 class _CitySearchFieldState extends State<_CitySearchField> {
   final _service = PlaceSearchService();
   late final TextEditingController _c = TextEditingController(text: widget.initial ?? '');
+  // Anchor + portal so the suggestions float ABOVE the footer CTA and background
+  // scenery instead of being crushed inline by the on-screen keyboard (where
+  // they read as "hidden underneath the screen"). The dropdown pins to the
+  // field's bottom edge and scrolls within its own capped height.
+  final _link = LayerLink();
+  final _portal = OverlayPortalController();
+  final _focus = FocusNode();
   Timer? _debounce;
   bool _loading = false;
   String _query = '';
   List<PlaceResult> _results = const [];
 
   @override
+  void initState() {
+    super.initState();
+    _focus.addListener(_syncOverlay);
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
+    _focus.removeListener(_syncOverlay);
+    _focus.dispose();
     _c.dispose();
     super.dispose();
+  }
+
+  // Show the dropdown whenever the field is focused and the user has typed a real
+  // query — it then holds the spinner, the results, or the "no matches" line.
+  void _syncOverlay() {
+    final show = _focus.hasFocus && _query.trim().length >= 2;
+    if (show && !_portal.isShowing) {
+      _portal.show();
+    } else if (!show && _portal.isShowing) {
+      _portal.hide();
+    }
   }
 
   void _onChanged(String v) {
     widget.onSelected(PlaceResult(label: v)); // free text keeps the CTA usable (no coords)
     setState(() => _query = v);
+    _syncOverlay();
     _debounce?.cancel();
     final q = v.trim();
     if (q.length < 2) {
@@ -946,81 +970,134 @@ class _CitySearchFieldState extends State<_CitySearchField> {
       _results = const [];
     });
     widget.onSelected(p); // carries lat/lon
+    _portal.hide();
     FocusScope.of(context).unfocus();
   }
 
   @override
   Widget build(BuildContext context) {
-    final q = _query.trim();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(Ob.inputRadius),
-            boxShadow: Ob.softShadow,
+    return OverlayPortal(
+      controller: _portal,
+      overlayChildBuilder: _buildDropdown,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CompositedTransformTarget(
+            link: _link,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(Ob.inputRadius),
+                boxShadow: Ob.softShadow,
+              ),
+              child: TextField(
+                controller: _c,
+                focusNode: _focus,
+                autofocus: true,
+                style: Ob.option.copyWith(fontSize: 16),
+                cursorColor: Ob.purple,
+                onChanged: _onChanged,
+                decoration: InputDecoration(
+                  hintText: 'Search your town, city or village',
+                  hintStyle: Ob.option.copyWith(color: const Color(0xFF9E98B0), fontSize: 16),
+                  prefixIcon: const Icon(Icons.location_on_outlined, color: Ob.purple),
+                  suffixIcon: _loading
+                      ? const Padding(
+                          padding: EdgeInsets.all(15),
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2.2, color: Ob.purple),
+                          ),
+                        )
+                      : const Icon(Icons.search_rounded, color: Ob.purple),
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                ),
+              ),
+            ),
           ),
-          child: TextField(
-            controller: _c,
-            autofocus: true,
-            style: Ob.option.copyWith(fontSize: 16),
-            cursorColor: Ob.purple,
-            onChanged: _onChanged,
-            decoration: InputDecoration(
-              hintText: 'Search your town, city or village',
-              hintStyle: Ob.option.copyWith(color: const Color(0xFF9E98B0), fontSize: 16),
-              prefixIcon: const Icon(Icons.location_on_outlined, color: Ob.purple),
-              suffixIcon: _loading
-                  ? const Padding(
-                      padding: EdgeInsets.all(15),
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2.2, color: Ob.purple),
-                      ),
-                    )
-                  : const Icon(Icons.search_rounded, color: Ob.purple),
-              filled: false,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+          // A quiet inline hint before typing; the live suggestions render in the
+          // floating dropdown above, so nothing here is ever covered.
+          if (_query.trim().length < 2)
+            _hint(Icons.travel_explore_rounded, 'Start typing your birth town, city or village.'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdown(BuildContext context) {
+    // Match the field's width and pin the panel just below its bottom edge.
+    final width = MediaQuery.of(context).size.width - 2 * Ob.screenPad;
+    return CompositedTransformFollower(
+      link: _link,
+      showWhenUnlinked: false,
+      targetAnchor: Alignment.bottomLeft,
+      followerAnchor: Alignment.topLeft,
+      offset: const Offset(0, 8),
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: SizedBox(
+          width: width,
+          child: Material(
+            color: Colors.white,
+            elevation: 10,
+            shadowColor: Colors.black26,
+            borderRadius: BorderRadius.circular(18),
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 280),
+              child: _dropdownBody(),
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        if (_results.isNotEmpty)
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: Ob.softShadow,
-            ),
-            clipBehavior: Clip.antiAlias,
-            // Material ancestor so each ListTile paints its ink on it, not on
-            // the coloured DecoratedBox above (which would hide it and warn).
-            child: Material(
-              type: MaterialType.transparency,
-              child: Column(
-                children: [
-                  for (var i = 0; i < _results.length; i++)
-                    _resultTile(_results[i], divider: i != _results.length - 1),
-                ],
-              ),
-            ),
-          )
-        else if (!_loading && q.length >= 2)
-          _hint(Icons.search_off_rounded, 'No matching places found. Try a different spelling.')
-        else if (q.length < 2)
-          _hint(Icons.travel_explore_rounded, 'Start typing your birth town, city or village.'),
-      ],
+      ),
+    );
+  }
+
+  Widget _dropdownBody() {
+    if (_results.isNotEmpty) {
+      return ListView.separated(
+        padding: EdgeInsets.zero,
+        shrinkWrap: true,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        itemCount: _results.length,
+        separatorBuilder: (_, __) =>
+            const Divider(height: 1, indent: 66, endIndent: 16, color: Ob.border),
+        itemBuilder: (_, i) => _resultTile(_results[i]),
+      );
+    }
+    if (_loading) {
+      return _statusRow(
+        const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2, color: Ob.purple)),
+        'Searching places…',
+      );
+    }
+    return _statusRow(
+      const Icon(Icons.search_off_rounded, color: Ob.grey, size: 20),
+      'No matching places found. Try a different spelling.',
+    );
+  }
+
+  Widget _statusRow(Widget leading, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      child: Row(
+        children: [
+          leading,
+          const SizedBox(width: 12),
+          Expanded(child: Text(text, style: Ob.note)),
+        ],
+      ),
     );
   }
 
   Widget _hint(IconData icon, String text) {
     return Padding(
-      padding: const EdgeInsets.only(top: 6, left: 4),
+      padding: const EdgeInsets.only(top: 12, left: 4),
       child: Row(
         children: [
           Icon(icon, color: Ob.grey, size: 18),
@@ -1031,23 +1108,18 @@ class _CitySearchFieldState extends State<_CitySearchField> {
     );
   }
 
-  Widget _resultTile(PlaceResult p, {bool divider = false}) {
-    return Column(
-      children: [
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-          leading: Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(color: Ob.lavenderChip, shape: BoxShape.circle),
-            child: const Icon(Icons.place_outlined, color: Ob.purple, size: 20),
-          ),
-          title: Text(p.label, style: Ob.option.copyWith(fontSize: 15)),
-          trailing: const Icon(Icons.north_west_rounded, color: Color(0xFFB9B3C9), size: 18),
-          onTap: () => _pick(p),
-        ),
-        if (divider) const Divider(height: 1, indent: 66, endIndent: 16, color: Ob.border),
-      ],
+  Widget _resultTile(PlaceResult p) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: const BoxDecoration(color: Ob.lavenderChip, shape: BoxShape.circle),
+        child: const Icon(Icons.place_outlined, color: Ob.purple, size: 20),
+      ),
+      title: Text(p.label, style: Ob.option.copyWith(fontSize: 15)),
+      trailing: const Icon(Icons.north_west_rounded, color: Color(0xFFB9B3C9), size: 18),
+      onTap: () => _pick(p),
     );
   }
 }

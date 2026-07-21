@@ -120,8 +120,11 @@ class AuthController {
           email: email ?? cred.user?.email,
           profile: pending,
         );
-    _ref.read(pendingProfileProvider.notifier).state = null;
-    await clearPendingProfile();
+    // Deliberately DO NOT clear the buffer here. If this create silently didn't
+    // land the details (offline write that never synced, trigger/create race,
+    // or the doc pre-existed as a bare 'Guest'), clearing now would lose the only
+    // copy. The home gate re-applies the buffer against the profile on first
+    // arrival at /home and clears it only after that write succeeds.
     _ref.read(analyticsProvider).logEvent(AnalyticsEvents.login);
   }
 

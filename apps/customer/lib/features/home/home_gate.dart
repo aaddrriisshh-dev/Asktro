@@ -24,25 +24,28 @@ class _HomeGateState extends ConsumerState<HomeGate> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _flushPendingProfile());
   }
 
-  /// Backstop self-heal: `ensureProfile` already writes the onboarding details
-  /// in one create at sign-in. But if the profile doc was created some other way
-  /// first (e.g. the server onAuthUserCreate trigger, or an earlier partial
-  /// signup) so `ensureProfile` saw it exists and skipped, the buffered
-  /// onboarding could be missing. Apply it here as an idempotent update. Only
-  /// clear the buffer once the write actually lands, so a failure is retried.
+  /// Backstop self-heal, and the authoritative point where the onboarding buffer
+  /// is cleared. `ensureProfile` writes the details in one create at sign-in, but
+  /// that can miss them — the doc pre-existed as a bare 'Guest' (server
+  /// onAuthUserCreate trigger won the race), the buffer wasn't in hand, or an
+  /// offline write never synced. This runs on every arrival at /home, re-applies
+  /// the buffered details idempotently (reserved money/referral fields stripped so
+  /// the update can't be denied), and clears the buffer ONLY after that write
+  /// succeeds — so a failure is simply retried on the next /home, and the details
+  /// are never dropped while unsaved.
   Future<void> _flushPendingProfile() async {
     final uid = ref.read(currentUidProvider);
     if (uid == null) return;
     final pending = ref.read(pendingProfileProvider) ?? await readPendingProfile();
     if (pending == null) return;
     try {
-      await ref.read(userRepositoryProvider).updateProfile(uid, pending);
+      await ref.read(userRepositoryProvider).applyOnboarding(uid, pending);
       ref.read(analyticsProvider).logEvent('profile_setup_complete');
       ref.read(pendingProfileProvider.notifier).state = null;
       await clearPendingProfile();
     } catch (_) {
-      // Doc may not exist yet (ensureProfile create in flight) — keep the buffer
-      // for a later retry; ensureProfile itself already includes these fields.
+      // Write didn't land (offline / doc-create in flight) — keep the buffer in
+      // memory AND on disk for a retry on the next /home arrival.
     }
   }
 

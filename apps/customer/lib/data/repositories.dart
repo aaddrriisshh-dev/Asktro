@@ -143,6 +143,26 @@ class AstrologerRepository {
   }
 }
 
+/// Function-owned fields a client must NEVER write. The Firestore `users` update
+/// rule rejects a write that touches any of these — so if the buffered onboarding
+/// map still carries one (e.g. `referredBy` from a typed referral code), the whole
+/// merge is denied and the birth details are silently lost. We strip them before
+/// every client-side profile write. Kept in one place so the merge in
+/// [UserRepository.ensureProfile] and the home-gate backstop can't drift apart.
+const reservedProfileFields = {
+  'walletBalance', 'bonusBalance', 'chatBonusBalance', 'lockedBalance',
+  'totalRecharge', 'totalSpent', 'pendingRefund', 'totalConsultations',
+  'referralCode', 'referredBy', 'accountStatus', 'signupBonusGranted',
+  'firstRechargeAt', 'chatGraceUsed',
+};
+
+/// Drop function-owned keys from a client-supplied profile map (see
+/// [reservedProfileFields]), so a client write is never denied for touching them.
+Map<String, dynamic> sanitizeClientProfile(Map<String, dynamic> data) => {
+      for (final e in data.entries)
+        if (!reservedProfileFields.contains(e.key)) e.key: e.value,
+    };
+
 class UserRepository {
   UserRepository(this._db);
   final FirebaseFirestore _db;
@@ -177,15 +197,8 @@ class UserRepository {
       // money/status/referral fields (function-owned; the client-update rule
       // rejects them and merging 0 could wipe a live balance), and never clobber
       // a real name with an empty one.
-      const reserved = {
-        'walletBalance', 'bonusBalance', 'chatBonusBalance', 'lockedBalance',
-        'totalRecharge', 'totalSpent', 'pendingRefund', 'totalConsultations',
-        'referralCode', 'referredBy', 'accountStatus', 'signupBonusGranted',
-        'firstRechargeAt', 'chatGraceUsed',
-      };
       final merge = <String, dynamic>{
-        for (final e in (profile ?? const {}).entries)
-          if (!reserved.contains(e.key)) e.key: e.value,
+        ...sanitizeClientProfile(profile ?? const {}),
         if (resolvedName != null && resolvedName.isNotEmpty) 'name': resolvedName,
         if (email != null && email.isNotEmpty) 'email': email,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -212,6 +225,17 @@ class UserRepository {
 
   Future<void> updateProfile(String uid, Map<String, dynamic> patch) =>
       _doc(uid).set({...patch, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+
+  /// Idempotently merge the pre-login onboarding buffer onto an existing profile.
+  /// Used by the home-gate backstop when the primary create at sign-in didn't
+  /// land the details (stale session, trigger race, flaky write). Reserved
+  /// function-owned fields are stripped so the client update rule can't deny it
+  /// (a lone `referredBy` used to sink the whole write). Safe to call repeatedly.
+  Future<void> applyOnboarding(String uid, Map<String, dynamic> buffer) {
+    final safe = sanitizeClientProfile(buffer);
+    if (safe.isEmpty) return Future.value();
+    return _doc(uid).set({...safe, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+  }
 
   Future<void> toggleFavourite(String uid, String astrologerId, bool fav) => _doc(uid).update({
         'favouriteAstrologers':
