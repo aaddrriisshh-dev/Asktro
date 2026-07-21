@@ -59,6 +59,28 @@ describe('creditRecharge (emulator)', () => {
     expect(u.walletBalance).toBe(10000); // credited once, not 20000
   });
 
+  it('rejects a captured payment on a malformed plan instead of silently crediting zero', async () => {
+    const uid = 'u_malformed_plan';
+    await seedUser(uid);
+    // An ACTIVE plan doc that is missing BOTH walletCredit and amount — a captured
+    // payment must NOT be marked processed with a ₹0 credit; it must throw so the
+    // webhook dead-letters it for reconciliation.
+    await db.collection('rechargePlans').doc('planBad').set({ active: true, bonus: 1000 });
+    await seedOrder('ordBad', uid, 'planBad');
+
+    await expect(
+      creditRecharge({ userId: uid, paymentId: 'payBad', orderId: 'ordBad', planId: 'planBad', source: 'webhook' }),
+    ).rejects.toThrow('PLAN_MALFORMED');
+
+    // Nothing credited, and the payment was NOT recorded as processed (so a retry
+    // after the plan is fixed can still credit it).
+    const u = (await db.collection('users').doc(uid).get()).data()!;
+    expect(u.walletBalance ?? 0).toBe(0);
+    expect(u.bonusBalance ?? 0).toBe(0);
+    const processed = await db.collection('processedPayments').doc('payBad').get();
+    expect(processed.exists).toBe(false);
+  });
+
   it('autoResumePausedSession re-seeds presence so billing does not stall after resume', async () => {
     const uid = 'u_resume_1', cid = 'c_resume_1';
     await db.collection('users').doc(uid).set({ walletBalance: 5000 });

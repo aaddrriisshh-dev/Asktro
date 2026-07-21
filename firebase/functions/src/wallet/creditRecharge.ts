@@ -88,7 +88,14 @@ export async function creditRecharge(params: {
 
     // ---- COMPUTE ----
     const walletCredit: number = plan.walletCredit ?? plan.amount ?? 0;
-    let bonus: number = plan.bonus ?? 0;
+    // A captured payment must NEVER be marked processed with a zero/garbage
+    // credit. If the plan doc is malformed (both amounts missing, or NaN), THROW
+    // so the payment is left unprocessed for retry/reconciliation + dead-letter,
+    // instead of silently crediting ₹0 to a customer who really paid Razorpay.
+    if (!Number.isFinite(walletCredit) || walletCredit <= 0) throw new Error('PLAN_MALFORMED');
+    // A missing/garbage bonus is legitimately zero (plans need not carry one), but
+    // never let a NaN propagate into the balance math.
+    let bonus: number = Number.isFinite(plan.bonus) ? (plan.bonus as number) : 0;
     const isPaidUser = (user.totalRecharge ?? 0) > 0;
 
     // Optional coupon: adds extra bonus credit. The money path re-runs the FULL
