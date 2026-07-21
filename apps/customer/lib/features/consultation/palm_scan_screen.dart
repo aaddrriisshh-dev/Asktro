@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Guided palm capture. Shows a live camera with a large hand-shaped outline the
@@ -32,6 +33,19 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
   Uint8List? _review; // a just-taken shot awaiting Retake/Use
   bool _askSecond = false; // showing the "add the other hand?" prompt
 
+  // Hold-steady auto-capture: watch the frame stream, and once the user has moved
+  // a hand into place and then HELD STILL for ~1.2s, snap automatically (the
+  // manual button always works too). Thresholds are tuned from on-device testing.
+  bool _streaming = false;
+  List<int>? _prevSig; // previous frame's downsampled signature
+  bool _sawMotion = false; // require motion (hand moving in) before arming
+  DateTime? _steadySince; // when the current steady stretch began
+  DateTime _lastProcess = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _showSteady = false; // UI hint state (flipped only on change, not per frame)
+  static const int _motionThreshold = 11; // mean abs luma diff = movement
+  static const int _steadyThreshold = 4; // below this = still
+  static const int _holdMs = 1200; // hold-still duration before auto-snap
+
   @override
   void initState() {
     super.initState();
@@ -52,14 +66,98 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
         (c) => c.lensDirection == CameraLensDirection.back,
         orElse: () => cams.first,
       );
+      // yuv420 so the image stream's plane[0] is luminance (Android) for the
+      // steadiness check; takePicture still returns a JPEG regardless.
       final controller = CameraController(cam, ResolutionPreset.high,
-          enableAudio: false, imageFormatGroup: ImageFormatGroup.jpeg);
+          enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
       await controller.initialize();
       if (!mounted) { await controller.dispose(); return; }
       setState(() { _controller = controller; _initializing = false; });
+      _beginScan();
     } catch (_) {
       _fail("Couldn't open the camera. Please try again.");
     }
+  }
+
+  /// Start the frame stream for hold-steady auto-capture (idempotent).
+  Future<void> _beginScan() async {
+    final c = _controller;
+    if (c == null || _streaming || !c.value.isInitialized) return;
+    _prevSig = null; _sawMotion = false; _steadySince = null;
+    try { await c.startImageStream(_onFrame); _streaming = true; } catch (_) {}
+  }
+
+  /// Stop the frame stream (before a capture, or when leaving the camera view).
+  Future<void> _endScan() async {
+    final c = _controller;
+    if (c == null || !_streaming) return;
+    try { await c.stopImageStream(); } catch (_) {}
+    _streaming = false;
+    if (_showSteady && mounted) setState(() => _showSteady = false);
+  }
+
+  /// Per-frame steadiness check. Cheap: samples a small grid of luma bytes,
+  /// compares to the previous frame. Requires the user to move a hand IN (motion)
+  /// and then HOLD STILL before auto-capturing — so a static empty scene never
+  /// fires. Everything is best-effort and guarded; never throws into the stream.
+  void _onFrame(CameraImage image) {
+    if (!_streaming || _capturing || _review != null || _askSecond) return;
+    final now = DateTime.now();
+    if (now.difference(_lastProcess).inMilliseconds < 120) return; // throttle
+    _lastProcess = now;
+    try {
+      final sig = _signature(image);
+      final prev = _prevSig;
+      _prevSig = sig;
+      if (prev == null) return;
+      final diff = _meanAbsDiff(prev, sig);
+      if (diff > _motionThreshold) {
+        _sawMotion = true; _steadySince = null;
+        if (_showSteady) setState(() => _showSteady = false);
+      } else if (diff < _steadyThreshold && _sawMotion) {
+        _steadySince ??= now;
+        if (!_showSteady) setState(() => _showSteady = true);
+        if (now.difference(_steadySince!).inMilliseconds >= _holdMs) {
+          _steadySince = null; _sawMotion = false;
+          _capture(auto: true);
+        }
+      } else {
+        _steadySince = null; // mild drift — restart the hold, keep motion flag
+      }
+    } catch (_) {/* never break the stream */}
+  }
+
+  /// A tiny fixed-grid luma signature of the frame (format-agnostic enough for a
+  /// steadiness diff: Y plane on Android, first channel on iOS BGRA).
+  List<int> _signature(CameraImage image) {
+    final plane = image.planes[0];
+    final bytes = plane.bytes;
+    final stride = plane.bytesPerRow;
+    final bpp = plane.bytesPerPixel ?? 1;
+    final w = image.width, h = image.height;
+    const gx = 12, gy = 16;
+    final out = List<int>.filled(gx * gy, 0);
+    var k = 0;
+    for (var j = 0; j < gy; j++) {
+      final y = ((j + 0.5) / gy * h).floor();
+      for (var i = 0; i < gx; i++) {
+        final x = ((i + 0.5) / gx * w).floor();
+        final idx = y * stride + x * bpp;
+        out[k++] = (idx >= 0 && idx < bytes.length) ? bytes[idx] : 0;
+      }
+    }
+    return out;
+  }
+
+  int _meanAbsDiff(List<int> a, List<int> b) {
+    var sum = 0;
+    final n = a.length < b.length ? a.length : b.length;
+    if (n == 0) return 0;
+    for (var i = 0; i < n; i++) {
+      final d = a[i] - b[i];
+      sum += d < 0 ? -d : d;
+    }
+    return sum ~/ n;
   }
 
   void _fail(String msg) {
@@ -82,21 +180,27 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _endScan();
     _controller?.dispose();
     super.dispose();
   }
 
-  Future<void> _capture() async {
+  Future<void> _capture({bool auto = false}) async {
     final c = _controller;
     if (c == null || !c.value.isInitialized || _capturing) return;
     setState(() => _capturing = true);
+    await _endScan(); // takePicture must not run while the stream is active
+    if (auto) HapticFeedback.mediumImpact(); // a little buzz on auto-capture
     try {
       final file = await c.takePicture();
       final bytes = await file.readAsBytes();
       if (!mounted) return;
       setState(() { _review = bytes; _capturing = false; });
     } catch (_) {
-      if (mounted) setState(() => _capturing = false);
+      if (mounted) {
+        setState(() => _capturing = false);
+        _beginScan(); // capture failed — resume scanning
+      }
     }
   }
 
@@ -111,11 +215,17 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
     setState(() { _review = null; _askSecond = true; });
   }
 
-  void _retake() => setState(() => _review = null);
+  void _retake() {
+    setState(() => _review = null);
+    _beginScan();
+  }
 
   void _sendWithOne() => Navigator.of(context).pop(_captured);
 
-  void _addSecond() => setState(() { _askSecond = false; _hand = 'right'; });
+  void _addSecond() {
+    setState(() { _askSecond = false; _hand = 'right'; });
+    _beginScan();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,7 +271,7 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
                   style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800,
                       shadows: [Shadow(blurRadius: 6, color: Colors.black)])),
               const SizedBox(height: 4),
-              const Text('Palm facing the camera · fingers spread · good light',
+              const Text('Palm facing the camera · fingers spread · hold still to auto-capture',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white70, fontSize: 12.5,
                       shadows: [Shadow(blurRadius: 6, color: Colors.black)])),
@@ -181,11 +291,30 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
             ],
           ),
         ),
+        // Auto-capture hint — shows while the hand is being held steady.
+        if (_showSteady)
+          Positioned(
+            bottom: 118 + MediaQuery.of(context).padding.bottom, left: 0, right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2F9C63).withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                  SizedBox(width: 8),
+                  Text('Hold steady…', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ),
+          ),
         Positioned(
           bottom: 28 + MediaQuery.of(context).padding.bottom, left: 0, right: 0,
           child: Center(
             child: GestureDetector(
-              onTap: _capturing ? null : _capture,
+              onTap: _capturing ? null : () => _capture(),
               child: Container(
                 width: 74, height: 74,
                 decoration: BoxDecoration(
