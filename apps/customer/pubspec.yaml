@@ -58,10 +58,6 @@ dependencies:
   flutter_file_dialog: ^3.0.2
   permission_handler: ^11.3.1
   image_picker: ^1.1.2
-  # Custom camera preview for the guided palm-scan overlay (image_picker can't
-  # draw an overlay on the native camera). Camera + photo permissions are already
-  # declared (Agora/photo access). Run `flutter pub get` after pulling.
-  camera: ^0.11.0+2
   shared_preferences: ^2.3.2
   connectivity_plus: ^6.0.5
 

@@ -18,7 +18,6 @@ import 'consultation_controller.dart';
 import 'consultation_header.dart';
 import 'consultation_end.dart';
 import 'chat_kundli_card.dart';
-import 'palm_scan_screen.dart';
 
 /// How long a `typing:true` flag stays "live" without a refresh. Covers the AI's
 /// compose time (generation + human typing-delay) while still auto-clearing if a
@@ -386,8 +385,8 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
             ),
             ListTile(
               leading: const Icon(Icons.back_hand_rounded, color: AppColors.primary),
-              title: const Text('Scan palm (guided)'),
-              subtitle: const Text('Fit your hand in the outline for a palm reading'),
+              title: const Text('Palm reading'),
+              subtitle: const Text('Photograph each hand for a reading'),
               onTap: () => Navigator.pop(ctx, 'palm'),
             ),
           ],
@@ -402,15 +401,46 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     }
   }
 
-  /// Open the guided palm-scan camera; stage whatever hand photo(s) it returns.
+  /// Guided palm reading — a simple, reliable two-photo flow using the phone's
+  /// normal camera: left hand, then (optionally) the right hand for a deeper
+  /// two-hand reading. Each photo stages in the composer and sends on Enter.
   Future<void> _scanPalm() async {
-    final result = await Navigator.of(context).push<List<Uint8List>>(
-      MaterialPageRoute(builder: (_) => const PalmScanScreen()),
-    );
-    if (result == null || result.isEmpty) return;
-    for (final bytes in result) {
-      await _stageBytes(bytes);
+    if (!await _palmPrompt(
+      'Palm reading',
+      'First, take a clear photo of your LEFT hand — palm facing the camera, fingers spread, in good light.',
+      'Open camera',
+      'Cancel',
+    )) return;
+    final left = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
+    if (left == null) return;
+    await _stageBytes(await left.readAsBytes());
+    if (!mounted) return;
+
+    if (await _palmPrompt(
+      'Add your right hand?',
+      'One hand shows what you were born with, the other what you’ve made of it — reading both gives a deeper, more accurate palm reading. Take a photo of your RIGHT hand?',
+      'Take right hand',
+      'Send with left only',
+    )) {
+      final right = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
+      if (right != null) await _stageBytes(await right.readAsBytes());
     }
+  }
+
+  /// A simple confirm dialog for the palm flow. Returns true on the primary action.
+  Future<bool> _palmPrompt(String title, String body, String ok, String cancel) async {
+    final r = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(ok)),
+        ],
+      ),
+    );
+    return r == true;
   }
 
   /// Pick from [source], stage it, and upload in the background.
