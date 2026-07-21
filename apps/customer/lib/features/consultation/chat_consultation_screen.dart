@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -102,6 +103,13 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   bool _graceShown = false;
   bool _leftForTerminal = false;
   bool _pausedShown = false;
+
+  // Staged image (WhatsApp-style): a picked photo previews in the composer and
+  // uploads in the background; it only enters the chat when the user taps send.
+  Uint8List? _stagedImageBytes; // local preview shown in the composer
+  String? _stagedImageUrl; // set once the background upload finishes (ready to send)
+  bool _uploadingImage = false; // true while the upload is in flight (spinner)
+  bool _sendWhenUploaded = false; // user tapped send before the upload finished
 
   // Join-chime: ids of "<name> has joined" lines we've already sounded, so the
   // chime fires once when the astrologer arrives — never for join lines that
@@ -300,51 +308,132 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  /// Send on tap/Enter. Sends a staged image (once its upload is done) and/or the
+  /// typed text — so a photo never enters the chat until the user actually sends.
   Future<void> _send() async {
-    final text = _input.text.trim();
     final uid = ref.read(currentUidProvider);
-    if (text.isEmpty || uid == null) return;
+    if (uid == null) return;
+    final text = _input.text.trim();
+    final hasImage = _stagedImageBytes != null;
+
+    // A photo is staged but still uploading → remember the intent and fire the
+    // moment it's ready (the composer shows a spinner meanwhile).
+    if (hasImage && _stagedImageUrl == null) {
+      setState(() => _sendWhenUploaded = true);
+      return;
+    }
+    if (text.isEmpty && !hasImage) return;
+
     _input.clear();
     _setTyping(false);
-    try {
-      await _messagesCol.add({
-        'senderId': uid,
-        'type': 'text',
-        'text': text,
-        'timestamp': FieldValue.serverTimestamp(),
-        'delivered': true,
-        'seen': false,
-      });
-    } catch (_) {
-      // Restore the text so the message is never silently lost, and tell the user.
-      _input.text = text;
-      _input.selection = TextSelection.collapsed(offset: text.length);
-      _toast("Couldn't send — check your connection and try again.");
+
+    // 1) The image bubble (if one is staged and uploaded).
+    if (hasImage && _stagedImageUrl != null) {
+      final url = _stagedImageUrl!;
+      _clearStagedImage();
+      try {
+        await _messagesCol.add({
+          'senderId': uid,
+          'type': 'image',
+          'image': url,
+          'timestamp': FieldValue.serverTimestamp(),
+          'delivered': true,
+          'seen': false,
+        });
+      } catch (_) {
+        _toast("Couldn't send the image — please try again.");
+      }
+    }
+
+    // 2) The text bubble (a caption or a normal message).
+    if (text.isNotEmpty) {
+      try {
+        await _messagesCol.add({
+          'senderId': uid,
+          'type': 'text',
+          'text': text,
+          'timestamp': FieldValue.serverTimestamp(),
+          'delivered': true,
+          'seen': false,
+        });
+      } catch (_) {
+        _input.text = text; // never lose the words on a failure
+        _input.selection = TextSelection.collapsed(offset: text.length);
+        _toast("Couldn't send — check your connection and try again.");
+      }
     }
   }
 
-  Future<void> _sendImage() async {
+  /// Attach tapped → let the user pick Camera or Gallery, then stage the photo.
+  Future<void> _pickImage() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded, color: AppColors.primary),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded, color: AppColors.primary),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    await _stageAndUpload(source);
+  }
+
+  /// Pick from [source], show it in the composer immediately, and upload in the
+  /// background. If the user already tapped send, fire as soon as the upload lands.
+  Future<void> _stageAndUpload(ImageSource source) async {
     final uid = ref.read(currentUidProvider);
     if (uid == null) return;
     try {
-      final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+      final picked = await ImagePicker().pickImage(source: source, imageQuality: 70);
       if (picked == null) return;
       final data = await picked.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _stagedImageBytes = data;
+        _stagedImageUrl = null;
+        _uploadingImage = true;
+        _sendWhenUploaded = false;
+      });
       final refStore = FirebaseStorage.instance
           .ref('chat_images/$_id/${DateTime.now().millisecondsSinceEpoch}.jpg');
       await refStore.putData(data, SettableMetadata(contentType: 'image/jpeg'));
       final url = await refStore.getDownloadURL();
-      await _messagesCol.add({
-        'senderId': uid,
-        'type': 'image',
-        'image': url,
-        'timestamp': FieldValue.serverTimestamp(),
-        'delivered': true,
-        'seen': false,
+      if (!mounted) return;
+      // The user may have cancelled the preview while it was uploading.
+      if (_stagedImageBytes == null) return;
+      setState(() {
+        _stagedImageUrl = url;
+        _uploadingImage = false;
       });
+      if (_sendWhenUploaded) await _send(); // they pressed send during the upload
     } catch (_) {
-      _toast("Couldn't send the image — please try again.");
+      if (mounted) {
+        _clearStagedImage();
+        _toast("Couldn't attach the image — please try again.");
+      }
     }
+  }
+
+  void _clearStagedImage() {
+    if (!mounted) return;
+    setState(() {
+      _stagedImageBytes = null;
+      _stagedImageUrl = null;
+      _uploadingImage = false;
+      _sendWhenUploaded = false;
+    });
   }
 
   DateTime _lastTypingWrite = DateTime.fromMillisecondsSinceEpoch(0);
@@ -800,8 +889,11 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
             _Composer(
               controller: _input,
               onSend: _send,
-              onAttach: _sendImage,
+              onAttach: _pickImage,
               onChanged: (v) => _setTyping(v.trim().isNotEmpty),
+              stagedImage: _stagedImageBytes,
+              uploadingImage: _uploadingImage,
+              onCancelImage: _clearStagedImage,
             ),
           ],
         ),
@@ -1064,11 +1156,17 @@ class _Composer extends StatelessWidget {
     required this.onSend,
     required this.onAttach,
     required this.onChanged,
+    this.stagedImage,
+    this.uploadingImage = false,
+    required this.onCancelImage,
   });
   final TextEditingController controller;
   final VoidCallback onSend;
   final VoidCallback onAttach;
   final ValueChanged<String> onChanged;
+  final Uint8List? stagedImage;
+  final bool uploadingImage;
+  final VoidCallback onCancelImage;
 
   @override
   Widget build(BuildContext context) {
@@ -1086,29 +1184,101 @@ class _Composer extends StatelessWidget {
         top: AppSpacing.sm,
         bottom: AppSpacing.sm + MediaQuery.of(context).padding.bottom,
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            onPressed: onAttach,
-            icon: const Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary),
-            tooltip: 'Send image',
-          ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              minLines: 1,
-              maxLines: 4,
-              textCapitalization: TextCapitalization.sentences,
-              onChanged: onChanged,
-              decoration: const InputDecoration(hintText: 'Type a message...', filled: false, border: InputBorder.none),
+          if (stagedImage != null)
+            _StagedImagePreview(
+              bytes: stagedImage!,
+              uploading: uploadingImage,
+              onCancel: onCancelImage,
             ),
-          ),
-          IconButton.filled(
-            style: IconButton.styleFrom(backgroundColor: AppColors.primary),
-            onPressed: onSend,
-            icon: const Icon(Icons.send_rounded, color: Colors.white),
+          Row(
+            children: [
+              IconButton(
+                onPressed: onAttach,
+                icon: const Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary),
+                tooltip: 'Send image',
+              ),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  minLines: 1,
+                  maxLines: 4,
+                  textCapitalization: TextCapitalization.sentences,
+                  onChanged: onChanged,
+                  decoration: InputDecoration(
+                    hintText: stagedImage != null ? 'Add a caption…' : 'Type a message...',
+                    filled: false,
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              IconButton.filled(
+                style: IconButton.styleFrom(backgroundColor: AppColors.primary),
+                onPressed: onSend,
+                icon: const Icon(Icons.send_rounded, color: Colors.white),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The picked photo previewed in the composer before it's sent. While the upload
+/// is in flight a spinner sits over it (the "image is loading" cue); an X in the
+/// corner discards it. It enters the chat only when the user taps send.
+class _StagedImagePreview extends StatelessWidget {
+  const _StagedImagePreview({required this.bytes, required this.uploading, required this.onCancel});
+  final Uint8List bytes;
+  final bool uploading;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(left: AppSpacing.sm, bottom: AppSpacing.sm, top: AppSpacing.xs),
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.memory(bytes, width: 84, height: 84, fit: BoxFit.cover),
+            ),
+            // Dim + spinner while uploading.
+            if (uploading)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    color: Colors.black38,
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+            // Cancel (X).
+            Positioned(
+              top: -6,
+              right: -6,
+              child: GestureDetector(
+                onTap: onCancel,
+                child: Container(
+                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                  padding: const EdgeInsets.all(3),
+                  child: const Icon(Icons.close_rounded, size: 15, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
