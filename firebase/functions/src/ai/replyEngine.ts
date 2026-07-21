@@ -21,6 +21,7 @@ import { GEMINI_API_KEY } from '../common/secrets';
 import { PROKERALA_CLIENT_ID, PROKERALA_CLIENT_SECRET, prokeralaGet } from '../prokerala/prokerala';
 import { extractChartData, ChartData } from './chartFacts';
 import { assembleSlice } from './selector';
+import { buildNumerologyBriefing } from './numerology';
 import { classifyIntentHeuristic } from './router';
 import {
   buildReadingSystem, PersonaFlavor, Tradition, Verbosity, LanguageLean, RemedyStyle,
@@ -127,11 +128,25 @@ export const onAiChatMessage = onDocumentCreated(
         | Partial<Record<'router' | 'filler' | 'reading', string>>
         | undefined;
 
-      // 1) Chart — build once, cache on the consultation.
-      const chart = await getOrBuildChart(consultationId, user);
-      if (!chart) {
-        logger.warn('onAiChatMessage: no chart (missing birth data?)', { consultationId });
-        return; // Stage 1: silently skip; a "share your birth details" flow comes later
+      // 1) Grounding facts — a Vedic/KP/Lal-Kitab persona reads the birth CHART;
+      // a numerologist reads the person's NUMBERS instead (no chart). Compute the
+      // persona flavour once and branch on the school.
+      const flavor = readFlavor(astro);
+      const isNumerology = flavor?.tradition === 'numerology';
+      let chart: ChartData | null = null;
+      let numerologyBriefing: string | null = null;
+      if (isNumerology) {
+        numerologyBriefing = buildNumerologyBriefing(num(user.birthDateMs), str(user.name));
+        if (!numerologyBriefing) {
+          logger.warn('onAiChatMessage: no numbers (missing birth date?)', { consultationId });
+          return;
+        }
+      } else {
+        chart = await getOrBuildChart(consultationId, user);
+        if (!chart) {
+          logger.warn('onAiChatMessage: no chart (missing birth data?)', { consultationId });
+          return; // Stage 1: silently skip; a "share your birth details" flow comes later
+        }
       }
 
       // 2) Aggregate the settled burst + rolling history (system/join messages
@@ -150,9 +165,10 @@ export const onAiChatMessage = onDocumentCreated(
       const userText = burst || (imageInlines.length ? PHOTO_ONLY_TEXT : text);
       const isSessionOpening = !history.some((t) => t.role === 'model');
 
-      // 3) Intent → 4) slice → 5) persona system prompt.
+      // 3) Intent → 4) slice → 5) persona system prompt. A numerologist skips the
+      // chart slice and reads the precomputed numbers instead.
       const intent = classifyIntentHeuristic(userText);
-      const briefing = assembleSlice(chart, {
+      const briefing = numerologyBriefing ?? assembleSlice(chart!, {
         themes: intent.themes,
         subIntent: intent.subIntent,
         gender: user.gender === 'female' ? 'female' : user.gender === 'male' ? 'male' : undefined,
@@ -167,7 +183,7 @@ export const onAiChatMessage = onDocumentCreated(
           // `about` is the field the portal actually writes; persona/bio kept as
           // legacy fallbacks. Feeds the free-text style line in the identity block.
           style: str(astro.persona) ?? str(astro.bio) ?? str(astro.about) ?? undefined,
-          flavor: readFlavor(astro),
+          flavor,
         },
         client: {
           name: clientName,

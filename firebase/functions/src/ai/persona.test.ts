@@ -105,6 +105,18 @@ describe('per-AI persona flavour (school / tone / verbosity / register)', () => 
     expect(mk(66)).toMatch(/age register[\s\S]*senior/i);
   });
 
+  it('numerology → numbers school + label, never the kundli label', () => {
+    const s = buildReadingSystem({
+      astrologer: { name: 'Naresh', flavor: { tradition: 'numerology' } },
+      briefing: 'NUMBERS for this person (born 23-11-1988): - Moolank: 5',
+    });
+    expect(s).toContain('numerologist');
+    expect(s).toContain('YOUR SCHOOL — NUMEROLOGY');
+    expect(s).toContain('THE NUMBERS IN FRONT OF YOU');
+    expect(s).not.toContain('THE KUNDLI IN FRONT OF YOU');
+    expect(s).not.toContain('YOUR SCHOOL — VEDIC');
+  });
+
   it('a portal-set register band overrides the default for that band only', () => {
     const s = buildReadingSystem({
       astrologer: { name: 'M', flavor: { register: { senior: 'Speak slowly in pure Hindi, focus on dharma and health.' } } },
