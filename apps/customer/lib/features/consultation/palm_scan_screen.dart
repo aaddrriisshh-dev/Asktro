@@ -182,7 +182,7 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
           ),
         ),
         Positioned(
-          bottom: 34, left: 0, right: 0,
+          bottom: 28 + MediaQuery.of(context).padding.bottom, left: 0, right: 0,
           child: Center(
             child: GestureDetector(
               onTap: _capturing ? null : _capture,

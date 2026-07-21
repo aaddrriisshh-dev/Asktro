@@ -106,6 +106,22 @@ class AstrologerRepository {
         return list;
       });
 
+  /// Discovery by SKILL / school — matches any of the given `expertise` tags
+  /// (a "Vedic" skill folds in KP + Lal Kitab, etc.). `arrayContainsAny` takes up
+  /// to 10 values; single-field, so no composite index needed. Consultable first.
+  Stream<List<Astrologer>> watchBySkillTags(List<String> tags, {int limit = 100}) => _col
+      .where('expertise', arrayContainsAny: tags)
+      .limit(limit)
+      .snapshots()
+      .map((s) {
+        final list = s.docs.where(_isActive).map(_map).toList()
+          ..sort((a, b) {
+            if (a.isConsultable != b.isConsultable) return a.isConsultable ? -1 : 1;
+            return b.rating.compareTo(a.rating);
+          });
+        return list;
+      });
+
   /// Client-side name/expertise search over the active directory. For large
   /// scale this would be backed by a search index; kept simple and correct here.
   Future<List<Astrologer>> search(String query, {bool risingOnly = false}) async {

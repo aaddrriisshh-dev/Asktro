@@ -5,9 +5,10 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../astrologer/astrologer_card.dart';
 
+// ---- By NEED (topic) --------------------------------------------------------
+
 /// The eight controlled discovery categories (mirror the `specializations` tag
-/// list on the astrologer doc, and the portal picker). Icon + label are display;
-/// `tag` is the stored value queried against.
+/// list on the astrologer doc, and the portal picker).
 class DiscoveryCategory {
   const DiscoveryCategory(this.tag, this.label, this.icon);
   final String tag;
@@ -26,71 +27,102 @@ const kDiscoveryCategories = <DiscoveryCategory>[
   DiscoveryCategory('remedies', 'Remedies', Icons.spa_rounded),
 ];
 
-/// Astrologers (AI + human) carrying a given specialization tag, consultable
-/// first then by rating. autoDispose family so each category streams only while open.
+/// Astrologers (AI + human) carrying a given specialization tag.
 final astrologersBySpecializationProvider =
     StreamProvider.autoDispose.family<List<Astrologer>, String>((ref, tag) {
   return ref.watch(astrologerRepositoryProvider).watchBySpecialization(tag);
 });
 
-/// Full-screen list for one discovery category, reached by tapping a category
-/// chip on the home feed. Reuses [AstrologerCard] so cards look identical to the
-/// rails and search.
-class CategoryScreen extends ConsumerWidget {
-  const CategoryScreen({super.key, required this.category});
-  final DiscoveryCategory category;
+// ---- By SKILL (school) ------------------------------------------------------
+
+/// A browsable skill/school. `tags` are the underlying `expertise` values matched
+/// (a "Vedic" skill folds in KP + Lal Kitab + Nadi so no chart-astrologer is
+/// hidden). Palmistry shows astrologers tagged with it (any school can read palms).
+class SkillCategory {
+  const SkillCategory(this.label, this.icon, this.tags);
+  final String label;
+  final IconData icon;
+  final List<String> tags;
+}
+
+const kSkillCategories = <SkillCategory>[
+  SkillCategory('Vedic', Icons.auto_awesome_rounded,
+      ['Vedic Astrology', 'KP System', 'KP Astrology', 'Lal Kitab', 'Nadi Astrology']),
+  SkillCategory('Palmistry', Icons.back_hand_rounded, ['Palmistry']),
+  SkillCategory('Numerology', Icons.calculate_rounded, ['Numerology']),
+  SkillCategory('Tarot', Icons.style_rounded, ['Tarot']),
+  SkillCategory('Vastu', Icons.home_rounded, ['Vastu', 'Vastu Shastra']),
+];
+
+/// Astrologers matching a skill (keyed by its label; tags looked up internally).
+final astrologersBySkillProvider =
+    StreamProvider.autoDispose.family<List<Astrologer>, String>((ref, label) {
+  final skill = kSkillCategories.firstWhere((s) => s.label == label);
+  return ref.watch(astrologerRepositoryProvider).watchBySkillTags(skill.tags);
+});
+
+// ---- Shared list screen -----------------------------------------------------
+
+/// Full-screen filtered astrologer list, reached by tapping a need/skill pill.
+/// Reuses [AstrologerCard] so cards look identical to the rails and search.
+class _AstrologerListScreen extends StatelessWidget {
+  const _AstrologerListScreen({
+    required this.title,
+    required this.icon,
+    required this.provider,
+    required this.emptyLabel,
+  });
+  final String title;
+  final IconData icon;
+  final ProviderListenable<AsyncValue<List<Astrologer>>> provider;
+  final String emptyLabel;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(astrologersBySpecializationProvider(category.tag));
-    final bottom = AppSpacing.lg + MediaQuery.of(context).padding.bottom;
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(category.icon, size: 20),
-            const SizedBox(width: 8),
-            Text(category.label),
-          ],
-        ),
+        title: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 8),
+          Text(title),
+        ]),
       ),
-      body: async.when(
-        loading: () => ListView.builder(
-          padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, bottom),
-          itemCount: 5,
-          itemBuilder: (_, __) => const Padding(
-            padding: EdgeInsets.only(bottom: AppSpacing.md),
-            child: AstrologerCardSkeleton(),
+      body: Consumer(builder: (context, ref, _) {
+        final async = ref.watch(provider);
+        final bottom = AppSpacing.lg + MediaQuery.of(context).padding.bottom;
+        return async.when(
+          loading: () => ListView.builder(
+            padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, bottom),
+            itemCount: 5,
+            itemBuilder: (_, __) => const Padding(
+              padding: EdgeInsets.only(bottom: AppSpacing.md),
+              child: AstrologerCardSkeleton(),
+            ),
           ),
-        ),
-        error: (_, __) => const EmptyState(
-          icon: Icons.cloud_off_rounded,
-          title: 'Could not load',
-          message: 'Please check your connection and try again.',
-        ),
-        data: (list) => list.isEmpty
-            ? EmptyState(
-                icon: category.icon,
-                title: 'No ${category.label.toLowerCase()} astrologers yet',
-                message: 'Try another category or browse all astrologers.',
-              )
-            : ListView.builder(
-                padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, bottom),
-                itemCount: list.length,
-                itemBuilder: (_, i) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: AstrologerCard(astrologer: list[i]),
+          error: (_, __) => const EmptyState(
+            icon: Icons.cloud_off_rounded,
+            title: 'Could not load',
+            message: 'Please check your connection and try again.',
+          ),
+          data: (list) => list.isEmpty
+              ? EmptyState(icon: icon, title: emptyLabel, message: 'Try another category or browse all astrologers.')
+              : ListView.builder(
+                  padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, bottom),
+                  itemCount: list.length,
+                  itemBuilder: (_, i) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: AstrologerCard(astrologer: list[i]),
+                  ),
                 ),
-              ),
-      ),
+        );
+      }),
     );
   }
 }
 
-/// A compact, horizontally-scrolling STRIP of category pills for the home feed —
-/// "find an astrologer by what you need". A single low row (icon + label inline),
-/// space-efficient and clean. Each opens the matching [CategoryScreen].
+// ---- Home strips ------------------------------------------------------------
+
+/// Compact horizontal pill strips for the home feed: one by NEED, one by SKILL.
 class CategoryRow extends StatelessWidget {
   const CategoryRow({super.key});
 
@@ -99,19 +131,70 @@ class CategoryRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(AppSpacing.lg, 4, AppSpacing.lg, 9),
-          child: Text('What do you need guidance on?',
-              style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
+        _PillStrip(
+          heading: 'What do you need guidance on?',
+          pills: [
+            for (final c in kDiscoveryCategories)
+              _PillData(c.icon, c.label, () => _open(context,
+                  title: c.label, icon: c.icon, emptyLabel: 'No ${c.label.toLowerCase()} astrologers yet',
+                  provider: astrologersBySpecializationProvider(c.tag))),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _PillStrip(
+          heading: 'Browse by skill',
+          pills: [
+            for (final s in kSkillCategories)
+              _PillData(s.icon, s.label, () => _open(context,
+                  title: s.label, icon: s.icon, emptyLabel: 'No ${s.label} astrologers yet',
+                  provider: astrologersBySkillProvider(s.label))),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _open(BuildContext context, {
+    required String title,
+    required IconData icon,
+    required String emptyLabel,
+    required ProviderListenable<AsyncValue<List<Astrologer>>> provider,
+  }) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => _AstrologerListScreen(title: title, icon: icon, provider: provider, emptyLabel: emptyLabel),
+    ));
+  }
+}
+
+class _PillData {
+  const _PillData(this.icon, this.label, this.onTap);
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+}
+
+class _PillStrip extends StatelessWidget {
+  const _PillStrip({required this.heading, required this.pills});
+  final String heading;
+  final List<_PillData> pills;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 4, AppSpacing.lg, 9),
+          child: Text(heading, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
         ),
         SizedBox(
           height: 38,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            itemCount: kDiscoveryCategories.length,
+            itemCount: pills.length,
             separatorBuilder: (_, __) => const SizedBox(width: 9),
-            itemBuilder: (_, i) => _CategoryPill(category: kDiscoveryCategories[i]),
+            itemBuilder: (_, i) => _Pill(data: pills[i]),
           ),
         ),
       ],
@@ -119,9 +202,9 @@ class CategoryRow extends StatelessWidget {
   }
 }
 
-class _CategoryPill extends StatelessWidget {
-  const _CategoryPill({required this.category});
-  final DiscoveryCategory category;
+class _Pill extends StatelessWidget {
+  const _Pill({required this.data});
+  final _PillData data;
 
   @override
   Widget build(BuildContext context) {
@@ -132,8 +215,7 @@ class _CategoryPill extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: () => Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => CategoryScreen(category: category))),
+        onTap: data.onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
           decoration: BoxDecoration(
@@ -143,10 +225,9 @@ class _CategoryPill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(category.icon, size: 16, color: purple),
+              Icon(data.icon, size: 16, color: purple),
               const SizedBox(width: 7),
-              Text(category.label,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ink)),
+              Text(data.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ink)),
             ],
           ),
         ),
