@@ -6,6 +6,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 import 'home_continue_rail.dart';
+import 'category_screen.dart';
 import 'home_favorites_rail.dart';
 import '../blogs/blogs.dart';
 import 'trust_banner.dart';
@@ -84,6 +85,10 @@ class HomeFeed extends ConsumerWidget {
             _celestialTop(context, ref, profile),
             const SizedBox(height: 18),
             const _HomeBanners(),
+            const SizedBox(height: 12),
+            // Discovery by need — tap a category to see AI + human astrologers
+            // who specialise in it.
+            const CategoryRow(),
             const SizedBox(height: 6),
             // Retention surfaces — resume a recent chat, and your adopted
             // astrologers. Each hides itself when the user has none yet.

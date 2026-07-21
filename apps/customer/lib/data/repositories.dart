@@ -88,6 +88,24 @@ class AstrologerRepository {
   Stream<Astrologer> watchOne(String id) =>
       _col.doc(id).snapshots().map(_map);
 
+  /// Discovery by a controlled specialization tag (love/career/…), mixing AI +
+  /// human. Filtered + sorted client-side (online/consultable first, then rating)
+  /// for the same reason as the rails above — no composite index required. The
+  /// tag lives in the `specializations` array on the astrologer doc.
+  Stream<List<Astrologer>> watchBySpecialization(String spec, {int limit = 100}) => _col
+      .where('specializations', arrayContains: spec)
+      .limit(limit)
+      .snapshots()
+      .map((s) {
+        final list = s.docs.where(_isActive).map(_map).toList()
+          ..sort((a, b) {
+            // Consultable (online AI/human) first, then by rating.
+            if (a.isConsultable != b.isConsultable) return a.isConsultable ? -1 : 1;
+            return b.rating.compareTo(a.rating);
+          });
+        return list;
+      });
+
   /// Client-side name/expertise search over the active directory. For large
   /// scale this would be backed by a search index; kept simple and correct here.
   Future<List<Astrologer>> search(String query, {bool risingOnly = false}) async {
