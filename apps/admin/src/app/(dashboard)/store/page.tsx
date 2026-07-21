@@ -23,6 +23,62 @@ function dimOf(p: Row, k: 'l' | 'b' | 'h') {
   return d && d[k] != null ? String(d[k]) : '';
 }
 
+/* ------------------------ category hierarchy helpers ---------------------- */
+// Categories carry an optional `parentId`, so the catalogue is two levels:
+// top-level categories (e.g. Rudraksha) and their subcategories (5 Mukhi, …).
+// These helpers present that nesting instead of one flat, cluttered list.
+const catByOrder = (a: Row, b: Row) =>
+  (((a.sortOrder as number) ?? 0) - ((b.sortOrder as number) ?? 0)) ||
+  String(a.name ?? '').localeCompare(String(b.name ?? ''));
+const catLabel = (c: Row) => `${(c.emoji as string) || ''} ${(c.name as string) || '—'}`.trim();
+
+/** Flatten categories into parent → child order with a depth, for indented lists
+ *  (the categories table). Subcategories sit directly under their parent; any
+ *  whose parent is missing fall to the end so nothing disappears. */
+function orderedCategoryTree(cats: Row[]): { cat: Row; depth: number }[] {
+  const tops = cats.filter((c) => !c.parentId).sort(catByOrder);
+  const topIds = new Set(tops.map((t) => t.id));
+  const out: { cat: Row; depth: number }[] = [];
+  for (const t of tops) {
+    out.push({ cat: t, depth: 0 });
+    for (const k of cats.filter((c) => c.parentId === t.id).sort(catByOrder)) out.push({ cat: k, depth: 1 });
+  }
+  for (const o of cats.filter((c) => c.parentId && !topIds.has(c.parentId as string)).sort(catByOrder)) {
+    out.push({ cat: o, depth: 1 });
+  }
+  return out;
+}
+
+/** <select> options grouped by parent: each top-level category with children
+ *  becomes an <optgroup> holding a selectable "— all" row plus its subcategories;
+ *  childless top-levels stay plain options. A product can sit on a parent OR a
+ *  subcategory, so both are selectable. */
+function CategoryOptionTree({ cats }: { cats: Row[] }) {
+  const tops = cats.filter((c) => !c.parentId).sort(catByOrder);
+  const topIds = new Set(tops.map((t) => t.id));
+  const childrenOf = (id: string) => cats.filter((c) => c.parentId === id).sort(catByOrder);
+  const orphans = cats.filter((c) => c.parentId && !topIds.has(c.parentId as string)).sort(catByOrder);
+  return (
+    <>
+      {tops.map((top) => {
+        const kids = childrenOf(top.id);
+        if (kids.length === 0) return <option key={top.id} value={top.id}>{catLabel(top)}</option>;
+        return (
+          <optgroup key={top.id} label={catLabel(top)}>
+            <option value={top.id}>{catLabel(top)} — all</option>
+            {kids.map((k) => <option key={k.id} value={k.id}>&nbsp;&nbsp;↳ {k.name as string}</option>)}
+          </optgroup>
+        );
+      })}
+      {orphans.length > 0 && (
+        <optgroup label="Other (parent removed)">
+          {orphans.map((c) => <option key={c.id} value={c.id}>{catLabel(c)}</option>)}
+        </optgroup>
+      )}
+    </>
+  );
+}
+
 /** AstroMall catalog — categories + products. Direct Firestore writes
  *  (admin-gated by rules), same pattern as Blogs/Banners. Photos upload to
  *  Storage; prices are entered in ₹ and stored as paise. */
@@ -137,11 +193,13 @@ function CategoriesTab({ cats }: { cats: Row[] }) {
             <table className="cardify">
               <thead><tr><th>Category</th><th>Parent</th><th>Order</th><th>Status</th><th></th></tr></thead>
               <tbody>
-                {cats.map((c) => {
+                {orderedCategoryTree(cats).map(({ cat: c, depth }) => {
                   const parent = c.parentId ? cats.find((p) => p.id === c.parentId) : null;
                   return (
                   <tr key={c.id}>
-                    <td data-label="Category"><b>{parent ? '↳ ' : ''}{(c.emoji as string) || ''} {(c.name as string) || '—'}</b></td>
+                    <td data-label="Category" style={{ paddingLeft: depth ? 26 : undefined }}>
+                      <b style={{ fontWeight: depth ? 500 : 700 }}>{depth ? '↳ ' : ''}{(c.emoji as string) || ''} {(c.name as string) || '—'}</b>
+                    </td>
                     <td data-label="Parent" className="muted" style={{ fontSize: 13 }}>{parent ? (parent.name as string) : '— top level —'}</td>
                     <td data-label="Order" className="muted">{c.sortOrder as number ?? '—'}</td>
                     <td data-label="Status">
@@ -201,10 +259,14 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
     });
   }
 
-  const shown = useMemo(
-    () => (filterCat ? prods.filter((p) => p.categoryId === filterCat) : prods),
-    [prods, filterCat],
-  );
+  // Filtering by a parent category also shows products filed under any of its
+  // subcategories (so "Rudraksha" surfaces every Mukhi under it), not just those
+  // pinned directly to the parent.
+  const shown = useMemo(() => {
+    if (!filterCat) return prods;
+    const childIds = new Set(cats.filter((c) => c.parentId === filterCat).map((c) => c.id));
+    return prods.filter((p) => p.categoryId === filterCat || childIds.has(p.categoryId as string));
+  }, [prods, filterCat, cats]);
 
   function setImage(i: number, url: string) {
     setF((s) => {
@@ -308,7 +370,7 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
           <label className="af"><span>Category *</span>
             <select className="input" value={f.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
               <option value="">Select…</option>
-              {cats.map((c) => <option key={c.id} value={c.id}>{(c.emoji as string) || ''} {c.name as string}</option>)}
+              <CategoryOptionTree cats={cats} />
             </select>
           </label>
         </div>
@@ -444,7 +506,7 @@ function ProductsTab({ prods, cats, loading, filterCat, setFilterCat }: {
           <h3 className="celeste" style={{ margin: 0 }}>All products</h3>
           <select className="input" style={{ maxWidth: 220 }} value={filterCat} onChange={(e) => setFilterCat(e.target.value)}>
             <option value="">All categories</option>
-            {cats.map((c) => <option key={c.id} value={c.id}>{c.name as string}</option>)}
+            <CategoryOptionTree cats={cats} />
           </select>
         </div>
         {loading ? <p className="muted">Loading…</p> : shown.length === 0 ? <p className="muted">No products.</p> : (
