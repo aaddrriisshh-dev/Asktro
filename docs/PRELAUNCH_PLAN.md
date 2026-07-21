@@ -220,6 +220,21 @@ move on:
   app-icon regen, 2px RenderFlex overflow (astrologer, non-fatal).
 - **Voice notes in chat** — undecided; do NOT build without go-ahead.
 
+### 4a. Four "non-launch-blockers" reviewed 2026-07-21 — POST-LAUNCH, deliberately not done now
+
+The founder asked whether these are _"not required right now"_ or _"may cause a
+problem if we touch them now."_ Honest CTO read on each — none are launch gates:
+
+| # | Item | Why deferred | Not-needed vs risky-now |
+|---|---|---|---|
+| 47 | Server-side **home rollup** (aggregate the home feed on the backend) | Only bites at thousands of concurrent users; the current per-widget reads are fine at launch scale. | **Both** — not needed now **and** it's an untestable refactor of the home screen that could break a working surface right before launch. |
+| 48 | Server-side **astrologer search** | Our catalogue is tiny (dozens, not thousands); client-side filtering is instant. | **Both** — no value at this size **and** touching discovery now risks regressions in a working flow. |
+| 50 | **Gemini prompt caching** | Gemini already does **implicit caching for free**, and our prompts are likely **below the explicit-cache minimum token count**, so a manual cache layer probably saves ₹0. | **Not needed** — low risk, just no payoff yet. Revisit inside the §4 AI cost/margin audit. |
+| 44 | **Stats sharding** (distributed counters on `dailyStats`) | Only matters at very high write volume; today's rollup triggers are nowhere near a hot-doc contention limit. | **Not needed** — low risk, purely premature at current volume. |
+
+Net: revisit 47/48 only when concurrency actually climbs; fold 50 into the AI
+cost audit; 44 waits for real write volume.
+
 ---
 
 ## 5. Batches shipped this cycle  🟢
