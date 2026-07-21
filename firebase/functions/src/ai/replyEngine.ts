@@ -60,7 +60,8 @@ const IMAGE_ADDENDUM = `
 - Look at the attached image and react to what you ACTUALLY see, warmly and in character. NEVER say you "can't see images", "can't open photos", or anything that hints you are an AI/system — a real astrologer simply looks.
 - Keep it to your usual 1–2 short bubbles. Do NOT narrate the image clinically ("I see a photo of…"); respond as a person naturally would.
 - READ THE SPECIFIC IMAGE, never a generic template. First genuinely observe the concrete details of THIS picture, then base your words on those exact observations — a specific reading is what makes you real; a vague "achhe yog hain" that could fit any photo is the giveaway.
-- If it's a PALM (hasta rekha): actually trace the lines you see on THIS hand — note which are long/short, deep/faint, clear/broken or chained, straight/curved (jeevan rekha, hriday rekha, mastishk/head rekha, bhagya rekha), the mounts, the overall hand shape. Then give a reading built on at least ONE concrete thing you actually see ("aapki hriday rekha kaafi lambi aur gehri hai — rishton mein aap dil se judte hain"), not a generic palm comment. The dominant hand shows the present/future. Then gently note the janm-kundli is the deeper guide and tie back to it.
+- If it's a PALM (hasta rekha): actually trace the lines you see on THIS hand — note which are long/short, deep/faint, clear/broken or chained, straight/curved (jeevan rekha, hriday rekha, mastishk/head rekha, bhagya rekha), the mounts, the overall hand shape. Then give a reading built on at least ONE concrete thing you actually see ("aapki hriday rekha kaafi lambi aur gehri hai — rishton mein aap dil se judte hain"), not a generic palm comment. Then gently note the janm-kundli is the deeper guide and tie back to it.
+- If TWO palm photos are shown, they are the client's TWO hands — read them TOGETHER and compare. Convention: the non-dominant hand shows what they were BORN with (inborn potential/destiny), the dominant hand shows the PRESENT — what they've made of it. Where the two lines differ, that difference is itself the insight (they've shaped their path). Weave one concrete comparison, don't list both hands mechanically.
 - If it's a FACE (samudrik shastra): pick ONE specific feature you actually see (forehead, brow, eyes, nose, chin, jawline) and read it respectfully. NEVER comment on attractiveness, weight, age, skin, or anyone's body.
 - If it's a KUNDLI / birth-chart SCREENSHOT: acknowledge it, but rely on THE KUNDLI DATA already given to you for this person — do NOT read planetary positions off a screenshot you cannot verify, and never contradict the computed chart.
 - If it's an OBJECT / gemstone / rudraksha / deity / temple / place: name what it actually is and respond meaningfully — a short blessing or guidance tied to their question or chart.
@@ -135,16 +136,18 @@ export const onAiChatMessage = onDocumentCreated(
 
       // 2) Aggregate the settled burst + rolling history (system/join messages
       // are excluded from context). A photo in the burst is carried as imageUrl.
-      const { burst, history, imageUrl } = await loadBurstAndHistory(consultationId, c.customerId, c.astrologerId);
+      const { burst, history, imageUrls } = await loadBurstAndHistory(consultationId, c.customerId, c.astrologerId);
 
-      // If the client shared a photo, fetch it for a vision read. On any failure
-      // (already removed by the NSFW sweep, too large, network) imageInline is
-      // null and we fall back to answering the words — or stay silent if there
-      // were none, rather than bluffing about a photo we couldn't load.
-      const imageInline = imageUrl ? await fetchInlineImage(imageUrl) : null;
-      if (!burst && !imageInline) return;
+      // If the client shared photo(s), fetch them for a vision read (up to two —
+      // e.g. both palms). On any failure (already removed by the NSFW sweep, too
+      // large, network) that image is dropped; we fall back to answering the words
+      // — or stay silent if there were none, rather than bluffing about a photo we
+      // couldn't load.
+      const imageInlines = (await Promise.all(imageUrls.map(fetchInlineImage)))
+        .filter((x): x is LlmInlineImage => x !== null);
+      if (!burst && imageInlines.length === 0) return;
 
-      const userText = burst || (imageInline ? PHOTO_ONLY_TEXT : text);
+      const userText = burst || (imageInlines.length ? PHOTO_ONLY_TEXT : text);
       const isSessionOpening = !history.some((t) => t.role === 'model');
 
       // 3) Intent → 4) slice → 5) persona system prompt.
@@ -246,13 +249,13 @@ ${priorCtx}`;
       // 5f) If a photo is attached, fold in the vision instructions so she looks
       // at it and reacts IN CHARACTER (never "I can't see images"), while still
       // trusting the computed kundli over any chart screenshot she can't verify.
-      if (imageInline) system += IMAGE_ADDENDUM;
+      if (imageInlines.length) system += IMAGE_ADDENDUM;
 
       // 6) Show the typing indicator (dots) while she composes, then generate.
       await setTyping(consultationId, c.astrologerId, true);
       const envelope = await generateGrounded(
         system, history, userText, briefing, apiKey, configModels,
-        imageInline ? [imageInline] : undefined,
+        imageInlines.length ? imageInlines : undefined,
       );
       if (!envelope) {
         await setTyping(consultationId, c.astrologerId, false);
@@ -622,7 +625,7 @@ async function loadBurstAndHistory(
   consultationId: string,
   customerId: string,
   astrologerId: string,
-): Promise<{ burst: string; history: LlmTurn[]; imageUrl: string | null }> {
+): Promise<{ burst: string; history: LlmTurn[]; imageUrls: string[] }> {
   const q = await db
     .collection('consultations')
     .doc(consultationId)
@@ -636,18 +639,20 @@ async function loadBurstAndHistory(
     return t && m.type !== 'image' && m.type !== 'system' ? t : null;
   };
   // Trailing run of the customer's own messages (newest-first) = settled burst.
-  // A photo the customer sent in that run doesn't end the burst; we keep the
-  // NEWEST image url so she can look at what they just shared.
+  // Photos the customer sent in that run don't end the burst; we keep up to the
+  // last TWO images (e.g. a two-hand palm reading — left + right) so she can look
+  // at both. Collected newest-first, then reversed to chronological below.
   const burstParts: string[] = [];
-  let imageUrl: string | null = null;
+  const imageUrls: string[] = [];
+  const MAX_BURST_IMAGES = 2;
   let i = 0;
   for (; i < docs.length; i++) {
     const d = docs[i];
     if (d.senderId !== customerId) break; // a non-customer message ends the burst
     const t = usable(d);
     if (t) burstParts.push(t);
-    else if (d.type === 'image' && typeof d.image === 'string' && !imageUrl) {
-      imageUrl = d.image as string; // newest image in the burst
+    else if (d.type === 'image' && typeof d.image === 'string' && imageUrls.length < MAX_BURST_IMAGES) {
+      imageUrls.push(d.image as string);
     }
     // other non-text customer messages are skipped but don't terminate the burst
   }
@@ -660,7 +665,7 @@ async function loadBurstAndHistory(
     history.push({ role: docs[j].senderId === astrologerId ? 'model' : 'user', text: t });
   }
   history.reverse();
-  return { burst, history, imageUrl };
+  return { burst, history, imageUrls: imageUrls.reverse() }; // chronological
 }
 
 /**
