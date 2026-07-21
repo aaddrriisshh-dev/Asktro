@@ -1020,10 +1020,6 @@ class _CitySearchFieldState extends State<_CitySearchField> {
               ),
             ),
           ),
-          // A quiet inline hint before typing; the live suggestions render in the
-          // floating dropdown above, so nothing here is ever covered.
-          if (_query.trim().length < 2)
-            _hint(Icons.travel_explore_rounded, 'Start typing your birth town, city or village.'),
         ],
       ),
     );
@@ -1089,19 +1085,6 @@ class _CitySearchFieldState extends State<_CitySearchField> {
         children: [
           leading,
           const SizedBox(width: 12),
-          Expanded(child: Text(text, style: Ob.note)),
-        ],
-      ),
-    );
-  }
-
-  Widget _hint(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12, left: 4),
-      child: Row(
-        children: [
-          Icon(icon, color: Ob.grey, size: 18),
-          const SizedBox(width: 8),
           Expanded(child: Text(text, style: Ob.note)),
         ],
       ),

@@ -120,13 +120,18 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 controller: _code,
                 keyboardType: TextInputType.number,
                 maxLength: 6,
-                textAlign: TextAlign.center,
-                style: AppTypography.title.copyWith(letterSpacing: 12),
+                autofocus: true,
+                // Left-aligned with no placeholder dashes: the cursor starts at
+                // the left and digits fill in as typed. The old centered '••••••'
+                // hint put a blinking cursor in the MIDDLE of the dashes, which
+                // read as "type here" in the wrong spot and confused users.
+                textAlign: TextAlign.start,
+                style: AppTypography.title.copyWith(letterSpacing: 10),
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 onChanged: (v) {
                   if (v.length == 6) _verify();
                 },
-                decoration: const InputDecoration(counterText: '', hintText: '••••••'),
+                decoration: const InputDecoration(counterText: ''),
               ),
               if (_error != null) ...[
                 const SizedBox(height: AppSpacing.sm),
