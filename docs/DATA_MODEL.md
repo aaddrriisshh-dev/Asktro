@@ -82,6 +82,7 @@ The billing session. Written **only** by functions.
 | customerId | string | |
 | astrologerId | string | |
 | type | string | `chat` \| `voice` \| `video` |
+| requestedSkill | string? | set to `palmistry` when the user entered via the home "Browse by skill → Palmistry" tile; the AI then opens palm-led (asks for the right-hand photo first). Whitelisted client input. |
 | pricePerMinute | int (paise) | snapshot of global price at start |
 | pricePerSecond | int (paise) | derived |
 | status | string | `waiting` \| `active` \| `paused` \| `completed` \| `cancelled` \| `expired` |

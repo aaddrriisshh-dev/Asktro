@@ -4,15 +4,19 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 /// Directory card used across home rails and search results (Part 2/3).
 class AstrologerCard extends StatelessWidget {
-  const AstrologerCard({super.key, required this.astrologer, this.compact = false});
+  const AstrologerCard({super.key, required this.astrologer, this.compact = false, this.requestedSkill});
   final Astrologer astrologer;
   final bool compact;
+  /// Set when this card was reached via a home "Browse by skill" tile (e.g.
+  /// 'Palmistry'); forwarded to the profile → consultation so the AI can open
+  /// palm-led. Null for the normal rails/search.
+  final String? requestedSkill;
 
   @override
   Widget build(BuildContext context) {
     final a = astrologer;
     return AppCard(
-      onTap: () => context.push('/astrologer/${a.id}'),
+      onTap: () => context.push('/astrologer/${a.id}', extra: requestedSkill),
       border: Border.all(color: const Color(0xFFECE5F8), width: 1),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,7 +99,7 @@ class AstrologerCard extends StatelessWidget {
                   icon: Icons.chat_bubble_outline_rounded,
                   label: 'Chat',
                   enabled: a.isConsultable,
-                  onTap: () => context.push('/astrologer/${a.id}'),
+                  onTap: () => context.push('/astrologer/${a.id}', extra: requestedSkill),
                 ),
                 // AI personas are chat-only — no voice/video.
                 if (!a.isAI) ...[
@@ -104,14 +108,14 @@ class AstrologerCard extends StatelessWidget {
                     icon: Icons.call_outlined,
                     label: 'Voice',
                     enabled: a.isConsultable,
-                    onTap: () => context.push('/astrologer/${a.id}'),
+                    onTap: () => context.push('/astrologer/${a.id}', extra: requestedSkill),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   _ModeButton(
                     icon: Icons.videocam_outlined,
                     label: 'Video',
                     enabled: a.isConsultable,
-                    onTap: () => context.push('/astrologer/${a.id}'),
+                    onTap: () => context.push('/astrologer/${a.id}', extra: requestedSkill),
                   ),
                 ],
               ],

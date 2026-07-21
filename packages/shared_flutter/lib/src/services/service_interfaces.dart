@@ -33,6 +33,7 @@ abstract interface class ConsultationService {
   Future<Result<StartConsultationResult>> create({
     required String astrologerId,
     required ConsultationType type,
+    String? requestedSkill,
   });
 
   Future<Result<void>> activate(String consultationId);

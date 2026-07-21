@@ -77,6 +77,17 @@ const IMAGE_ADDENDUM = `
 - If the image is UNCLEAR, blurry, cropped, blank, or unrelated to a reading: gently say what's missing and ask, in one line, for a clearer photo or what they'd like you to look at ("photo thoda dhundhla hai, ek saaf photo bhej dijiye"). Never bluff detail you cannot make out.
 - Never claim to see detail that isn't there, and never invent chart placements from a picture.`;
 
+// Folded in when the client entered via the Palmistry skill — keeps her palm-led
+// so a palm reading never happens without the palm.
+const PALMISTRY_NOTE = `
+
+# THIS IS A PALM READING (HASTA REKHA) SESSION
+The client came specifically for a PALM reading, which works from their HAND PHOTO.
+- If they have shared a hand photo, READ IT per the photo rules above — that is the reading.
+- If they have NOT shared a hand photo yet, warmly and specifically ask them to send a clear photo of their RIGHT (dominant) hand — palm facing the camera, fingers a little apart, in good light — before giving a deep reading. You may briefly acknowledge their question, but a palm reading needs the palm, so guide them to the photo first.
+- After reading one hand, you may invite the OTHER hand for a deeper two-hand reading.
+- Do NOT give a full palm reading without a hand photo, and never fall back to "the kundli is better".`;
+
 export const onAiChatMessage = onDocumentCreated(
   {
     document: 'consultations/{consultationId}/messages/{messageId}',
@@ -283,6 +294,10 @@ ${priorCtx}`;
       // at it and reacts IN CHARACTER (never "I can't see images"), while still
       // trusting the computed kundli over any chart screenshot she can't verify.
       if (imageInlines.length) system += IMAGE_ADDENDUM;
+      // The client came via the Palmistry skill → keep her palm-led: read the hand
+      // photo if present, else warmly ask for it before reading. Never a palm
+      // reading without the palm.
+      if (c.requestedSkill === 'palmistry') system += PALMISTRY_NOTE;
 
       // 6) Show the typing indicator (dots) while she composes, then generate.
       await setTyping(consultationId, c.astrologerId, true);
@@ -424,8 +439,13 @@ export const onAiConsultationCreated = onDocumentCreated(
       await joiningRef.update({ text: `${displayName} has joined` });
       await setTyping(consultationId, c.astrologerId, true);
       await sleep(GREETING_GAP_MS);
-      await writeAstro(consultationId, c.astrologerId,
-        conjugateGender(openingGreeting(first, priorCount), astroGender));
+      // A user who came via "Palmistry" is opened with a PALM request (right hand
+      // first) instead of the generic greeting — so a palm reading never starts
+      // without the palm. Otherwise the normal relationship-stage greeting.
+      const opener = c.requestedSkill === 'palmistry'
+        ? palmOpeningGreeting(first)
+        : openingGreeting(first, priorCount);
+      await writeAstro(consultationId, c.astrologerId, conjugateGender(opener, astroGender));
       await setTyping(consultationId, c.astrologerId, false);
     } catch (e) {
       // Never leave the typing dots stuck on if the ritual throws mid-way.
@@ -602,6 +622,19 @@ function openingGreeting(first: string, priorCount: number): string {
     `Namaste${name}, aaiye. Boliye, aaj kis baare mein jaanna chahenge?`,
     `Namaste${nameJi}. Bataiye, kya chal raha hai aaj-kal?`,
   ]);
+}
+
+/** Palm-reading opener — used when the client entered via the Palmistry skill.
+ *  Greets warmly AND asks for the RIGHT (dominant) hand photo first, so a palm
+ *  reading never begins without the palm. Varied so it isn't identical each time. */
+function palmOpeningGreeting(first: string): string {
+  const nameJi = first ? ` ${first} ji` : ' ji';
+  const opts = [
+    `Namaste${nameJi}. Chaliye aapki hasta rekha se shuru karte hain — apne daaye (seedhe) haath ki ek saaf photo bhej dijiye, hatheli camera ki taraf, ungliyan thodi khuli, achhi roshni mein.`,
+    `Namaste${nameJi}, aaiye. Sabse pehle aapke haath dekhte hain — daaye haath ki ek saaf photo bhej dijiye, hatheli saamne, ungliyan thodi faila kar.`,
+    `Namaste${nameJi}. Aapki rekhaayein padhne ke liye, apne seedhe (daaye) haath ki ek clear photo bhej dijiye — achhi roshni mein, hatheli camera ki taraf.`,
+  ];
+  return opts[Math.floor(Math.random() * opts.length)];
 }
 function typingDelayMs(text: string): number {
   return Math.min(Math.max(text.length * TYPE_PER_CHAR_MS, TYPE_FLOOR_MS), TYPE_CEIL_MS);

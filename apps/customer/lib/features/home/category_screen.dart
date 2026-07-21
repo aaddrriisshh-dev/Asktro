@@ -71,11 +71,15 @@ class _AstrologerListScreen extends StatelessWidget {
     required this.icon,
     required this.provider,
     required this.emptyLabel,
+    this.requestedSkill,
   });
   final String title;
   final IconData icon;
   final ProviderListenable<AsyncValue<List<Astrologer>>> provider;
   final String emptyLabel;
+  /// Passed to each card (→ consultation) when this is a skill browse, so the AI
+  /// can open skill-led (e.g. palm-led for Palmistry). Null for need browses.
+  final String? requestedSkill;
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +115,7 @@ class _AstrologerListScreen extends StatelessWidget {
                   itemCount: list.length,
                   itemBuilder: (_, i) => Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: AstrologerCard(astrologer: list[i]),
+                    child: AstrologerCard(astrologer: list[i], requestedSkill: requestedSkill),
                   ),
                 ),
         );
@@ -147,7 +151,7 @@ class CategoryRow extends StatelessWidget {
             for (final s in kSkillCategories)
               _PillData(s.icon, s.label, () => _open(context,
                   title: s.label, icon: s.icon, emptyLabel: 'No ${s.label} astrologers yet',
-                  provider: astrologersBySkillProvider(s.label))),
+                  provider: astrologersBySkillProvider(s.label), requestedSkill: s.label)),
           ],
         ),
       ],
@@ -159,9 +163,13 @@ class CategoryRow extends StatelessWidget {
     required IconData icon,
     required String emptyLabel,
     required ProviderListenable<AsyncValue<List<Astrologer>>> provider,
+    String? requestedSkill,
   }) {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => _AstrologerListScreen(title: title, icon: icon, provider: provider, emptyLabel: emptyLabel),
+      builder: (_) => _AstrologerListScreen(
+        title: title, icon: icon, provider: provider, emptyLabel: emptyLabel,
+        requestedSkill: requestedSkill,
+      ),
     ));
   }
 }

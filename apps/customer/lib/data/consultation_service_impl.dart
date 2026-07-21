@@ -38,9 +38,13 @@ class ConsultationServiceImpl implements ConsultationService {
   Future<Result<StartConsultationResult>> create({
     required String astrologerId,
     required ConsultationType type,
+    String? requestedSkill,
   }) =>
-      _call('createConsultation', {'astrologerId': astrologerId, 'type': type.name},
-          (m) => StartConsultationResult(consultationId: m['consultationId'] as String),);
+      _call('createConsultation', {
+        'astrologerId': astrologerId,
+        'type': type.name,
+        if (requestedSkill != null) 'requestedSkill': requestedSkill,
+      }, (m) => StartConsultationResult(consultationId: m['consultationId'] as String),);
 
   @override
   Future<Result<void>> activate(String consultationId) =>

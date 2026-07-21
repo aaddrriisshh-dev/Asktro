@@ -407,23 +407,23 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   Future<void> _scanPalm() async {
     if (!await _palmPrompt(
       'Palm reading',
-      'First, take a clear photo of your LEFT hand — palm facing the camera, fingers spread, in good light.',
+      'First, take a clear photo of your RIGHT (dominant) hand — palm facing the camera, fingers a little apart, in good light.',
       'Open camera',
       'Cancel',
     )) return;
-    final left = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
-    if (left == null) return;
-    await _stageBytes(await left.readAsBytes());
+    final right = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
+    if (right == null) return;
+    await _stageBytes(await right.readAsBytes());
     if (!mounted) return;
 
     if (await _palmPrompt(
-      'Add your right hand?',
-      'One hand shows what you were born with, the other what you’ve made of it — reading both gives a deeper, more accurate palm reading. Take a photo of your RIGHT hand?',
-      'Take right hand',
-      'Send with left only',
+      'Add your left hand?',
+      'One hand shows what you were born with, the other what you’ve made of it — reading both gives a deeper, more accurate palm reading. Take a photo of your LEFT hand?',
+      'Take left hand',
+      'Send with right only',
     )) {
-      final right = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
-      if (right != null) await _stageBytes(await right.readAsBytes());
+      final left = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
+      if (left != null) await _stageBytes(await left.readAsBytes());
     }
   }
 

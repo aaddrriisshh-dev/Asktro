@@ -123,7 +123,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/home', builder: (_, __) => const HomeGate()),
       GoRoute(
         path: '/astrologer/:id',
-        builder: (_, s) => AstrologerProfileScreen(astrologerId: s.pathParameters['id']!),
+        // `extra` optionally carries the skill the user browsed via (e.g.
+        // 'Palmistry') so the AI can open palm-led. Null for normal navigation.
+        builder: (_, s) => AstrologerProfileScreen(
+          astrologerId: s.pathParameters['id']!,
+          requestedSkill: s.extra as String?,
+        ),
       ),
       GoRoute(
         path: '/recharge',

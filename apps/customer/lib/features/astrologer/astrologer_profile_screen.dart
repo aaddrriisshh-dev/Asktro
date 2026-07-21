@@ -21,8 +21,10 @@ final _astrologerProvider =
 });
 
 class AstrologerProfileScreen extends ConsumerStatefulWidget {
-  const AstrologerProfileScreen({super.key, required this.astrologerId});
+  const AstrologerProfileScreen({super.key, required this.astrologerId, this.requestedSkill});
   final String astrologerId;
+  /// Skill the user browsed via ('Palmistry' → the AI opens palm-led). Optional.
+  final String? requestedSkill;
 
   @override
   ConsumerState<AstrologerProfileScreen> createState() => _AstrologerProfileScreenState();
@@ -34,7 +36,8 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
   Future<void> _startConsultation(Astrologer a, ConsultationType type) async {
     if (_starting) return;
     setState(() => _starting = true);
-    final res = await ref.read(consultationServiceProvider).create(astrologerId: a.id, type: type);
+    final res = await ref.read(consultationServiceProvider)
+        .create(astrologerId: a.id, type: type, requestedSkill: widget.requestedSkill);
     if (!mounted) return;
     setState(() => _starting = false);
 

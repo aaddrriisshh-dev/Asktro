@@ -22,13 +22,20 @@ const VALID_TYPES: ConsultationType[] = ['chat', 'voice', 'video'];
 export const createConsultation = onCall(async (req) => {
   const customerId = assertAuthed(req);
   await enforceRateLimit('createConsultation', customerId);
-  const { astrologerId, type } = (req.data ?? {}) as {
+  const { astrologerId, type, requestedSkill } = (req.data ?? {}) as {
     astrologerId?: string;
     type?: ConsultationType;
+    requestedSkill?: string;
   };
 
   if (!astrologerId) badRequest('astrologerId is required.');
   if (!type || !VALID_TYPES.includes(type)) badRequest('type must be chat, voice, or video.');
+
+  // The skill the user entered via (home "Browse by skill"). Whitelisted — only
+  // 'palmistry' changes behaviour today (a palm-led opening); anything else is
+  // dropped. Lets the AI open by asking for the palm instead of a generic greeting.
+  const skill = typeof requestedSkill === 'string' && requestedSkill.toLowerCase() === 'palmistry'
+    ? 'palmistry' : null;
 
   const config = await getGlobalConfig();
 
@@ -207,6 +214,7 @@ export const createConsultation = onCall(async (req) => {
       rating: null,
       review: null,
       receiptNo: null,
+      ...(skill ? { requestedSkill: skill } : {}),
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
