@@ -17,6 +17,15 @@
  * marker (`dailyStats/{day}/applied/{sourceId}`) written in the SAME transaction
  * as the increment — a redelivery finds the marker and no-ops, so counters never
  * double-count. (Analytics only; the authoritative ledger is separate.)
+ *
+ * Marker lifetime: redelivery only happens within Eventarc's bounded retry
+ * window (≤ ~7 days), so a marker is dead weight after that. Each carries an
+ * `expireAt` 30 days out; a Firestore TTL policy on the `applied` collection-
+ * group's `expireAt` field then reaps them so the subcollection never grows
+ * unbounded. Creating that TTL policy is a one-time console/gcloud step (the
+ * write here is forward-compatible and harmless until it exists):
+ *   gcloud firestore fields ttls update expireAt \
+ *     --collection-group=applied --enable-ttl --project=asktro-tech-provate-limited
  */
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
@@ -46,11 +55,14 @@ async function foldOnce(
 ): Promise<void> {
   const dayRef = statsRef(day);
   const markerRef = dayRef.collection('applied').doc(sourceId);
+  // Dedupe markers only need to outlive Eventarc's redelivery window; 30 days is
+  // far beyond it. A TTL policy on `applied.expireAt` reaps them (see file header).
+  const expireAt = Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000);
   await db.runTransaction(async (tx) => {
     const marker = await tx.get(markerRef);
     if (marker.exists) return; // already folded this source row — no double count
     tx.set(dayRef, fields, { merge: true });
-    tx.set(markerRef, { at: FieldValue.serverTimestamp() });
+    tx.set(markerRef, { at: FieldValue.serverTimestamp(), expireAt });
   });
 }
 

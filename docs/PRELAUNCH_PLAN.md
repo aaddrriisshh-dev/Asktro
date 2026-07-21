@@ -134,8 +134,17 @@ shipped an Indian consultation app on iOS before the iOS submission._
   18 or older and agree to…" (required for phone + Google/Apple), plus a visible
   astrology guidance/entertainment disclaimer. Verify on-device by signing out to
   reach the login screen.
-- [ ] **Chat-image NSFW auto-scan** — currently manual-queue only; wire the
-  Vision API scan (UGC risk for both stores).
+- [x] **Chat-image NSFW auto-scan** — DONE + LIVE (2026-07-21): `onChatImageUploaded`
+  runs Cloud Vision SafeSearch, auto-deletes + flags adult/violence/racy, alerts
+  admins; Vision API enabled on the project and the portal Trust & Safety toggle is
+  ON (green). Manual review queue remains as the fallback.
+- [x] **AI astrologer reads client photos** — DONE + DEPLOYED (2026-07-21):
+  `onAiChatMessage` now does a vision read (palm/face/kundli/object) and replies in
+  character instead of ignoring images; safety left ON for image reads so an
+  explicit photo is blocked, not described. (Palm-line *accuracy* is a later
+  vision-prompt tuning pass.)
+- [x] **Chat image upload UX** — DONE (2026-07-21, app-only): camera/gallery choice,
+  staged preview + uploading spinner, sends only on tap (was auto-firing on pick).
 - [ ] **iOS: Apple IAP decision** (see §1).
 
 ### B. Auth / security
@@ -148,8 +157,15 @@ shipped an Indian consultation app on iOS before the iOS submission._
   (`login/page.tsx`) + a `/security` TOTP enrollment page. **Activation deferred** —
   it needs a one-way GCIP upgrade + each admin to enroll. Turn on before real money
   flows at scale; the code is ready and shipped in the portal build.
-- [ ] **Enable App Check enforcement** on callables at launch (code ready; needs
-  the toggle + Play Integrity / App Attest provisioned).
+- [ ] **Enable App Check enforcement** on money/cost callables. CORRECTION
+  (2026-07-21): this is NOT a mere toggle — there is currently **no**
+  `enforceAppCheck` on any callable in `firebase/functions/src` (client attestation
+  is initialised but non-enforcing, see `apps/customer/lib/main.dart`). Enforcing
+  it is a CODE change (add `enforceAppCheck: true` per callable) that must ship
+  ONLY AFTER Play Integrity / App Attest is provisioned and a real attesting build
+  is in users' hands — otherwise every recharge/chat call is rejected and the app
+  is dead on arrival. Sequence: provision on console → ship attesting build →
+  watch App Check metrics in monitor → then enforce + redeploy.
 
 ### C. Ship mechanics (owner tasks — literally cannot ship without)
 - [ ] **Android release keystore** + `key.properties` (currently debug-signed).
