@@ -28,6 +28,7 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
 
   final List<Uint8List> _captured = [];
   String _hand = 'left'; // which hand we're currently asking for
+  bool _flip = false; // user override if the outline's thumb is on the wrong side
   Uint8List? _review; // a just-taken shot awaiting Retake/Use
   bool _askSecond = false; // showing the "add the other hand?" prompt
 
@@ -140,9 +141,10 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
 
   Widget _cameraView() {
     final handLabel = _hand == 'left' ? 'LEFT' : 'RIGHT';
-    // Convention: palm facing an un-mirrored (back) camera → a RIGHT hand shows
-    // its thumb on the viewer's LEFT, a LEFT hand on the viewer's RIGHT.
-    final thumbOnLeft = _hand == 'right';
+    // Best default from on-device observation: with the back camera, the LEFT
+    // hand's thumb appears on the viewer's LEFT (RIGHT hand → right). The Flip
+    // button below lets the user correct it if their device mirrors differently.
+    final thumbOnLeft = (_hand == 'left') != _flip;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -151,7 +153,7 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
           child: IgnorePointer(child: CustomPaint(painter: _HandOutlinePainter(thumbOnLeft: thumbOnLeft))),
         ),
         Positioned(
-          top: 16, left: 20, right: 20,
+          top: 14, left: 20, right: 20,
           child: Column(
             children: [
               Text('Place your $handLabel hand in the outline',
@@ -163,6 +165,19 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white70, fontSize: 12.5,
                       shadows: [Shadow(blurRadius: 6, color: Colors.black)])),
+              const SizedBox(height: 8),
+              // Flip control — insurance against device-specific camera mirroring.
+              TextButton.icon(
+                onPressed: () => setState(() => _flip = !_flip),
+                icon: const Icon(Icons.flip_rounded, size: 15, color: Colors.white),
+                label: const Text('Thumb on the wrong side? Flip',
+                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.black.withValues(alpha: 0.35),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                ),
+              ),
             ],
           ),
         ),
@@ -199,36 +214,41 @@ class _HandOutlinePainter extends CustomPainter {
 
   Path _handPath(Size size) {
     final w = size.width, h = size.height, cx = w / 2;
-    final palmW = w * 0.58;
+    Path union(Path a, Path b) => Path.combine(PathOperation.union, a, b);
+    Path circle(Offset c, double r) => Path()..addOval(Rect.fromCircle(center: c, radius: r));
+
+    // Realistic hand proportions (aspect ≈ 2.0, not stretched): a palm slightly
+    // taller than wide, fingers ~as long as the palm. Sized to sit with margins so
+    // an actual hand at normal distance fits — the old outline was too elongated.
+    final palmW = w * 0.50;
     final palmL = cx - palmW / 2, palmR = cx + palmW / 2;
-    final palmTop = h * 0.42, palmBot = h * 0.85;
+    final palmTop = h * 0.55, palmBot = h * 0.80; // finger-base → wrist
+    final palmH = palmBot - palmTop;
 
-    Path p = Path()..addRRect(RRect.fromLTRBR(palmL, palmTop, palmR, palmBot, Radius.circular(w * 0.11)));
+    Path p = Path()..addRRect(RRect.fromLTRBR(palmL, palmTop, palmR, palmBot, Radius.circular(palmW * 0.30)));
 
-    // Four fingers (index, middle, ring, little) as vertical capsules; middle is
-    // the tallest. They overlap the palm top so the union is one clean silhouette.
-    final fw = palmW / 5.2;
+    // Four fingers as capsules, middle tallest; the row is mirrored so the index
+    // finger always sits next to the thumb. They overlap the palm top → one clean
+    // silhouette on union.
+    final fw = palmW / 5.0;
     final gap = (palmW - fw * 4) / 3;
-    final tips = [h * 0.15, h * 0.085, h * 0.115, h * 0.185];
+    var tips = [h * 0.285, h * 0.245, h * 0.275, h * 0.335]; // index, middle, ring, little
+    if (!thumbOnLeft) tips = tips.reversed.toList();
     for (var i = 0; i < 4; i++) {
       final fx = palmL + fw / 2 + i * (fw + gap);
-      p = Path.combine(PathOperation.union, p,
-          Path()..addRRect(RRect.fromLTRBR(fx - fw / 2, tips[i], fx + fw / 2, palmTop + fw, Radius.circular(fw / 2))));
+      p = union(p, Path()..addRRect(RRect.fromLTRBR(fx - fw / 2, tips[i], fx + fw / 2, palmTop + fw * 0.9, Radius.circular(fw / 2))));
     }
 
-    // Thumb: overlapping circles running from the palm's upper side out + down.
-    final tr = fw * 0.62;
-    final sideX = thumbOnLeft ? palmL : palmR;
+    // Thumb: a smooth, tapering capsule (a run of overlapping, shrinking circles)
+    // from the palm's upper side, angled out + down, on the correct side.
     final dir = thumbOnLeft ? -1.0 : 1.0;
-    final ptop = palmTop + (palmBot - palmTop) * 0.10;
-    final span = palmBot - palmTop;
-    final thumbPts = [
-      Offset(sideX + dir * tr * 0.1, ptop),
-      Offset(sideX + dir * tr * 1.1, ptop + span * 0.22),
-      Offset(sideX + dir * tr * 2.0, ptop + span * 0.44),
-    ];
-    for (final pt in thumbPts) {
-      p = Path.combine(PathOperation.union, p, Path()..addOval(Rect.fromCircle(center: pt, radius: tr)));
+    final sideX = thumbOnLeft ? palmL : palmR;
+    final base = Offset(sideX + dir * fw * 0.15, palmTop + palmH * 0.20);
+    final tip = Offset(sideX + dir * fw * 1.7, palmTop + palmH * 0.66);
+    final baseR = fw * 0.60, tipR = fw * 0.40;
+    for (var i = 0; i <= 7; i++) {
+      final t = i / 7;
+      p = union(p, circle(Offset.lerp(base, tip, t)!, baseR + (tipR - baseR) * t));
     }
     return p;
   }
