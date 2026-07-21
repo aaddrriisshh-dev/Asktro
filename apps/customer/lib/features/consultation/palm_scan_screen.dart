@@ -4,15 +4,15 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-/// Guided palm capture. Shows a live camera with a hand-shaped outline the user
-/// aligns their palm into (so the lines come out framed + in focus → a better
-/// reading), captures the dominant hand, then offers an optional second hand for
-/// a deeper two-hand comparison. Returns the captured image bytes (1 or 2) via
-/// Navigator.pop, in the order taken — the chat then stages + sends them.
+/// Guided palm capture. Shows a live camera with a large hand-shaped outline the
+/// user aligns their palm into (so the lines come out framed + in focus → a
+/// better reading). It explicitly asks for the LEFT hand first, then offers the
+/// RIGHT hand for a deeper two-hand comparison. The outline MIRRORS between hands
+/// (a left and right hand are mirror images — the thumb swaps sides). Returns the
+/// captured bytes (1 or 2, left-then-right) via Navigator.pop.
 ///
-/// Defensive by design: a denied permission or a camera-init failure shows a
-/// clear message with a way out, never a crash. Requires a device rebuild
-/// (adds the `camera` package).
+/// Defensive: a denied permission or a camera-init failure shows a clear message,
+/// never a crash. Requires a device rebuild (uses the `camera` package).
 class PalmScanScreen extends StatefulWidget {
   const PalmScanScreen({super.key});
 
@@ -27,8 +27,9 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
   bool _capturing = false;
 
   final List<Uint8List> _captured = [];
+  String _hand = 'left'; // which hand we're currently asking for
   Uint8List? _review; // a just-taken shot awaiting Retake/Use
-  bool _askSecond = false; // showing the "add other hand?" prompt
+  bool _askSecond = false; // showing the "add the other hand?" prompt
 
   @override
   void initState() {
@@ -46,7 +47,6 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
       }
       final cams = await availableCameras();
       if (cams.isEmpty) { _fail('No camera found on this device.'); return; }
-      // Prefer the back camera (better for a palm); fall back to the first.
       final cam = cams.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.back,
         orElse: () => cams.first,
@@ -70,7 +70,6 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final c = _controller;
     if (c == null || !c.value.isInitialized) return;
-    // Release the camera when backgrounded; re-init on resume.
     if (state == AppLifecycleState.inactive) {
       c.dispose();
       _controller = null;
@@ -115,7 +114,7 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
 
   void _sendWithOne() => Navigator.of(context).pop(_captured);
 
-  void _addSecond() => setState(() => _askSecond = false);
+  void _addSecond() => setState(() { _askSecond = false; _hand = 'right'; });
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +131,7 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
           : _initializing || _controller == null
               ? const Center(child: CircularProgressIndicator(color: Colors.white))
               : _review != null
-                  ? _ReviewView(bytes: _review!, onRetake: _retake, onUse: _useShot)
+                  ? _ReviewView(bytes: _review!, hand: _hand, onRetake: _retake, onUse: _useShot)
                   : _askSecond
                       ? _AskSecondView(onAdd: _addSecond, onSend: _sendWithOne)
                       : _cameraView(),
@@ -140,35 +139,33 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
   }
 
   Widget _cameraView() {
-    final second = _captured.length == 1;
+    final handLabel = _hand == 'left' ? 'LEFT' : 'RIGHT';
+    // Convention: palm facing an un-mirrored (back) camera → a RIGHT hand shows
+    // its thumb on the viewer's LEFT, a LEFT hand on the viewer's RIGHT.
+    final thumbOnLeft = _hand == 'right';
     return Stack(
       fit: StackFit.expand,
       children: [
         Center(child: CameraPreview(_controller!)),
-        // Hand outline + dimmed surround.
-        const Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _HandOutlinePainter()))),
-        // Instruction.
+        Positioned.fill(
+          child: IgnorePointer(child: CustomPaint(painter: _HandOutlinePainter(thumbOnLeft: thumbOnLeft))),
+        ),
         Positioned(
-          top: 18, left: 20, right: 20,
+          top: 16, left: 20, right: 20,
           child: Column(
             children: [
-              Text(
-                second ? 'Now your OTHER hand' : 'Place your dominant hand in the outline',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700,
-                    shadows: [Shadow(blurRadius: 6, color: Colors.black)]),
-              ),
+              Text('Place your $handLabel hand in the outline',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800,
+                      shadows: [Shadow(blurRadius: 6, color: Colors.black)])),
               const SizedBox(height: 4),
-              Text(
-                second ? 'For a deeper, two-hand reading' : 'Fingers spread, palm facing the camera, good light',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white70, fontSize: 12.5,
-                    shadows: [Shadow(blurRadius: 6, color: Colors.black)]),
-              ),
+              const Text('Palm facing the camera · fingers spread · good light',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 12.5,
+                      shadows: [Shadow(blurRadius: 6, color: Colors.black)])),
             ],
           ),
         ),
-        // Capture button.
         Positioned(
           bottom: 34, left: 0, right: 0,
           child: Center(
@@ -193,63 +190,68 @@ class _PalmScanScreenState extends State<PalmScanScreen> with WidgetsBindingObse
   }
 }
 
-/// Draws a translucent surround with a hand-shaped cut-out outline in the centre.
+/// Draws a translucent surround with a large hand-shaped cut-out outline. The
+/// thumb sits on the correct side per hand ([thumbOnLeft]); the palm + fingers
+/// are symmetric. Built as a union of simple shapes (no matrix transforms).
 class _HandOutlinePainter extends CustomPainter {
-  const _HandOutlinePainter();
+  const _HandOutlinePainter({required this.thumbOnLeft});
+  final bool thumbOnLeft;
 
   Path _handPath(Size size) {
-    final w = size.width, h = size.height;
-    final cx = w / 2;
-    final palmW = w * 0.5;
-    final path = Path();
-    // Palm as a rounded rectangle.
-    final palmTop = h * 0.46, palmBottom = h * 0.80;
-    final palmRect = RRect.fromLTRBR(
-      cx - palmW / 2, palmTop, cx + palmW / 2, palmBottom, const Radius.circular(46),
-    );
-    path.addRRect(palmRect);
-    // Four fingers as capsules above the palm.
-    final fingerW = palmW / 5.2;
-    final gap = (palmW - fingerW * 4) / 3;
-    final startX = cx - palmW / 2 + fingerW / 2;
-    final fingerTops = [h * 0.20, h * 0.16, h * 0.19, h * 0.25];
+    final w = size.width, h = size.height, cx = w / 2;
+    final palmW = w * 0.58;
+    final palmL = cx - palmW / 2, palmR = cx + palmW / 2;
+    final palmTop = h * 0.42, palmBot = h * 0.85;
+
+    Path p = Path()..addRRect(RRect.fromLTRBR(palmL, palmTop, palmR, palmBot, Radius.circular(w * 0.11)));
+
+    // Four fingers (index, middle, ring, little) as vertical capsules; middle is
+    // the tallest. They overlap the palm top so the union is one clean silhouette.
+    final fw = palmW / 5.2;
+    final gap = (palmW - fw * 4) / 3;
+    final tips = [h * 0.15, h * 0.085, h * 0.115, h * 0.185];
     for (var i = 0; i < 4; i++) {
-      final fx = startX + i * (fingerW + gap);
-      final top = fingerTops[i];
-      path.addRRect(RRect.fromLTRBR(
-        fx - fingerW / 2, top, fx + fingerW / 2, palmTop + 16, Radius.circular(fingerW / 2),
-      ));
+      final fx = palmL + fw / 2 + i * (fw + gap);
+      p = Path.combine(PathOperation.union, p,
+          Path()..addRRect(RRect.fromLTRBR(fx - fw / 2, tips[i], fx + fw / 2, palmTop + fw, Radius.circular(fw / 2))));
     }
-    // Thumb as a capsule off the lower-left of the palm (kept axis-aligned so the
-    // outline needs no matrix transform — it's only an alignment guide).
-    path.addRRect(RRect.fromLTRBR(
-      cx - palmW / 2 - fingerW * 0.55, h * 0.54, cx - palmW / 2 + fingerW * 0.55, h * 0.72,
-      Radius.circular(fingerW / 2),
-    ));
-    return path;
+
+    // Thumb: overlapping circles running from the palm's upper side out + down.
+    final tr = fw * 0.62;
+    final sideX = thumbOnLeft ? palmL : palmR;
+    final dir = thumbOnLeft ? -1.0 : 1.0;
+    final ptop = palmTop + (palmBot - palmTop) * 0.10;
+    final span = palmBot - palmTop;
+    final thumbPts = [
+      Offset(sideX + dir * tr * 0.1, ptop),
+      Offset(sideX + dir * tr * 1.1, ptop + span * 0.22),
+      Offset(sideX + dir * tr * 2.0, ptop + span * 0.44),
+    ];
+    for (final pt in thumbPts) {
+      p = Path.combine(PathOperation.union, p, Path()..addOval(Rect.fromCircle(center: pt, radius: tr)));
+    }
+    return p;
   }
 
   @override
   void paint(Canvas canvas, Size size) {
     final hand = _handPath(size);
-    // Dim everything outside the hand.
-    final overlay = Path()..addRect(Offset.zero & size);
-    final dimmed = Path.combine(PathOperation.difference, overlay, hand);
-    canvas.drawPath(dimmed, Paint()..color = Colors.black.withValues(alpha: 0.45));
-    // Outline the hand.
+    final dimmed = Path.combine(PathOperation.difference, Path()..addRect(Offset.zero & size), hand);
+    canvas.drawPath(dimmed, Paint()..color = Colors.black.withValues(alpha: 0.5));
     canvas.drawPath(hand, Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5
-      ..color = Colors.white.withValues(alpha: 0.9));
+      ..color = Colors.white.withValues(alpha: 0.92));
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _HandOutlinePainter oldDelegate) => oldDelegate.thumbOnLeft != thumbOnLeft;
 }
 
 class _ReviewView extends StatelessWidget {
-  const _ReviewView({required this.bytes, required this.onRetake, required this.onUse});
+  const _ReviewView({required this.bytes, required this.hand, required this.onRetake, required this.onUse});
   final Uint8List bytes;
+  final String hand;
   final VoidCallback onRetake;
   final VoidCallback onUse;
 
@@ -257,6 +259,11 @@ class _ReviewView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Text('${hand == 'left' ? 'Left' : 'Right'} hand',
+              style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+        ),
         Expanded(child: Center(child: Image.memory(bytes, fit: BoxFit.contain))),
         Container(
           padding: EdgeInsets.fromLTRB(20, 14, 20, 20 + MediaQuery.of(context).padding.bottom),
@@ -299,7 +306,7 @@ class _AskSecondView extends StatelessWidget {
           children: [
             const Icon(Icons.back_hand_rounded, color: Colors.white, size: 54),
             const SizedBox(height: 18),
-            const Text('Add your other hand?', textAlign: TextAlign.center,
+            const Text('Add your right hand?', textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             const Text(
@@ -311,13 +318,13 @@ class _AskSecondView extends StatelessWidget {
             SizedBox(width: double.infinity, child: FilledButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add_a_photo_rounded),
-              label: const Text('Add other hand'),
+              label: const Text('Scan right hand'),
               style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
             )),
             const SizedBox(height: 10),
             TextButton(
               onPressed: onSend,
-              child: const Text('Send with one hand', style: TextStyle(color: Colors.white70)),
+              child: const Text('Send with left hand only', style: TextStyle(color: Colors.white70)),
             ),
           ],
         ),
