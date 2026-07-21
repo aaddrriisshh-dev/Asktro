@@ -88,8 +88,9 @@ class CategoryScreen extends ConsumerWidget {
   }
 }
 
-/// Horizontal row of tappable category chips for the home feed — "find an
-/// astrologer by what you need". Each opens the matching [CategoryScreen].
+/// A compact, horizontally-scrolling STRIP of category pills for the home feed —
+/// "find an astrologer by what you need". A single low row (icon + label inline),
+/// space-efficient and clean. Each opens the matching [CategoryScreen].
 class CategoryRow extends StatelessWidget {
   const CategoryRow({super.key});
 
@@ -99,18 +100,18 @@ class CategoryRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
-          padding: EdgeInsets.fromLTRB(AppSpacing.lg, 4, AppSpacing.lg, 10),
+          padding: EdgeInsets.fromLTRB(AppSpacing.lg, 4, AppSpacing.lg, 9),
           child: Text('What do you need guidance on?',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
         ),
         SizedBox(
-          height: 92,
+          height: 38,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             itemCount: kDiscoveryCategories.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) => _CategoryChip(category: kDiscoveryCategories[i]),
+            separatorBuilder: (_, __) => const SizedBox(width: 9),
+            itemBuilder: (_, i) => _CategoryPill(category: kDiscoveryCategories[i]),
           ),
         ),
       ],
@@ -118,36 +119,36 @@ class CategoryRow extends StatelessWidget {
   }
 }
 
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({required this.category});
+class _CategoryPill extends StatelessWidget {
+  const _CategoryPill({required this.category});
   final DiscoveryCategory category;
 
   @override
   Widget build(BuildContext context) {
     const purple = Color(0xFF7E57C2);
-    return GestureDetector(
-      onTap: () => Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => CategoryScreen(category: category))),
-      child: SizedBox(
-        width: 72,
-        child: Column(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: purple.withValues(alpha: 0.10),
-                shape: BoxShape.circle,
-                border: Border.all(color: purple.withValues(alpha: 0.18)),
-              ),
-              child: Icon(category.icon, color: purple, size: 26),
-            ),
-            const SizedBox(height: 6),
-            Text(category.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-          ],
+    const ink = Color(0xFF2A2340);
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => CategoryScreen(category: category))),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: purple.withValues(alpha: 0.22)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(category.icon, size: 16, color: purple),
+              const SizedBox(width: 7),
+              Text(category.label,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ink)),
+            ],
+          ),
         ),
       ),
     );
