@@ -31,6 +31,7 @@ class Astrologer extends Equatable {
     this.videoRatePaise,
     this.commissionPercent = 20,
     this.isAI = false,
+    this.specializations = const [],
     this.quickReplies = const [],
     this.availability = const {},
   });
@@ -73,6 +74,9 @@ class Astrologer extends Equatable {
     return (r != null && r > 0) ? r : ratePerMinutePaise;
   }
   final bool isAI; // AI persona vs a human astrologer
+  // Controlled specialization tags (love/marriage/career/…), shared by AI + human,
+  // used for home-screen discovery. Separate from free-text [expertise].
+  final List<String> specializations;
   final List<String> quickReplies;
   final Map<String, dynamic> availability;
 
@@ -143,6 +147,7 @@ class Astrologer extends Equatable {
       videoRatePaise: (m['videoRatePaise'] as num?)?.toInt(),
       commissionPercent: (m['commissionPercent'] ?? 20) as num,
       isAI: (m['isAI'] ?? false) as bool,
+      specializations: List<String>.from(m['specializations'] ?? const []),
       quickReplies: List<String>.from(m['quickReplies'] ?? const []),
       availability: Map<String, dynamic>.from(m['availability'] ?? const {}),
     );
@@ -154,6 +159,6 @@ class Astrologer extends Equatable {
         totalReviews, totalConsultations, followers, responseTimeSec,
         onlineStatus, available, verified, featured, risingStar, status, earnings,
         pendingPayout, ratePerMinutePaise, chatRatePaise, voiceRatePaise, videoRatePaise,
-        commissionPercent, isAI, quickReplies, availability,
+        commissionPercent, isAI, specializations, quickReplies, availability,
       ];
 }

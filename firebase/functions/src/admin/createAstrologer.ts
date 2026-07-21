@@ -12,6 +12,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { auth, db, FieldValue } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertRole, badRequest, failedPrecondition, HttpsError } from '../common/errors';
+import { sanitizePersona, sanitizeSpecializations } from './personaFields';
 import { adminName } from '../common/actor';
 
 function tempPassword(): string {
@@ -63,8 +64,12 @@ export const createAstrologer = onCall(async (req) => {
     chatRatePaise?: number; voiceRatePaise?: number; videoRatePaise?: number;
     profilePhoto?: string; isAI?: boolean; risingStar?: boolean;
     age?: number; gender?: string;
+    persona?: unknown; specializations?: unknown;
   };
   if (!d.name || !d.email) badRequest('name and email are required.');
+
+  const persona = sanitizePersona(d.persona);
+  const specializations = sanitizeSpecializations(d.specializations);
 
   // Non-super admins can't set commission / rates / AI status — strip them.
   stripPrivilegedForNonSuper(req, d);
@@ -120,6 +125,11 @@ export const createAstrologer = onCall(async (req) => {
       // phrasing. Harmless on human astrologers.
       ...(typeof d.age === 'number' && d.age > 0 ? { age: d.age } : {}),
       ...(d.gender === 'male' || d.gender === 'female' ? { gender: d.gender } : {}),
+      // Per-AI persona flavour (school/tone/verbosity/register) — drives the AI
+      // reply engine; harmless on human astrologers. Specializations are a
+      // controlled tag list shared by AI + human, used for discovery.
+      ...(persona ? { persona } : {}),
+      ...(specializations ? { specializations } : {}),
       rating: 0,
       totalReviews: 0,
       totalConsultations: 0,
@@ -187,6 +197,15 @@ export const updateAstrologer = onCall(async (req) => {
   const allowed = ['name', 'about', 'experience', 'languages', 'expertise', 'ratePerMinutePaise', 'chatRatePaise', 'voiceRatePaise', 'videoRatePaise', 'profilePhoto', 'isAI', 'featured', 'risingStar', 'age', 'gender'];
   const patch: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
   for (const k of allowed) if (k in rest) patch[k] = rest[k];
+
+  // Persona flavour + specialization tags need sanitizing (not raw passthrough),
+  // so they're set explicitly rather than via the plain allowlist. An empty/blank
+  // persona edit writes {} — clearing the flavour back to the classical default.
+  if ('persona' in rest) patch.persona = sanitizePersona(rest.persona) ?? {};
+  if ('specializations' in rest) {
+    const s = sanitizeSpecializations(rest.specializations);
+    if (s) patch.specializations = s;
+  }
 
   await db.collection(Collections.astrologers).doc(astrologerId!).set(patch, { merge: true });
 

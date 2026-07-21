@@ -52,7 +52,11 @@ Customer profile. `userId` = Firebase Auth uid.
 | about | string | astrologer | |
 | experience | int (years) | astrologer | |
 | languages | string[] | astrologer | |
-| expertise | string[] | astrologer | tags |
+| expertise | string[] | astrologer | free-text display tags |
+| specializations | string[] | admin | controlled list (love/marriage/career/money/health/education/spirituality/remedies); AI **+** human; powers home discovery |
+| isAI | bool | **super admin** | AI persona vs human |
+| age / gender | int / string | admin | drives AI address terms + gendered phrasing |
+| persona | map | admin (AI only) | flavour knobs → AI reply engine: `tradition` (vedic/kp/lal_kitab/nadi/numerology/tarot/vastu), `tone`, `verbosity` (concise/balanced/expansive), `languageLean`, `remedyStyle`, `voice`, `register`:{young,mid,senior}. All whitelisted server-side; blank → classical Vedic default. Not parsed by the customer app. |
 | rating | double | **functions only** | rolling average |
 | totalReviews | int | functions | |
 | totalConsultations | int | functions | |

@@ -9,6 +9,19 @@ const EXPERTISE = ['Vedic Astrology', 'Numerology', 'Tarot', 'Vastu Shastra', 'K
   'Nadi Astrology', 'Palmistry', 'Face Reading', 'Prashna', 'Muhurtha'];
 const LANGUAGES = ['Hindi', 'English', 'Tamil', 'Telugu', 'Bengali', 'Marathi', 'Kannada', 'Punjabi', 'Gujarati', 'Malayalam'];
 
+// Controlled specialization tags — universal to AI + human, used for discovery.
+const SPECIALIZATIONS = ['love', 'marriage', 'career', 'money', 'health', 'education', 'spirituality', 'remedies'];
+// Persona (AI) option lists. Only Vedic/KP/Lal Kitab have an authentic method
+// today; the others read classically until each gets its own grounded calc.
+const TRADITIONS: [string, string][] = [
+  ['vedic', 'Vedic (Parashari)'], ['kp', 'KP'], ['lal_kitab', 'Lal Kitab'],
+  ['nadi', 'Nadi (classical for now)'], ['numerology', 'Numerology (classical for now)'],
+  ['tarot', 'Tarot (classical for now)'], ['vastu', 'Vastu (classical for now)'],
+];
+const VERBOSITIES: [string, string][] = [['concise', 'Concise'], ['balanced', 'Balanced'], ['expansive', 'Expansive']];
+const LANGUAGE_LEANS: [string, string][] = [['', 'Auto (mirror client)'], ['hindi', 'Hindi-heavy'], ['balanced', 'Balanced'], ['english', 'English-friendly']];
+const REMEDY_STYLES: [string, string][] = [['', 'Default (per school)'], ['gemstones', 'Gemstones'], ['mantras', 'Mantras'], ['rituals', 'Rituals'], ['practical', 'Practical'], ['minimal', 'Minimal (rarely)']];
+
 function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return <button type="button" onClick={onClick} className={`pickchip${on ? ' on' : ''}`}>{label}</button>;
 }
@@ -56,10 +69,27 @@ export function AstrologerFormModal({
   });
   const [expertise, setExpertise] = useState<string[]>(arr(a.expertise));
   const [languages, setLanguages] = useState<string[]>(arr(a.languages));
+  const [specializations, setSpecializations] = useState<string[]>(arr(a.specializations));
   const [customExp, setCustomExp] = useState('');
   const [isAI, setIsAI] = useState(a.isAI === true);
   const [risingStar, setRisingStar] = useState(a.risingStar === true);
   const [busy, setBusy] = useState(false);
+
+  // Persona flavour (AI). Pre-fills from the stored `persona` object in edit mode.
+  const pa = (a.persona && typeof a.persona === 'object' ? a.persona : {}) as Record<string, unknown>;
+  const preg = (pa.register && typeof pa.register === 'object' ? pa.register : {}) as Record<string, unknown>;
+  const [p, setP] = useState({
+    tradition: str(pa.tradition) || 'vedic',
+    tone: str(pa.tone),
+    verbosity: str(pa.verbosity) || 'balanced',
+    languageLean: str(pa.languageLean),
+    remedyStyle: str(pa.remedyStyle),
+    voice: str(pa.voice),
+    regYoung: str(preg.young),
+    regMid: str(preg.mid),
+    regSenior: str(preg.senior),
+  });
+  const setPk = (k: string, v: string) => setP((s) => ({ ...s, [k]: v }));
 
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
   const toggle = (list: string[], setList: (x: string[]) => void, v: string) =>
@@ -82,6 +112,21 @@ export function AstrologerFormModal({
       const rate = chatRate;
       // Input is the astrologer's share; store the platform cut (100 − share).
       const comm = f.astrologerShare ? 100 - Number(f.astrologerShare) : undefined;
+      // Persona flavour object (only meaningful for AI personas; the server
+      // sanitizes + whitelists every value). Blank fields are dropped server-side.
+      const personaPayload = {
+        tradition: p.tradition || undefined,
+        tone: p.tone.trim() || undefined,
+        verbosity: p.verbosity || undefined,
+        languageLean: p.languageLean || undefined,
+        remedyStyle: p.remedyStyle || undefined,
+        voice: p.voice.trim() || undefined,
+        register: {
+          young: p.regYoung.trim() || undefined,
+          mid: p.regMid.trim() || undefined,
+          senior: p.regSenior.trim() || undefined,
+        },
+      };
       if (mode === 'create') {
         const chosen = f.password.trim();
         const res = await callFn<{ tempPassword?: string | null }>('createAstrologer', {
@@ -90,7 +135,8 @@ export function AstrologerFormModal({
           ratePerMinutePaise: rate, chatRatePaise: chatRate, voiceRatePaise: voiceRate, videoRatePaise: videoRate,
           commissionPercent: comm,
           about: f.about.trim(), profilePhoto: f.profilePhoto.trim() || undefined,
-          expertise, languages, isAI, risingStar,
+          expertise, languages, specializations, isAI, risingStar,
+          ...(isAI ? { persona: personaPayload } : {}),
           ...(f.age ? { age: Number(f.age) } : {}),
           ...(f.gender ? { gender: f.gender } : {}),
           ...(chosen ? { password: chosen } : {}),
@@ -107,7 +153,8 @@ export function AstrologerFormModal({
           phone: f.phone.trim() || null,
           about: f.about.trim(),
           experience: Number(f.experience) || 0,
-          expertise, languages, isAI, risingStar,
+          expertise, languages, specializations, isAI, risingStar,
+          ...(isAI ? { persona: personaPayload } : {}),
           ...(f.age ? { age: Number(f.age) } : {}),
           ...(f.gender ? { gender: f.gender } : {}),
           ...(rate != null ? { ratePerMinutePaise: rate } : {}),
@@ -201,6 +248,17 @@ export function AstrologerFormModal({
             {LANGUAGES.map((x) => <Chip key={x} label={x} on={languages.includes(x)} onClick={() => toggle(languages, setLanguages, x)} />)}
           </div>
 
+          {/* Specializations — a controlled list shared by AI + human, used for
+              home-screen discovery ("Love", "Career"…). Separate from free-text
+              Expertise (which stays for display). */}
+          <p className="af-label">Specializations (for discovery)</p>
+          <div className="pickrow">
+            {SPECIALIZATIONS.map((x) => (
+              <Chip key={x} label={x[0].toUpperCase() + x.slice(1)} on={specializations.includes(x)}
+                onClick={() => toggle(specializations, setSpecializations, x)} />
+            ))}
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
             {isSuper && (
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
@@ -211,6 +269,59 @@ export function AstrologerFormModal({
               <input type="checkbox" checked={risingStar} onChange={(e) => setRisingStar(e.target.checked)} /> ★ Rising Star (features them in the app’s Rising Stars rail)
             </label>
           </div>
+
+          {/* AI PERSONA — only for AI astrologers. Every knob has a safe default;
+              leaving them alone gives a classical Vedic voice. This is what makes
+              each AI astrologer a distinct, believable practitioner. */}
+          {isAI && (
+            <div style={{ marginTop: 16, padding: 14, border: '1px solid var(--line)', borderRadius: 10, background: 'rgba(184,134,11,0.04)' }}>
+              <p className="af-label" style={{ marginTop: 0 }}>🪔 AI Persona</p>
+              <p className="muted" style={{ fontSize: 12, marginTop: -4, marginBottom: 10 }}>
+                Shapes how this AI astrologer reads &amp; speaks. Vedic, KP &amp; Lal Kitab use their authentic
+                method; the others read classically for now. All defaults are sensible — set only what you want.
+              </p>
+              <div className="astro-form">
+                <label className="af"><span>School / tradition</span>
+                  <select className="input" value={p.tradition} onChange={(e) => setPk('tradition', e.target.value)}>
+                    {TRADITIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </label>
+                <label className="af"><span>Message length</span>
+                  <select className="input" value={p.verbosity} onChange={(e) => setPk('verbosity', e.target.value)}>
+                    {VERBOSITIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </label>
+                <label className="af"><span>Language lean</span>
+                  <select className="input" value={p.languageLean} onChange={(e) => setPk('languageLean', e.target.value)}>
+                    {LANGUAGE_LEANS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </label>
+                <label className="af"><span>Remedy style</span>
+                  <select className="input" value={p.remedyStyle} onChange={(e) => setPk('remedyStyle', e.target.value)}>
+                    {REMEDY_STYLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </label>
+              </div>
+              <label className="af" style={{ marginTop: 10 }}><span>Manner / tone (short)</span>
+                <input className="input" placeholder="warm and motherly · blunt and precise · gentle young guide"
+                  value={p.tone} onChange={(e) => setPk('tone', e.target.value)} />
+              </label>
+              <label className="af" style={{ marginTop: 10 }}><span>Voice / backstory (free text)</span>
+                <textarea className="input" rows={2} placeholder="Trained in Kashi; 30 years reading in Varanasi; likes to open with a proverb…"
+                  value={p.voice} onChange={(e) => setPk('voice', e.target.value)} />
+              </label>
+              <p className="af-label">Tone by client age (optional — blank uses a sensible default)</p>
+              <label className="af"><span>Young client (&lt;35)</span>
+                <input className="input" placeholder="lighter, warmer, encouraging" value={p.regYoung} onChange={(e) => setPk('regYoung', e.target.value)} />
+              </label>
+              <label className="af" style={{ marginTop: 8 }}><span>Mid-life (35–49)</span>
+                <input className="input" placeholder="balanced, practical, grounded" value={p.regMid} onChange={(e) => setPk('regMid', e.target.value)} />
+              </label>
+              <label className="af" style={{ marginTop: 8 }}><span>Senior (50+)</span>
+                <input className="input" placeholder="slower, respectful, traditional" value={p.regSenior} onChange={(e) => setPk('regSenior', e.target.value)} />
+              </label>
+            </div>
+          )}
         </div>
         <div className="tktmodal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '14px 20px', borderTop: '1px solid var(--line)' }}>
           <button className="btn secondary" onClick={onClose}>Cancel</button>
