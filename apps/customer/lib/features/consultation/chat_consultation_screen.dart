@@ -133,6 +133,10 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   @override
   void initState() {
     super.initState();
+    // Opening the chat = the customer has read it → clear the home unread badge
+    // and re-arm the away-nudge. Runs for ANY view (live OR a finished read-only
+    // transcript), so viewing an ended chat also clears its badge.
+    _clearUnreadBadge();
     if (widget.readOnly) return; // history view — never (re)activate/bill.
     // Observe app lifecycle so billing pauses when the chat leaves the foreground.
     WidgetsBinding.instance.addObserver(this);
@@ -547,18 +551,19 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
         cleared++;
       }
     }
-    // The customer is reading this chat now → clear the server-side unread badge
-    // and re-arm the away-nudge for next time. Only writes when there was
-    // something unread, so it isn't a write on every rebuild.
-    if (cleared > 0) {
-      ref
-          .read(firestoreProvider)
-          .collection('consultations')
-          .doc(_id)
-          .set({'customerUnread': 0, 'customerNudgeCount': 0},
-              SetOptions(merge: true))
-          .catchError((_) {});
-    }
+    // New inbound messages arrived while the customer is here reading → clear
+    // the badge again. Only writes when something was actually unread.
+    if (cleared > 0) _clearUnreadBadge();
+  }
+
+  /// Zero the home-card unread badge + re-arm the away-nudge for this chat.
+  void _clearUnreadBadge() {
+    ref
+        .read(firestoreProvider)
+        .collection('consultations')
+        .doc(_id)
+        .set({'customerUnread': 0, 'customerNudgeCount': 0}, SetOptions(merge: true))
+        .catchError((_) {});
   }
 
   /// Soft chime + haptic when the astrologer's "has joined" line first appears.

@@ -81,7 +81,7 @@ class ContinueRail extends ConsumerWidget {
             ),
           ),
           SizedBox(
-            height: 92,
+            height: 102,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -153,7 +153,13 @@ class _ContinueCard extends ConsumerWidget {
 
     return GestureDetector(
       onTap: astro == null ? null : open,
-      child: Container(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Padding(
+            // Leave headroom above the card so the badge can straddle its edge.
+            padding: const EdgeInsets.only(top: 8),
+            child: Container(
         width: 244,
         padding: const EdgeInsets.all(11),
         decoration: BoxDecoration(
@@ -203,30 +209,12 @@ class _ContinueCard extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(preview,
-                            style: Ob.note.copyWith(
-                                fontSize: 12,
-                                color: unread > 0 ? Ob.navy : Ob.navy.withValues(alpha: 0.6),
-                                fontWeight: unread > 0 ? FontWeight.w700 : FontWeight.w400),
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                      ),
-                      if (unread > 0) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          constraints: const BoxConstraints(minWidth: 18),
-                          decoration: const BoxDecoration(color: Ob.purple, shape: BoxShape.rectangle,
-                              borderRadius: BorderRadius.all(Radius.circular(999))),
-                          child: Text(unread > 9 ? '9+' : '$unread',
-                              textAlign: TextAlign.center,
-                              style: Ob.note.copyWith(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
-                        ),
-                      ],
-                    ],
-                  ),
+                  Text(preview,
+                      style: Ob.note.copyWith(
+                          fontSize: 12,
+                          color: unread > 0 ? Ob.navy : Ob.navy.withValues(alpha: 0.6),
+                          fontWeight: unread > 0 ? FontWeight.w700 : FontWeight.w400),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
                   Text(c.status.isOpen ? 'Resume' : 'View chat',
                       style: Ob.note.copyWith(
@@ -238,6 +226,31 @@ class _ContinueCard extends ConsumerWidget {
             ),
           ],
         ),
+            ),
+          ),
+          // Catchy notification badge straddling the card's top edge.
+          if (unread > 0)
+            Positioned(
+              top: 0,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                constraints: const BoxConstraints(minWidth: 22),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE23B3B),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.white, width: 1.6),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x66E23B3B), blurRadius: 6, offset: Offset(0, 2)),
+                  ],
+                ),
+                child: Text(unread > 9 ? '9+' : '$unread',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w900, height: 1.05)),
+              ),
+            ),
+        ],
       ),
     );
   }
