@@ -31,11 +31,17 @@ export const createConsultation = onCall(async (req) => {
   if (!astrologerId) badRequest('astrologerId is required.');
   if (!type || !VALID_TYPES.includes(type)) badRequest('type must be chat, voice, or video.');
 
-  // The skill the user entered via (home "Browse by skill"). Whitelisted — only
-  // 'palmistry' changes behaviour today (a palm-led opening); anything else is
-  // dropped. Lets the AI open by asking for the palm instead of a generic greeting.
-  const skill = typeof requestedSkill === 'string' && requestedSkill.toLowerCase() === 'palmistry'
-    ? 'palmistry' : null;
+  // The skill the user entered via (home "Browse by skill"), whitelisted to a
+  // known set. It drives the AI session's discipline: 'palmistry' opens palm-led;
+  // 'numerology' / 'tarot' / 'vastu' make the AI run THAT discipline for this
+  // session even if the astrologer's default is Vedic (see replyEngine). 'Vedic'
+  // (the default tile) carries no override, so it maps to null. Anything unknown
+  // is dropped rather than trusted.
+  const SKILLS: Record<string, string> = {
+    palmistry: 'palmistry', numerology: 'numerology', tarot: 'tarot', vastu: 'vastu',
+  };
+  const rawSkill = typeof requestedSkill === 'string' ? requestedSkill.toLowerCase().trim() : '';
+  const skill = SKILLS[rawSkill] ?? null;
 
   const config = await getGlobalConfig();
 

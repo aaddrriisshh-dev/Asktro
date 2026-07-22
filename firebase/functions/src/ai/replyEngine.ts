@@ -21,7 +21,7 @@ import { GEMINI_API_KEY } from '../common/secrets';
 import { PROKERALA_CLIENT_ID, PROKERALA_CLIENT_SECRET, prokeralaGet } from '../prokerala/prokerala';
 import { extractChartData, ChartData } from './chartFacts';
 import { assembleSlice } from './selector';
-import { buildNumerologyBriefing } from './numerology';
+import { buildNumerologyBriefing, computeNumerology, NumerologyFacts } from './numerology';
 import { buildTarotBriefing } from './tarot';
 import { classifyIntentHeuristic } from './router';
 import {
@@ -152,7 +152,19 @@ export const onAiChatMessage = onDocumentCreated(
       // for the question (built at step 3, once we have the question); a Vastu
       // consultant runs a spatial consultation (no chart/number needed). Compute
       // the persona flavour once and branch on the school.
-      const flavor = readFlavor(astro);
+      // A skill the user entered via ("Browse by skill") OVERRIDES the astrologer's
+      // default discipline for THIS session — so a Vedic astrologer who also offers
+      // Numerology actually runs numerology when reached via the Numerology tile,
+      // never a generic kundli reading. Palmistry is a photo overlay (handled
+      // separately below), so it does NOT replace the chart discipline. Overriding
+      // `tradition` here propagates to BOTH the grounding branch and the persona
+      // method block (buildReadingSystem reads flavor.tradition).
+      const baseFlavor = readFlavor(astro);
+      const reqSkill = str(c.requestedSkill);
+      const DISCIPLINE_OVERRIDE: Tradition[] = ['numerology', 'tarot', 'vastu'];
+      const flavor = reqSkill && (DISCIPLINE_OVERRIDE as string[]).includes(reqSkill)
+        ? { ...(baseFlavor ?? {}), tradition: reqSkill as Tradition }
+        : baseFlavor;
       const tradition = flavor?.tradition ?? 'vedic';
       let chart: ChartData | null = null;
       let altBriefing: string | null = null; // non-chart schools' facts block
@@ -194,8 +206,12 @@ export const onAiChatMessage = onDocumentCreated(
       // chart slice: a tarot reader draws the spread for THIS question now; the
       // others already have their facts block (numbers / Vastu).
       const intent = classifyIntentHeuristic(userText);
+      // Tarot: seed the draw by the CONSULTATION only (not the message), so the
+      // three cards are FIXED for the whole session and never reshuffle between
+      // questions — the reader interprets the same spread against whatever the
+      // client asks. The actual question reaches the model via the conversation.
       const briefing = tradition === 'tarot'
-        ? buildTarotBriefing(consultationId, userText)
+        ? buildTarotBriefing(consultationId, '')
         : (altBriefing ?? assembleSlice(chart!, {
             themes: intent.themes,
             subIntent: intent.subIntent,
@@ -425,7 +441,15 @@ export const onAiConsultationCreated = onDocumentCreated(
       // client gets a warm "welcome back — continue where we left off, or something
       // new?" opener; she never asserts the old topic here (that lands softly only
       // if they choose to continue). A first-timer gets a simple warm greeting.
-      const first = firstName((await db.collection('users').doc(c.customerId).get()).data()?.name) ?? '';
+      const userData = (await db.collection('users').doc(c.customerId).get()).data() ?? {};
+      const first = firstName(userData.name) ?? '';
+      // The session's discipline for the OPENER: a skill entered via a tile
+      // overrides the persona's default (so a Numerology-tagged Vedic astrologer
+      // opens numerology-led), else the astrologer's own tradition.
+      const reqSkill = str(c.requestedSkill);
+      const openFlavor = readFlavor(astro);
+      const discipline = reqSkill && ['numerology', 'tarot', 'vastu'].includes(reqSkill)
+        ? reqSkill : (openFlavor?.tradition ?? 'vedic');
       // How many times they've chatted with THIS astrologer before → drives how
       // familiar the opener is (stranger → acquaintance → regular).
       const priorCount = (await loadPriorSessionContext(
@@ -439,13 +463,28 @@ export const onAiConsultationCreated = onDocumentCreated(
       await joiningRef.update({ text: `${displayName} has joined` });
       await setTyping(consultationId, c.astrologerId, true);
       await sleep(GREETING_GAP_MS);
-      // A user who came via "Palmistry" is opened with a PALM request (right hand
-      // first) instead of the generic greeting — so a palm reading never starts
-      // without the palm. Otherwise the normal relationship-stage greeting.
-      const opener = c.requestedSkill === 'palmistry'
-        ? palmOpeningGreeting(first)
-        : openingGreeting(first, priorCount);
-      await writeAstro(consultationId, c.astrologerId, conjugateGender(opener, astroGender));
+      // Skill-led openers. Palmistry asks for the hand first (never a reading
+      // without the palm). Numerology CONFIRMS the details we hold and reveals the
+      // core numbers in TWO short beats (with a typing pause between). Tarot invites
+      // the client to focus a question and draw. Everything else gets the normal
+      // relationship-stage greeting.
+      if (reqSkill === 'palmistry') {
+        await writeAstro(consultationId, c.astrologerId, conjugateGender(palmOpeningGreeting(first), astroGender));
+      } else if (discipline === 'numerology') {
+        const nf = computeNumerology(num(userData.birthDateMs), str(userData.name));
+        const beats = numerologyOpeningGreeting(first, str(userData.name) ?? '', nf);
+        for (let i = 0; i < beats.length; i++) {
+          if (i > 0) {
+            await setTyping(consultationId, c.astrologerId, true);
+            await sleep(typingDelayMs(beats[i]));
+          }
+          await writeAstro(consultationId, c.astrologerId, conjugateGender(beats[i], astroGender));
+        }
+      } else if (discipline === 'tarot') {
+        await writeAstro(consultationId, c.astrologerId, conjugateGender(tarotOpeningGreeting(first), astroGender));
+      } else {
+        await writeAstro(consultationId, c.astrologerId, conjugateGender(openingGreeting(first, priorCount), astroGender));
+      }
       await setTyping(consultationId, c.astrologerId, false);
     } catch (e) {
       // Never leave the typing dots stuck on if the ritual throws mid-way.
@@ -633,6 +672,46 @@ function palmOpeningGreeting(first: string): string {
     `Namaste${nameJi}. Chaliye aapki hasta rekha se shuru karte hain — apne daaye (seedhe) haath ki ek saaf photo bhej dijiye, hatheli camera ki taraf, ungliyan thodi khuli, achhi roshni mein.`,
     `Namaste${nameJi}, aaiye. Sabse pehle aapke haath dekhte hain — daaye haath ki ek saaf photo bhej dijiye, hatheli saamne, ungliyan thodi faila kar.`,
     `Namaste${nameJi}. Aapki rekhaayein padhne ke liye, apne seedhe (daaye) haath ki ek clear photo bhej dijiye — achhi roshni mein, hatheli camera ki taraf.`,
+  ];
+  return opts[Math.floor(Math.random() * opts.length)];
+}
+
+const NUM_MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/** Numerology opener — used when the client entered via the Numerology tile OR the
+ *  astrologer IS a numerologist. It CONFIRMS the details we already hold (no
+ *  re-asking) and reveals the core numbers, in TWO short beats, then hands the mic
+ *  to the client. Names + DOB stay in Latin script even inside the Hindi sentence
+ *  (never transliterated). The **…** spans render bold in the chat. Returns one
+ *  message if the birth date is missing (asks for it in a numerologist's voice),
+ *  otherwise two. */
+function numerologyOpeningGreeting(first: string, fullName: string, nf: NumerologyFacts | null): string[] {
+  const nameJi = first ? ` ${first} जी` : ' जी';
+  if (!nf) {
+    return [
+      `नमस्ते${nameJi} 🙏 चलिए आपके numbers से आपकी numerology padhte hain — bas apni sahi date of birth (DD-MM-YYYY) bhej dijiye.`,
+    ];
+  }
+  const dob = `${nf.day} ${NUM_MONTHS[nf.month - 1]} ${nf.year}`;
+  const namePart = fullName ? `, नाम **${fullName}**` : '';
+  const beat1 = `नमस्ते${nameJi} 🙏 आपकी details मेरे पास हैं${namePart}, date of birth **${dob}**.`;
+  const naamPart = nf.naamank > 0 ? `, और नाम अंक बनता है **${nf.naamank}**` : '';
+  const beat2 = `इन्हीं के हिसाब से आपका मूलांक बनता है **${nf.moolank}**, भाग्यांक बनता है **${nf.bhagyank}**${naamPart} 🌟 अब बताइए — किस बारे में जानना है?`;
+  return [beat1, beat2];
+}
+
+/** Tarot opener — used when the client entered via the Tarot tile OR the astrologer
+ *  IS a tarot reader. Invites the client to focus their question and draw: the app
+ *  shows a "Pull my cards" chip, and typing the question works too. The spread is
+ *  drawn server-side (fixed for the session) when the first reading generates. */
+function tarotOpeningGreeting(first: string): string {
+  const nameJi = first ? ` ${first} जी` : ' जी';
+  const opts = [
+    `नमस्ते${nameJi} 🙏 एक गहरी साँस लीजिए और अपना सवाल मन में रखिए… फिर नीचे 'Pull my cards' दबाइए या अपना सवाल type कर दीजिए 🔮`,
+    `नमस्ते${nameJi}, स्वागत है 🔮 थोड़ा शांत होकर अपने सवाल पर ध्यान दीजिए — फिर 'Pull my cards' दबाकर अपने cards खींचिए, या सीधे अपना सवाल लिख दीजिए।`,
   ];
   return opts[Math.floor(Math.random() * opts.length)];
 }

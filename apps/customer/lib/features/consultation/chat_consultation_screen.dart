@@ -78,6 +78,15 @@ final _messagesProvider =
       .map((s) => s.docs.map((d) => {'id': d.id, ...d.data()}).toList());
 });
 
+/// The skill the user entered via for THIS session (e.g. 'tarot'), read once from
+/// the consultation doc — it never changes mid-session. Drives the tarot
+/// "Pull my cards" chip so it shows only in a tarot consultation.
+final _requestedSkillProvider =
+    FutureProvider.autoDispose.family<String?, String>((ref, id) async {
+  final snap = await ref.watch(firestoreProvider).collection('consultations').doc(id).get();
+  return snap.data()?['requestedSkill'] as String?;
+});
+
 class ChatConsultationScreen extends ConsumerStatefulWidget {
   const ChatConsultationScreen({
     super.key,
@@ -362,6 +371,25 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
         _input.selection = TextSelection.collapsed(offset: text.length);
         _toast("Couldn't send — check your connection and try again.");
       }
+    }
+  }
+
+  /// Tarot "Pull my cards" tapped → send the draw cue as the user's message. The
+  /// reply engine reveals the session's (fixed) three-card spread and reads it.
+  Future<void> _sendCardPull() async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    try {
+      await _messagesCol.add({
+        'senderId': uid,
+        'type': 'text',
+        'text': '🔮 Meri cards kholiye',
+        'timestamp': FieldValue.serverTimestamp(),
+        'delivered': true,
+        'seen': false,
+      });
+    } catch (_) {
+      _toast("Couldn't send — please try again.");
     }
   }
 
@@ -935,6 +963,14 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 ],
               ),
             ),
+            // Tarot: a "Pull my cards" chip that lets the client draw with a tap.
+            // Shown only in a tarot session, and only until they've sent anything
+            // (their tap or their typed question triggers the reveal, then it's
+            // no longer needed).
+            if (!widget.readOnly &&
+                ref.watch(_requestedSkillProvider(_id)).valueOrNull == 'tarot' &&
+                !messages.any((m) => m['senderId'] == uid))
+              _TarotDrawChip(onTap: _sendCardPull),
             _Composer(
               controller: _input,
               onSend: _send,
@@ -1080,6 +1116,65 @@ class _TypingBubbleState extends State<_TypingBubble> with SingleTickerProviderS
   }
 }
 
+/// Split a message into inline spans, rendering `**bold**` segments in bold. The
+/// AI uses this sparingly — only key numerology numbers and tarot card names — so
+/// this is a deliberately tiny parser, not full markdown. Plain text with no
+/// markers returns a single span (so normal messages are unaffected).
+List<InlineSpan> _boldSpans(String text) {
+  final re = RegExp(r'\*\*(.+?)\*\*');
+  if (!text.contains('**')) return [TextSpan(text: text)];
+  final spans = <InlineSpan>[];
+  var i = 0;
+  for (final m in re.allMatches(text)) {
+    if (m.start > i) spans.add(TextSpan(text: text.substring(i, m.start)));
+    spans.add(TextSpan(text: m.group(1), style: const TextStyle(fontWeight: FontWeight.w700)));
+    i = m.end;
+  }
+  if (i < text.length) spans.add(TextSpan(text: text.substring(i)));
+  return spans.isEmpty ? [TextSpan(text: text)] : spans;
+}
+
+/// The tarot draw affordance — a tappable pill above the composer. Tapping it
+/// sends the draw cue so the reader reveals the spread; the user can also just
+/// type their question. Deliberately calm (no timer, no billed wait).
+class _TarotDrawChip extends StatelessWidget {
+  const _TarotDrawChip({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.lg, bottom: AppSpacing.sm),
+      child: Center(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF7A4FB0), Color(0xFF4B2A80)]),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: AppShadows.soft,
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('🔮', style: TextStyle(fontSize: 16)),
+                  SizedBox(width: 8),
+                  Text('Pull my cards',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14.5)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Bubble extends StatelessWidget {
   const _Bubble({
     required this.text,
@@ -1134,9 +1229,13 @@ class _Bubble extends StatelessWidget {
             if (text.isNotEmpty)
               Padding(
                 padding: EdgeInsets.only(top: hasImage ? 6 : 0, left: hasImage ? 6 : 0, right: hasImage ? 6 : 0),
-                child: Text(text,
+                child: Text.rich(
+                  TextSpan(
                     style: AppTypography.body.copyWith(
-                        color: mine ? Colors.white : AppColors.textDark, fontSize: 14.5, height: 1.3,),),
+                        color: mine ? Colors.white : AppColors.textDark, fontSize: 14.5, height: 1.3,),
+                    children: _boldSpans(text),
+                  ),
+                ),
               ),
             if (mine)
               Padding(
