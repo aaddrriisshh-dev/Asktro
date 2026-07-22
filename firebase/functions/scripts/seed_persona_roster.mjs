@@ -5,7 +5,7 @@
  *
  * Each persona is a believable, individual practitioner. The three chart-based
  * schools with an AUTHENTIC method today are weighted heaviest (Vedic / KP /
- * Lal Kitab); a few numerology / tarot / vastu personas are included and clearly
+ * Lal Kitab); a few numerology / tarot personas are included and clearly
  * read classically until each school gets its own grounded calculation.
  *
  * Every doc is tagged { __personaRoster: true } for one-shot management:
@@ -176,13 +176,6 @@ const ROSTER = [
     languageLean: 'english', remedyStyle: 'minimal', spec: ['love', 'career', 'education'],
     voice: 'A young, modern tarot reader; empathetic and candid, speaks the language of city millennials.',
     about: 'Young Mumbai tarot reader — candid, empathetic card readings for love, career and self-doubt.' },
-
-  // ---- Vastu (reads classically for now — flagged in the roster doc) ----------
-  { slug: 'mahesh-vastu', name: 'Vastu Consultant Mahesh Gupta', gender: 'male', age: 53, region: 'Delhi', exp: 25,
-    langs: ['Hindi', 'English'], tradition: 'vastu', tone: 'practical, precise, advisory', verbosity: 'balanced',
-    languageLean: 'balanced', remedyStyle: 'practical', spec: ['money', 'health', 'remedies'],
-    voice: 'A Vastu consultant for homes and shops; practical and advisory, ties fortune to space and direction.',
-    about: 'Vastu consultant from Delhi advising on home and workplace harmony for prosperity and well-being.' },
 ];
 
 function docFor(p, idx) {
@@ -210,7 +203,7 @@ function docFor(p, idx) {
       : p.tradition === 'kp' ? 'KP System'
         : p.tradition === 'lal_kitab' ? 'Lal Kitab'
           : p.tradition === 'numerology' ? 'Numerology'
-            : p.tradition === 'tarot' ? 'Tarot' : 'Vastu'],
+            : 'Tarot'],
     specializations: p.spec,
     persona,
     rating,

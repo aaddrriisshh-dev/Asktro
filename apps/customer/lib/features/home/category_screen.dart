@@ -51,7 +51,6 @@ const kSkillCategories = <SkillCategory>[
   SkillCategory('Palmistry', Icons.back_hand_rounded, ['Palmistry']),
   SkillCategory('Numerology', Icons.calculate_rounded, ['Numerology']),
   SkillCategory('Tarot', Icons.style_rounded, ['Tarot']),
-  SkillCategory('Vastu', Icons.home_rounded, ['Vastu', 'Vastu Shastra']),
 ];
 
 /// Astrologers matching a skill (keyed by its label; tags looked up internally).

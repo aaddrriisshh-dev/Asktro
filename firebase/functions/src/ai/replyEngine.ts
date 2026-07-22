@@ -161,7 +161,7 @@ export const onAiChatMessage = onDocumentCreated(
       // method block (buildReadingSystem reads flavor.tradition).
       const baseFlavor = readFlavor(astro);
       const reqSkill = str(c.requestedSkill);
-      const DISCIPLINE_OVERRIDE: Tradition[] = ['numerology', 'tarot', 'vastu'];
+      const DISCIPLINE_OVERRIDE: Tradition[] = ['numerology', 'tarot'];
       const flavor = reqSkill && (DISCIPLINE_OVERRIDE as string[]).includes(reqSkill)
         ? { ...(baseFlavor ?? {}), tradition: reqSkill as Tradition }
         : baseFlavor;
@@ -461,7 +461,7 @@ export const onAiConsultationCreated = onDocumentCreated(
       // opens numerology-led), else the astrologer's own tradition.
       const reqSkill = str(c.requestedSkill);
       const openFlavor = readFlavor(astro);
-      const discipline = reqSkill && ['numerology', 'tarot', 'vastu'].includes(reqSkill)
+      const discipline = reqSkill && ['numerology', 'tarot'].includes(reqSkill)
         ? reqSkill : (openFlavor?.tradition ?? 'vedic');
       // How many times they've chatted with THIS astrologer before → drives how
       // familiar the opener is (stranger → acquaintance → regular).

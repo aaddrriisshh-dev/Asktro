@@ -38,7 +38,7 @@ export const createConsultation = onCall(async (req) => {
   // (the default tile) carries no override, so it maps to null. Anything unknown
   // is dropped rather than trusted.
   const SKILLS: Record<string, string> = {
-    palmistry: 'palmistry', numerology: 'numerology', tarot: 'tarot', vastu: 'vastu',
+    palmistry: 'palmistry', numerology: 'numerology', tarot: 'tarot',
   };
   const rawSkill = typeof requestedSkill === 'string' ? requestedSkill.toLowerCase().trim() : '';
   const skill = SKILLS[rawSkill] ?? null;
