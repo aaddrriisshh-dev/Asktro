@@ -1,86 +1,81 @@
-# AI astrologer portrait prompts (27)
+# AI astrologer portrait prompts (26)
 
-Ready-to-paste prompts for an AI image generator (Midjourney / DALL·E / Firefly /
-any). Each is tuned to that persona's **age, gender, region, school, and attire**,
-with **tilak / rudraksha** where it fits the tradition (and deliberately modern,
-clean looks for the numerology / tarot / young personas).
+Short, **deliberately different** prompts — one per astrologer. Each fixes a
+distinct **age, hair (length + style), facial hair, clothing, and background** so
+no two portraits look alike (a real mix of young/old, long/short/medium hair,
+turbans, buns, bald, bearded, clean-shaven).
 
 **How to use**
 1. Paste a prompt → generate a **head-and-shoulders portrait, 1:1 square**.
-2. Host the images (Firebase Storage, or any public URL).
-3. Give me the 27 links mapped to the names, and I'll drop a `profilePhoto` map into
-   the seed script — re-running it updates the photos (no data lost). Or add each
-   via the portal's astrologer edit form.
+2. Host each image (Firebase Storage or any public URL).
+3. Send me the 26 links mapped to names — I drop a `profilePhoto` map into the
+   seed and re-run (updates photos, no data lost).
 
-**Global style suffix** — append to every prompt for consistency:
-> *photorealistic head-and-shoulders portrait, soft studio lighting, warm neutral
-> background, gentle approachable expression, looking at the camera, dignified and
-> beautiful, high detail, 1:1 square. No text, no watermark, no logo.*
+**Append this to EVERY prompt** (keeps them consistent, still all different):
+> *photorealistic head-and-shoulders portrait of an Indian person, soft studio
+> light, gentle approachable expression, looking at camera, high detail, 1:1
+> square. No text, no watermark.*
 
 ---
 
 ## Classical Vedic
 
-**Acharya Vidyanath Shastri** (64, M) — An elderly, revered Indian Vedic pandit from Kashi, long white beard, saffron and white dhoti-kurta, a horizontal tripundra tilak on the forehead, a large rudraksha mala around the neck, wise and fatherly.
+1. **Acharya Vidyanath Shastri** (64, M) — Elderly Kashi pandit, shaved head with a small shikha tuft, **long flowing white beard**, saffron dhoti-kurta, horizontal tripundra tilak, large rudraksha mala. Background: sunlit Varanasi ghat steps.
 
-**Jyotishi Meera Joshi** (34, F) — A warm, elegant young Indian woman astrologer from Pune, graceful modern silk saree, a small red bindi, minimal gold jewellery, kind confident smile.
+2. **Jyotishi Meera Joshi** (34, F) — Young woman, **shoulder-length open wavy hair**, small red bindi, teal cotton saree, tiny silver studs. Background: bright modern study with a green plant.
 
-**Pandit Raghavendra Rao** (57, M) — A calm, scholarly South Indian astrologer from Udupi, cream and gold traditional attire, a Vaishnava U-shaped namam tilak on the forehead, thin-rimmed glasses, serene.
+3. **Pandit Raghavendra Rao** (57, M) — **Bald on top with grey side hair**, clean-shaven, thin gold-rim glasses, cream-and-gold shawl, U-shaped Vaishnava namam tilak. Background: soft temple pillars.
 
-**Guru Maa Sunita Devi** (61, F) — A motherly, spiritual Indian guru-maa from Haridwar, saffron-orange robes and shawl, a rudraksha mala, a small tilak, silver-grey hair, deeply serene.
+4. **Guru Maa Sunita Devi** (61, F) — Elderly woman, **silver-grey hair pulled back**, saffron robe with shawl draped over the head, rudraksha mala, small tilak, serene. Background: riverside ashram at dawn.
 
-**Acharya Aditya Trivedi** (41, M) — A confident, well-groomed Indian astrologer from Ujjain, crisp kurta, a subtle tilak, neat short beard, sharp and reassuring.
+5. **Acharya Aditya Trivedi** (41, M) — Fit man, **neat short black hair, trimmed beard**, subtle tilak, crisp white kurta with a Nehru waistcoat. Background: tidy study with a bookshelf.
 
-**Jyotishi Lakshmi Iyer** (48, F) — A gentle South Indian woman astrologer from Chennai, traditional Kanjeevaram silk saree, a red bindi, jasmine flowers in the hair, warm and patient.
+6. **Jyotishi Lakshmi Iyer** (48, F) — Woman, **long hair in a low bun with a jasmine gajra**, gold jhumkas, maroon Kanjeevaram silk saree, red bindi. Background: warm home glowing with brass lamps.
 
-**Pandit Gopal Mishra** (69, M) — A very elderly, venerable Indian pandit from Ayodhya, flowing white beard, saffron robes, a prominent forehead tilak, a large rudraksha mala, a gentle blessing expression.
+7. **Pandit Gopal Mishra** (69, M) — Very old pandit, **long white beard and shoulder-length white hair**, saffron robes, prominent forehead tilak, rudraksha, gentle blessing look. Background: temple courtyard.
 
-**Jyotishi Anjali Nair** (37, F) — An honest, grounded Kerala woman astrologer from Kochi, off-white kasavu saree with gold border, a small bindi, natural minimal look, warm.
+8. **Jyotishi Anjali Nair** (37, F) — Woman, **straight long dark hair worn open**, tiny bindi, off-white kasavu saree with gold border, minimal natural look. Background: soft green Kerala backwater blur.
 
-**Acharya Ram Kishore** (52, M) — A warm, story-telling Rajasthani astrologer from Jaipur, a colourful traditional turban (pagri), a groomed moustache, kurta, twinkling wise eyes.
+9. **Acharya Ram Kishore** (52, M) — Man in a **bright pink-orange Rajasthani turban (pagri)**, groomed handlebar moustache, cream kurta, twinkling eyes. Background: painted haveli courtyard.
 
-**Jyotishi Devika Sen** (44, F) — An intuitive, soft-spoken Bengali woman astrologer from Kolkata, a red-bordered white cotton saree, a large red bindi, warm empathetic gaze.
+10. **Jyotishi Devika Sen** (44, F) — Woman, **wavy hair half-tied**, large round red bindi, red-bordered white cotton Bengali saree, oxidised silver jewellery. Background: soft-lit room with old books.
 
-**Pandit Harish Chandra** (60, M) — An authoritative senior Indian astrologer from Prayagraj, dignified kurta and shawl, a forehead tilak, a rudraksha mala, a gemstone ring, composed.
+11. **Pandit Harish Chandra** (60, M) — Man, **balding with grey side hair, thick grey moustache** (no beard), maroon shawl over kurta, gemstone rings, forehead tilak. Background: study stacked with almanacs.
 
-**Jyotishi Kavya Reddy** (31, F) — A bright, upbeat young Telugu woman astrologer from Hyderabad, stylish modern kurti or light saree, a tiny bindi, cheerful energetic smile.
+12. **Jyotishi Kavya Reddy** (31, F) — Young woman, **trendy shoulder-length layered hair**, tiny nose stud, pastel kurti with a light dupatta, cheerful. Background: bright minimal modern wall.
 
 ## KP (Krishnamurti Paddhati)
 
-**Guru S. Krishnamurthy** (58, M) — A precise, no-nonsense senior South Indian KP astrologer from Chennai, simple white shirt, thin-rimmed glasses, neatly combed grey hair, a small tilak, sharp intelligent look.
+13. **Guru S. Krishnamurthy** (58, M) — Man, **neatly combed grey hair**, clean-shaven, thick black-framed glasses, plain white shirt, small vibhuti line. Background: plain grey studio, crisp light.
 
-**Jyotishi Ganesh Subramanian** (46, M) — An analytical South Indian KP astrologer from Coimbatore, smart-casual shirt, glasses, thoughtful and clear.
+14. **Jyotishi Ganesh Subramanian** (46, M) — Man, **short salt-and-pepper hair, thin moustache**, rimless glasses, light-blue formal shirt. Background: neat office, faint whiteboard behind.
 
-**Jyotishi Nithya Balan** (39, F) — A sharp, decisive modern South Indian woman astrologer from Bengaluru, elegant contemporary saree or kurti, minimal jewellery, poised and confident.
+15. **Jyotishi Nithya Balan** (39, F) — Woman, **sleek straight hair in a low ponytail**, minimal makeup, small studs, charcoal contemporary kurti. Background: modern glass-office bokeh.
 
-**Acharya Venkatesh Rao** (54, M) — A measured, kind South Indian KP astrologer from Vijayawada, a blend of traditional and modern, a subtle tilak, warm steady eyes.
+16. **Acharya Venkatesh Rao** (54, M) — Man, **medium grey hair combed to the side, short grey beard**, subtle tilak, half-sleeve cream shirt. Background: warm home study.
 
-**Jyotishi Priya Menon** (42, F) — A crisp, poised Kerala woman KP astrologer from Thrissur, a refined silk saree, a small bindi, composed and precise.
+17. **Jyotishi Priya Menon** (42, F) — Woman, **hair in a neat bun**, gold-rim glasses, small bindi, powder-blue silk saree, poised. Background: soft cream backdrop.
 
 ## Lal Kitab
 
-**Pandit Balbir Singh** (63, M) — An earthy, warm elderly Punjabi Lal Kitab astrologer from Amritsar, a neatly tied turban (pagri) and flowing white beard, simple kurta, kind grounded expression.
+18. **Pandit Balbir Singh** (63, M) — Sikh man, **neatly tied maroon turban and long flowing white beard**, simple beige kurta, kind eyes. Background: rustic Punjab courtyard.
 
-**Guru Maa Shakuntala** (55, F) — A motherly, firm Punjabi woman astrologer from Ludhiana, a graceful salwar-kameez with dupatta over the head, silver-streaked hair, warm and reassuring.
+19. **Guru Maa Shakuntala** (55, F) — Woman, **silver-streaked hair with a dupatta draped over the head**, salwar-kameez, small bindi, motherly. Background: warm domestic corner.
 
-**Acharya Om Prakash** (58, M) — A plain-spoken, canny Delhi pandit, a simple kurta, a forehead tilak, a rudraksha mala, shrewd but kindly eyes.
+20. **Acharya Om Prakash** (58, M) — Man, **short grey hair, light stubble** (clean otherwise), plain kurta, forehead tilak, small rudraksha, shrewd but kindly look. Background: modest Delhi study.
 
-**Pandit Darshan Lal** (66, M) — An old-world, kindly elderly Punjabi astrologer from Jalandhar, a turban and long white beard, traditional attire, gentle wise expression.
+21. **Pandit Darshan Lal** (66, M) — Older Punjabi man, **white turban and long grey-white beard**, waistcoat over kurta, gentle. Background: old bookshelf with red-cloth ledgers.
 
-**Jyotishi Reena Kapoor** (43, F) — A friendly, upbeat modern Punjabi woman astrologer from Chandigarh, stylish contemporary Indian outfit, a small bindi, bright warm smile.
+22. **Jyotishi Reena Kapoor** (43, F) — Woman, **modern layered medium-length hair**, statement earrings, bright fuchsia contemporary suit, small bindi, upbeat. Background: bright pastel wall.
 
 ## Numerology (modern, clean look)
 
-**Numerologist Naresh Advani** (50, M) — A polished, suave Mumbai numerologist, smart shirt or light blazer, groomed salt-and-pepper hair, confident charismatic smile, modern (no tilak).
+23. **Numerologist Naresh Advani** (50, M) — Suave man, **salt-and-pepper hair slicked back**, clean-shaven, light-grey blazer over an open-collar shirt, confident (no tilak). Background: sleek dark office with soft gold light.
 
-**Numerologist Sudha Menon** (45, F) — A calm, insightful professional Indian woman numerologist from Bengaluru, elegant modern saree or formal wear, minimal jewellery, composed and encouraging.
+24. **Numerologist Sudha Menon** (45, F) — Woman, **neat shoulder-length hair**, elegant formal blazer or kurti, minimal jewellery, calm and assured (no bindi). Background: bright modern desk with a notebook.
 
 ## Tarot (contemporary, mystical)
 
-**Tarot Reader Tanya Dsouza** (33, F) — An expressive, mystical young Goan-Indian woman tarot reader, boho-elegant style, subtle mystical jewellery, warm intuitive eyes, contemporary (no tilak).
+25. **Tarot Reader Tanya Dsouza** (33, F) — Boho woman, **long loose wavy hair**, layered pendant necklaces, deep-teal off-shoulder top with a shawl, kohl-lined eyes (no tilak). Background: candle-lit dusky nook.
 
-**Tarot Reader Aryan Kapoor** (29, M) — A modern, candid young Indian man tarot reader from Mumbai, trendy smart-casual, neat short hair, friendly approachable expression (no tilak).
-
-## Vastu
-
-**Vastu Consultant Mahesh Gupta** (53, M) — A practical, advisory Indian Vastu consultant from Delhi, a neat kurta or collared shirt, a subtle tilak, glasses, trustworthy professional look.
+26. **Tarot Reader Aryan Kapoor** (29, M) — Young man, **short textured hair with light stubble**, casual dark tee or shirt, a single ring, friendly and modern (no tilak). Background: moody warm room with fairy lights.
