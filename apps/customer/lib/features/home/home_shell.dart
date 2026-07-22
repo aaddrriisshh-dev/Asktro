@@ -146,10 +146,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     }
   }
 
+  /// True only while the Home shell is the frontmost screen. Guards every promo
+  /// popup so an offer never rises on top of a chat (or any screen) the user
+  /// opened — e.g. after tapping a "new message" notification.
+  bool _homeIsFront() => ModalRoute.of(context)?.isCurrent ?? false;
+
   // On app open: a user who has NOT recharged yet sees the "Triple Dhamaka"
   // welcome offer (every launch, dismissible). Everyone else gets the usual
   // coupon popup. Waits briefly for the profile stream to have data first.
   Future<void> _maybeShowWelcomeOrOffer() async {
+    // Launched by tapping a notification → skip the auto-offer entirely.
+    if (ref.read(promoSuppressedProvider)) return;
     var profile = ref.read(myProfileProvider).valueOrNull;
     for (var i = 0; i < 10 && profile == null && mounted; i++) {
       await Future<void>.delayed(const Duration(milliseconds: 200));
@@ -164,7 +171,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       // first thing thrust at them the instant the app opens. (Runs off a
       // post-frame callback, so this never delays the home screen appearing.)
       await Future<void>.delayed(const Duration(milliseconds: 4000));
-      if (!mounted) return;
+      if (!mounted || !_homeIsFront()) return;
       await showWelcomeOffer(context, chatCreditPaise: profile.chatBonusBalance);
       return;
     }
@@ -189,7 +196,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ref.read(homePopupShownProvider.notifier).state = true;
     // Let the user land first, like the other home popups.
     await Future<void>.delayed(const Duration(milliseconds: 4000));
-    if (!mounted) return true;
+    if (!mounted || !_homeIsFront()) return true;
 
     final theme = promoThemeById(cfg.theme.isEmpty ? null : cfg.theme);
     // Half/full takeovers need a theme; without one, fall back to the card.
@@ -218,7 +225,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       // Server-fetch (not the cache-first live stream) so a deleted coupon still
       // sitting in Firestore's offline cache can never surface as the popup.
       final coupons = await ref.read(catalogRepositoryProvider).fetchActiveCoupons();
-      if (!mounted || coupons.isEmpty) return;
+      if (!mounted || coupons.isEmpty || !_homeIsFront()) return;
       ref.read(offerPopupShownProvider.notifier).state = true;
       await showOfferPopup(context, coupons.first);
     } catch (_) {

@@ -108,6 +108,11 @@ final myProfileProvider = StreamProvider<UserProfile?>((ref) {
 /// BuildContext. Attached to the app's GoRouter.
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Set true when this launch came from tapping a notification, so the Home
+/// screen's auto welcome/offer popup stands down — the user came for the
+/// notification, not an ad.
+final promoSuppressedProvider = StateProvider<bool>((_) => false);
+
 /// Registers this device's FCM token whenever a user is signed in, sets the
 /// analytics user id, and routes a tapped chat push straight into that chat.
 final pushRegistrationProvider = Provider<void>((ref) {
@@ -117,6 +122,8 @@ final pushRegistrationProvider = Provider<void>((ref) {
   final messaging = ref.watch(messagingServiceProvider);
   messaging.registerFor(uid);
   messaging.wireNotificationTaps((data) {
+    // Opened via a notification tap → don't ambush them with the auto-offer.
+    ref.read(promoSuppressedProvider.notifier).state = true;
     final dl = (data['deeplink'] ?? '').toString();
     if (dl.startsWith('asktro://chat/')) {
       final cid = dl.substring('asktro://chat/'.length);
