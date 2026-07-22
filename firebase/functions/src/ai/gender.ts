@@ -20,11 +20,16 @@ export function conjugateGender(text: string, gender?: 'male' | 'female'): strin
     t = t.replace(new RegExp('\\brahi' + hoon, 'gi'), 'raha$1');
     t = t.replace(new RegExp('\\b([a-z]+?)ti' + hoon, 'gi'), '$1ta$2');
     t = t.replace(new RegExp('([\\u0900-\\u097F]+?)\\u0940' + dev, 'g'), '$1ा$2');
+    // First-person FUTURE (Latin): "…ungi" → "…unga" (karungi→karunga,
+    // khulwaungi→khulwaunga). Only first-person singular future takes -ungi/-unga,
+    // and this runs on the astrologer's own output, so it's her verb → safe.
+    t = t.replace(/\b([a-z]+?)ungi\b/gi, '$1unga');
   } else {
     // masculine → feminine
     t = t.replace(new RegExp('\\braha' + hoon, 'gi'), 'rahi$1');
     t = t.replace(new RegExp('\\b([a-z]+?)ta' + hoon, 'gi'), '$1ti$2');
     t = t.replace(new RegExp('([\\u0900-\\u097F]+?)\\u093E' + dev, 'g'), '$1ी$2');
+    t = t.replace(/\b([a-z]+?)unga\b/gi, '$1ungi');
   }
   return t;
 }

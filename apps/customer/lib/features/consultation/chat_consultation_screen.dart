@@ -374,8 +374,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     }
   }
 
-  /// Tarot "Pull my cards" tapped → send the draw cue as the user's message. The
+  /// Tarot "Open my cards" tapped → send the draw cue as the user's message. The
   /// reply engine reveals the session's (fixed) three-card spread and reads it.
+  /// Neutral phrasing (no possessive) so it never reads as gendered.
   Future<void> _sendCardPull() async {
     final uid = ref.read(currentUidProvider);
     if (uid == null) return;
@@ -383,7 +384,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       await _messagesCol.add({
         'senderId': uid,
         'type': 'text',
-        'text': '🔮 Meri cards kholiye',
+        'text': '🔮 Cards khol dijiye',
         'timestamp': FieldValue.serverTimestamp(),
         'delivered': true,
         'seen': false,
@@ -963,13 +964,20 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 ],
               ),
             ),
-            // Tarot: a "Pull my cards" chip that lets the client draw with a tap.
-            // Shown only in a tarot session, and only until they've sent anything
-            // (their tap or their typed question triggers the reveal, then it's
-            // no longer needed).
+            // Tarot: the "Open my cards" chip. It appears only AFTER the client has
+            // sent their question (so the draw is never offered before there's a
+            // question, or before the astrologer has joined), and disappears once
+            // they've drawn. The draw cue is the "cards khol" message it sends.
             if (!widget.readOnly &&
                 ref.watch(_requestedSkillProvider(_id)).valueOrNull == 'tarot' &&
-                !messages.any((m) => m['senderId'] == uid))
+                () {
+                  final mine = messages.where((m) => m['senderId'] == uid);
+                  bool isCue(Map<String, dynamic> m) =>
+                      ((m['text'] ?? '') as String).toLowerCase().contains('cards khol');
+                  final asked = mine.any((m) => !isCue(m));
+                  final drew = mine.any(isCue);
+                  return asked && !drew;
+                }())
               _TarotDrawChip(onTap: _sendCardPull),
             _Composer(
               controller: _input,
@@ -1163,7 +1171,7 @@ class _TarotDrawChip extends StatelessWidget {
                 children: [
                   Text('🔮', style: TextStyle(fontSize: 16)),
                   SizedBox(width: 8),
-                  Text('Pull my cards',
+                  Text('Open my cards',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14.5)),
                 ],
               ),

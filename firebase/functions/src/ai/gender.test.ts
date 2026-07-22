@@ -31,6 +31,15 @@ describe('conjugateGender — first-person Hindi concord', () => {
     expect(conjugateGender(d, 'female')).toBe(d);
   });
 
+  it('flips first-person FUTURE (…ungi ↔ …unga) — e.g. the tarot draw line', () => {
+    expect(conjugateGender('phir main aapse cards khulwaungi', 'male'))
+      .toBe('phir main aapse cards khulwaunga');
+    expect(conjugateGender('main aapke cards khulwaunga', 'female'))
+      .toBe('main aapke cards khulwaungi');
+    expect(conjugateGender('main aapki madad karungi', 'male'))
+      .toBe('main aapki madad karunga');
+  });
+
   it('is a no-op when gender is unknown', () => {
     expect(conjugateGender('main dekh rahi hoon', undefined)).toBe('main dekh rahi hoon');
   });

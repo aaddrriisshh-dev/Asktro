@@ -206,12 +206,25 @@ export const onAiChatMessage = onDocumentCreated(
       // chart slice: a tarot reader draws the spread for THIS question now; the
       // others already have their facts block (numbers / Vastu).
       const intent = classifyIntentHeuristic(userText);
-      // Tarot: seed the draw by the CONSULTATION only (not the message), so the
-      // three cards are FIXED for the whole session and never reshuffle between
-      // questions — the reader interprets the same spread against whatever the
-      // client asks. The actual question reaches the model via the conversation.
+      // Tarot draw gating: the reader reveals the spread ONLY after the client taps
+      // "Open my cards" (the chip sends a "cards khol dijiye" cue) — which they can
+      // only do AFTER sending their question. Before that, she holds the cards and
+      // just invites them to focus + tap. The draw is seeded by the CONSULTATION
+      // only, so the three cards are FIXED for the session (no reshuffle per
+      // question). `tarotDrawn` on the consultation keeps them revealed thereafter.
+      const tarotDrawNow = tradition === 'tarot' && userText.toLowerCase().includes('cards khol');
+      const tarotRevealed = tradition === 'tarot' && (c.tarotDrawn === true || tarotDrawNow);
+      if (tarotDrawNow && c.tarotDrawn !== true) {
+        await db.collection('consultations').doc(consultationId)
+          .set({ tarotDrawn: true, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      }
+      const TAROT_AWAIT_DRAW =
+        'THE CARDS ARE NOT DRAWN YET. The client is forming or has just sent their ' +
+        'question. In ONE warm line, acknowledge their question and tell them to tap ' +
+        'the "Open my cards" button below when they are ready to draw. Do NOT name, ' +
+        'reveal, or hint at any card yet.';
       const briefing = tradition === 'tarot'
-        ? buildTarotBriefing(consultationId, '')
+        ? (tarotRevealed ? buildTarotBriefing(consultationId, '') : TAROT_AWAIT_DRAW)
         : (altBriefing ?? assembleSlice(chart!, {
             themes: intent.themes,
             subIntent: intent.subIntent,
@@ -709,9 +722,12 @@ function numerologyOpeningGreeting(first: string, fullName: string, nf: Numerolo
  *  drawn server-side (fixed for the session) when the first reading generates. */
 function tarotOpeningGreeting(first: string): string {
   const nameJi = first ? ` ${first} ji` : ' ji';
+  // Ask for the QUESTION first (that IS the moment of focus). Only AFTER they send
+  // it does the app show the "Open my cards" button. The first-person future verb
+  // (khulwaungi) is conjugated to the astrologer's gender by conjugateGender.
   const opts = [
-    `Namaste${nameJi} 🙏 Ek gehri saans lijiye aur apna sawaal mann mein rakhiye… phir neeche 'Pull my cards' dabaiye ya apna sawaal type kar dijiye 🔮`,
-    `Namaste${nameJi}, swagat hai 🔮 Thoda shaant hokar apne sawaal par dhyaan dijiye — phir 'Pull my cards' dabakar apne cards kheechiye, ya seedha apna sawaal likh dijiye.`,
+    `Namaste${nameJi} 🙏 Ek gehri saans lijiye aur shaant mann se sochiye ki aapko kya poochhna hai. Jab sawaal taiyaar ho jaaye, mujhe bhej dijiye — phir main aapse cards khulwaungi 🔮`,
+    `Namaste${nameJi}, swagat hai 🔮 Thoda shaant hoiye aur apne sawaal par dhyaan dijiye. Sawaal taiyaar ho to likh bhejiye — uske baad main aapse cards khulwaungi.`,
   ];
   return opts[Math.floor(Math.random() * opts.length)];
 }
