@@ -187,7 +187,7 @@ export function AstrologerFormModal({
         <div className="tktmodal-body">
           <div className="af" style={{ marginBottom: 14 }}>
             <span>Photo</span>
-            <ImageUpload folder="astrologer_photos" value={f.profilePhoto} onChange={(url) => set('profilePhoto', url)} />
+            <ImageUpload folder="astrologer_photos" value={f.profilePhoto} onChange={(url) => set('profilePhoto', url)} maxDim={512} />
           </div>
           <div className="astro-form">
             <label className="af"><span>Name *</span><input className="input" placeholder="Pt. Rajesh Sharma" value={f.name} onChange={(e) => set('name', e.target.value)} /></label>

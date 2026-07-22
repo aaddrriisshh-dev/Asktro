@@ -10,7 +10,7 @@ import { storage } from '@/lib/firebase';
  *  the cropped image and returns the URL via onChange. Used everywhere in the
  *  store, so every photo is framed the same way and nothing gets clipped. */
 export function ImageUpload({
-  value, onChange, folder, label = 'Upload Photo', shape = 'square', aspect, original = false,
+  value, onChange, folder, label = 'Upload Photo', shape = 'square', aspect, original = false, maxDim,
 }: {
   value?: string;
   onChange: (url: string) => void;
@@ -22,6 +22,9 @@ export function ImageUpload({
   /** Upload the file exactly as chosen — no crop, no JPEG flatten — so a
    *  transparent PNG keeps its transparency (used for the Mall hero product). */
   original?: boolean;
+  /** Long-side pixel cap for this upload. Defaults to 1600 (general images);
+   *  pass a smaller value (e.g. 512) for avatars so face photos stay tiny. */
+  maxDim?: number;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -52,7 +55,7 @@ export function ImageUpload({
       // No crop, but still optimize: cap dimensions + re-encode (WebP keeps the
       // transparency, so a heavy PNG becomes a light transparent WebP).
       const dataUrl = await fileToDataUrl(file);
-      const out = await renderToBlob(dataUrl, { alpha: true });
+      const out = await renderToBlob(dataUrl, { alpha: true, maxDim });
       const r = ref(storage, `${folder}/${Date.now()}.${out.ext}`);
       await uploadBytes(r, out.blob, { contentType: out.type });
       onChange(await getDownloadURL(r));
@@ -66,7 +69,7 @@ export function ImageUpload({
     if (!src || !areaPx) return;
     setBusy(true);
     try {
-      const out = await renderToBlob(src, { alpha: false, area: areaPx });
+      const out = await renderToBlob(src, { alpha: false, area: areaPx, maxDim });
       const r = ref(storage, `${folder}/${Date.now()}.${out.ext}`);
       await uploadBytes(r, out.blob, { contentType: out.type });
       onChange(await getDownloadURL(r));
@@ -144,14 +147,15 @@ type Rect = { x: number; y: number; width: number; height: number };
  *  smaller), falling back to PNG (alpha) or JPEG (opaque). */
 async function renderToBlob(
   src: string,
-  opts: { alpha: boolean; area?: Rect },
+  opts: { alpha: boolean; area?: Rect; maxDim?: number },
 ): Promise<{ blob: Blob; ext: string; type: string }> {
   const img = await loadImage(src);
   const sx = opts.area ? opts.area.x : 0;
   const sy = opts.area ? opts.area.y : 0;
   const sw = opts.area ? opts.area.width : img.naturalWidth || img.width;
   const sh = opts.area ? opts.area.height : img.naturalHeight || img.height;
-  const scale = Math.min(1, MAX_DIM / Math.max(sw, sh));
+  const cap = opts.maxDim && opts.maxDim > 0 ? opts.maxDim : MAX_DIM;
+  const scale = Math.min(1, cap / Math.max(sw, sh));
   const w = Math.max(1, Math.round(sw * scale));
   const h = Math.max(1, Math.round(sh * scale));
   const canvas = document.createElement('canvas');
