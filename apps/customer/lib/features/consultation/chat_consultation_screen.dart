@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -1328,8 +1329,24 @@ class _Bubble extends StatelessWidget {
             if (hasImage)
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(imageUrl!, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),),
+                // Cache to disk + decode capped to the bubble width so long
+                // transcripts don't re-download / re-decode on every scroll.
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl!,
+                  fit: BoxFit.cover,
+                  memCacheWidth: (MediaQuery.of(context).size.width * 0.72 *
+                          MediaQuery.of(context).devicePixelRatio)
+                      .round(),
+                  placeholder: (_, __) => const SizedBox(
+                      height: 120,
+                      child: Center(
+                          child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2)))),
+                  errorWidget: (_, __, ___) =>
+                      const Icon(Icons.broken_image_outlined),
+                ),
               ),
             if (text.isNotEmpty)
               Padding(

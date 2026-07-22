@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
@@ -29,6 +30,11 @@ class AppAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Decode the portrait at ~2× the on-screen size, never the full ~1000px
+    // source — a 56px circle keeps a ~112px bitmap, not a 1MP one. Slashes
+    // decode time and image-cache memory across every rail, card, and screen.
+    final dpr = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 2.0;
+    final decodePx = (size * dpr).round();
     final avatar = Container(
       width: size,
       height: size,
@@ -38,12 +44,16 @@ class AppAvatar extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: (photoUrl != null && photoUrl!.isNotEmpty)
-          ? Image.network(
-              photoUrl!,
+          ? CachedNetworkImage(
+              imageUrl: photoUrl!,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _initialsView(),
-              loadingBuilder: (ctx, child, progress) =>
-                  progress == null ? child : _initialsView(),
+              width: size,
+              height: size,
+              memCacheWidth: decodePx,
+              memCacheHeight: decodePx,
+              fadeInDuration: const Duration(milliseconds: 150),
+              placeholder: (_, __) => _initialsView(),
+              errorWidget: (_, __, ___) => _initialsView(),
             )
           : _initialsView(),
     );

@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { callFn, Row } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
@@ -21,8 +21,10 @@ export default function AstrologerViewPage() {
   const [cons, setCons] = useState<Any[]>([]);
   const [tab, setTab] = useState<'voice' | 'video' | 'all'>('all');
   const [rsBusy, setRsBusy] = useState(false);
+  const [delBusy, setDelBusy] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const { adminRole } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     (async () => {
@@ -53,6 +55,19 @@ export default function AstrologerViewPage() {
       setA({ ...a, risingStar: next });
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setRsBusy(false); }
+  }
+
+  async function deleteAstrologer() {
+    if (!a || delBusy) return;
+    const nm = (a.name as string) || 'this astrologer';
+    // Two-step confirm — deletion is permanent and can't be undone.
+    if (!window.confirm(`Delete ${nm}? This permanently removes the profile from the store. This cannot be undone.`)) return;
+    if (!window.confirm(`Are you absolutely sure? ${nm} will disappear from the app immediately.`)) return;
+    setDelBusy(true);
+    try {
+      await deleteDoc(doc(db, 'astrologers', id));
+      router.push('/astrologers');
+    } catch (e) { alert('Failed to delete: ' + (e as Error).message); setDelBusy(false); }
   }
 
   if (missing) return <div><Link href="/astrologers" className="btn secondary sm">← Back</Link><p className="muted" style={{ marginTop: 20 }}>Astrologer not found.</p></div>;
@@ -93,6 +108,17 @@ export default function AstrologerViewPage() {
             {rsBusy ? '…' : a.risingStar ? '★ Remove Rising Star' : '☆ Mark Rising Star'}
           </button>
           <button className="btn sm" onClick={() => setShowEdit(true)}>✎ Edit Profile</button>
+          {adminRole === 'super' && (
+            <button
+              className="btn sm"
+              onClick={deleteAstrologer}
+              disabled={delBusy}
+              title="Permanently remove this astrologer from the store"
+              style={{ background: '#c0392b', borderColor: '#c0392b', color: '#fff' }}
+            >
+              {delBusy ? 'Deleting…' : '🗑 Delete'}
+            </button>
+          )}
         </div>
       </div>
 

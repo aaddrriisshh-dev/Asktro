@@ -96,9 +96,13 @@ class AstrologerCard extends StatelessWidget {
             Row(
               children: [
                 _ModeButton(
-                  icon: Icons.chat_bubble_outline_rounded,
+                  icon: Icons.chat_bubble_rounded,
                   label: 'Chat',
                   enabled: a.isConsultable,
+                  // AI personas are chat-only — give their single Chat button a
+                  // solid purple fill (white text) so it reads as the primary
+                  // action, and keep the whole bar short.
+                  filled: a.isAI,
                   onTap: () => context.push('/astrologer/${a.id}', extra: requestedSkill),
                 ),
                 // AI personas are chat-only — no voice/video.
@@ -128,30 +132,50 @@ class AstrologerCard extends StatelessWidget {
 }
 
 class _ModeButton extends StatelessWidget {
-  const _ModeButton({required this.icon, required this.label, required this.enabled, required this.onTap});
+  const _ModeButton({
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+    this.filled = false,
+  });
   final IconData icon;
   final String label;
   final bool enabled;
   final VoidCallback onTap;
 
+  /// Solid purple fill with white content (used for the AI Chat CTA); otherwise
+  /// a soft lavender chip with purple content (the voice/video actions).
+  final bool filled;
+
   @override
   Widget build(BuildContext context) {
+    final fg = filled ? Colors.white : AppColors.primary;
+    // Compact single-row layout (icon + label side by side, ~38px tall) so the
+    // action bar no longer eats a big block of vertical space.
     return Expanded(
       child: Opacity(
         opacity: enabled ? 1 : 0.45,
         child: Material(
-          color: AppColors.accentLavender,
+          color: filled ? AppColors.primary : AppColors.accentLavender,
           borderRadius: BorderRadius.circular(AppRadius.button),
           child: InkWell(
             borderRadius: BorderRadius.circular(AppRadius.button),
             onTap: enabled ? onTap : null,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Column(
+              padding: const EdgeInsets.symmetric(vertical: 9),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 20, color: AppColors.primary),
-                  const SizedBox(height: 2),
-                  Text(label, style: AppTypography.caption.copyWith(color: AppColors.primary)),
+                  Icon(icon, size: 17, color: fg),
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: AppTypography.caption.copyWith(
+                      color: fg,
+                      fontWeight: filled ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
