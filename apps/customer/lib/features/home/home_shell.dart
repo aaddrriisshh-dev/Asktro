@@ -27,11 +27,13 @@ class HomeShell extends ConsumerStatefulWidget {
 }
 
 class _HomeShellState extends ConsumerState<HomeShell> {
+  // Notifications is NOT a bottom tab — it's opened as a full screen from the
+  // top bar's bell (the bottom "Alerts" tab was redundant with it). Order here
+  // is the nav index: Home 0, Consults 1, Wallet 2, Mall 3, Profile 4.
   static const _tabs = [
     HomeFeed(),
     ConsultationsTab(),
     WalletTab(),
-    NotificationsTab(),
     StoreHomeScreen(embedded: true),
     ProfileTab(),
   ];
@@ -127,9 +129,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     } else if (deeplink.isNotEmpty) {
       _followDeeplink(deeplink);
     } else {
-      // Nothing themed or deep-linked to open — take them to their notifications
-      // so the tap always lands somewhere, instead of dumping them on Home.
-      ref.read(homeTabProvider.notifier).state = 3;
+      // Nothing themed or deep-linked to open — open their notifications so the
+      // tap always lands somewhere, instead of dumping them on Home.
+      if (mounted) {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsTab()));
+      }
     }
   }
 
@@ -224,12 +228,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = ref.watch(currentUidProvider);
     // Register FCM token + analytics user id once signed in.
     ref.watch(pushRegistrationProvider);
-    final unread = uid == null
-        ? const AsyncValue<int>.data(0)
-        : ref.watch(_unreadProvider(uid));
 
     // Record every tab change (from any source: taps, deep links, push) into a
     // history stack so the system back button retraces the tabs the user
@@ -290,58 +290,23 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               selectedIndex: index,
               height: 66,
               onDestinationSelected: (i) => ref.read(homeTabProvider.notifier).state = i,
-              destinations: [
-                const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
-                const NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: 'Consults'),
-                const NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
+              destinations: const [
+                NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
+                NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: 'Consults'),
+                NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
+                // Mall stands out in Asktro purple so the store is unmistakable.
                 NavigationDestination(
-                  icon: _BellIcon(count: unread.valueOrNull ?? 0, filled: false),
-                  selectedIcon: _BellIcon(count: unread.valueOrNull ?? 0, filled: true),
-                  label: 'Alerts',
+                  icon: Icon(Icons.storefront, color: AppColors.primary),
+                  selectedIcon: Icon(Icons.storefront, color: AppColors.primary),
+                  label: 'Mall',
                 ),
-                const NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Mall'),
-                const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+                NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
               ],
             ),
           ),
         ),
       ),
       ),
-    );
-  }
-}
-
-final _unreadProvider = StreamProvider.family<int, String>((ref, uid) {
-  return ref.watch(notificationRepositoryProvider).unreadCount(uid);
-});
-
-class _BellIcon extends StatelessWidget {
-  const _BellIcon({required this.count, required this.filled});
-  final int count;
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Icon(filled ? Icons.notifications : Icons.notifications_none),
-        if (count > 0)
-          Positioned(
-            right: -4,
-            top: -4,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
-              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-              child: Text(
-                count > 9 ? '9+' : '$count',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-      ],
     );
   }
 }

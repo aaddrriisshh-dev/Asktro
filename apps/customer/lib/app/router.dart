@@ -90,6 +90,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final setupDone = ref.watch(setupDoneProvider);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     redirect: (context, state) {
       // Hold on splash while auth resolves and the launch animation plays.

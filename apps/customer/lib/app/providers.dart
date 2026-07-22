@@ -3,8 +3,10 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/consultation/chat_deeplink_screen.dart';
 import '../data/consultation_service_impl.dart';
 import '../data/wallet_service_impl.dart';
 import '../data/rtc_token_service_impl.dart';
@@ -102,11 +104,27 @@ final myProfileProvider = StreamProvider<UserProfile?>((ref) {
   return ref.watch(userRepositoryProvider).watchProfile(uid);
 });
 
-/// Registers this device's FCM token whenever a user is signed in, and sets the
-/// analytics user id. Watch this from the app shell to activate it.
+/// Root navigator key so background code (a tapped push) can navigate without a
+/// BuildContext. Attached to the app's GoRouter.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
+/// Registers this device's FCM token whenever a user is signed in, sets the
+/// analytics user id, and routes a tapped chat push straight into that chat.
 final pushRegistrationProvider = Provider<void>((ref) {
   final uid = ref.watch(currentUidProvider);
   if (uid == null) return;
   ref.watch(analyticsProvider).setUserId(uid);
-  ref.watch(messagingServiceProvider).registerFor(uid);
+  final messaging = ref.watch(messagingServiceProvider);
+  messaging.registerFor(uid);
+  messaging.wireNotificationTaps((data) {
+    final dl = (data['deeplink'] ?? '').toString();
+    if (dl.startsWith('asktro://chat/')) {
+      final cid = dl.substring('asktro://chat/'.length);
+      if (cid.isNotEmpty) {
+        rootNavigatorKey.currentState?.push(
+          MaterialPageRoute<void>(builder: (_) => ChatDeepLinkScreen(consultationId: cid)),
+        );
+      }
+    }
+  });
 });

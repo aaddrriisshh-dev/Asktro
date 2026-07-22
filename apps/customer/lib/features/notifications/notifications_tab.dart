@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../consultation/chat_deeplink_screen.dart';
 import '../profile/suggested_remedies_screen.dart';
 
 final _notificationsProvider = StreamProvider.autoDispose<List<AppNotification>>((ref) {
@@ -47,6 +48,20 @@ class NotificationsTab extends ConsumerWidget {
                         builder: (_) => RemedyDetailScreen(data: {'id': rid}),
                       ),
                     );
+                    return;
+                  }
+                  // A chat notification (e.g. "Guruji sent you a message") opens
+                  // the conversation instead of just marking itself read.
+                  final dl = n.deeplink ?? '';
+                  if (dl.startsWith('asktro://chat/')) {
+                    final cid = dl.substring('asktro://chat/'.length);
+                    if (cid.isNotEmpty) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => ChatDeepLinkScreen(consultationId: cid),
+                        ),
+                      );
+                    }
                   }
                 },
                 child: Row(

@@ -18,6 +18,7 @@ import '../tools/kundali_match_screen.dart';
 import '../tools/free_services_screen.dart';
 import '../settings/language_sheet.dart';
 import '../profile/support_screen.dart';
+import '../notifications/notifications_tab.dart';
 import '../profile_setup/onboarding_style.dart';
 import '../profile_setup/onboarding_widgets.dart';
 import '../wallet/promo_popup.dart';
@@ -232,7 +233,7 @@ class HomeFeed extends ConsumerWidget {
         children: [
           // Profile photo + a little hamburger badge → opens the Profile page.
           GestureDetector(
-            onTap: () => ref.read(homeTabProvider.notifier).state = 5,
+            onTap: () => ref.read(homeTabProvider.notifier).state = 4,
             child: SizedBox(
               width: 50,
               height: 48,
@@ -281,9 +282,10 @@ class HomeFeed extends ConsumerWidget {
           const SizedBox(width: 8),
           _addCash(context),
           const SizedBox(width: 7),
-          // Notification bell → the Alerts tab.
+          // Notification bell → the Notifications screen (no longer a bottom tab).
           _iconCircle(Icons.notifications_none_rounded,
-              () => ref.read(homeTabProvider.notifier).state = 3,),
+              () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const NotificationsTab())),),
           const SizedBox(width: 5),
           _iconCircle(Icons.language_rounded, () => showLanguageSheet(context)),
           const SizedBox(width: 5),
