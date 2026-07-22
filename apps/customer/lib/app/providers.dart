@@ -6,7 +6,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../features/consultation/chat_deeplink_screen.dart';
 import '../data/consultation_service_impl.dart';
 import '../data/wallet_service_impl.dart';
 import '../data/rtc_token_service_impl.dart';
@@ -113,25 +112,12 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 /// notification, not an ad.
 final promoSuppressedProvider = StateProvider<bool>((_) => false);
 
-/// Registers this device's FCM token whenever a user is signed in, sets the
-/// analytics user id, and routes a tapped chat push straight into that chat.
+/// Registers this device's FCM token whenever a user is signed in, and sets the
+/// analytics user id. (Notification TAPS are handled in HomeShell, which owns
+/// the app-wide onMessageOpenedApp / getInitialMessage / foreground listeners.)
 final pushRegistrationProvider = Provider<void>((ref) {
   final uid = ref.watch(currentUidProvider);
   if (uid == null) return;
   ref.watch(analyticsProvider).setUserId(uid);
-  final messaging = ref.watch(messagingServiceProvider);
-  messaging.registerFor(uid);
-  messaging.wireNotificationTaps((data) {
-    // Opened via a notification tap → don't ambush them with the auto-offer.
-    ref.read(promoSuppressedProvider.notifier).state = true;
-    final dl = (data['deeplink'] ?? '').toString();
-    if (dl.startsWith('asktro://chat/')) {
-      final cid = dl.substring('asktro://chat/'.length);
-      if (cid.isNotEmpty) {
-        rootNavigatorKey.currentState?.push(
-          MaterialPageRoute<void>(builder: (_) => ChatDeepLinkScreen(consultationId: cid)),
-        );
-      }
-    }
-  });
+  ref.watch(messagingServiceProvider).registerFor(uid);
 });

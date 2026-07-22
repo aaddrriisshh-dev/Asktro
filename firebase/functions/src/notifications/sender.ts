@@ -40,6 +40,10 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
   // astrologer app is backgrounded/closed, via the high-importance Android
   // channel the app created. Other notifications use normal priority.
   const isCall = n.type === 'consultation_request';
+  // Chat messages go out HIGH priority so they wake the device and arrive
+  // instantly even when the app is fully closed (like any messaging app) —
+  // without the ringtone channel a call uses. Marketing/offers stay 'normal'.
+  const isChat = n.type === 'chat_message';
 
   const resp = await messaging.sendEachForMulticast({
     tokens,
@@ -59,7 +63,9 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
             vibrateTimingsMillis: [0, 500, 500, 500],
           },
         }
-      : { priority: 'normal' },
+      : isChat
+        ? { priority: 'high' }
+        : { priority: 'normal' },
     ...(isCall
       ? { apns: { payload: { aps: { sound: 'default', 'interruption-level': 'time-sensitive' } } } }
       : {}),

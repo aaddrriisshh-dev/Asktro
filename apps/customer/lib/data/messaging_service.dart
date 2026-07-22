@@ -10,19 +10,6 @@ class MessagingService {
   MessagingService(this._messaging, this._users);
   final FirebaseMessaging _messaging;
   final UserRepository _users;
-  bool _tapsWired = false;
-
-  /// Route notification taps once. Fires [onTap] with the message's data payload
-  /// when the app is opened by tapping a push — both from the background
-  /// (onMessageOpenedApp) and from a cold start (getInitialMessage).
-  void wireNotificationTaps(void Function(Map<String, dynamic> data) onTap) {
-    if (_tapsWired) return;
-    _tapsWired = true;
-    FirebaseMessaging.onMessageOpenedApp.listen((m) => onTap(m.data));
-    _messaging.getInitialMessage().then((m) {
-      if (m != null) onTap(m.data);
-    });
-  }
 
   Future<void> registerFor(String uid) async {
     await _messaging.requestPermission();

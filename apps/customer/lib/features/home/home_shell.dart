@@ -11,6 +11,7 @@ import '../../app/providers.dart';
 import 'home_feed.dart';
 import 'home_popup_config.dart';
 import '../consultations/consultations_tab.dart';
+import '../consultation/chat_deeplink_screen.dart';
 import '../wallet/wallet_tab.dart';
 import '../wallet/offers_screen.dart';
 import '../wallet/promo_popup.dart';
@@ -98,9 +99,22 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   void _handlePushTap(RemoteMessage m) {
     if (!mounted) return;
     final data = m.data;
+    final deeplink = (data['deeplink'] as String?) ?? '';
+    // A chat-message notification opens the conversation DIRECTLY — never the
+    // promo popup. (It carries the astrologer's photo as its image, which would
+    // otherwise fall into the image/promo path below and show "View offer".)
+    if (deeplink.startsWith('asktro://chat/')) {
+      final cid = deeplink.substring('asktro://chat/'.length);
+      if (cid.isNotEmpty) {
+        ref.read(promoSuppressedProvider.notifier).state = true;
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ChatDeepLinkScreen(consultationId: cid)),
+        );
+      }
+      return;
+    }
     final theme = promoThemeById(data['theme'] as String?);
     final mode = (data['displayMode'] as String?) ?? 'small';
-    final deeplink = (data['deeplink'] as String?) ?? '';
     final imageStyle = (data['imageStyle'] as String?) ?? 'banner';
     // Prefer the portrait upload when the admin picked the portrait style.
     final portrait = data['portraitImage'] as String?;
