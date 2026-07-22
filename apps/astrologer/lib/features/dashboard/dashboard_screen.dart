@@ -41,6 +41,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _handlingBack = false);
   }
 
+  /// Opening the Notifications tab marks everything read in one batch, so the
+  /// nav badge clears instead of sticking at 9+ until each item is tapped.
+  void _markNotificationsRead(List<Map<String, dynamic>> notifs) {
+    final db = ref.read(firestoreProvider);
+    final batch = db.batch();
+    var n = 0;
+    for (final item in notifs) {
+      if (item['read'] != true && item['id'] is String) {
+        batch.update(db.collection('notifications').doc(item['id'] as String), {'read': true});
+        if (++n >= 400) break; // Firestore batch cap safety
+      }
+    }
+    if (n > 0) batch.commit().catchError((_) {});
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.watch(pushRegistrationProvider); // register FCM once signed in
@@ -55,9 +70,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final self = ref.watch(selfProvider);
     final rows = ref.watch(sessionRowsProvider).valueOrNull ?? const [];
     final pending = rows.where((r) => r.c.status == ConsultationStatus.waiting).length;
-    final unread = (ref.watch(notificationsProvider).valueOrNull ?? const [])
-        .where((n) => n['read'] != true)
-        .length;
+    final notifs = ref.watch(notificationsProvider).valueOrNull ?? const <Map<String, dynamic>>[];
+    final unread = notifs.where((n) => n['read'] != true).length;
 
     return self.when(
       loading: () => const SkyScaffold(child: Center(child: CircularProgressIndicator(color: Sky.purple))),
@@ -98,7 +112,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           child: SkyScaffold(
             bottomNavigationBar: _SkyNav(
               index: index,
-              onTap: (i) => ref.read(dashTabProvider.notifier).state = i,
+              onTap: (i) {
+                ref.read(dashTabProvider.notifier).state = i;
+                // Opening the Notifications tab clears the unread badge.
+                if (i == 3) _markNotificationsRead(notifs);
+              },
               badges: {1: pending, 3: unread},
             ),
             child: Stack(

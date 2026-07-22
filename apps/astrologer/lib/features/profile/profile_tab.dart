@@ -199,26 +199,9 @@ class ProfileTab extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // About
-                SkyCard(
-                  onTap: () => _editText(context, ref, self,
-                      title: 'About you', field: 'about', initial: self.about, hint: 'Tell customers about yourself',),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Text('About', style: Sky.h2.copyWith(fontSize: 15)),
-                        const Spacer(),
-                        const Icon(Icons.edit_rounded, size: 16, color: Sky.purple),
-                      ],),
-                      const SizedBox(height: 8),
-                      Text(self.about.isEmpty ? 'Tap to add an introduction.' : self.about,
-                          style: Sky.body.copyWith(fontSize: 13.5, color: self.about.isEmpty ? Sky.ink3 : Sky.ink2),),
-                    ],
-                  ),
-                ),
+                // (The self-written "About" section was removed — an astrologer's
+                // public bio is curated in the admin portal, not self-edited here.)
                 if (self.languages.isNotEmpty) ...[
-                  const SizedBox(height: 18),
                   Text('Languages', style: Sky.h2.copyWith(fontSize: 15)),
                   const SizedBox(height: 10),
                   Wrap(spacing: 7, runSpacing: 7, children: [for (final l in self.languages) Pill(l, color: Sky.purple)]),
