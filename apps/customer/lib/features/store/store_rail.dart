@@ -648,7 +648,7 @@ class _CategoryChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(width: 32, height: 32, child: _icon()),
+            SizedBox(width: 32, height: 32, child: _icon(context)),
             const SizedBox(width: 8),
             Column(
               mainAxisSize: MainAxisSize.min,
@@ -669,7 +669,7 @@ class _CategoryChip extends StatelessWidget {
     );
   }
 
-  Widget _icon() {
+  Widget _icon(BuildContext context) {
     // The exact category images from the catalog (same source as the store rail).
     if (category.image.trim().isNotEmpty) {
       return ClipRRect(
