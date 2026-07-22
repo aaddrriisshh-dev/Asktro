@@ -689,17 +689,17 @@ const NUM_MONTHS = [
  *  message if the birth date is missing (asks for it in a numerologist's voice),
  *  otherwise two. */
 function numerologyOpeningGreeting(first: string, fullName: string, nf: NumerologyFacts | null): string[] {
-  const nameJi = first ? ` ${first} जी` : ' जी';
+  const nameJi = first ? ` ${first} ji` : ' ji';
   if (!nf) {
     return [
-      `नमस्ते${nameJi} 🙏 चलिए आपके numbers से आपकी numerology padhte hain — bas apni sahi date of birth (DD-MM-YYYY) bhej dijiye.`,
+      `Namaste${nameJi} 🙏 Chaliye aapke numbers se aapki numerology padhte hain — bas apni sahi date of birth (DD-MM-YYYY) bhej dijiye.`,
     ];
   }
   const dob = `${nf.day} ${NUM_MONTHS[nf.month - 1]} ${nf.year}`;
-  const namePart = fullName ? `, नाम **${fullName}**` : '';
-  const beat1 = `नमस्ते${nameJi} 🙏 आपकी details मेरे पास हैं${namePart}, date of birth **${dob}**.`;
-  const naamPart = nf.naamank > 0 ? `, और नाम अंक बनता है **${nf.naamank}**` : '';
-  const beat2 = `इन्हीं के हिसाब से आपका मूलांक बनता है **${nf.moolank}**, भाग्यांक बनता है **${nf.bhagyank}**${naamPart} 🌟 अब बताइए — किस बारे में जानना है?`;
+  const namePart = fullName ? `, naam **${fullName}**` : '';
+  const beat1 = `Namaste${nameJi} 🙏 Aapki details mere paas hain${namePart}, date of birth **${dob}**.`;
+  const naamPart = nf.naamank > 0 ? `, aur naam ank banta hai **${nf.naamank}**` : '';
+  const beat2 = `Inhi ke hisaab se aapka moolank banta hai **${nf.moolank}**, bhagyank banta hai **${nf.bhagyank}**${naamPart} 🌟 Ab bataiye — kis baare mein jaanna hai?`;
   return [beat1, beat2];
 }
 
@@ -708,10 +708,10 @@ function numerologyOpeningGreeting(first: string, fullName: string, nf: Numerolo
  *  shows a "Pull my cards" chip, and typing the question works too. The spread is
  *  drawn server-side (fixed for the session) when the first reading generates. */
 function tarotOpeningGreeting(first: string): string {
-  const nameJi = first ? ` ${first} जी` : ' जी';
+  const nameJi = first ? ` ${first} ji` : ' ji';
   const opts = [
-    `नमस्ते${nameJi} 🙏 एक गहरी साँस लीजिए और अपना सवाल मन में रखिए… फिर नीचे 'Pull my cards' दबाइए या अपना सवाल type कर दीजिए 🔮`,
-    `नमस्ते${nameJi}, स्वागत है 🔮 थोड़ा शांत होकर अपने सवाल पर ध्यान दीजिए — फिर 'Pull my cards' दबाकर अपने cards खींचिए, या सीधे अपना सवाल लिख दीजिए।`,
+    `Namaste${nameJi} 🙏 Ek gehri saans lijiye aur apna sawaal mann mein rakhiye… phir neeche 'Pull my cards' dabaiye ya apna sawaal type kar dijiye 🔮`,
+    `Namaste${nameJi}, swagat hai 🔮 Thoda shaant hokar apne sawaal par dhyaan dijiye — phir 'Pull my cards' dabakar apne cards kheechiye, ya seedha apna sawaal likh dijiye.`,
   ];
   return opts[Math.floor(Math.random() * opts.length)];
 }

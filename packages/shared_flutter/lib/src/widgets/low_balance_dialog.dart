@@ -16,7 +16,11 @@ Future<bool?> showLowBalanceDialog(
 }) {
   return showGeneralDialog<bool>(
     context: context,
-    barrierDismissible: true,
+    // NOT barrier-dismissible: the "almost out of time" nudge must wait for an
+    // explicit choice (Recharge Now / Continue) rather than vanishing on a stray
+    // background tap during the low-balance state churn. Visual only — no billing
+    // impact; the user still decides whether to recharge.
+    barrierDismissible: false,
     barrierLabel: 'low-balance',
     barrierColor: Colors.black.withValues(alpha: 0.25),
     transitionDuration: const Duration(milliseconds: 250),

@@ -14,7 +14,12 @@ Future<void> showGraceBonusDialog(
 }) {
   return showGeneralDialog<void>(
     context: context,
-    barrierDismissible: true,
+    // NOT barrier-dismissible: this must stay put until the user taps "Keep
+    // chatting". It fires at the exact moment the balance flips to the grace
+    // minute — a burst of state ticks — and a dismissible barrier could be
+    // tapped/closed in that churn, so it appeared to "flash" and vanish. The
+    // dismissal is purely visual; billing is unaffected either way.
+    barrierDismissible: false,
     barrierLabel: 'grace-bonus',
     barrierColor: Colors.black.withValues(alpha: 0.25),
     transitionDuration: const Duration(milliseconds: 280),
