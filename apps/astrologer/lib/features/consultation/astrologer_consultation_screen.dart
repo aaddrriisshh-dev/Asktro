@@ -537,6 +537,9 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
         children: [
           _liveHeader(c, cust, dark: false),
           _quickAccess(c),
+          // When the customer entered via a skill tile, tell the astrologer what
+          // reading they came for (birth details are already shown below).
+          if (c.requestedSkill != null) _SkillBanner(skill: c.requestedSkill!),
           // Fixed, collapsible customer details — auto-expanded on entry so the
           // astrologer reads the person, then collapses to reclaim the chat
           // viewport. Capped + scrollable so a tall expansion never overflows.
@@ -1032,6 +1035,71 @@ final _messagesProvider =
 
 /// A remedy dropped into the chat — a distinct cosmic gold card so it stands
 /// apart from ordinary messages on both sides of the conversation.
+/// A slim banner telling a HUMAN astrologer what reading the customer came for
+/// (they entered via a skill tile). Birth details are already shown in the
+/// customer card below, so this just names the discipline + a quick pointer.
+class _SkillBanner extends StatelessWidget {
+  const _SkillBanner({required this.skill});
+  final String skill;
+
+  @override
+  Widget build(BuildContext context) {
+    late final String label, hint;
+    late final IconData icon;
+    if (skill == 'palmistry') {
+      label = 'Palmistry reading';
+      hint = 'Ask for a clear photo of their right (dominant) hand.';
+      icon = Icons.back_hand_rounded;
+    } else if (skill == 'numerology') {
+      label = 'Numerology reading';
+      hint = 'Read from their name + date of birth (shown below).';
+      icon = Icons.calculate_rounded;
+    } else if (skill == 'tarot') {
+      label = 'Tarot reading';
+      hint = 'Ask their question, then draw the cards.';
+      icon = Icons.style_rounded;
+    } else {
+      label = 'Reading requested';
+      hint = '';
+      icon = Icons.auto_awesome_rounded;
+    }
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Sky.purpleDeep.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Sky.purpleDeep.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(color: Sky.purpleDeep.withValues(alpha: 0.12), shape: BoxShape.circle),
+            child: Icon(icon, size: 18, color: Sky.purpleDeep),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Customer chose you for a $label',
+                    style: Sky.label.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700, color: Sky.purpleDeep)),
+                if (hint.isNotEmpty) ...[
+                  const SizedBox(height: 1),
+                  Text(hint, style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _RemedyBubble extends StatelessWidget {
   const _RemedyBubble({required this.mine, required this.title, required this.note});
   final bool mine;

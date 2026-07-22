@@ -25,6 +25,7 @@ class Consultation extends Equatable {
     this.review,
     this.startTimeMs,
     this.endTimeMs,
+    this.requestedSkill,
   });
 
   final String id;
@@ -49,6 +50,10 @@ class Consultation extends Equatable {
   final String? review;
   final int? startTimeMs;
   final int? endTimeMs;
+  /// The skill the customer entered via ('palmistry' | 'numerology' | 'tarot'),
+  /// so a HUMAN astrologer sees what reading the customer came for. Null for a
+  /// normal (Vedic) session.
+  final String? requestedSkill;
 
   Consultation copyWith({ConsultationStatus? status, int? remainingSec, int? warnLevel}) {
     return Consultation(
@@ -71,6 +76,7 @@ class Consultation extends Equatable {
       review: review,
       startTimeMs: startTimeMs,
       endTimeMs: endTimeMs,
+      requestedSkill: requestedSkill,
     );
   }
 
@@ -115,6 +121,7 @@ class Consultation extends Equatable {
       // the *Ms integer names for any legacy/local doc that used them.
       startTimeMs: ms(m['startTime'] ?? m['startTimeMs']),
       endTimeMs: ms(m['endTime'] ?? m['endTimeMs']),
+      requestedSkill: m['requestedSkill'] as String?,
     );
   }
 
@@ -123,5 +130,6 @@ class Consultation extends Equatable {
         id, customerId, astrologerId, type, status, pricePerMinute, billedSeconds,
         duration, totalCharged, walletAfter, remainingSec, warnLevel, networkStatus,
         graceGranted, agoraChannel, receiptNo, rating, review, startTimeMs, endTimeMs,
+        requestedSkill,
       ];
 }
