@@ -49,7 +49,7 @@ class PromoSurface extends StatelessWidget {
     // BlendMode.srcIn recolours the line-art while keeping its alpha.
     return ColorFiltered(
       colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-      child: Image.asset('assets/onboarding/zodiac_wheel.png', fit: BoxFit.contain),
+      child: Image.asset('assets/onboarding/zodiac_wheel.webp', fit: BoxFit.contain),
     );
   }
 

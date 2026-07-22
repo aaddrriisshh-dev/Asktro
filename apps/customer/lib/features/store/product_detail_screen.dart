@@ -106,7 +106,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 controller: _pageCtrl,
                 onPageChanged: (i) => setState(() => _imgIndex = i),
                 itemCount: imgs.length,
-                itemBuilder: (_, i) => MallImage(url: imgs[i], size: 120, radius: 0, fit: BoxFit.contain),
+                itemBuilder: (_, i) => MallImage(url: imgs[i], size: 120, radius: 0, fit: BoxFit.contain, decodeWidth: 1080),
               ),
               if (imgs.length > 1)
                 Positioned(

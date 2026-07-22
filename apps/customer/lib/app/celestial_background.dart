@@ -13,7 +13,7 @@ class CelestialBackground extends StatelessWidget {
   /// Base fill behind the wheels (defaults to the app background).
   final Color? color;
 
-  static const _wheel = 'assets/onboarding/zodiac_wheel.png';
+  static const _wheel = 'assets/onboarding/zodiac_wheel.webp';
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -409,40 +408,116 @@ class _CategoryStrip extends StatefulWidget {
   State<_CategoryStrip> createState() => _CategoryStripState();
 }
 
-class _CategoryStripState extends State<_CategoryStrip> {
-  final _ctrl = ScrollController();
-  Timer? _timer;
+class _CategoryStripState extends State<_CategoryStrip>
+    with SingleTickerProviderStateMixin {
+  // A single vsync-driven controller. The chip row is built ONCE and never
+  // relaid-out; each frame only moves a Transform (one composited layer) — so
+  // the marquee costs a GPU shift, not a 25×/sec list re-scroll on the home
+  // screen. The panel reserves its 60px height statically; the motion rides on
+  // top inside the clip.
+  late final AnimationController _ac;
+  // Width of ONE set of chips. Two identical sets are laid back-to-back and the
+  // row slides left by exactly one set, so the loop is seamless.
+  double _setWidth = 0;
+  final GlobalKey _measureKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startDrift());
+    // ~30px/sec gentle drift regardless of how many categories there are.
+    _ac = AnimationController(vsync: this, duration: const Duration(seconds: 24))
+      ..repeat();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
   }
 
-  void _startDrift() {
-    _timer?.cancel();
-    if (widget.cats.length < 3) return;
-    _timer = Timer.periodic(const Duration(milliseconds: 40), (_) {
-      if (!_ctrl.hasClients) return;
-      final max = _ctrl.position.maxScrollExtent;
-      if (max <= 0) return;
-      final half = max / 2;
-      var next = _ctrl.offset + 1.6;
-      if (next >= half) next -= half;
-      _ctrl.jumpTo(next);
-    });
+  void _measure() {
+    if (!mounted) return;
+    final w = _measureKey.currentContext?.size?.width ?? 0;
+    if (w > 0 && (w - _setWidth).abs() > 0.5) setState(() => _setWidth = w);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CategoryStrip old) {
+    super.didUpdateWidget(old);
+    if (old.cats.length != widget.cats.length) {
+      _setWidth = 0;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+    }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _ctrl.dispose();
+    _ac.dispose();
     super.dispose();
+  }
+
+  static Widget _divider() => Container(
+        width: 1,
+        margin: const EdgeInsets.symmetric(vertical: 13),
+        color: const Color(0xFFEBE3F8),
+      );
+
+  // One set of chips with 1px dividers between them (no leading/trailing one).
+  List<Widget> _oneSet() {
+    final out = <Widget>[];
+    for (var i = 0; i < widget.cats.length; i++) {
+      if (i > 0) out.add(_divider());
+      out.add(_CategoryChip(category: widget.cats[i]));
+    }
+    return out;
   }
 
   @override
   Widget build(BuildContext context) {
-    final looped = [...widget.cats, ...widget.cats];
+    final canLoop = widget.cats.length >= 3;
+    Widget inner;
+    if (!canLoop) {
+      // Too few to bother looping — a plain, static, tappable row.
+      inner = ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        children: _oneSet(),
+      );
+    } else if (_setWidth == 0) {
+      // Measure pass: lay one set at its natural width (unconstrained) so we can
+      // read its real width, then switch to the animated two-set row next frame.
+      inner = ClipRect(
+        child: OverflowBox(
+          minWidth: 0,
+          maxWidth: double.infinity,
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Row(key: _measureKey, mainAxisSize: MainAxisSize.min, children: _oneSet()),
+          ),
+        ),
+      );
+    } else {
+      // Steady state: two identical sets, translated left by (one set + the seam
+      // divider). The Row is the AnimatedBuilder's `child`, so it is built once;
+      // only the Transform recomputes per frame.
+      final loop = _setWidth + 1;
+      inner = ClipRect(
+        child: OverflowBox(
+          minWidth: 0,
+          maxWidth: double.infinity,
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 6),
+            child: AnimatedBuilder(
+              animation: _ac,
+              builder: (_, child) =>
+                  Transform.translate(offset: Offset(-_ac.value * loop, 0), child: child),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [..._oneSet(), _divider(), ..._oneSet()],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12),
       clipBehavior: Clip.antiAlias,
@@ -457,25 +532,7 @@ class _CategoryStripState extends State<_CategoryStrip> {
           BoxShadow(color: Colors.white.withValues(alpha: 0.5), blurRadius: 5, offset: const Offset(0, -2)),
         ],
       ),
-      child: SizedBox(
-        height: 60,
-        child: Listener(
-          onPointerDown: (_) => _timer?.cancel(),
-          onPointerUp: (_) => _startDrift(),
-          child: ListView.separated(
-            controller: _ctrl,
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            itemCount: looped.length,
-            separatorBuilder: (_, __) => Container(
-              width: 1,
-              margin: const EdgeInsets.symmetric(vertical: 13),
-              color: const Color(0xFFEBE3F8),
-            ),
-            itemBuilder: (_, i) => _CategoryChip(category: looped[i]),
-          ),
-        ),
-      ),
+      child: SizedBox(height: 60, child: inner),
     );
   }
 }
@@ -620,6 +677,8 @@ class _CategoryChip extends StatelessWidget {
         child: CachedNetworkImage(
           imageUrl: category.image.trim(),
           width: 32, height: 32, fit: BoxFit.cover,
+          // Decode to the 32px box, not the full 1600px source.
+          memCacheWidth: (32 * MediaQuery.devicePixelRatioOf(context)).round(),
           errorWidget: (_, __, ___) => _emojiFallback(),
         ),
       );

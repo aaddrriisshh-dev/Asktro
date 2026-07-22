@@ -157,9 +157,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     if (profile != null && !profile.hasRecharged) {
       // Let the user land, take in the home screen and even start scrolling
       // BEFORE the offer rises — so it reads as a considered nudge, not the very
-      // first thing thrust at them the instant the app opens.
-      await Future<void>.delayed(const Duration(milliseconds: 4800));
-      if (!mounted) return;
+      // first thing thrust at them the instant the app opens. (Runs off a
+      // post-frame callback, so this never delays the home screen appearing.)
+      await Future<void>.delayed(const Duration(milliseconds: 4000));
       if (!mounted) return;
       await showWelcomeOffer(context, chatCreditPaise: profile.chatBonusBalance);
       return;
@@ -184,7 +184,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     ref.read(homePopupShownProvider.notifier).state = true;
     // Let the user land first, like the other home popups.
-    await Future<void>.delayed(const Duration(milliseconds: 3200));
+    await Future<void>.delayed(const Duration(milliseconds: 4000));
     if (!mounted) return true;
 
     final theme = promoThemeById(cfg.theme.isEmpty ? null : cfg.theme);

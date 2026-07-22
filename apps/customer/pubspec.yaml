@@ -104,7 +104,11 @@ flutter_launcher_icons:
 flutter:
   uses-material-design: true
   assets:
-    - assets/brand/
+    # Only the Google "G" ships at runtime. The app_icon*.png files in
+    # assets/brand/ are build-only sources for flutter_launcher_icons (read at
+    # build time by path, below) — bundling the whole folder packed ~2.3 MB of
+    # unused launcher-icon PNGs into the app, so we list the one runtime file.
+    - assets/brand/google_g.svg
     - assets/illustrations/
     - assets/onboarding/
     - assets/promo/

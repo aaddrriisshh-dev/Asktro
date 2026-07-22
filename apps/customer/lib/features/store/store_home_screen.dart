@@ -425,7 +425,7 @@ class _PanditHero extends StatelessWidget {
             alignment: Alignment.bottomRight,
             child: Padding(
               padding: const EdgeInsets.only(right: 4),
-              child: Image.asset('assets/promo/welcome.png', height: 316, fit: BoxFit.fitHeight),
+              child: Image.asset('assets/promo/welcome.webp', height: 316, fit: BoxFit.fitHeight),
             ),
           ),
           const DecoratedBox(
@@ -565,7 +565,7 @@ class _BannerCarouselState extends State<_BannerCarousel> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          MallImage(url: b.image, size: 60, radius: 0, fit: BoxFit.cover),
+          MallImage(url: b.image, size: 60, radius: 0, fit: BoxFit.cover, decodeWidth: 1080),
           if (hasText)
             DecoratedBox(
               decoration: BoxDecoration(

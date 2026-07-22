@@ -6,22 +6,34 @@ import 'store_theme.dart';
 
 /// Product image with a warm ghee placeholder while loading / when absent.
 class MallImage extends StatelessWidget {
-  const MallImage({super.key, required this.url, this.size = 48, this.radius = 16, this.fit = BoxFit.cover});
+  const MallImage({super.key, required this.url, this.size = 48, this.radius = 16, this.fit = BoxFit.cover, this.decodeWidth});
   final String? url;
   final double size;
   final double radius;
   final BoxFit fit;
+
+  /// Explicit decode width (logical px) for images that render far larger than
+  /// their `size` hint — the full-bleed hero banner and the product gallery.
+  /// When null we decode at ~2× the `size` hint, which caps memory hard while
+  /// staying crisp for thumbnails. Without this cap a 1600² catalog image would
+  /// decode to ~10 MB of RAM in a 46px box — the classic cause of scroll jank
+  /// and out-of-memory kills on cheaper Android phones.
+  final double? decodeWidth;
 
   @override
   Widget build(BuildContext context) {
     if (url == null || url!.isEmpty) {
       return MallImagePlaceholder(size: size, radius: radius);
     }
+    final dpr = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 2.0;
+    final capLogical = decodeWidth ?? (size * 2);
+    final memCacheWidth = (capLogical * dpr).round();
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: CachedNetworkImage(
         imageUrl: url!,
         fit: fit,
+        memCacheWidth: memCacheWidth,
         placeholder: (_, __) => MallImagePlaceholder(size: size, radius: radius),
         errorWidget: (_, __, ___) => MallImagePlaceholder(size: size, radius: radius),
       ),

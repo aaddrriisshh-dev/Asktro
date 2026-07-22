@@ -11,7 +11,7 @@ import '../profile_setup/onboarding_style.dart';
 /// to users who haven't recharged yet. The ₹29.5 button opens the promo recharge
 /// (₹25 + GST → ₹50 credited, first-recharge only, server-enforced). "No thanks"
 /// reveals the ₹27 signup credit they already have.
-const String _welcomeImg = 'assets/promo/welcome.png';
+const String _welcomeImg = 'assets/promo/welcome.webp';
 const String _promoPlanId = 'promo_welcome';
 
 /// Opens the welcome-offer bottom sheet. [chatCreditPaise] is the user's real

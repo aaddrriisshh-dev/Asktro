@@ -66,9 +66,12 @@ Future<void> clearPendingProfile() async {
   await prefs.remove('pending_profile');
 }
 
-/// Holds the router on the splash long enough for the launch animation to play.
+/// A short floor so the launch animation registers, then Home appears the
+/// instant the app is actually ready. The router ALSO holds on `auth.isLoading`
+/// (real readiness), so the effective wait is max(this floor, auth restore) —
+/// typically ~1s, not a fixed multi-second stare at the splash.
 final splashGateProvider = FutureProvider<void>((ref) async {
-  await Future<void>.delayed(const Duration(milliseconds: 4200));
+  await Future<void>.delayed(const Duration(milliseconds: 1000));
 });
 
 Future<bool> readOnboardingDone() async {
