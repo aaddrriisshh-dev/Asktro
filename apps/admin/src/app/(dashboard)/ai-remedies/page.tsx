@@ -41,7 +41,7 @@ function ProductHookPicker({ onAttach, onClear, attached }: {
     <div style={{ marginTop: 8, padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <select
-          className="input" style={{ flex: 1, minWidth: 180, height: 34, fontSize: 13 }}
+          className="input" style={{ flex: 1, minWidth: 180, fontSize: 13, padding: '7px 10px' }}
           defaultValue=""
           onChange={(e) => {
             const p = products.find((x) => x.id === e.target.value);
@@ -51,7 +51,7 @@ function ProductHookPicker({ onAttach, onClear, attached }: {
           <option value="" disabled>Choose a product…</option>
           {products.map((p) => <option key={p.id} value={p.id}>{(p.title as string) || p.id}</option>)}
         </select>
-        <input className="input" style={{ width: 150, height: 34, fontSize: 13 }} value={cta} onChange={(e) => setCta(e.target.value)} placeholder="Button text" />
+        <input className="input" style={{ width: 150, fontSize: 13, padding: '7px 10px' }} value={cta} onChange={(e) => setCta(e.target.value)} placeholder="Button text" />
         <button className="btn sm secondary" onClick={() => setOpen(false)}>Cancel</button>
       </div>
       <span className="muted" style={{ fontSize: 11, marginTop: 4, display: 'block' }}>Deep-links to the product in the app · updates as your catalog changes.</span>
