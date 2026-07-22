@@ -7,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_flutter/shared_flutter.dart';
@@ -1142,9 +1143,32 @@ List<InlineSpan> _boldSpans(String text) {
   return spans.isEmpty ? [TextSpan(text: text)] : spans;
 }
 
-/// The tarot draw affordance — a tappable pill above the composer. Tapping it
-/// sends the draw cue so the reader reveals the spread; the user can also just
-/// type their question. Deliberately calm (no timer, no billed wait).
+/// An ornate tarot card BACK — ivory face with a gold sun-and-moon emblem and a
+/// crisp dark-gold edge. Our own artwork (no real deck), rendered from an inline
+/// SVG so it stays sharp at any size.
+const String _tarotCardBackSvg = '''
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 62">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F4ECFB"/></linearGradient></defs>
+  <rect x="1.5" y="1.5" width="41" height="59" rx="6" fill="url(#g)" stroke="#A9781F" stroke-width="1.7"/>
+  <rect x="5" y="5" width="34" height="52" rx="4" fill="none" stroke="#B0862B" stroke-width="0.7" opacity="0.6"/>
+  <g stroke="#BE8E28" stroke-width="1" fill="none" opacity="0.95">
+    <circle cx="22" cy="24" r="6.5" fill="#E8C46B" fill-opacity="0.22"/>
+    <g stroke-linecap="round">
+      <line x1="22" y1="12" x2="22" y2="15.5"/><line x1="22" y1="32.5" x2="22" y2="36"/>
+      <line x1="10" y1="24" x2="13.5" y2="24"/><line x1="30.5" y1="24" x2="34" y2="24"/>
+      <line x1="13.5" y1="15.5" x2="16" y2="18"/><line x1="28" y1="30" x2="30.5" y2="32.5"/>
+      <line x1="30.5" y1="15.5" x2="28" y2="18"/><line x1="16" y1="30" x2="13.5" y2="32.5"/>
+    </g>
+  </g>
+  <path d="M25 22 a5 5 0 1 0 0 6 a4 4 0 0 1 0 -6 z" fill="#BE8E28" opacity="0.95"/>
+  <circle cx="22" cy="48" r="1.3" fill="#C99A2E" opacity="0.9"/>
+</svg>''';
+
+/// The tarot draw affordance — a centered "pedestal" button above the composer: a
+/// fanned trio of ornate card backs over a light→deep purple gradient with a thin
+/// dark-gold frame and a faint ambient star haze. Tapping it sends the draw cue so
+/// the reader reveals the spread. Deliberately calm — no timer, no billed wait.
 class _TarotDrawChip extends StatelessWidget {
   const _TarotDrawChip({required this.onTap});
   final VoidCallback onTap;
@@ -1152,27 +1176,44 @@ class _TarotDrawChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.lg, bottom: AppSpacing.sm),
+      padding: const EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.lg, bottom: AppSpacing.sm, top: 2),
       child: Center(
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(24),
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF7A4FB0), Color(0xFF4B2A80)]),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: AppShadows.soft,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 250,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF8C63C6), Color(0xFF6A44A6), Color(0xFF40266F)],
+                stops: [0, 0.42, 1],
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xEBC99A2E), width: 1.4), // thin dark-gold frame
+              boxShadow: const [BoxShadow(color: Color(0x573C2378), blurRadius: 20, offset: Offset(0, 10))],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Text('🔮', style: TextStyle(fontSize: 16)),
-                  SizedBox(width: 8),
-                  Text('Open my cards',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14.5)),
+                  const Positioned.fill(child: CustomPaint(painter: _StarHazePainter())),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 15, 20, 13),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        _TarotFan(),
+                        SizedBox(height: 9),
+                        Text('Open my cards',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15.5, letterSpacing: 0.2)),
+                        SizedBox(height: 2),
+                        Text('Tap to draw your three cards',
+                            style: TextStyle(color: Color(0xD1E7D7FF), fontWeight: FontWeight.w500, fontSize: 11)),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1181,6 +1222,62 @@ class _TarotDrawChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Three ornate card backs, fanned, with a soft gold glow behind them.
+class _TarotFan extends StatelessWidget {
+  const _TarotFan();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget card() => SizedBox(width: 32, height: 45, child: SvgPicture.string(_tarotCardBackSvg));
+    return SizedBox(
+      width: 104,
+      height: 50,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // soft gold glow
+          Container(
+            width: 84,
+            height: 40,
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(20)),
+              boxShadow: [BoxShadow(color: Color(0x55E8C46B), blurRadius: 22, spreadRadius: -3)],
+            ),
+          ),
+          Positioned(left: 8, top: 5, child: Transform.rotate(angle: -0.35, child: card())),
+          Positioned(right: 8, top: 5, child: Transform.rotate(angle: 0.35, child: card())),
+          card(),
+        ],
+      ),
+    );
+  }
+}
+
+/// A faint scatter of tiny star specks — the ambient "sky" behind the deck. Very
+/// low opacity so it just whispers; not prominent stars sitting on the surface.
+class _StarHazePainter extends CustomPainter {
+  const _StarHazePainter();
+
+  // x, y (as fractions of the bar), radius, opacity.
+  static const _dots = <List<double>>[
+    [0.14, 0.24, 1.4, 0.42], [0.80, 0.18, 1.2, 0.34], [0.60, 0.40, 1.0, 0.28],
+    [0.30, 0.72, 1.3, 0.26], [0.90, 0.60, 1.0, 0.28], [0.46, 0.88, 1.1, 0.22],
+    [0.07, 0.56, 1.1, 0.26], [0.72, 0.82, 1.0, 0.2],
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final d in _dots) {
+      final paint = Paint()..color = Colors.white.withValues(alpha: d[3]);
+      canvas.drawCircle(Offset(size.width * d[0], size.height * d[1]), d[2], paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _Bubble extends StatelessWidget {
