@@ -14,9 +14,14 @@ import '../data/customer_kundli_service.dart';
 /// (real Sun sign now; drop the chart widget into [_chartPlaceholder] once the
 /// chart/ephemeris API is connected).
 class CustomerDetailsCard extends StatefulWidget {
-  const CustomerDetailsCard({super.key, required this.profile, this.initiallyExpanded = false});
+  const CustomerDetailsCard({super.key, required this.profile, this.initiallyExpanded = false, this.requestedSkill});
   final UserProfile? profile;
   final bool initiallyExpanded;
+
+  /// When the customer entered via a skill tile ('palmistry'|'numerology'|'tarot'),
+  /// a slim banner pinned at the TOP of this card tells the astrologer what
+  /// reading they came for. Null → no banner (a normal session).
+  final String? requestedSkill;
 
   @override
   State<CustomerDetailsCard> createState() => _CustomerDetailsCardState();
@@ -45,6 +50,7 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
     ].join('  ·  ');
 
     return Container(
+      clipBehavior: Clip.antiAlias, // so the skill strip respects the rounded top
       decoration: BoxDecoration(
         gradient: Sky.lavGrad,
         borderRadius: BorderRadius.circular(20),
@@ -56,6 +62,8 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ---- skill strip (only when the customer came via a skill tile) ----
+          _skillStrip(),
           // ---- always-visible header (tap to expand / collapse) ----
           GestureDetector(
             onTap: () => setState(() => _expanded = !_expanded),
@@ -191,6 +199,59 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
           ),
         ),
       );
+
+  /// The skill banner pinned at the top of the card (empty when no skill).
+  Widget _skillStrip() {
+    final skill = widget.requestedSkill;
+    if (skill == null) return const SizedBox.shrink();
+    late final String label, hint;
+    late final IconData icon;
+    if (skill == 'palmistry') {
+      label = 'Palmistry reading';
+      hint = 'Ask for a clear photo of their right (dominant) hand.';
+      icon = Icons.back_hand_rounded;
+    } else if (skill == 'numerology') {
+      label = 'Numerology reading';
+      hint = 'Read from their name + date of birth below.';
+      icon = Icons.calculate_rounded;
+    } else if (skill == 'tarot') {
+      label = 'Tarot reading';
+      hint = 'Ask their question, then draw the cards.';
+      icon = Icons.style_rounded;
+    } else {
+      label = 'Reading requested';
+      hint = '';
+      icon = Icons.auto_awesome_rounded;
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(13, 10, 13, 10),
+      decoration: BoxDecoration(
+        color: Sky.purple.withValues(alpha: 0.13),
+        border: Border(bottom: BorderSide(color: Sky.purple.withValues(alpha: 0.20))),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 17, color: Sky.purple),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Came for a $label',
+                    style: Sky.label.copyWith(fontSize: 12.5, fontWeight: FontWeight.w800, color: Sky.purple)),
+                if (hint.isNotEmpty) ...[
+                  const SizedBox(height: 1),
+                  Text(hint, style: Sky.label.copyWith(fontSize: 10.5, color: Sky.ink3)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _section(String t) => Padding(
         padding: const EdgeInsets.only(bottom: 8),

@@ -264,7 +264,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
 
   /// Show the customer's full profile + kundli chart as an overlay sheet, so the
   /// astrologer can read them WITHOUT dropping the live voice/video call.
-  Future<void> _showCustomerSheet(UserProfile? cust) async {
+  Future<void> _showCustomerSheet(UserProfile? cust, {String? requestedSkill}) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -287,7 +287,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
               child: SingleChildScrollView(
                 controller: controller,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                child: CustomerDetailsCard(profile: cust),
+                child: CustomerDetailsCard(profile: cust, requestedSkill: requestedSkill),
               ),
             ),
           ],
@@ -481,7 +481,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
               const SizedBox(height: 12),
               Expanded(
                 child: SingleChildScrollView(
-                  child: CustomerDetailsCard(profile: cust),
+                  child: CustomerDetailsCard(profile: cust, requestedSkill: c.requestedSkill),
                 ),
               ),
               const SizedBox(height: 12),
@@ -537,9 +537,6 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
         children: [
           _liveHeader(c, cust, dark: false),
           _quickAccess(c),
-          // When the customer entered via a skill tile, tell the astrologer what
-          // reading they came for (birth details are already shown below).
-          if (c.requestedSkill != null) _SkillBanner(skill: c.requestedSkill!),
           // Fixed, collapsible customer details — auto-expanded on entry so the
           // astrologer reads the person, then collapses to reclaim the chat
           // viewport. Capped + scrollable so a tall expansion never overflows.
@@ -552,7 +549,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
             ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-              child: CustomerDetailsCard(profile: cust),
+              child: CustomerDetailsCard(profile: cust, requestedSkill: c.requestedSkill),
             ),
           ),
           Expanded(
@@ -827,7 +824,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _floatBtn(Icons.auto_awesome_rounded, 'Kundli', () => _showCustomerSheet(cust)),
+                    _floatBtn(Icons.auto_awesome_rounded, 'Kundli', () => _showCustomerSheet(cust, requestedSkill: c.requestedSkill)),
                     const SizedBox(width: 22),
                     _floatBtn(Icons.lock_rounded, 'Notes', () => _quickNote(c)),
                   ],
@@ -907,7 +904,7 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _floatBtn(Icons.auto_awesome_rounded, 'Kundli', () => _showCustomerSheet(cust)),
+                      _floatBtn(Icons.auto_awesome_rounded, 'Kundli', () => _showCustomerSheet(cust, requestedSkill: c.requestedSkill)),
                       const SizedBox(width: 18),
                       _floatBtn(Icons.lock_rounded, 'Notes', () => _quickNote(c)),
                     ],
@@ -1035,71 +1032,6 @@ final _messagesProvider =
 
 /// A remedy dropped into the chat — a distinct cosmic gold card so it stands
 /// apart from ordinary messages on both sides of the conversation.
-/// A slim banner telling a HUMAN astrologer what reading the customer came for
-/// (they entered via a skill tile). Birth details are already shown in the
-/// customer card below, so this just names the discipline + a quick pointer.
-class _SkillBanner extends StatelessWidget {
-  const _SkillBanner({required this.skill});
-  final String skill;
-
-  @override
-  Widget build(BuildContext context) {
-    late final String label, hint;
-    late final IconData icon;
-    if (skill == 'palmistry') {
-      label = 'Palmistry reading';
-      hint = 'Ask for a clear photo of their right (dominant) hand.';
-      icon = Icons.back_hand_rounded;
-    } else if (skill == 'numerology') {
-      label = 'Numerology reading';
-      hint = 'Read from their name + date of birth (shown below).';
-      icon = Icons.calculate_rounded;
-    } else if (skill == 'tarot') {
-      label = 'Tarot reading';
-      hint = 'Ask their question, then draw the cards.';
-      icon = Icons.style_rounded;
-    } else {
-      label = 'Reading requested';
-      hint = '';
-      icon = Icons.auto_awesome_rounded;
-    }
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Sky.purpleDeep.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Sky.purpleDeep.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(color: Sky.purpleDeep.withValues(alpha: 0.12), shape: BoxShape.circle),
-            child: Icon(icon, size: 18, color: Sky.purpleDeep),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Customer chose you for a $label',
-                    style: Sky.label.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700, color: Sky.purpleDeep)),
-                if (hint.isNotEmpty) ...[
-                  const SizedBox(height: 1),
-                  Text(hint, style: Sky.label.copyWith(fontSize: 11, color: Sky.ink3)),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _RemedyBubble extends StatelessWidget {
   const _RemedyBubble({required this.mine, required this.title, required this.note});
   final bool mine;
