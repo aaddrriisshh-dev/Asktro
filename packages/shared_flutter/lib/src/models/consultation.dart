@@ -26,6 +26,10 @@ class Consultation extends Equatable {
     this.startTimeMs,
     this.endTimeMs,
     this.requestedSkill,
+    this.lastMessageText,
+    this.lastMessageAtMs,
+    this.lastMessageFromCustomer = false,
+    this.customerUnread = 0,
   });
 
   final String id;
@@ -54,6 +58,12 @@ class Consultation extends Equatable {
   /// so a HUMAN astrologer sees what reading the customer came for. Null for a
   /// normal (Vedic) session.
   final String? requestedSkill;
+  /// Denormalized by the server (onChatMessageNudge) so the home "Continue
+  /// reading" card shows a preview + unread badge without a per-chat listener.
+  final String? lastMessageText;
+  final int? lastMessageAtMs;
+  final bool lastMessageFromCustomer;
+  final int customerUnread;
 
   Consultation copyWith({ConsultationStatus? status, int? remainingSec, int? warnLevel}) {
     return Consultation(
@@ -122,6 +132,10 @@ class Consultation extends Equatable {
       startTimeMs: ms(m['startTime'] ?? m['startTimeMs']),
       endTimeMs: ms(m['endTime'] ?? m['endTimeMs']),
       requestedSkill: m['requestedSkill'] as String?,
+      lastMessageText: m['lastMessageText'] as String?,
+      lastMessageAtMs: ms(m['lastMessageAt']),
+      lastMessageFromCustomer: (m['lastMessageFromCustomer'] ?? false) as bool,
+      customerUnread: ((m['customerUnread'] ?? 0) as num).toInt(),
     );
   }
 
@@ -130,6 +144,7 @@ class Consultation extends Equatable {
         id, customerId, astrologerId, type, status, pricePerMinute, billedSeconds,
         duration, totalCharged, walletAfter, remainingSec, warnLevel, networkStatus,
         graceGranted, agoraChannel, receiptNo, rating, review, startTimeMs, endTimeMs,
-        requestedSkill,
+        requestedSkill, lastMessageText, lastMessageAtMs, lastMessageFromCustomer,
+        customerUnread,
       ];
 }

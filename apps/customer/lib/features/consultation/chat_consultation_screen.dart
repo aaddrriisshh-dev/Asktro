@@ -540,10 +540,24 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   void _markSeen(List<Map<String, dynamic>> messages) {
     final uid = ref.read(currentUidProvider);
     if (uid == null) return;
+    var cleared = 0;
     for (final m in messages) {
       if (m['senderId'] != uid && m['seen'] != true) {
         _messagesCol.doc(m['id'] as String).update({'seen': true}).catchError((_) {});
+        cleared++;
       }
+    }
+    // The customer is reading this chat now → clear the server-side unread badge
+    // and re-arm the away-nudge for next time. Only writes when there was
+    // something unread, so it isn't a write on every rebuild.
+    if (cleared > 0) {
+      ref
+          .read(firestoreProvider)
+          .collection('consultations')
+          .doc(_id)
+          .set({'customerUnread': 0, 'customerNudgeCount': 0},
+              SetOptions(merge: true))
+          .catchError((_) {});
     }
   }
 

@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
@@ -26,46 +25,6 @@ final _recentChatsProvider = StreamProvider.autoDispose<List<Consultation>>((ref
           .where((c) => c.type == ConsultationType.chat)
           .take(8)
           .toList());
-});
-
-/// Last message + unread count for one chat, from the last 30 messages only
-/// (bounded). Mirrors the astrologer app's inbox summary.
-class _ChatSummary {
-  const _ChatSummary({this.lastText, this.unread = 0, this.lastAt});
-  final String? lastText;
-  final int unread;
-  final DateTime? lastAt;
-}
-
-final _chatSummaryProvider =
-    StreamProvider.autoDispose.family<_ChatSummary, ({String cid, String uid})>((ref, a) {
-  return ref
-      .watch(firestoreProvider)
-      .collection('consultations')
-      .doc(a.cid)
-      .collection('messages')
-      .orderBy('timestamp', descending: true)
-      .limit(30)
-      .snapshots()
-      .map((snap) {
-    String? lastText;
-    DateTime? lastAt;
-    var unread = 0;
-    for (final d in snap.docs) {
-      final m = d.data();
-      final mine = m['senderId'] == a.uid;
-      if (lastText == null) {
-        final body = m['type'] == 'image'
-            ? '📷 Photo'
-            : (m['type'] == 'remedy' ? '🪔 Remedy' : ((m['text'] ?? '') as String));
-        lastText = mine ? 'You: $body' : body;
-        final ts = m['timestamp'];
-        if (ts is Timestamp) lastAt = ts.toDate();
-      }
-      if (!mine && m['seen'] != true) unread++;
-    }
-    return _ChatSummary(lastText: lastText, unread: unread, lastAt: lastAt);
-  });
 });
 
 /// The astrologer behind a chat (name/photo/AI), resolved once per id.
@@ -169,12 +128,17 @@ class _ContinueCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final uid = ref.watch(currentUidProvider) ?? '';
     final astro = ref.watch(_railAstrologerProvider(c.astrologerId)).valueOrNull;
-    final summary = ref.watch(_chatSummaryProvider((cid: c.id, uid: uid))).valueOrNull;
     final name = astro?.name ?? 'Astrologer';
-    final preview = summary?.lastText ?? (c.status.isOpen ? 'Tap to resume' : 'Tap to open');
-    final unread = summary?.unread ?? 0;
+    // Server-denormalized preview + unread (onChatMessageNudge) — no per-chat
+    // listener. "You: …" when the last line was the customer's own.
+    final lastAt = c.lastMessageAtMs != null
+        ? DateTime.fromMillisecondsSinceEpoch(c.lastMessageAtMs!)
+        : null;
+    final preview = (c.lastMessageText != null && c.lastMessageText!.isNotEmpty)
+        ? (c.lastMessageFromCustomer ? 'You: ${c.lastMessageText}' : c.lastMessageText!)
+        : (c.status.isOpen ? 'Tap to resume' : 'Tap to open');
+    final unread = c.customerUnread;
 
     void open() {
       if (astro == null) return;
@@ -234,7 +198,7 @@ class _ContinueCard extends ConsumerWidget {
                             maxLines: 1, overflow: TextOverflow.ellipsis),
                       ),
                       const SizedBox(width: 5),
-                      Text(_ago(summary?.lastAt),
+                      Text(_ago(lastAt),
                           style: Ob.note.copyWith(fontSize: 10.5, color: Ob.navy.withValues(alpha: 0.5))),
                     ],
                   ),
@@ -256,7 +220,7 @@ class _ContinueCard extends ConsumerWidget {
                           constraints: const BoxConstraints(minWidth: 18),
                           decoration: const BoxDecoration(color: Ob.purple, shape: BoxShape.rectangle,
                               borderRadius: BorderRadius.all(Radius.circular(999))),
-                          child: Text('$unread',
+                          child: Text(unread > 9 ? '9+' : '$unread',
                               textAlign: TextAlign.center,
                               style: Ob.note.copyWith(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
                         ),
