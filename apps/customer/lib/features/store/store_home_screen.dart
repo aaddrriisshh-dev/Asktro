@@ -290,7 +290,8 @@ class StoreHomeScreen extends ConsumerWidget {
       children: [
         _sectionHeader('In their words', 'What Our Customers Say'),
         SizedBox(
-          height: 176,
+          // Headroom so a 4-line quote never overflows the card by ~1px.
+          height: 186,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(14, 2, 14, 0),
