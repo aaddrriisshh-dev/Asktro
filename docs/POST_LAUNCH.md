@@ -6,6 +6,32 @@ APK shipped, legal pages live, Razorpay live, rules deployed).
 
 ---
 
+## ⚠️ DO THIS RIGHT AFTER UPLOADING EACH AAB TO PLAY (or phone login breaks)
+
+Applies to **both** apps: `in.asktro.customer` **and** `in.asktro.astrologer`.
+
+Both AABs are signed with our own upload keystore
+(`asktro-upload-key.jks`, SHA-256 `06:CD:B9:AD:...:70:38`), and that
+fingerprint is already registered in Firebase — so **sideloaded APK testing
+works today.**
+
+BUT: when you upload an AAB to Play, Google re-signs it with **Play App
+Signing** (a different, Google-managed key). Firebase Phone Auth verifies the
+*installed* signature, so the moment real users install from the Play Store,
+their signature is the Play one — which Firebase doesn't know yet → login fails
+with *"missing a valid app identifier / Play Integrity / reCAPTCHA
+unsuccessful."*
+
+**Fix (one time, per app, after first upload):**
+1. Play Console → the app → **Test and release → App integrity → App signing**.
+2. Copy the **App signing key certificate → SHA-256** fingerprint.
+3. Firebase Console → Project Settings → Your apps → that Android app →
+   **Add fingerprint** → paste → Save. (Add the SHA-1 there too if shown.)
+
+No rebuild needed — it's a server-side config change, effective in ~1 minute.
+
+---
+
 ## A. First launch week (do once you're live & stable)
 
 - **App Check → enforce.** Currently in *monitor* mode (watching, not blocking).
