@@ -32,6 +32,29 @@ No rebuild needed — it's a server-side config change, effective in ~1 minute.
 
 ---
 
+## ⚠️ BACK UP THE SIGNING KEYSTORE — LOSING IT IS UNRECOVERABLE
+
+The single most important file in this whole project is the upload keystore:
+
+- **File:** `asktro-upload-key.jks`
+- **Signs:** BOTH apps (`in.asktro.customer` + `in.asktro.astrologer`) — they
+  share one keystore via each app's `android/key.properties` (git-ignored).
+- **SHA-256:** `06:CD:B9:AD:...:70:38`
+
+If this file **or** its password is ever lost, you can **never update either app
+on the Play Store again** — you'd have to publish brand-new apps and lose all
+your users, reviews, and ratings. Google cannot recover it for you.
+
+**Do now (not later):**
+1. Copy `asktro-upload-key.jks` to at least **two safe places** (password
+   manager / encrypted cloud / a USB drive kept offline).
+2. Write down the **store password, key password, and key alias (`asktro`)** and
+   store them with it.
+3. Never commit the `.jks` or `key.properties` to git (they're git-ignored —
+   keep it that way).
+
+---
+
 ## A. First launch week (do once you're live & stable)
 
 - **App Check → enforce.** Currently in *monitor* mode (watching, not blocking).
@@ -91,9 +114,23 @@ lazy-mounted home tabs.
 
 ## D. Housekeeping
 
-- **Astrologer app** is a separate app (`apps/astrologer`, id
-  `in.asktro.astrologer`). If it goes on Play it needs its own keystore + Play
-  listing. For now it's distributed as a direct APK.
+- **Astrologer app** (`apps/astrologer`, id `in.asktro.astrologer`) is now
+  **Play-ready**: it shares the customer app's upload keystore (via a copied
+  `android/key.properties`), its release AAB + APK are signed with it, and both
+  new fingerprints are registered in Firebase. It still needs its **own Play
+  Console listing** (separate store page, screenshots, forms) — and the same
+  post-upload App Signing SHA step above.
+- **Each Play update needs a higher `versionCode`.** Play rejects an upload with
+  a version code equal to or lower than one already uploaded. Bump the app
+  version in `pubspec.yaml` before every new AAB.
+- **Sideload testing gotcha:** when the signing key changes, a test phone must
+  **uninstall the old app first** — Android blocks installing a differently
+  signed build over an existing one ("App not installed"). Play updates are
+  unaffected; this only bites manual APK testing.
+- **Finish the astrologer roster** — wire the real portraits and remove any
+  leftover filler astrologers before/at launch (task #63).
+- **2px RenderFlex overflow** still to pinpoint in the astrologer app — cosmetic,
+  not blocking (task #30).
 - **Dependency updates** — ~70 packages are behind latest. A calm maintenance
   pass sometime (test thoroughly; several are Firebase majors).
 - **Strip dead Vastu code** from the functions (Vastu was removed from the app).
