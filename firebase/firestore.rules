@@ -179,8 +179,14 @@ service cloud.firestore {
       allow read: if isAdmin()
         || isSelf(resource.data.customerId)
         || isSelf(resource.data.astrologerId);
-      // sessions are created & mutated ONLY by Cloud Functions
-      allow create, update, delete: if false;
+      // Sessions are created & mutated ONLY by Cloud Functions — EXCEPT the
+      // customer may zero their OWN unread-badge bookkeeping when they read the
+      // chat (open / read / end). These two fields are display-only and never
+      // touch billing, status, or money, so this can't be abused.
+      allow create, delete: if false;
+      allow update: if isSelf(resource.data.customerId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['customerUnread', 'customerNudgeCount']);
 
       // ---- messages subcollection ----
       match /messages/{messageId} {
