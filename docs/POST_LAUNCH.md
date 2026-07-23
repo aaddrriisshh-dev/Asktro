@@ -131,6 +131,14 @@ lazy-mounted home tabs.
   leftover filler astrologers before/at launch (task #63).
 - **2px RenderFlex overflow** still to pinpoint in the astrologer app — cosmetic,
   not blocking (task #30).
+- **Cloud Functions Node runtime.** Functions currently run on **Node 20**
+  (`firebase/functions/package.json` → `"engines": { "node": "20" }`). Every
+  deploy prints a warning that this runtime will eventually be **deprecated /
+  decommissioned** by Firebase. It keeps working until the cutoff date — no rush
+  — but before that date, bump to the next supported LTS (Node 22): change the
+  `engines.node` value, run `npm install`, redeploy the functions one at a time,
+  and smoke-test. Purely a runtime bump; no app-side change. Do it as a calm
+  maintenance step, never rushed right before a launch.
 - **Dependency updates** — ~70 packages are behind latest. A calm maintenance
   pass sometime (test thoroughly; several are Firebase majors).
 - **Strip dead Vastu code** from the functions (Vastu was removed from the app).
