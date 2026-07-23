@@ -45,6 +45,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   // Visited-tab history for system-back navigation, and a guard so the back
   // navigation we trigger isn't recorded as a new visit.
   final List<int> _tabHistory = [];
+  // Tabs build lazily: a tab's screen (and all its Firestore listeners) only
+  // mount once the user first opens it, instead of all six firing on launch.
+  // Home (0) is built immediately; visited tabs stay built to preserve state.
+  final Set<int> _visitedTabs = {0};
   bool _handlingBack = false;
 
   /// Switch tabs as part of a back-navigation (not recorded in history).
@@ -257,12 +261,14 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     // actually visited. Programmatic back-navigation is flagged so it isn't
     // itself recorded.
     ref.listen<int>(homeTabProvider, (prev, next) {
+      _visitedTabs.add(next); // first visit → that tab (and its listeners) mounts
       if (_handlingBack || prev == null || prev == next) return;
       _tabHistory.add(prev);
       if (_tabHistory.length > 20) _tabHistory.removeAt(0);
     });
 
     final index = ref.watch(homeTabProvider);
+    _visitedTabs.add(index); // ensure the current tab is always built
     // The bottom-nav tabs are an IndexedStack, not routes, so the Android system
     // back button would otherwise exit the app from any tab. Intercept it: go
     // back to the previously visited tab; if there's no history, go to Home;
@@ -293,7 +299,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         SystemNavigator.pop();
       },
       child: Scaffold(
-      body: IndexedStack(index: index, children: _tabs),
+      body: IndexedStack(
+        index: index,
+        children: List.generate(
+          _tabs.length,
+          (i) => _visitedTabs.contains(i) ? _tabs[i] : const SizedBox.shrink(),
+        ),
+      ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: AppColors.card,
