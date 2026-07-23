@@ -719,6 +719,8 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       ),
     );
     if (confirm != true) return;
+    // They've read the conversation and are ending it → clear the home badge.
+    _clearUnreadBadge();
     // We own the summary navigation; suppress the stream terminal handler so the
     // completion screen isn't shown twice.
     _leftForTerminal = true;

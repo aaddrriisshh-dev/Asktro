@@ -92,28 +92,26 @@ export const onChatMessageNudge = onDocumentCreated(
       return;
     }
 
-    // Is the customer away from the chat? (their heartbeat has gone stale)
-    const lastTick = (c.customerLastTickAt as Timestamp | null)?.toMillis?.() ?? 0;
-    const nowMs = Date.now();
-    const away = nowMs - lastTick > AWAY_MS;
-
-    // Keep the home-card preview current. Only COUNT toward the unread badge
-    // while the customer is AWAY — if they're sitting in the chat reading a
-    // burst, the badge stays at zero, so it never lingers after they read and
-    // leave/end the chat.
+    // Always bump the unread count + refresh the home-card preview for an
+    // inbound message. The CLIENT zeroes customerUnread while the customer is
+    // actually viewing this chat (on open, on each read, and on end), so the
+    // badge only ever reflects messages that landed while they were away.
     await cRef
       .set(
         {
           lastMessageText: preview,
           lastMessageAt: FieldValue.serverTimestamp(),
           lastMessageFromCustomer: false,
-          customerUnread: away ? FieldValue.increment(1) : 0,
+          customerUnread: FieldValue.increment(1),
         },
         { merge: true },
       )
       .catch(() => {});
 
-    if (!away) return; // present on the chat screen — no nudge
+    // Only NUDGE (push) if the customer is genuinely away from the chat.
+    const lastTick = (c.customerLastTickAt as Timestamp | null)?.toMillis?.() ?? 0;
+    const nowMs = Date.now();
+    if (nowMs - lastTick <= AWAY_MS) return; // still on the chat screen — no push
 
     const lastNudge = (c.lastCustomerNudgeAt as Timestamp | null)?.toMillis?.() ?? 0;
     const nudgeCount = (c.customerNudgeCount as number | undefined) ?? 0;
