@@ -61,6 +61,16 @@ support item.
   chat unread-badge + high-priority push, purple Mall icon / removed Alerts tab,
   astrologer app cleanup, testimonial overflow fix, portal delete-astrologer.
 
+## ⚠️ Post-approval fix batch — see `docs/POST_APPROVAL_FIXES.md`
+
+The founder gave a refined list of 8 issues to fix as a **v1.0.1 update AFTER Play
+approval** (developer is uploading the current 1.0.0 AAB for review; must NOT be
+disturbed). Full diagnosis, per-issue file:line references, rebuild/backend/config
+classification, batch decision (6 now, 2 deferred), reviewer test-login status,
+and open confirmations all live in **`docs/POST_APPROVAL_FIXES.md`**. Read it
+before doing any of this work. Nothing is built/deployed yet — awaiting the
+founder's "go" after approval.
+
 ## Open items when we resume (none block launch)
 
 - **Post-upload:** add Play App Signing SHA-256 to Firebase (both apps).
