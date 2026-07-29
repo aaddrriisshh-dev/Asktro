@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Required to show incoming-request notifications on Android 13+ and to buzz. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
@@ -9,6 +10,12 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <!-- The Agora RTC library declares FOREGROUND_SERVICE_MEDIA_PROJECTION for its
+         optional screen-sharing feature, which this app does NOT use. Strip it from
+         the merged manifest so the app declares no screen-capture capability
+         (avoids the Play "screen sharing / foreground service" review flag). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"
+        tools:node="remove"/>
     <application
         android:label="Asktro Consultation"
         android:name="${applicationName}"
