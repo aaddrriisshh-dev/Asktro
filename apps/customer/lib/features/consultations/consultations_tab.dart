@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../app/feature_flags.dart';
 import '../consultation/chat_consultation_screen.dart';
 
 /// Consultation history for the current customer (Part 3).
@@ -124,9 +125,11 @@ class _HistoryTile extends ConsumerWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(Money.formatPaise(c.totalCharged),
-                    style: AppTypography.body.copyWith(fontWeight: FontWeight.w700),),
-                const SizedBox(height: 4),
+                // ... per-session charged amount hidden in free v1
+                if (kMonetizationEnabled)
+                  Text(Money.formatPaise(c.totalCharged),
+                      style: AppTypography.body.copyWith(fontWeight: FontWeight.w700),),
+                if (kMonetizationEnabled) const SizedBox(height: 4),
                 open
                     ? Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
+import '../../app/feature_flags.dart';
+
 /// Directory card used across home rails and search results (Part 2/3).
 class AstrologerCard extends StatelessWidget {
   const AstrologerCard({super.key, required this.astrologer, this.compact = false, this.requestedSkill});
@@ -82,7 +84,8 @@ class AstrologerCard extends StatelessWidget {
                   ],
                 ),
               ),
-              LabelBadge(text: a.rateLabel, filled: false),
+              // ... per-minute rate label hidden in free v1
+              if (kMonetizationEnabled) LabelBadge(text: a.rateLabel, filled: false),
             ],
           ),
           if (!compact) ...[

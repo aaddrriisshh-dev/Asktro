@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
+import '../../app/feature_flags.dart';
+
 /// Sticky consultation header: back, astrologer identity, backend-driven
 /// remaining time, a recharge shortcut, and a clear End action. Colour shifts as
 /// the warn level rises. Back just leaves the chat (session keeps running and is
@@ -74,39 +76,41 @@ class ConsultationHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
+              // ... recharge / countdown chip hidden in free v1
+              if (kMonetizationEnabled) const SizedBox(width: 6),
               // Free users see a ticking countdown (tap to recharge); paid users
               // just get a plain "Add cash" shortcut — no distracting timer.
-              GestureDetector(
-                onTap: onRecharge,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: (showCountdown ? _timerColor : AppColors.primary).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppRadius.chip),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: showCountdown
-                        ? [
-                            Icon(Icons.timer_outlined, size: 15, color: _timerColor),
-                            const SizedBox(width: 4),
-                            Text(Money.formatDuration(remainingSec),
-                                style: AppTypography.caption
-                                    .copyWith(color: _timerColor, fontWeight: FontWeight.w700),),
-                            const SizedBox(width: 3),
-                            Icon(Icons.add_circle, size: 15, color: _timerColor),
-                          ]
-                        : [
-                            const Icon(Icons.add_circle_outline_rounded, size: 15, color: AppColors.primary),
-                            const SizedBox(width: 4),
-                            Text('Add cash',
-                                style: AppTypography.caption
-                                    .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),),
-                          ],
+              if (kMonetizationEnabled)
+                GestureDetector(
+                  onTap: onRecharge,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: (showCountdown ? _timerColor : AppColors.primary).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.chip),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: showCountdown
+                          ? [
+                              Icon(Icons.timer_outlined, size: 15, color: _timerColor),
+                              const SizedBox(width: 4),
+                              Text(Money.formatDuration(remainingSec),
+                                  style: AppTypography.caption
+                                      .copyWith(color: _timerColor, fontWeight: FontWeight.w700),),
+                              const SizedBox(width: 3),
+                              Icon(Icons.add_circle, size: 15, color: _timerColor),
+                            ]
+                          : [
+                              const Icon(Icons.add_circle_outline_rounded, size: 15, color: AppColors.primary),
+                              const SizedBox(width: 4),
+                              Text('Add cash',
+                                  style: AppTypography.caption
+                                      .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),),
+                            ],
+                    ),
                   ),
                 ),
-              ),
               const SizedBox(width: 6),
               // Explicit End action.
               GestureDetector(

@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/providers.dart';
+import '../../app/feature_flags.dart';
 import '../../data/place_search_service.dart';
 import '../profile_setup/onboarding_style.dart';
 import 'match_koota.dart';
@@ -143,6 +144,8 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
   /// Send the user to Recharge and wait until they come back (go_router push
   /// resolves on pop). The wallet stream refreshes the balance on return.
   Future<void> _goRecharge() async {
+    // ... hidden in free v1 — recharge is a no-op when money surfaces are off
+    if (!kMonetizationEnabled) return;
     await context.push('/recharge');
   }
 
@@ -155,7 +158,8 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
     if (repo == null || !_self.complete || !_partner.complete) return;
 
     // Balance gate BEFORE charging: if short, take them to recharge and return.
-    if (_spendable < _pricePaise) {
+    // ... hidden in free v1 — the paywall is bypassed so the report is free
+    if (kMonetizationEnabled && _spendable < _pricePaise) {
       setState(() => _error = null);
       await _goRecharge();
       if (!mounted) return;
@@ -178,17 +182,29 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
 
     // ProKerala matching is girl + boy. Map "you" by your saved gender.
     final selfIsGirl = profile?.gender == 'female';
+    final girlDob = selfIsGirl ? selfIso : partnerIso;
+    final girlCoords = selfIsGirl ? selfCoords : partnerCoords;
+    final boyDob = selfIsGirl ? partnerIso : selfIso;
+    final boyCoords = selfIsGirl ? partnerCoords : selfCoords;
     try {
-      final res = await repo.purchaseMatch(
-        girlDatetime: selfIsGirl ? selfIso : partnerIso,
-        girlCoordinates: selfIsGirl ? selfCoords : partnerCoords,
-        boyDatetime: selfIsGirl ? partnerIso : selfIso,
-        boyCoordinates: selfIsGirl ? partnerCoords : selfCoords,
-        selfName: _self.name.text.trim().isEmpty ? (profile?.name ?? '') : _self.name.text.trim(),
-        partnerName: _partner.name.text.trim(),
-      );
+      // ... free v1: use the unpaid direct match (no wallet charge). The paid
+      // server function (which deducts ₹49) is used only when money is on.
+      final dynamic data = kMonetizationEnabled
+          ? (await repo.purchaseMatch(
+              girlDatetime: girlDob,
+              girlCoordinates: girlCoords,
+              boyDatetime: boyDob,
+              boyCoordinates: boyCoords,
+              selfName: _self.name.text.trim().isEmpty ? (profile?.name ?? '') : _self.name.text.trim(),
+              partnerName: _partner.name.text.trim(),
+            ))['data']
+          : await repo.kundliMatch(
+              girlDatetime: girlDob,
+              girlCoordinates: girlCoords,
+              boyDatetime: boyDob,
+              boyCoordinates: boyCoords,
+            );
       if (!mounted) return;
-      final data = res['data'];
       setState(() {
         _loading = false;
         _result = data is Map ? Map<String, dynamic>.from(data) : null;
@@ -348,17 +364,19 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
                   const SizedBox(height: 2),
                   const Text('A complete 8-koota compatibility report, scored out of 36 gunas — with a downloadable PDF.',
                       style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 12.5, height: 1.35),),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0x33F3D98A),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: const Color(0x55F3D98A)),
+                  // ... '₹49' price badge hidden in free v1
+                  if (kMonetizationEnabled) const SizedBox(height: 8),
+                  if (kMonetizationEnabled)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0x33F3D98A),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: const Color(0x55F3D98A)),
+                      ),
+                      child: const Text('Full report · just ₹49',
+                          style: TextStyle(color: Color(0xFFF3D98A), fontSize: 11.5, fontWeight: FontWeight.w800),),
                     ),
-                    child: const Text('Full report · just ₹49',
-                        style: TextStyle(color: Color(0xFFF3D98A), fontSize: 11.5, fontWeight: FontWeight.w800),),
-                  ),
                 ],
               ),
             ),
@@ -519,7 +537,10 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
           icon: _loading
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2))
               : const Icon(Icons.favorite_rounded, size: 18),
-          label: Text(_loading ? 'Generating your report…' : 'Check compatibility · ₹49'),
+          // ... '₹49' hidden in free v1
+          label: Text(_loading
+              ? 'Generating your report…'
+              : (kMonetizationEnabled ? 'Check compatibility · ₹49' : 'Check compatibility')),
         ),
       );
 

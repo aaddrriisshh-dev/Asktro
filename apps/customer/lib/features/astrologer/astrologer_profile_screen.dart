@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../app/feature_flags.dart';
 import '../../data/messaging_service.dart';
 import '../consultation/chat_consultation_screen.dart';
 import '../consultation/call_consultation_screen.dart';
@@ -64,6 +65,8 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
   }
 
   void _promptRecharge() {
+    // ... hidden in free v1 — no recharge prompt when money surfaces are off
+    if (!kMonetizationEnabled) return;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -244,11 +247,13 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
                 style: AppTypography.caption.copyWith(color: Colors.white.withValues(alpha: 0.85)),
                 textAlign: TextAlign.center,),
             const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(999)),
-              child: Text(a.rateLabel, style: AppTypography.body.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
-            ),
+            // ... rate label hidden in free v1
+            if (kMonetizationEnabled)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(999)),
+                child: Text(a.rateLabel, style: AppTypography.body.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+              ),
             const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,

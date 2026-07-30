@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Understated "AI" tag for AI-persona astrologers. Deliberately small and
-/// low-contrast so a profile reads as a real astrologer at a glance, while the
-/// AI nature is still disclosed for anyone who looks.
+/// Clear "AI" disclosure tag for AI-persona astrologers. A readable, high-contrast
+/// chip (robot glyph + bold "AI") so an AI astrologer is never mistaken for a real
+/// human — Google Play's deception policy. Compact, but unmistakable.
 class AiBadge extends StatelessWidget {
   const AiBadge({super.key, this.compact = false});
 
@@ -13,20 +13,27 @@ class AiBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 7, vertical: compact ? 1 : 2),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: compact ? 2 : 3),
       decoration: BoxDecoration(
-        color: AppColors.textSecondary.withValues(alpha: 0.10),
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(
-        '✦ AI',
-        style: TextStyle(
-          fontSize: compact ? 9 : 10,
-          height: 1.1,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.3,
-          color: AppColors.textSecondary,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.smart_toy_rounded, size: compact ? 10 : 12, color: Colors.white),
+          SizedBox(width: compact ? 3 : 4),
+          Text(
+            'AI',
+            style: TextStyle(
+              fontSize: compact ? 10 : 11.5,
+              height: 1.1,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }

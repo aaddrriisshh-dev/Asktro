@@ -14,6 +14,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../app/feature_flags.dart';
 import '../../app/celestial_background.dart';
 import '../../data/messaging_service.dart';
 import 'consultation_controller.dart';
@@ -283,6 +284,8 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   }
 
   void _promptRecharge() {
+    // ... hidden in free v1 — no recharge prompt when money surfaces are off
+    if (!kMonetizationEnabled) return;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -626,6 +629,8 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   }
 
   Future<void> _handleWarn(ConsultationState s) async {
+    // ... hidden in free v1 — no low-balance / recharge warnings when money is off
+    if (!kMonetizationEnabled) return;
     // Before billing has started (session still `waiting` for the first AI reply)
     // there is nothing to warn about — skip so the seeded warnLevel/remainingSec
     // never misfires the low-balance dialog during the free opening.
@@ -701,6 +706,8 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   }
 
   Future<void> _goRecharge() async {
+    // ... hidden in free v1 — recharge is a no-op when money surfaces are off
+    if (!kMonetizationEnabled) return;
     await context.push('/recharge');
     // The recharge function auto-resumes a paused session; also nudge resume.
     if (mounted) await ref.read(consultationControllerProvider(_id).notifier).resume();
@@ -930,7 +937,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 // on their 3 free minutes, sees the countdown tick down. Hidden
                 // until the session is active (billing starts on the first reply),
                 // so a `waiting` session never shows a frozen 0:00.
-                showCountdown: s.status == ConsultationStatus.active &&
+                // ... countdown hidden in free v1 (never shows when money is off)
+                showCountdown: kMonetizationEnabled &&
+                    s.status == ConsultationStatus.active &&
                     (ref.watch(myProfileProvider).valueOrNull?.walletBalance ?? 0) <= 0,
               ),
             ),

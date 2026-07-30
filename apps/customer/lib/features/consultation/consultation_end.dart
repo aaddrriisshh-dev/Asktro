@@ -5,6 +5,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import 'consultation_controller.dart';
 import '../../app/providers.dart';
+import '../../app/feature_flags.dart';
 import '../../data/messaging_service.dart';
 
 /// Full-screen session summary + rating (Part 3/4). Pushed after a consultation
@@ -109,8 +110,9 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
                     _row('Astrologer', widget.astrologer.name),
                     _row('Duration', Money.formatDurationLong(c.duration)),
                     _row('Type', c.type.name),
-                    _row('Amount charged', Money.formatPaise(c.totalCharged)),
-                    if (c.receiptNo != null) _row('Receipt', c.receiptNo!),
+                    // ... charged-amount row hidden in free v1
+                    if (kMonetizationEnabled) _row('Amount charged', Money.formatPaise(c.totalCharged)),
+                    if (kMonetizationEnabled && c.receiptNo != null) _row('Receipt', c.receiptNo!),
                   ],
                 ),
               ),

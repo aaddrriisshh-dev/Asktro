@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../app/feature_flags.dart';
 import 'home_continue_rail.dart';
 import 'category_screen.dart';
 import 'home_favorites_rail.dart';
@@ -101,7 +102,8 @@ class HomeFeed extends ConsumerWidget {
                 provider: _risingStarsProvider,
                 onlyRisingStars: true,),
             const SizedBox(height: 4),
-            const StoreRail(),
+            // ... hidden in free v1
+            if (kMonetizationEnabled) const StoreRail(),
             const TrustBanner(),
             const SizedBox(height: 4),
             const RecentBlogsSection(),
@@ -233,7 +235,7 @@ class HomeFeed extends ConsumerWidget {
         children: [
           // Profile photo + a little hamburger badge → opens the Profile page.
           GestureDetector(
-            onTap: () => ref.read(homeTabProvider.notifier).state = 4,
+            onTap: () => ref.read(homeTabProvider.notifier).state = kProfileTabIndex,
             child: SizedBox(
               width: 50,
               height: 48,
@@ -279,8 +281,10 @@ class HomeFeed extends ConsumerWidget {
             child: Text('Hi $first',
                 style: Ob.title.copyWith(fontSize: 18), overflow: TextOverflow.ellipsis,),
           ),
-          const SizedBox(width: 8),
-          _addCash(context),
+          // ... hidden in free v1
+          if (kMonetizationEnabled) const SizedBox(width: 8),
+          // ... hidden in free v1
+          if (kMonetizationEnabled) _addCash(context),
           const SizedBox(width: 7),
           // Notification bell → the Notifications screen (no longer a bottom tab).
           _iconCircle(Icons.notifications_none_rounded,
@@ -450,18 +454,20 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
         illustration: Image.asset(Ob.gift, height: 98),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
       ),
-      _banner(
-        gradient: _grad(const [Color(0xFF6A47C7), Color(0xFF432B85), Color(0xFF2C1E5C)]),
-        kicker: '✦ DIVINE BLESSINGS',
-        title: 'Book Group\nPujas',
-        subtitle: 'By verified pandits',
-        cta: 'Book Now',
-        illustration: Padding(
-          padding: const EdgeInsets.only(right: 6, bottom: 2),
-          child: Image.asset(Ob.pujaMandala, height: 108),
+      // ... hidden in free v1 (advertises a paid booking)
+      if (kMonetizationEnabled)
+        _banner(
+          gradient: _grad(const [Color(0xFF6A47C7), Color(0xFF432B85), Color(0xFF2C1E5C)]),
+          kicker: '✦ DIVINE BLESSINGS',
+          title: 'Book Group\nPujas',
+          subtitle: 'By verified pandits',
+          cta: 'Book Now',
+          illustration: Padding(
+            padding: const EdgeInsets.only(right: 6, bottom: 2),
+            child: Image.asset(Ob.pujaMandala, height: 108),
+          ),
+          onTap: () => _comingSoon(context, 'Group Pujas'),
         ),
-        onTap: () => _comingSoon(context, 'Group Pujas'),
-      ),
       _trustBanner(),
     ];
     return Column(
@@ -808,7 +814,10 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      _trustItem(Icons.verified_user_rounded, 'Money-back'),
+                      // ... 'Money-back' hidden in free v1 — swapped for a non-money trust item
+                      kMonetizationEnabled
+                          ? _trustItem(Icons.verified_user_rounded, 'Money-back')
+                          : _trustItem(Icons.shield_rounded, 'Private & Secure'),
                       _trustItem(Icons.workspace_premium_rounded, 'Verified experts'),
                       _trustItem(Icons.lock_rounded, '100% private'),
                     ],
@@ -1053,13 +1062,15 @@ class _CelestialAstroCard extends StatelessWidget {
               ],
             ),
             const Spacer(),
-            Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
-              decoration: BoxDecoration(color: Ob.lavenderChip, borderRadius: BorderRadius.circular(999)),
-              child: Text(a.rateLabel,
-                  style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w800, fontSize: 12.5),),
-            ),
+            // ... per-minute rate label hidden in free v1
+            if (kMonetizationEnabled)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
+                decoration: BoxDecoration(color: Ob.lavenderChip, borderRadius: BorderRadius.circular(999)),
+                child: Text(a.rateLabel,
+                    style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w800, fontSize: 12.5),),
+              ),
           ],
         ),
       ),

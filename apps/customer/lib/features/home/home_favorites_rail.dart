@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../app/feature_flags.dart';
 import '../profile/favourites_screen.dart';
 import '../profile_setup/onboarding_style.dart';
 import 'home_continue_rail.dart' show RailBand;
@@ -71,6 +72,8 @@ class _FavItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final a = ref.watch(_favAstrologerProvider(id)).valueOrNull;
+    // ... hidden in free v1 — only AI astrologers are shown when money is off
+    if (!kMonetizationEnabled && a != null && !a.isAI) return const SizedBox.shrink();
     final name = a?.name ?? '…';
     return GestureDetector(
       onTap: () => context.push('/astrologer/$id'),
