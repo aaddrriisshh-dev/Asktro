@@ -4,7 +4,64 @@ _Last updated at end of the pre-submission session. Read this first when
 resuming — it captures exactly where things stand so work can continue without
 re-deriving context._
 
-## Where we are right now
+---
+
+## 🚨 CURRENT STATE (latest — the "Free v1" pivot). READ THIS FIRST.
+
+**What happened:** the customer app was **REJECTED** by Play — not for the app,
+but for the **developer account**. Google now requires an **organisation account
+(+ D-U-N-S)** for apps that offer **financial features** (wallet/payments). We're
+on a **personal/individual** account. The founder has **applied for D-U-N-S**
+(pending, takes time).
+
+**The strategy (agreed):** ship a **"Free v1"** now — a genuinely free app with
+**NO money/financial features at all** — so the "My app doesn't provide any
+financial features" Play declaration is truthful and it passes on the individual
+account. Then, once D-U-N-S/org account lands, flip everything back on as **v2**
+(Google reviews v2 normally). This is the developer's standard play (ship basic,
+add features across versions).
+
+**HOW it's built (all done + committed on branch `claude/asktro-session-handoff-o1ggo8`):**
+- One master switch: `apps/customer/lib/app/feature_flags.dart` →
+  `const bool kMonetizationEnabled = false;`. Everything money is HIDDEN behind
+  it (nothing deleted). Flip to `true` + rebuild = full app back for v2.
+- Hidden in v1: Wallet + Mall tabs, recharge/Razorpay, transactions, coupons,
+  referral, per-minute rates, balance/recharge UI in chat, Kundali ₹49 (now
+  free), home "Add Cash" + money banners + live admin banners (Rudraksh shop).
+- **AI astrologers ONLY** (human = paid = hidden) via `data/repositories.dart`
+  `_visible()`. AI chat is free. Clear **"AI" disclosure badge** (deception
+  policy). Language globe removed; onboarding languages = English + Hindi only.
+- Version bumped to **1.0.0+3**. Restore steps: **`docs/FREE_V1_RESTORE.md`**.
+- Tested on device: all money surfaces gone ✓, AI chat works ✓, AI badge ✓,
+  Horoscope/Kundli load (ProKerala keys ARE set) ✓, tabs = Home·Consults·Profile ✓.
+
+**STILL TO DO before submitting the Free v1 (pick up here tomorrow):**
+1. **"Guest" profile bug** — after onboarding, name showed "Guest" + chart said
+   "add details" (birth details didn't persist). Buffer/write code looks correct;
+   may be an artifact of the founder's delete-account-and-relogin testing. NEXT:
+   do a CLEAN test (full uninstall → fresh install → BRAND-NEW number → full
+   onboarding). If it still says Guest → real bug, add logging + fix (cosmetic,
+   NOT a review-blocker). If not → was a testing artifact.
+2. **Backend config for free AI** (Firestore `config/global`, no deploy):
+   set `minWalletToStartPaise: 0` and `freeChatMinutes: 999999`; top up the demo
+   account's `chatBonusBalance`. (See FREE_V1_RESTORE.md §2/§3.)
+3. **Play Console updates** (do together): Data Safety — remove "Payment info" +
+   "Purchase history"; Store listing — no wallet/recharge/paid wording; swap any
+   screenshots showing money screens. Financial-features declaration already =
+   "no". App access (reviewer login) already set: `+918318259972` / OTP `123456`.
+4. **Build the AAB** (`flutter build appbundle --release`, it's 1.0.0+3), hand to
+   developer to upload + submit for review.
+
+**Reviewer login (already configured in Play Console → App access):** test number
+`+918318259972`, OTP `123456` (Firebase test number, bypasses Play Integrity).
+Play App Signing SHA-256 already added to Firebase for `in.asktro.customer`.
+
+**Post-approval (v2 + the earlier fix batch):** see `docs/POST_APPROVAL_FIXES.md`
+(8 improvements) and `docs/FREE_V1_RESTORE.md` (turn money back on).
+
+---
+
+## Where we are right now (earlier snapshot — superseded by the pivot above)
 
 **The apps are built, signed, and handed off. Awaiting Play Store submission +
 review.** The founder is taking a 2–3 day break and will return with
