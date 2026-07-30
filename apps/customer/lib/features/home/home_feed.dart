@@ -17,7 +17,6 @@ import '../tools/horoscope_screen.dart';
 import '../tools/janam_kundli_screen.dart';
 import '../tools/kundali_match_screen.dart';
 import '../tools/free_services_screen.dart';
-import '../settings/language_sheet.dart';
 import '../profile/support_screen.dart';
 import '../notifications/notifications_tab.dart';
 import '../profile_setup/onboarding_style.dart';
@@ -290,8 +289,6 @@ class HomeFeed extends ConsumerWidget {
           _iconCircle(Icons.notifications_none_rounded,
               () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const NotificationsTab())),),
-          const SizedBox(width: 5),
-          _iconCircle(Icons.language_rounded, () => showLanguageSheet(context)),
           const SizedBox(width: 5),
           // Support-agent avatar → customer support page.
           GestureDetector(

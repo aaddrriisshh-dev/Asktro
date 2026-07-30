@@ -618,10 +618,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   // ------------------------------------------------------- step: languages --
   Widget _languageStep() {
+    // v1 ships English-only (the multi-language experience lands in a later
+    // build). Show just English here so onboarding matches what the app offers.
     const langs = <List<String>>[
-      ['English', 'A'], ['Hindi', 'अ'], ['Bengali', 'অ'], ['Gujarati', 'ગ'],
-      ['Kannada', 'ಕ'], ['Malayalam', 'മ'], ['Marathi', 'म'], ['Punjabi', 'ਪ'],
-      ['Tamil', 'த'], ['Telugu', 'త'], ['Urdu', 'ا'],
+      ['English', 'A'],
     ];
     return OnboardingScaffold(
       stepIndex: 6,

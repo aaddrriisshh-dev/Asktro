@@ -65,6 +65,11 @@ and consumed nowhere. All UI strings are hardcoded English.
 string translated by hand into each language. Recommended **defer** (reviewers
 don't need it).
 **Class: CLIENT → REBUILD, big + manual translation content. Size: DEEP. DEFER.**
+**v1 REMOVED (restore when this ships):** the non-working **language globe** in the
+home top bar was removed (`home_feed.dart`, was `_iconCircle(Icons.language_rounded,
+… showLanguageSheet)`), and the **onboarding "Your languages" step** was reduced to
+**English only** (`profile_setup_screen.dart` `_languageStep` `langs` list). When the
+real localization lands, restore the globe + the full language list.
 
 ### 3. Home "Continue reading" card shows astrologer online when they're offline
 **Founder:** e.g. Guruji Malik — the home continue-reading card always shows the
