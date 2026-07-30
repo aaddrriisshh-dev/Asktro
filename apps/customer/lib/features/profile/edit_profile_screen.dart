@@ -310,23 +310,29 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           }),),
                   ],
                 ),
-                const SizedBox(height: 28),
-                GestureDetector(
-                  onTap: _saving ? null : () => _save(profile),
-                  child: Container(
-                    height: 54,
-                    decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(16)),
-                    child: Center(
-                      child: _saving
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),)
-                          : Text('Save changes', style: Ob.option.copyWith(fontWeight: FontWeight.w700)),
-                    ),
+              ],
+            ),
+      // Save lives in a sticky bottom bar so it's always reachable (and stays
+      // above the keyboard) instead of being buried at the end of the scroll.
+      bottomNavigationBar: profile == null
+          ? null
+          : SafeArea(
+              minimum: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: GestureDetector(
+                onTap: _saving ? null : () => _save(profile),
+                child: Container(
+                  height: 54,
+                  decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(16)),
+                  child: Center(
+                    child: _saving
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),)
+                        : Text('Save changes', style: Ob.option.copyWith(fontWeight: FontWeight.w700)),
                   ),
                 ),
-              ],
+              ),
             ),
     );
   }
