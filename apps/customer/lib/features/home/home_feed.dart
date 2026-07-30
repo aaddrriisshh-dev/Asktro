@@ -276,7 +276,10 @@ class HomeFeed extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Flexible(
+          // Expanded (not Flexible) so the greeting fills the gap and the action
+          // icons stay pinned to the right — otherwise, with fewer icons in the
+          // free v1, they bunched up in the middle with blank space on the right.
+          Expanded(
             child: Text('Hi $first',
                 style: Ob.title.copyWith(fontSize: 18), overflow: TextOverflow.ellipsis,),
           ),
@@ -441,7 +444,10 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
     // Live admin-managed banners appear first, then the evergreen defaults.
     final live = ref.watch(_homeBannersProvider).valueOrNull ?? const <PromoBanner>[];
     final banners = <Widget>[
-      for (final b in live) _liveBanner(context, b),
+      // Live admin-managed banners can advertise the Mall / recharge (e.g. the
+      // "Shop Now · Rudraksh" store banner), so they're hidden in the free v1.
+      if (kMonetizationEnabled)
+        for (final b in live) _liveBanner(context, b),
       _banner(
         gradient: _grad(const [Color(0xFF9E7BE0), Color(0xFF7E57C2), Color(0xFF5E3FBE)]),
         kicker: '✦ WELCOME GIFT',
