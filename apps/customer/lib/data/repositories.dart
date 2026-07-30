@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
+import '../app/feature_flags.dart';
+
 /// Firestore-backed read repositories. All money/timer writes go through Cloud
 /// Functions (services); these only read/observe and perform user-owned,
 /// rules-permitted writes (favourites, read flags).
@@ -21,6 +23,16 @@ class AstrologerRepository {
   bool _isActive(DocumentSnapshot<Map<String, dynamic>> d) =>
       (d.data()?['active'] ?? true) == true;
 
+  // Free v1 (kMonetizationEnabled == false) shows AI astrologers ONLY — human
+  // astrologers mean paid per-minute consultations (a financial feature), so
+  // they're hidden from every rail, search and discovery surface. Flip the flag
+  // for v2 and humans reappear everywhere with no other change.
+  bool _visible(DocumentSnapshot<Map<String, dynamic>> d) {
+    if (!_isActive(d)) return false;
+    if (!kMonetizationEnabled && (d.data()?['isAI'] ?? false) != true) return false;
+    return true;
+  }
+
   int _createdMs(DocumentSnapshot<Map<String, dynamic>> d) {
     final ts = d.data()?['createdAt'];
     return ts is Timestamp ? ts.millisecondsSinceEpoch : 0;
@@ -31,7 +43,7 @@ class AstrologerRepository {
       .limit(100)
       .snapshots()
       .map((s) {
-        final list = s.docs.where(_isActive).map(_map).toList()
+        final list = s.docs.where(_visible).map(_map).toList()
           ..sort((a, b) => b.rating.compareTo(a.rating));
         return list.take(limit).toList();
       });
@@ -41,7 +53,7 @@ class AstrologerRepository {
       .limit(100)
       .snapshots()
       .map((s) {
-        final list = s.docs.where(_isActive).map(_map).toList()
+        final list = s.docs.where(_visible).map(_map).toList()
           ..sort((a, b) => b.rating.compareTo(a.rating));
         return list.take(limit).toList();
       });
@@ -52,7 +64,7 @@ class AstrologerRepository {
       .map((s) {
         // Tolerate docs missing the `active` field (seeded personas don't set
         // it) — _isActive defaults to true, so they're included.
-        final list = s.docs.where(_isActive).map(_map).toList()
+        final list = s.docs.where(_visible).map(_map).toList()
           ..sort((a, b) => b.rating.compareTo(a.rating));
         return list.take(limit).toList();
       });
@@ -64,7 +76,7 @@ class AstrologerRepository {
       .limit(100)
       .snapshots()
       .map((s) {
-        final docs = s.docs.where(_isActive).toList();
+        final docs = s.docs.where(_visible).toList();
         final tagged = docs
             .where((d) => (d.data()['risingStar'] ?? false) == true)
             .map(_map)
@@ -80,7 +92,7 @@ class AstrologerRepository {
       .limit(100)
       .snapshots()
       .map((s) {
-        final docs = s.docs.toList()
+        final docs = s.docs.where(_visible).toList()
           ..sort((a, b) => _createdMs(b).compareTo(_createdMs(a)));
         return docs.take(limit).map(_map).toList();
       });
@@ -97,7 +109,7 @@ class AstrologerRepository {
       .limit(limit)
       .snapshots()
       .map((s) {
-        final list = s.docs.where(_isActive).map(_map).toList()
+        final list = s.docs.where(_visible).map(_map).toList()
           ..sort((a, b) {
             // Consultable (online AI/human) first, then by rating.
             if (a.isConsultable != b.isConsultable) return a.isConsultable ? -1 : 1;
@@ -114,7 +126,7 @@ class AstrologerRepository {
       .limit(limit)
       .snapshots()
       .map((s) {
-        final list = s.docs.where(_isActive).map(_map).toList()
+        final list = s.docs.where(_visible).map(_map).toList()
           ..sort((a, b) {
             if (a.isConsultable != b.isConsultable) return a.isConsultable ? -1 : 1;
             return b.rating.compareTo(a.rating);
@@ -130,7 +142,7 @@ class AstrologerRepository {
     // where-clause on a missing field silently drops them. Filter tolerantly
     // client-side (default active) so the full directory shows.
     final snap = await _col.limit(500).get();
-    var all = snap.docs.where(_isActive).map(_map).toList()
+    var all = snap.docs.where(_visible).map(_map).toList()
       ..sort((a, b) => b.rating.compareTo(a.rating));
     if (risingOnly) all = all.where((a) => a.risingStar).toList();
     if (q.isEmpty) return all;

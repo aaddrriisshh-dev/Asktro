@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../app/feature_flags.dart';
 import '../auth/auth_controller.dart';
 import '../consultations/consultations_tab.dart';
 import '../wallet/transactions_screen.dart';
@@ -44,11 +45,14 @@ class ProfileTab extends ConsumerWidget {
             const SizedBox(height: 20),
             _label('ACCOUNT'),
             _card([
-              _row(Icons.account_balance_wallet_rounded, 'My Wallet',
-                  onTap: () => context.push('/recharge'),
-                  trailing: _pill(Money.formatPaise(profile?.spendablePaise ?? 0)),),
-              _row(Icons.receipt_long_rounded, 'Transactions',
-                  onTap: () => _push(context, const TransactionsScreen()),),
+              // Wallet + Transactions are money surfaces — hidden in the free v1.
+              if (kMonetizationEnabled)
+                _row(Icons.account_balance_wallet_rounded, 'My Wallet',
+                    onTap: () => context.push('/recharge'),
+                    trailing: _pill(Money.formatPaise(profile?.spendablePaise ?? 0)),),
+              if (kMonetizationEnabled)
+                _row(Icons.receipt_long_rounded, 'Transactions',
+                    onTap: () => _push(context, const TransactionsScreen()),),
               _row(Icons.chat_bubble_outline_rounded, 'My Sessions',
                   onTap: () => _push(context, const ConsultationsTab()),),
               _row(Icons.favorite_border_rounded, 'My Favourites',
@@ -64,7 +68,8 @@ class ProfileTab extends ConsumerWidget {
               _row(Icons.live_tv_rounded, 'Live Session', onTap: () => _soon(context, 'Live Session')),
               _row(Icons.card_giftcard_rounded, 'Free Service',
                   onTap: () => _freeService(context), badge: 'NEW',),
-              if (profile != null)
+              // Referral gives wallet credit → hidden in the free v1.
+              if (kMonetizationEnabled && profile != null)
                 _row(Icons.redeem_rounded, 'Refer a Friend or Family',
                     onTap: () => _referral(context, profile.referralCode),),
             ]),
@@ -79,8 +84,10 @@ class ProfileTab extends ConsumerWidget {
                           .read(userRepositoryProvider)
                           .updateProfile(profile.id, {'notificationEnabled': v}),
                     ),),
-              _row(Icons.shopping_bag_outlined, 'My Orders',
-                  onTap: () => context.push('/store/orders'),),
+              // Mall orders → hidden in the free v1 (no store purchases).
+              if (kMonetizationEnabled)
+                _row(Icons.shopping_bag_outlined, 'My Orders',
+                    onTap: () => context.push('/store/orders'),),
               _row(Icons.headset_mic_rounded, 'Help & Support',
                   onTap: () => _push(context, const SupportScreen()),),
               _row(Icons.privacy_tip_outlined, 'Privacy Policy',
@@ -177,7 +184,9 @@ class ProfileTab extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          // Wallet-balance card + "Add Money" — money surface, hidden in free v1.
+          if (kMonetizationEnabled) const SizedBox(height: 16),
+          if (kMonetizationEnabled)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(16)),

@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../app/feature_flags.dart';
 import 'home_feed.dart';
 import 'home_popup_config.dart';
 import '../consultations/consultations_tab.dart';
@@ -29,13 +30,17 @@ class HomeShell extends ConsumerStatefulWidget {
 
 class _HomeShellState extends ConsumerState<HomeShell> {
   // Notifications is NOT a bottom tab — it's opened as a full screen from the
-  // top bar's bell (the bottom "Alerts" tab was redundant with it). Order here
-  // is the nav index: Home 0, Consults 1, Wallet 2, Mall 3, Profile 4.
+  // top bar's bell (the bottom "Alerts" tab was redundant with it).
+  // Index order with money on:  Home 0, Consults 1, Wallet 2, Mall 3, Profile 4.
+  // Index order with money off: Home 0, Consults 1, Profile 2 (Wallet + Mall are
+  // dropped for the free v1 — see kMonetizationEnabled). The collection-if keeps
+  // _tabs and the NavigationBar destinations below perfectly in sync, so indices
+  // never drift. kProfileTabIndex mirrors the resulting Profile position.
   static const _tabs = [
     HomeFeed(),
     ConsultationsTab(),
-    WalletTab(),
-    StoreHomeScreen(embedded: true),
+    if (kMonetizationEnabled) WalletTab(),
+    if (kMonetizationEnabled) StoreHomeScreen(embedded: true),
     ProfileTab(),
   ];
 
@@ -173,6 +178,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   // welcome offer (every launch, dismissible). Everyone else gets the usual
   // coupon popup. Waits briefly for the profile stream to have data first.
   Future<void> _maybeShowWelcomeOrOffer() async {
+    // Free v1 has no wallet / recharge / coupons, so none of the promo popups
+    // (welcome offer, portal home pop-up, coupon popup) should ever surface.
+    if (!kMonetizationEnabled) return;
     // Launched by tapping a notification → skip the auto-offer entirely.
     if (ref.read(promoSuppressedProvider)) return;
     var profile = ref.read(myProfileProvider).valueOrNull;
@@ -326,13 +334,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               destinations: const [
                 NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
                 NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: 'Consults'),
-                NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
+                // Wallet + Mall only exist when monetization is on (free v1 hides
+                // them). Kept in lock-step with the _tabs list above.
+                if (kMonetizationEnabled)
+                  NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
                 // Mall stands out in Asktro purple so the store is unmistakable.
-                NavigationDestination(
-                  icon: Icon(Icons.storefront, color: AppColors.primary),
-                  selectedIcon: Icon(Icons.storefront, color: AppColors.primary),
-                  label: 'Mall',
-                ),
+                if (kMonetizationEnabled)
+                  NavigationDestination(
+                    icon: Icon(Icons.storefront, color: AppColors.primary),
+                    selectedIcon: Icon(Icons.storefront, color: AppColors.primary),
+                    label: 'Mall',
+                  ),
                 NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
               ],
             ),
