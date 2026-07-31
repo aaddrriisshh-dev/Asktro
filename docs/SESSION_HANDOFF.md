@@ -6,7 +6,67 @@ re-deriving context._
 
 ---
 
-## 🚨 CURRENT STATE (latest — the "Free v1" pivot). READ THIS FIRST.
+## ✅✅ SUBMITTED FOR REVIEW — 31 Jul 2026 (LATEST). READ THIS FIRST.
+
+**The Free-v1 was built, verified end-to-end, and SUBMITTED to Google.** Play
+Console now shows **"Changes in review"** and the old rejection banner is gone.
+This is a **Closed testing (Alpha)** submission — the required first step for a
+**personal developer account** before Production.
+
+**What is in review (13 changes):**
+- **App build: versionCode 3 (1.0.0)** — the free-v1 AAB (`kMonetizationEnabled
+  = false`). Built on the Mac (`flutter build appbundle --release`, 186 MB
+  upload → 66 MB delivered). Old money build **versionCode 2 excluded** ("Not
+  included" in the release). Release notes set.
+- Country: **India** only · Track: Alpha, 100% rollout · Testers: "Asktro Tester
+  list" (**14 testers**, above Google's 12 minimum).
+- **Store listing (en-GB / Default):** clean short + full descriptions (free AI
+  only); **6 phone screenshots** (Panchang, Janam Kundli, Daily Horoscope,
+  astrologers-list-with-AI-badges, chat, home 3-tab "Hi Adraash"); app icon +
+  feature graphic. **Tablet/Chromebook/XR left empty on purpose.** Removed all
+  old money screenshots (Add Cash / ₹per-min / 5-tab / "Pandit Balbir Singh"
+  human-remedy profile). NOTE: the old **tablet screenshots** (Add Cash + ₹/min
+  + 5-tab) were a hidden rejection trigger — deleted.
+
+**All App-content declarations verified before submit:**
+- **Financial features = "My app does not contain any financial features"** ← the
+  core fix for the rejection.
+- **Data safety:** Financial info **0/4**, Health & fitness **0/2** collected;
+  account-deletion URL present; encrypted in transit. Consistent with "no money".
+- **Health apps:** "My app does not have any health features" ✓
+- **Ads:** "No, my app does not contain ads" ✓
+- **App access (reviewer login):** test number **+918318259972 / OTP 123456**
+  (Firebase test number) with instructions; Google-testing toggle ON.
+- Target audience **18+** · Category **Lifestyle** · Foreground-services declared.
+
+**Website pages fixed to match the free app (dev team updated the live site):**
+- `asktro.in/privacy` and `asktro.in/accountdeletion` were rewritten to remove
+  payments/wallet/pooja/pandit/call/referral wording. Clean v1 source saved at
+  `docs/legal/privacy-policy-v1.html` (privacy) and the account-deletion text is
+  in the chat/handoff. The full-paid versions remain in `docs/legal/*.html` for
+  v2. ⚠️ When monetization returns in v2, restore the paid privacy + deletion
+  pages too.
+
+**WHAT HAPPENS NEXT (pick up here):**
+1. **Wait for Google's review** of the closed-testing release (hours → a couple
+   days). Result comes by email + console notification. Don't touch the release
+   while in review.
+2. **If approved:** send the 14 testers the opt-in link; they must open the app
+   over **14 continuous days** → that unlocks the **Production** application.
+   Then create a Production release (same AAB) and submit for production review.
+3. **If Google flags something:** read it together and fix + resubmit (same flow
+   as today).
+4. **v2 (after D-U-N-S / org account):** flip `kMonetizationEnabled = true`
+   (see `docs/FREE_V1_RESTORE.md`), restore paid privacy/deletion pages, rebuild,
+   ship the 8-issue batch in `docs/POST_APPROVAL_FIXES.md`.
+
+**Env note:** this Claude session runs in a locked-down cloud env that CANNOT
+reach external sites (asktro.in etc. are blocked by the network policy). To
+verify live pages, the founder pastes text / screenshots.
+
+---
+
+## 🚨 PREVIOUS STATE — the "Free v1" pivot (context for the above).
 
 **What happened:** the customer app was **REJECTED** by Play — not for the app,
 but for the **developer account**. Google now requires an **organisation account
