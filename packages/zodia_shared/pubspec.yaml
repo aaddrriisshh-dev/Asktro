@@ -1,0 +1,34 @@
+name: shared_flutter
+description: Shared ZODIA design system, models, DI, and service interfaces.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_fonts: ^6.2.1
+  equatable: ^2.0.5
+  intl: ^0.19.0
+  # Disk + memory cached network images. Avatars re-render across six screens;
+  # raw Image.network re-downloads every portrait each launch and decodes a
+  # ~1000px source into a 56px circle. CachedNetworkImage caches to disk and
+  # downsizes on decode (memCacheWidth) so portraits load instantly and cheaply.
+  cached_network_image: ^3.4.1
+  # Voice/video calling. 6.x declares a proper Android module namespace, which
+  # the old removed version lacked (AGP 8/9 rejected the shared io.agora.rtc
+  # namespace). Lives here so both apps share one engine + version.
+  agora_rtc_engine: ^6.6.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/brand/

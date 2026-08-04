@@ -1,0 +1,394 @@
+'use client';
+
+import { ReactNode, useEffect, useState } from 'react';
+import Link from 'next/link';
+import {
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+} from 'recharts';
+import {
+  collection, query, where, getDocs, doc, getDoc, Timestamp, limit,
+  getCountFromServer, getAggregateFromServer, sum,
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { formatPaise, shortDay } from '@/lib/format';
+import { useCardFilter } from '@/lib/useCardFilter';
+import { Range } from '@/lib/dateRange';
+import { fetchDailyStats } from '@/lib/dailyStats';
+import { DrawerFilter } from './DrawerFilter';
+
+// ---------------------------------------------------------------- panel shell
+function OpsPanel({
+  title, description, icon, colorClass, wide, defaultOpen = true, children,
+}: {
+  title: string; description: string; icon: ReactNode; colorClass: string;
+  wide?: boolean; defaultOpen?: boolean; children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  // On phones, start every panel collapsed so the dashboard is a tidy list of
+  // headers the admin taps to open — no long scroll of charts and tables.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) setOpen(false);
+  }, []);
+  return (
+    <section className={`ops ${colorClass}${wide ? ' ops--wide' : ''}`}>
+      <button className="ops-head" onClick={() => setOpen((o) => !o)}>
+        <span className="ops-ico">{icon}</span>
+        <span className="ops-titles">
+          <strong>{title}</strong>
+          <em>{description}</em>
+        </span>
+        <span className="ops-caret">{open ? '▴' : '▾'}</span>
+      </button>
+      {open && <div className="ops-body">{children}</div>}
+    </section>
+  );
+}
+
+function Skel({ h = 200 }: { h?: number }) { return <div className="dashcard__skel" style={{ height: h, width: '100%' }} />; }
+
+const axis = { fontSize: 11, fill: '#9891c2' };
+const gridStroke = '#efeafc';
+const tooltipStyle = { background: '#fff', border: '1px solid #e6edf7', borderRadius: 10, color: '#141c38' };
+
+// ---------------------------------------------------------------- icons
+const I = (p: ReactNode) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">{p}</svg>
+);
+const iconBell = I(<><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></>);
+const iconTrend = I(<><path d="M23 6l-9.5 9.5-5-5L1 18" /><path d="M17 6h6v6" /></>);
+const iconUsers = I(<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></>);
+const iconChat = I(<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />);
+const iconStar = I(<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />);
+const iconWallet = I(<><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4z" /></>);
+const iconTrophy = I(<><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z" /><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3" /></>);
+
+// ================================================================ 1. Needs attention
+function NeedsAttention() {
+  const [d, setD] = useState<{ tickets: number; payouts: number; approvals: number } | null>(null);
+  useEffect(() => {
+    (async () => {
+      // Server-side counts — the number comes back, no docs are downloaded.
+      const [tk, po, as] = await Promise.all([
+        getCountFromServer(query(collection(db, 'supportTickets'), where('status', '==', 'open'))),
+        getCountFromServer(query(collection(db, 'payouts'), where('status', '==', 'pending'))),
+        getCountFromServer(query(collection(db, 'astrologers'), where('accountStatus', '==', 'pending'))),
+      ]);
+      setD({ tickets: tk.data().count, payouts: po.data().count, approvals: as.data().count });
+    })().catch(() => setD(null)); // leave as '—' (unknown), never a misleading 0
+  }, []);
+  const items = [
+    { href: '/support', label: 'Open support tickets', hint: 'Users & astrologers awaiting a reply', n: d?.tickets, cls: 'c-red' },
+    { href: '/payouts', label: 'Pending payouts', hint: 'Astrologer withdrawals to approve & pay', n: d?.payouts, cls: 'c-bronze' },
+    { href: '/astrologers', label: 'Astrologers to approve', hint: 'New profiles waiting for verification', n: d?.approvals, cls: 'c-blue' },
+  ];
+  return (
+    <div className="na-grid">
+      {items.map((it) => (
+        <Link key={it.href} href={it.href} className={`na-tile ${it.cls}`}>
+          <span className="na-n">{d ? it.n : '—'}</span>
+          <span className="na-label">{it.label}</span>
+          <span className="na-hint">{it.hint}</span>
+          <span className="na-go">Open →</span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+// ================================================================ 2. Revenue trend
+function RevenueTrend() {
+  const { preset, setPreset, custom, setCustom, range } = useCardFilter('ops_revenue', 'last30');
+  const [data, setData] = useState<{ day: string; value: number }[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setData(null);
+    (async () => {
+      // Per-day rollup — one small doc per day, not the transaction firehose.
+      const days = await fetchDailyStats(range);
+      if (!cancelled) setData(days.map((s) => ({ day: shortDay(s.day), value: Math.round((s.revenue?.recharge ?? 0) / 100) })));
+    })().catch(() => { if (!cancelled) setData([]); });
+    return () => { cancelled = true; };
+  }, [range.start, range.end]);
+  return (
+    <>
+      <div className="ops-filter"><DrawerFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} /></div>
+      {!data ? <Skel h={230} /> : (
+    <div style={{ height: 230 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+          <defs><linearGradient id="opsrev" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2f9c63" stopOpacity={0.35} /><stop offset="100%" stopColor="#2f9c63" stopOpacity={0} /></linearGradient></defs>
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
+          <XAxis dataKey="day" tick={axis} stroke="#e7e1f5" /><YAxis tick={axis} stroke="#e7e1f5" />
+          <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`₹${v.toLocaleString('en-IN')}`, 'Revenue']} />
+          <Area type="monotone" dataKey="value" stroke="#2f9c63" strokeWidth={2} fill="url(#opsrev)" />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+      )}
+    </>
+  );
+}
+
+// ================================================================ 3. Paid vs Free
+function PaidVsFree() {
+  const { preset, setPreset, custom, setCustom, range } = useCardFilter('ops_paidfree', 'allTime');
+  const [d, setD] = useState<{ paid: number; free: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setD(null);
+    (async () => {
+      // Lifetime paid-vs-free via server COUNT aggregations — no users download.
+      // (A range-scoped split would need two inequalities in one query, which
+      // Firestore disallows; paid-vs-free is naturally a current-state metric.)
+      const [totalAgg, paidAgg] = await Promise.all([
+        getCountFromServer(collection(db, 'users')),
+        getCountFromServer(query(collection(db, 'users'), where('totalRecharge', '>', 0))),
+      ]);
+      const paid = paidAgg.data().count;
+      if (!cancelled) setD({ paid, free: Math.max(0, totalAgg.data().count - paid) });
+    })().catch(() => { if (!cancelled) setD(null); }); // stay in loading, never fake 0/0
+    return () => { cancelled = true; };
+  }, [range.start, range.end]);
+  const total = (d?.paid ?? 0) + (d?.free ?? 0) || 1;
+  const pct = Math.round(((d?.paid ?? 0) / total) * 100);
+  return (
+    <>
+      <div className="ops-filter"><DrawerFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} /></div>
+      {!d ? <Skel h={210} /> : (
+    <div className="pvf">
+      <div className="pvf-chart">
+        <ResponsiveContainer width="100%" height={190}>
+          <PieChart>
+            <Pie data={[{ name: 'Paid', value: d.paid }, { name: 'Free', value: d.free }]} dataKey="value" innerRadius={58} outerRadius={82} paddingAngle={2} stroke="none">
+              <Cell fill="#d0567e" /><Cell fill="#e7e1f5" />
+            </Pie>
+            <Tooltip contentStyle={tooltipStyle} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pvf-center"><strong>{pct}%</strong><span>paid</span></div>
+      </div>
+      <div className="pvf-legend">
+        <div><i style={{ background: '#d0567e' }} /> Paid users <b>{d.paid.toLocaleString('en-IN')}</b></div>
+        <div><i style={{ background: '#c9c4e0' }} /> Free users <b>{d.free.toLocaleString('en-IN')}</b></div>
+      </div>
+    </div>
+      )}
+    </>
+  );
+}
+
+// ================================================================ 4. Consultation activity
+function ConsultationActivity() {
+  const { preset, setPreset, custom, setCustom, range } = useCardFilter('ops_consult', 'last30');
+  const [data, setData] = useState<{ day: string; chat: number; voice: number; video: number }[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setData(null);
+    (async () => {
+      // Per-day rollup — one small doc per day, not a scan of every session.
+      const days = await fetchDailyStats(range);
+      if (!cancelled) setData(days.map((s) => ({
+        day: shortDay(s.day),
+        chat: s.consultations?.chat ?? 0,
+        voice: s.consultations?.voice ?? 0,
+        video: s.consultations?.video ?? 0,
+      })));
+    })().catch(() => { if (!cancelled) setData([]); });
+    return () => { cancelled = true; };
+  }, [range.start, range.end]);
+  return (
+    <>
+      <div className="ops-filter"><DrawerFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} /></div>
+      {!data ? <Skel h={230} /> : (
+    <div style={{ height: 230 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
+          <XAxis dataKey="day" tick={axis} stroke="#e7e1f5" /><YAxis tick={axis} stroke="#e7e1f5" allowDecimals={false} />
+          <Tooltip contentStyle={tooltipStyle} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
+          <Bar dataKey="chat" stackId="a" fill="#2e4a8f" radius={[0, 0, 0, 0]} />
+          <Bar dataKey="voice" stackId="a" fill="#3b6fd4" />
+          <Bar dataKey="video" stackId="a" fill="#12a594" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+      )}
+    </>
+  );
+}
+
+// ================================================================ 5. Astrologer supply
+function AstrologerSupply() {
+  const [d, setD] = useState<{ online: number; total: number; male: number; female: number } | null>(null);
+  useEffect(() => {
+    (async () => {
+      const snap = await getDocs(query(collection(db, 'astrologers'), limit(500)));
+      let online = 0, male = 0, female = 0;
+      snap.forEach((doc) => {
+        const a = doc.data() as { onlineStatus?: boolean; gender?: string };
+        if (a.onlineStatus) online++;
+        if (a.gender === 'male') male++; else if (a.gender === 'female') female++;
+      });
+      setD({ online, total: snap.size, male, female });
+    })().catch(() => setD({ online: 0, total: 0, male: 0, female: 0 }));
+  }, []);
+  if (!d) return <Skel h={230} />;
+  const offline = Math.max(0, d.total - d.online);
+  const gTotal = d.male + d.female || 1;
+  return (
+    <div className="pvf">
+      <div className="pvf-chart">
+        <ResponsiveContainer width="100%" height={190}>
+          <PieChart>
+            <Pie data={[{ name: 'Online', value: d.online }, { name: 'Offline', value: offline }]} dataKey="value" innerRadius={58} outerRadius={82} paddingAngle={2} stroke="none">
+              <Cell fill="#12a594" /><Cell fill="#e7e1f5" />
+            </Pie>
+            <Tooltip contentStyle={tooltipStyle} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pvf-center"><strong>{d.online}</strong><span>online now</span></div>
+      </div>
+      <div className="pvf-legend">
+        <div><i style={{ background: '#12a594' }} /> Online <b>{d.online}</b></div>
+        <div><i style={{ background: '#c9c4e0' }} /> Offline <b>{offline}</b></div>
+        <div className="pvf-split">
+          <span>Male {d.male} · Female {d.female}</span>
+          <div className="pvf-bar"><span style={{ width: `${(d.male / gTotal) * 100}%`, background: '#5b5bd6' }} /><span style={{ width: `${(d.female / gTotal) * 100}%`, background: '#d0567e' }} /></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ================================================================ 6. Money held & owed
+function MoneyHeldOwed() {
+  // undefined = still loading, null = this figure's query failed (e.g. denied).
+  const [held, setHeld] = useState<number | null | undefined>(undefined);
+  const [owed, setOwed] = useState<number | null | undefined>(undefined);
+  useEffect(() => {
+    // Server-side SUM aggregations — the totals are computed by Firestore and
+    // only the numbers come back, so we never download the (growing) users or
+    // payouts collections into the browser. The two run INDEPENDENTLY so one
+    // failing (e.g. a permission denial) can't blank the whole panel forever.
+    // Two SEPARATE single-field sums (not one combined two-field aggregation):
+    // a multi-field sum needs a composite index Firestore won't auto-create and
+    // fails with failed-precondition, whereas each single-field sum uses the
+    // automatic single-field index that always exists.
+    Promise.all([
+      getAggregateFromServer(collection(db, 'users'), { v: sum('walletBalance') }),
+      getAggregateFromServer(collection(db, 'users'), { v: sum('bonusBalance') }),
+    ])
+      .then(([w, b]) => setHeld((w.data().v ?? 0) + (b.data().v ?? 0)))
+      .catch(() => setHeld(null));
+    getAggregateFromServer(query(collection(db, 'payouts'), where('status', 'in', ['pending', 'approved'])), { amt: sum('amount') })
+      .then((a) => setOwed(a.data().amt ?? 0))
+      .catch(() => setOwed(null));
+  }, []);
+  if (held === undefined || owed === undefined) return <Skel h={120} />;
+  const denied = held === null && owed === null;
+  return (
+    <div className="mho">
+      <div className="mho-fig c-blue">
+        <span className="mho-label">Customer wallet balance held</span>
+        <strong>{held === null ? '—' : formatPaise(held)}</strong>
+        <span className="mho-hint">Money customers have loaded but not yet spent — a liability on your books.</span>
+      </div>
+      <div className="mho-fig c-bronze">
+        <span className="mho-label">Pending payouts owed</span>
+        <strong>{owed === null ? '—' : formatPaise(owed)}</strong>
+        <span className="mho-hint">Earnings you still owe astrologers (requested or approved, not yet paid).</span>
+      </div>
+      {denied && (
+        <p className="mho-hint" style={{ gridColumn: '1 / -1', color: '#b45309', marginTop: 4 }}>
+          Couldn&apos;t load these figures — they require a <strong>Super</strong> or <strong>Ops</strong> admin role.
+          If you were just granted that role, sign out and back in to refresh your access.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ================================================================ 7. Top astrologers
+function TopAstrologers() {
+  const [rows, setRows] = useState<{ name: string; cons: number; rating: number; earnings: number }[] | null>(null);
+  useEffect(() => {
+    (async () => {
+      const snap = await getDocs(query(collection(db, 'astrologers'), limit(500)));
+      // earnings now live in the admin-readable private/financials subdoc.
+      const list = await Promise.all(snap.docs.map(async (dref) => {
+        const a = dref.data() as { name?: string; totalConsultations?: number; rating?: number };
+        const finSnap = await getDoc(doc(db, 'astrologers', dref.id, 'private', 'financials'));
+        const earnings = (finSnap.exists() ? (finSnap.data() as { earnings?: number }).earnings : 0) ?? 0;
+        return { name: a.name ?? '—', cons: a.totalConsultations ?? 0, rating: a.rating ?? 0, earnings };
+      }));
+      list.sort((a, b) => b.earnings - a.earnings);
+      setRows(list.slice(0, 8));
+    })().catch(() => setRows([]));
+  }, []);
+  if (!rows) return <Skel h={200} />;
+  if (rows.length === 0) return <p className="drawer-muted">No astrologers yet.</p>;
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table className="ops-table">
+        <thead><tr><th>#</th><th>Astrologer</th><th>Consultations</th><th>Rating</th><th>Earnings</th></tr></thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <td><span className={`ops-rank r${i + 1}`}>{i + 1}</span></td>
+              <td className="ops-name">{r.name}</td>
+              <td>{r.cons.toLocaleString('en-IN')}</td>
+              <td>{r.rating ? `${r.rating} ★` : '—'}</td>
+              <td className="ops-earn">{formatPaise(r.earnings)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ================================================================ section
+export function OperationsSection({ showMoney = true }: { showMoney?: boolean }) {
+  return (
+    <div className="ops-wrap">
+      <h2 className="ops-heading"><span className="ops-heading-dot" />Operations &amp; Insights</h2>
+      <p className="ops-sub">The metrics to watch daily — trends, monetisation, supply and what needs your action. Click any panel header to collapse it.</p>
+
+      <div className="opsgrid">
+        <OpsPanel wide title="Needs attention" description="Live to-do queue — items waiting on you right now" icon={iconBell} colorClass="c-red">
+          <NeedsAttention />
+        </OpsPanel>
+
+        {showMoney && (
+          <OpsPanel title="Revenue trend" description="Daily gross revenue from recharges — pick any date range" icon={iconTrend} colorClass="c-green">
+            <RevenueTrend />
+          </OpsPanel>
+        )}
+
+        <OpsPanel title="Paid vs free users" description="Share of users (by sign-up date) who have ever recharged" icon={iconUsers} colorClass="c-rose">
+          <PaidVsFree />
+        </OpsPanel>
+
+        <OpsPanel title="Consultation activity" description="Sessions per day by type — chat, voice, video — pick any date range" icon={iconChat} colorClass="c-blue">
+          <ConsultationActivity />
+        </OpsPanel>
+
+        <OpsPanel title="Astrologer supply" description="How many astrologers are online now vs total, and the gender mix" icon={iconStar} colorClass="c-teal">
+          <AstrologerSupply />
+        </OpsPanel>
+
+        {showMoney && (
+          <OpsPanel wide title="Money held &amp; owed" description="Your financial exposure — wallet liability and unpaid astrologer earnings" icon={iconWallet} colorClass="c-bronze">
+            <MoneyHeldOwed />
+          </OpsPanel>
+        )}
+
+        <OpsPanel wide title="Top astrologers" description="Best performers by earnings — who to feature and reward" icon={iconTrophy} colorClass="c-indigo" defaultOpen={false}>
+          <TopAstrologers />
+        </OpsPanel>
+      </div>
+    </div>
+  );
+}

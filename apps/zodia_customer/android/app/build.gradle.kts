@@ -1,0 +1,83 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+plugins {
+    id("com.android.application")
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Release signing is driven by android/key.properties (kept OUT of git). When it
+// is present the release build is signed with the real upload key (required for
+// Play). When absent, we fall back to the debug key so local `flutter run
+// --release` / test-APK builds still work. See docs/PRODUCTION_READINESS_AUDIT.md.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val hasReleaseKeystore = keystorePropertiesFile.exists()
+if (hasReleaseKeystore) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace = "com.example.asktro_customer"
+    compileSdk = 36
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    defaultConfig {
+        // Real store package ID (Play bans `com.example.*`). This must have a
+        // matching Android app registered in the Firebase console with an updated
+        // google-services.json, or the Google Services plugin fails the build.
+        // `namespace` above stays internal (users never see it) and need not match.
+        applicationId = "in.zodia.customer"
+        minSdk = 24
+        targetSdk = 36
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    signingConfigs {
+        create("release") {
+            if (hasReleaseKeystore) {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // AGP 9 enables R8 code shrinking by DEFAULT for release, which strips
+            // Firebase's classes and makes Firebase.initializeApp() throw at launch
+            // (release-only crash; debug is unaffected). Disable shrinking so the
+            // release build works. A larger, un-obfuscated APK is a fine trade for
+            // a launching app; enabling minify later requires Firebase/Flutter
+            // proguard keep rules and a real device test.
+            isMinifyEnabled = false
+            isShrinkResources = false
+
+            // Real upload key when key.properties is present; debug key otherwise
+            // (so local test builds keep working). Play requires the real key.
+            signingConfig = if (hasReleaseKeystore)
+                signingConfigs.getByName("release")
+            else
+                signingConfigs.getByName("debug")
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
+flutter {
+    source = "../.."
+}

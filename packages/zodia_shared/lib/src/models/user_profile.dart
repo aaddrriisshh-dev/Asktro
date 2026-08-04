@@ -1,0 +1,121 @@
+import 'package:equatable/equatable.dart';
+
+/// Customer profile. Money fields are display-only on the client.
+class UserProfile extends Equatable {
+  const UserProfile({
+    required this.id,
+    required this.name,
+    this.phone = '',
+    this.email,
+    this.profilePhoto,
+    this.walletBalance = 0,
+    this.bonusBalance = 0,
+    this.chatBonusBalance = 0,
+    this.totalRecharge = 0,
+    this.referralCode = '',
+    this.referredBy,
+    this.totalConsultations = 0,
+    this.notificationEnabled = true,
+    this.favouriteAstrologers = const [],
+    this.followingAstrologers = const [],
+    this.accountStatus = 'active',
+    this.gender,
+    this.birthDateMs,
+    this.birthTime,
+    this.birthTimeKnown = true,
+    this.birthPlace,
+    this.birthLat,
+    this.birthLng,
+    this.languages = const [],
+    this.relationshipStatus,
+    this.onboardingComplete = false,
+  });
+
+  final String id;
+  final String name;
+  final String phone;
+  final String? email;
+  final String? profilePhoto;
+  final int walletBalance; // paise
+  final int bonusBalance; // paise (any-type bonus: referral, grace)
+  final int chatBonusBalance; // paise (chat-only welcome credit — free chat minutes)
+  final int totalRecharge; // paise, cumulative recharged — 0 means never recharged
+  final String referralCode;
+  final String? referredBy;
+  final int totalConsultations;
+  final bool notificationEnabled;
+  final List<String> favouriteAstrologers;
+  final List<String> followingAstrologers;
+  final String accountStatus;
+
+  // ---- Astrology profile (collected during onboarding) ----
+  final String? gender; // 'male' | 'female'
+  final int? birthDateMs; // epoch millis (date component)
+  final String? birthTime; // 'HH:mm' 24h, or null if unknown
+  final bool birthTimeKnown;
+  final String? birthPlace; // free-text city, country
+  final double? birthLat; // birth-place latitude (for ProKerala kundli/panchang)
+  final double? birthLng; // birth-place longitude
+  final List<String> languages;
+
+  /// ProKerala needs "lat,lng" coordinates. Null until the birth place is
+  /// captured with a geocoded result (or backfilled on demand).
+  String? get birthCoordinates =>
+      (birthLat != null && birthLng != null) ? '$birthLat,$birthLng' : null;
+  final String? relationshipStatus; // 'married' | 'single' | 'divorced' | 'in_relationship'
+  final bool onboardingComplete;
+
+  /// General spendable (wallet + any-type bonus) — the balance usable on a
+  /// voice/video call. The chat-only welcome credit is NOT included here.
+  int get spendablePaise => walletBalance + bonusBalance;
+
+  /// Spendable for a CHAT — includes the chat-only welcome credit.
+  int get spendableForChatPaise => walletBalance + bonusBalance + chatBonusBalance;
+
+  /// True once the user has made at least one recharge (drives the welcome offer,
+  /// which is only shown to users who haven't paid yet).
+  bool get hasRecharged => totalRecharge > 0;
+
+  DateTime? get birthDate =>
+      birthDateMs == null ? null : DateTime.fromMillisecondsSinceEpoch(birthDateMs!);
+
+  factory UserProfile.fromMap(String id, Map<String, dynamic> m) => UserProfile(
+        id: id,
+        name: (m['name'] ?? '') as String,
+        phone: (m['phone'] ?? '') as String,
+        email: m['email'] as String?,
+        profilePhoto: m['profilePhoto'] as String?,
+        walletBalance: ((m['walletBalance'] ?? 0) as num).toInt(),
+        bonusBalance: ((m['bonusBalance'] ?? 0) as num).toInt(),
+        chatBonusBalance: ((m['chatBonusBalance'] ?? 0) as num).toInt(),
+        totalRecharge: ((m['totalRecharge'] ?? 0) as num).toInt(),
+        referralCode: (m['referralCode'] ?? '') as String,
+        referredBy: m['referredBy'] as String?,
+        totalConsultations: ((m['totalConsultations'] ?? 0) as num).toInt(),
+        notificationEnabled: (m['notificationEnabled'] ?? true) as bool,
+        favouriteAstrologers: List<String>.from(m['favouriteAstrologers'] ?? const []),
+        followingAstrologers: List<String>.from(m['followingAstrologers'] ?? const []),
+        accountStatus: (m['accountStatus'] ?? 'active') as String,
+        gender: m['gender'] as String?,
+        birthDateMs: (m['birthDateMs'] as num?)?.toInt(),
+        birthTime: m['birthTime'] as String?,
+        birthTimeKnown: (m['birthTimeKnown'] ?? true) as bool,
+        birthPlace: m['birthPlace'] as String?,
+        birthLat: (m['birthLat'] as num?)?.toDouble(),
+        birthLng: (m['birthLng'] as num?)?.toDouble(),
+        languages: List<String>.from(m['languages'] ?? const []),
+        relationshipStatus: m['relationshipStatus'] as String?,
+        onboardingComplete: (m['onboardingComplete'] ?? false) as bool,
+      );
+
+  @override
+  List<Object?> get props => [
+        id, name, phone, email, profilePhoto, walletBalance, bonusBalance,
+        chatBonusBalance, totalRecharge,
+        referralCode, referredBy, totalConsultations, notificationEnabled,
+        favouriteAstrologers, followingAstrologers, accountStatus,
+        gender, birthDateMs, birthTime, birthTimeKnown, birthPlace,
+        birthLat, birthLng,
+        languages, relationshipStatus, onboardingComplete,
+      ];
+}

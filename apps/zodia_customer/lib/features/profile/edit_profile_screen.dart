@@ -1,0 +1,504 @@
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_flutter/shared_flutter.dart';
+
+import '../../app/providers.dart';
+import '../../data/place_search_service.dart';
+import '../profile_setup/onboarding_style.dart';
+
+/// Full account / astrology profile — identity (name, email, phone) plus birth
+/// details for the chart. Uses keypad-free wheel pickers for date & time and a
+/// live city search (same OpenStreetMap service as onboarding) for the place, so
+/// there's nothing awkward to type. Everything is stored so it travels with a
+/// consultation request. Phone is read-only (login identity).
+class EditProfileScreen extends ConsumerStatefulWidget {
+  const EditProfileScreen({super.key});
+
+  @override
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+const _kLanguages = [
+  'Hindi', 'English', 'Bengali', 'Tamil', 'Telugu', 'Kannada',
+  'Marathi', 'Punjabi', 'Gujarati', 'Malayalam', 'Odia', 'Urdu',
+];
+const _kMonths = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+  final _name = TextEditingController();
+  final _email = TextEditingController();
+  final _place = TextEditingController();
+
+  String? _gender;
+  DateTime? _birthDate;
+  TimeOfDay? _birthTime;
+  bool _timeKnown = true;
+  String? _relationship;
+  final Set<String> _languages = {};
+
+  final _placeService = PlaceSearchService();
+  Timer? _placeDebounce;
+  List<PlaceResult> _placeResults = const [];
+  bool _placeLoading = false;
+  double? _birthLat;
+  double? _birthLng;
+
+  bool _prefilled = false;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _email.dispose();
+    _place.dispose();
+    _placeDebounce?.cancel();
+    super.dispose();
+  }
+
+  void _prefill(UserProfile p) {
+    _name.text = p.name == 'Guest' ? '' : p.name;
+    _email.text = p.email ?? '';
+    _place.text = p.birthPlace ?? '';
+    _birthLat = p.birthLat;
+    _birthLng = p.birthLng;
+    _gender = p.gender;
+    _birthDate = p.birthDate;
+    _timeKnown = p.birthTimeKnown;
+    if (p.birthTime != null && p.birthTime!.contains(':')) {
+      final parts = p.birthTime!.split(':');
+      final h = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+      if (h != null && m != null) _birthTime = TimeOfDay(hour: h, minute: m);
+    }
+    _relationship = p.relationshipStatus;
+    _languages
+      ..clear()
+      ..addAll(p.languages);
+  }
+
+  String? _birthTime24() {
+    if (!_timeKnown || _birthTime == null) return null;
+    return '${_birthTime!.hour.toString().padLeft(2, '0')}:${_birthTime!.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _save(UserProfile profile) async {
+    final name = _name.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please enter your name.')));
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ref.read(userRepositoryProvider).updateProfile(profile.id, {
+        'name': name,
+        'email': _email.text.trim(),
+        'gender': _gender,
+        'birthDateMs': _birthDate?.millisecondsSinceEpoch,
+        'birthTimeKnown': _timeKnown,
+        'birthTime': _birthTime24(),
+        'birthPlace': _place.text.trim(),
+        'birthLat': _birthLat,
+        'birthLng': _birthLng,
+        'relationshipStatus': _relationship,
+        'languages': _languages.toList(),
+        'onboardingComplete': true,
+      });
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Profile updated.')));
+      Navigator.of(context).maybePop();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Could not save. Please try again.')));
+    }
+  }
+
+  // ---- wheel pickers (no keypad) ----
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    var temp = _birthDate ?? DateTime(1995, 6, 15);
+    if (temp.isAfter(now)) temp = now;
+    await _wheelSheet(
+      'Date of birth',
+      CupertinoDatePicker(
+        mode: CupertinoDatePickerMode.date,
+        initialDateTime: temp,
+        minimumYear: 1920,
+        maximumDate: now,
+        onDateTimeChanged: (d) => temp = d,
+      ),
+      () => setState(() => _birthDate = temp),
+    );
+  }
+
+  Future<void> _pickTime() async {
+    var temp = DateTime(2020, 1, 1, _birthTime?.hour ?? 9, _birthTime?.minute ?? 0);
+    await _wheelSheet(
+      'Time of birth',
+      CupertinoDatePicker(
+        mode: CupertinoDatePickerMode.time,
+        use24hFormat: false,
+        initialDateTime: temp,
+        onDateTimeChanged: (d) => temp = d,
+      ),
+      () => setState(() {
+        _birthTime = TimeOfDay(hour: temp.hour, minute: temp.minute);
+        _timeKnown = true;
+      }),
+    );
+  }
+
+  Future<void> _wheelSheet(String title, Widget picker, VoidCallback onDone) {
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),),
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 320,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: Ob.border)),),
+                child: Row(
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                    Expanded(
+                      child: Text(title,
+                          textAlign: TextAlign.center,
+                          style: Ob.option.copyWith(fontWeight: FontWeight.w700),),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        onDone();
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('Done',
+                          style: TextStyle(color: Ob.purple, fontWeight: FontWeight.w700),),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(child: picker),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---- live city search ----
+  void _onPlaceChanged(String v) {
+    // Typing free text invalidates the previously picked coordinates — they are
+    // only trustworthy for a place chosen from the geocoded suggestions.
+    _birthLat = null;
+    _birthLng = null;
+    _placeDebounce?.cancel();
+    final q = v.trim();
+    if (q.length < 2) {
+      setState(() {
+        _placeResults = const [];
+        _placeLoading = false;
+      });
+      return;
+    }
+    setState(() => _placeLoading = true);
+    _placeDebounce = Timer(const Duration(milliseconds: 450), () async {
+      final r = await _placeService.search(q);
+      if (!mounted || q != _place.text.trim()) return;
+      setState(() {
+        _placeResults = r;
+        _placeLoading = false;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = ref.watch(myProfileProvider).valueOrNull;
+    if (profile != null && !_prefilled) {
+      _prefilled = true;
+      _prefill(profile);
+    }
+    return Scaffold(
+      backgroundColor: Ob.bgColor,
+      appBar: AppBar(
+        backgroundColor: Ob.bgColor,
+        elevation: 0,
+        foregroundColor: Ob.purpleDeep,
+        title: const Text('Account details'),
+      ),
+      body: profile == null
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 40 + MediaQuery.of(context).padding.bottom),
+              children: [
+                _label('IDENTITY'),
+                _text('Name', _name, hint: 'Your full name', icon: Icons.person_outline_rounded),
+                const SizedBox(height: 14),
+                _text('Email', _email,
+                    hint: 'you@email.com',
+                    icon: Icons.mail_outline_rounded,
+                    keyboardType: TextInputType.emailAddress,),
+                const SizedBox(height: 14),
+                _readOnly('Phone', profile.phone.isEmpty ? '—' : profile.phone,
+                    icon: Icons.phone_iphone_rounded,),
+                const SizedBox(height: 24),
+                _label('BIRTH DETAILS (FOR YOUR CHART)'),
+                _chips('Gender', const {'male': 'Male', 'female': 'Female'}, _gender,
+                    (v) => setState(() => _gender = v),),
+                const SizedBox(height: 14),
+                _pickerRow(
+                  'Date of birth',
+                  _birthDate == null
+                      ? 'Tap to choose'
+                      : '${_kMonths[_birthDate!.month - 1]} ${_birthDate!.day}, ${_birthDate!.year}',
+                  Icons.cake_outlined,
+                  _pickDate,
+                ),
+                const SizedBox(height: 14),
+                _pickerRow(
+                  'Time of birth',
+                  !_timeKnown
+                      ? "Don't know"
+                      : (_birthTime == null ? 'Tap to choose' : _birthTime!.format(context)),
+                  Icons.schedule_rounded,
+                  _pickTime,
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: () => setState(() => _timeKnown = !_timeKnown),
+                    child: Text(_timeKnown ? "I don't know my birth time" : 'I do know my birth time',
+                        style: Ob.note.copyWith(color: Ob.purple),),
+                  ),
+                ),
+                _placeField(),
+                const SizedBox(height: 24),
+                _label('ABOUT YOU'),
+                _chips(
+                    'Relationship',
+                    const {'single': 'Single', 'in_relationship': 'In a relationship', 'married': 'Married'},
+                    _relationship,
+                    (v) => setState(() => _relationship = v),),
+                const SizedBox(height: 14),
+                _label('LANGUAGES'),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final lang in _kLanguages)
+                      _chip(lang, _languages.contains(lang), () => setState(() {
+                            if (_languages.contains(lang)) {
+                              _languages.remove(lang);
+                            } else {
+                              _languages.add(lang);
+                            }
+                          }),),
+                  ],
+                ),
+              ],
+            ),
+      // Save lives in a sticky bottom bar so it's always reachable (and stays
+      // above the keyboard) instead of being buried at the end of the scroll.
+      bottomNavigationBar: profile == null
+          ? null
+          : SafeArea(
+              minimum: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: GestureDetector(
+                onTap: _saving ? null : () => _save(profile),
+                child: Container(
+                  height: 54,
+                  decoration: BoxDecoration(gradient: Ob.goldGradient, borderRadius: BorderRadius.circular(16)),
+                  child: Center(
+                    child: _saving
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),)
+                        : Text('Save changes', style: Ob.option.copyWith(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _label(String t) => Padding(
+        padding: const EdgeInsets.only(left: 4, bottom: 8, top: 4),
+        child: Text(t, style: Ob.note.copyWith(fontWeight: FontWeight.w600, letterSpacing: 1)),
+      );
+
+  Widget _text(String label, TextEditingController c,
+      {required String hint, required IconData icon, TextInputType? keyboardType,}) {
+    return TextField(
+      controller: c,
+      keyboardType: keyboardType,
+      style: Ob.option,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, color: Ob.purple, size: 20),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.border)),
+        enabledBorder:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.border)),
+        focusedBorder:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.purple)),
+      ),
+    );
+  }
+
+  Widget _readOnly(String label, String value, {required IconData icon}) {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F0FA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Ob.border),
+      ),
+      child: Row(children: [
+        Icon(icon, color: Ob.purple, size: 20),
+        const SizedBox(width: 12),
+        Text('$label:  ', style: Ob.note),
+        Text(value, style: Ob.option),
+        const Spacer(),
+        const Icon(Icons.lock_outline_rounded, color: Color(0xFFB9B3C9), size: 16),
+      ],),
+    );
+  }
+
+  Widget _pickerRow(String label, String value, IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Ob.border),
+        ),
+        child: Row(children: [
+          Icon(icon, color: Ob.purple, size: 20),
+          const SizedBox(width: 12),
+          Text('$label:  ', style: Ob.note),
+          Expanded(child: Text(value, style: Ob.option, overflow: TextOverflow.ellipsis)),
+          const Icon(Icons.chevron_right_rounded, color: Color(0xFFB9B3C9)),
+        ],),
+      ),
+    );
+  }
+
+  Widget _placeField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _place,
+          onChanged: _onPlaceChanged,
+          style: Ob.option,
+          decoration: InputDecoration(
+            labelText: 'Place of birth',
+            hintText: 'Start typing your city…',
+            prefixIcon: const Icon(Icons.place_outlined, color: Ob.purple, size: 20),
+            suffixIcon: _placeLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),)
+                : null,
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.border)),
+            enabledBorder:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.border)),
+            focusedBorder:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Ob.purple)),
+          ),
+        ),
+        if (_placeResults.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Ob.border),
+            ),
+            child: Column(
+              children: [
+                for (final r in _placeResults)
+                  InkWell(
+                    onTap: () {
+                      _place.text = r.label;
+                      _place.selection = TextSelection.collapsed(offset: r.label.length);
+                      _birthLat = r.lat;
+                      _birthLng = r.lon;
+                      setState(() => _placeResults = const []);
+                      FocusScope.of(context).unfocus();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      child: Row(children: [
+                        const Icon(Icons.place_outlined, size: 17, color: Ob.purple),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(r.label, style: Ob.note.copyWith(fontSize: 13.5))),
+                      ],),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _chips(String label, Map<String, String> options, String? selected, ValueChanged<String> onSelect) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(padding: const EdgeInsets.only(left: 4, bottom: 8), child: Text(label, style: Ob.note)),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final e in options.entries) _chip(e.value, selected == e.key, () => onSelect(e.key)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _chip(String text, bool on, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: on ? Ob.lavenderChip : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: on ? Ob.purple : Ob.border, width: on ? 1.5 : 1),
+        ),
+        child: Text(text,
+            style: Ob.note.copyWith(
+                color: on ? Ob.purpleDeep : const Color(0xFF6B6580),
+                fontWeight: on ? FontWeight.w700 : FontWeight.w500,),),
+      ),
+    );
+  }
+}

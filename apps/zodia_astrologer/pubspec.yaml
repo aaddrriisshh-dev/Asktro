@@ -1,0 +1,74 @@
+name: asktro_astrologer
+description: ZODIA astrologer application.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_flutter:
+    path: ../../packages/zodia_shared
+
+  flutter_riverpod: ^2.5.1
+  go_router: ^14.2.0
+
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  firebase_app_check: ^0.3.1
+  cloud_firestore: ^5.4.4
+  firebase_storage: ^12.3.4
+  firebase_messaging: ^15.1.3
+  cloud_functions: ^5.1.3
+  firebase_analytics: ^11.3.3
+  firebase_crashlytics: ^4.1.3
+
+  # NOTE: agora_rtc_engine (voice/video) temporarily removed — see customer
+  # pubspec. Voice/video calls are staged for a dedicated phase.
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.4.1
+  flutter_svg: ^2.0.10+1   # render the customer's ProKerala kundli chart in-chat
+  http: ^1.2.2             # geocode the customer's birth place for the chart
+  intl: ^0.19.0
+  permission_handler: ^11.3.1
+  image_picker: ^1.1.2
+  audioplayers: ^6.1.0
+
+# agora_rtc_engine still pins ffi ^1.1.2 (<2.0), which collides with other modern
+# plugins that need ffi ^2. Force ffi 2.x for everyone — the FFI surface
+# Agora/iris use is stable across the 1→2 bump. Mirrors the customer app.
+dependency_overrides:
+  ffi: ^2.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  # Generates native Android/iOS launcher icons from the source PNGs below,
+  # replacing the default Flutter "blue arrow". Run on a machine with the
+  # native android/ & ios/ folders (your Mac):  dart run flutter_launcher_icons
+  flutter_launcher_icons: ^0.14.1
+
+# Astrologer launcher icon: a warm reddish-orange → amber Surya (sun) on a
+# ghee-cream ground. The adaptive + Android-12 splash background is the same
+# ghee cream so the sun sits naturally and the launch flows into the splash.
+flutter_launcher_icons:
+  image_path: "assets/brand/app_icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  min_sdk_android: 24
+  adaptive_icon_background: "#101A38"
+  adaptive_icon_foreground: "assets/brand/app_icon_fg.png"
+  android_12:
+    image: "assets/brand/app_icon_fg.png"
+    color: "#101A38"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/onboarding/
+    - assets/audio/

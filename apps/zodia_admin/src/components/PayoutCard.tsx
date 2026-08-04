@@ -1,0 +1,109 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { formatPaise, shortDay } from '@/lib/format';
+import { Range } from '@/lib/dateRange';
+import { DashCard, CardView } from './DashCard';
+import { DailyChart } from './DailyChart';
+import { PayoutList, PayoutRow } from './PayoutList';
+
+interface PayoutData {
+  pendingAmount: number;
+  pendingCount: number;
+  approvedAmount: number;
+  approvedCount: number;
+  totalAmount: number;
+  count: number;
+  avg: number;
+  daily: { day: string; value: number }[];
+  payouts: PayoutRow[];
+}
+
+function usePayouts(range: Range): CardView<PayoutData> {
+  const [data, setData] = useState<PayoutData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    (async () => {
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'payouts'),
+          where('createdAt', '>=', Timestamp.fromMillis(range.start)),
+          where('createdAt', '<', Timestamp.fromMillis(range.end)),
+          orderBy('createdAt', 'asc'),
+        ));
+        let pendingAmount = 0, pendingCount = 0, approvedAmount = 0, approvedCount = 0, totalAmount = 0;
+        const byDay = new Map<string, number>();
+        const payouts: PayoutRow[] = [];
+        snap.forEach((doc) => {
+          const p = doc.data() as { amount?: number; status?: string; method?: string; astrologerName?: string; astrologerId?: string; createdAt?: Timestamp };
+          const amt = p.amount ?? 0;
+          totalAmount += amt;
+          if (p.status === 'pending') { pendingAmount += amt; pendingCount += 1; }
+          else if (p.status === 'approved') { approvedAmount += amt; approvedCount += 1; }
+          const ms = p.createdAt?.toMillis?.() ?? range.start;
+          const key = new Date(ms).toISOString().slice(0, 10);
+          byDay.set(key, (byDay.get(key) ?? 0) + Math.round(amt / 100));
+          payouts.push({
+            id: doc.id,
+            astrologerName: p.astrologerName ?? (p.astrologerId ?? 'Astrologer').slice(0, 10),
+            amount: amt,
+            method: p.method ?? '—',
+            status: p.status ?? 'pending',
+            createdMs: ms,
+          });
+        });
+        payouts.sort((a, b) => b.createdMs - a.createdMs);
+        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
+        if (!cancelled) setData({
+          pendingAmount, pendingCount, approvedAmount, approvedCount, totalAmount,
+          count: snap.size, avg: snap.size ? Math.round(totalAmount / snap.size) : 0, daily, payouts,
+        });
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [range.start, range.end]);
+
+  return { loading, error, value: formatPaise(data?.pendingAmount ?? 0), pill: data ? `${data.pendingCount} pending` : undefined, data };
+}
+
+const payoutIcon = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+  </svg>
+);
+
+export function PayoutCard() {
+  return (
+    <DashCard<PayoutData>
+      cardKey="payouts"
+      defaultPreset="allTime"
+      accentClass="c-bronze"
+      accent="#b8862a"
+      icon={payoutIcon}
+      title="Astrologers Payout"
+      decor="decor-tl"
+      useData={usePayouts}
+      renderDrawer={(d) => (
+        <>
+          <PayoutList payouts={d.payouts} />
+
+          <h3 style={{ margin: '20px 0 10px' }}>Payout requests per day</h3>
+          <div className="drawer-chart">
+            <DailyChart data={d.daily} color="#b8862a" name="Payout" money />
+          </div>
+        </>
+      )}
+    />
+  );
+}
