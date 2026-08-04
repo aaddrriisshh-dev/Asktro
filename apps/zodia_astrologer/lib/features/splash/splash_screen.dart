@@ -68,7 +68,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
               gradient: RadialGradient(
                 center: Alignment(0, -0.15),
                 radius: 1.1,
-                colors: [Color(0xFFF7F9FC), Color(0xFFF1F4F9), Color(0xFFEDE7FB)],
+                colors: [Color(0xFFFFFFFF), Color(0xFFFFFDF7), Color(0xFFEDE7FB)],
                 stops: [0.0, 0.5, 1.0],
               ),
             ),
@@ -97,7 +97,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     top: s[1] * size.height,
                     child: Opacity(
                       opacity: (0.15 + 0.85 * tw) * glow,
-                      child: Icon(Icons.auto_awesome, color: const Color(0xFFDDE3EC), size: s[2]),
+                      child: Icon(Icons.auto_awesome, color: const Color(0xFFFFD98A), size: s[2]),
                     ),
                   );
                 }),
@@ -136,7 +136,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                     _rule(rule, false),
                                     const Padding(
                                       padding: EdgeInsets.symmetric(horizontal: 8),
-                                      child: Icon(Icons.auto_awesome, color: Color(0xFF9AA3B2), size: 12),
+                                      child: Icon(Icons.auto_awesome, color: Color(0xFFC08A12), size: 12),
                                     ),
                                     Text(
                                       'GUIDANCE WRITTEN IN THE STARS',
@@ -144,12 +144,12 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
                                         letterSpacing: 2.6,
-                                        color: const Color(0xFF16244D),
+                                        color: const Color(0xFF1A150C),
                                       ),
                                     ),
                                     const Padding(
                                       padding: EdgeInsets.symmetric(horizontal: 8),
-                                      child: Icon(Icons.auto_awesome, color: Color(0xFF9AA3B2), size: 12),
+                                      child: Icon(Icons.auto_awesome, color: Color(0xFFC08A12), size: 12),
                                     ),
                                     _rule(rule, true),
                                   ],
@@ -184,9 +184,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                const Color(0xFFDDE3EC).withValues(alpha: op),
-                const Color(0xFFDDE3EC).withValues(alpha: op * 0.28),
-                const Color(0x00DDE3EC),
+                const Color(0xFFFFD98A).withValues(alpha: op),
+                const Color(0xFFFFD98A).withValues(alpha: op * 0.28),
+                const Color(0x00FFD98A),
               ],
               stops: const [0.0, 0.5, 1.0],
             ),
@@ -204,7 +204,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         gradient: LinearGradient(
           begin: reversed ? Alignment.centerLeft : Alignment.centerRight,
           end: reversed ? Alignment.centerRight : Alignment.centerLeft,
-          colors: const [Color(0xFF9AA3B2), Color(0x009AA3B2)],
+          colors: const [Color(0xFFC08A12), Color(0x00C08A12)],
         ),
       ),
     );

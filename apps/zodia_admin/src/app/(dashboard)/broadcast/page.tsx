@@ -18,7 +18,7 @@ const AUDIENCE: { key: Segment; label: string }[] = [
   { key: 'unpaid_users', label: 'Unpaid Users' },
   { key: 'astrologers', label: 'Astrologers' },
 ];
-const PRESETS = ['#141c38', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
+const PRESETS = ['#17120A', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
 
 function fmtWhen(ts: unknown): string {
   const secs = (ts as { seconds?: number; _seconds?: number } | null)?.seconds
@@ -33,14 +33,14 @@ export default function BroadcastPage() {
   const [segment, setSegment] = useState<Segment>('all_users');
   const [f, setF] = useState({ title: '', body: '', deeplink: '', image: '' });
   const [imageStyle, setImageStyle] = useState<'banner' | 'portrait'>('banner');
-  const [bg, setBg] = useState('#141c38');
+  const [bg, setBg] = useState('#17120A');
   const [fg, setFg] = useState('#ffffff');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('small');
   const [portraitImage, setPortraitImage] = useState('');
   const [ctaText, setCtaText] = useState('');
   const [lTitle, setLTitle] = useState('');
   const [lBody, setLBody] = useState('');
-  const [lBg, setLBg] = useState('#141c38');
+  const [lBg, setLBg] = useState('#17120A');
   const [lFg, setLFg] = useState('#ffffff');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -86,7 +86,7 @@ export default function BroadcastPage() {
       setF({ title: '', body: '', deeplink: '', image: '' });
       setTheme('');
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
-      setLTitle(''); setLBody(''); setLBg('#141c38'); setLFg('#ffffff');
+      setLTitle(''); setLBody(''); setLBg('#17120A'); setLFg('#ffffff');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(false); }
   }

@@ -34,7 +34,7 @@ export function DailyChart({
         <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#9891c2' }} stroke="#e7e1f5" />
         <YAxis tick={{ fontSize: 11, fill: '#9891c2' }} stroke="#e7e1f5" allowDecimals={false} />
         <Tooltip
-          contentStyle={{ background: '#fff', border: '1px solid #e6edf7', borderRadius: 10, color: '#141c38' }}
+          contentStyle={{ background: '#fff', border: '1px solid #FFF3D6', borderRadius: 10, color: '#17120A' }}
           formatter={(v: number) => [fmt(v), name]}
         />
         <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill={`url(#${id})`} />

@@ -176,7 +176,7 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF5B79C0), Color(0xFF1E3269), Color(0xFF14213F)],
+          colors: [Color(0xFF5A4A1E), Color(0xFF20190F), Color(0xFF17120A)],
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
       ),
@@ -191,7 +191,7 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
                   padding: const EdgeInsets.all(3),
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(colors: [Color(0xFFDDE3EC), Color(0xFFC6CCD6)]),
+                    gradient: LinearGradient(colors: [Color(0xFFFFD98A), Color(0xFFF5B301)]),
                   ),
                   child: AppAvatar(name: a.name, photoUrl: a.profilePhoto, size: 96),
                 ),
@@ -216,17 +216,17 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFFE6EAF1), Color(0xFFC6CCD6)]),
+                gradient: const LinearGradient(colors: [Color(0xFFFFE9B8), Color(0xFFF5B301)]),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.verified_rounded, size: 14, color: Color(0xFF14213F)),
+                  const Icon(Icons.verified_rounded, size: 14, color: Color(0xFF17120A)),
                   const SizedBox(width: 5),
                   Text('ZODIA VERIFIED',
                       style: AppTypography.caption.copyWith(
-                          color: const Color(0xFF14213F), fontWeight: FontWeight.w800, fontSize: 10.5, letterSpacing: 0.5,),),
+                          color: const Color(0xFF17120A), fontWeight: FontWeight.w800, fontSize: 10.5, letterSpacing: 0.5,),),
                 ],
               ),
             ),

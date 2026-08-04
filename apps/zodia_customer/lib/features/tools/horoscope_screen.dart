@@ -355,7 +355,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF16244D), Color(0xFF1E3269)],
+          colors: [Color(0xFF1A150C), Color(0xFF20190F)],
         ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: Ob.softShadow,
@@ -365,10 +365,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
         children: [
           const Row(
             children: [
-              Icon(Icons.format_quote_rounded, color: Color(0xFFE6EAF1), size: 20),
+              Icon(Icons.format_quote_rounded, color: Color(0xFFFFE9B8), size: 20),
               SizedBox(width: 8),
               Text('YOUR AFFIRMATION',
-                  style: TextStyle(color: Color(0xFFE6EAF1), fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w700),),
+                  style: TextStyle(color: Color(0xFFFFE9B8), fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w700),),
             ],
           ),
           const SizedBox(height: 10),
@@ -407,7 +407,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF2A2652), Color(0xFF4A2FA6), Color(0xFF2E4A8F)],
+          colors: [Color(0xFF2A2652), Color(0xFF4A2FA6), Color(0xFF2B2417)],
         ),
         borderRadius: BorderRadius.circular(26),
         boxShadow: const [BoxShadow(color: Color(0x3325104F), blurRadius: 26, offset: Offset(0, 12))],
@@ -432,7 +432,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       gradient: RadialGradient(colors: [Colors.white.withValues(alpha: 0.20), Colors.white.withValues(alpha: 0.02)]),
                       border: Border.all(color: Ob.gold, width: 2),
                     ),
-                    child: Text(_sign.symbol, style: const TextStyle(fontSize: 44, color: Color(0xFFE6EAF1))),
+                    child: Text(_sign.symbol, style: const TextStyle(fontSize: 44, color: Color(0xFFFFE9B8))),
                   ),
                   const SizedBox(width: 18),
                   Expanded(
@@ -440,7 +440,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('✦  YOUR SIGN TODAY',
-                            style: TextStyle(color: Color(0xFFE6EAF1), fontSize: 10.5, letterSpacing: 2, fontWeight: FontWeight.w700),),
+                            style: TextStyle(color: Color(0xFFFFE9B8), fontSize: 10.5, letterSpacing: 2, fontWeight: FontWeight.w700),),
                         const SizedBox(height: 5),
                         Text(_sign.name,
                             style: GoogleFonts.cormorantGaramond(
@@ -492,7 +492,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: const Color(0xFFE6EAF1)),
+            Icon(icon, size: 14, color: const Color(0xFFFFE9B8)),
             const SizedBox(width: 6),
             Flexible(
               child: Text(label,
@@ -582,7 +582,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                    color: first ? const Color(0x229AA3B2) : Ob.lavenderChip,
+                    color: first ? const Color(0x22C08A12) : Ob.lavenderChip,
                     borderRadius: BorderRadius.circular(10),),
                 child: Icon(p.icon, size: 18, color: first ? Ob.goldDeep : Ob.purple),
               ),

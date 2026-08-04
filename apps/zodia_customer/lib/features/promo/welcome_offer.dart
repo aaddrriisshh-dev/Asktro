@@ -78,7 +78,7 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xFFECE1FB), Color(0xFFEDF1F8), Color(0xFFF7F9FC), Color(0xFFFFFFFF)],
+                  colors: [Color(0xFFECE1FB), Color(0xFFFFF9EC), Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
                   stops: [0, .38, .72, 1],
                 ),
               ),
@@ -223,7 +223,7 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
         Expanded(
           child: _CtaButton(
             onTap: _pay,
-            gradient: const LinearGradient(colors: [Color(0xFF5B79C0), Color(0xFF5A3BBC)]),
+            gradient: const LinearGradient(colors: [Color(0xFF5A4A1E), Color(0xFF5A3BBC)]),
             borderColor: const Color(0xFFF0DE95),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -421,10 +421,10 @@ class _RewardPopupState extends State<_RewardPopup> with SingleTickerProviderSta
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFBF7FF), Color(0xFFEBE1FB)]),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: const Color(0xFF5B79C0), width: 1.5),
+                  border: Border.all(color: const Color(0xFF5A4A1E), width: 1.5),
                   boxShadow: const [
                     BoxShadow(color: Color(0xFFC6B2EC), offset: Offset(0, 5)),
-                    BoxShadow(color: Color(0x4C1E3269), blurRadius: 18, offset: Offset(0, 12)),
+                    BoxShadow(color: Color(0x4C20190F), blurRadius: 18, offset: Offset(0, 12)),
                   ],
                 ),
                 child: Row(
@@ -477,7 +477,7 @@ class _FallingParticles extends StatelessWidget {
 
   static List<_P> _build() {
     const starGlyphs = ['✦', '✧', '⋆', '✦'];
-    const starColors = [Color(0xFFE7B93C), Color(0xFFB79BE6), Color(0xFFDDE3EC), Color(0xFF5B79C0)];
+    const starColors = [Color(0xFFE7B93C), Color(0xFFB79BE6), Color(0xFFFFD98A), Color(0xFF5A4A1E)];
     // speed MUST be a whole number of screen-traversals per controller cycle so
     // the one-way loop wraps seamlessly (base 1→0 leaves prog unchanged). 1 = a
     // slow fall, 2 = roughly twice as fast; phase staggers the vertical spread.
@@ -493,7 +493,7 @@ class _FallingParticles extends StatelessWidget {
     }
     for (var i = 0; i < 9; i++) {
       out.add(_P(_PType.dot, _rng.nextDouble(), 3 + _rng.nextDouble() * 4, _rng.nextDouble(),
-          (1 + _rng.nextInt(2)).toDouble(), '', _rng.nextBool() ? const Color(0xFFC6CCD6) : const Color(0xFFB79BE6),),);
+          (1 + _rng.nextInt(2)).toDouble(), '', _rng.nextBool() ? const Color(0xFFF5B301) : const Color(0xFFB79BE6),),);
     }
     return out;
   }

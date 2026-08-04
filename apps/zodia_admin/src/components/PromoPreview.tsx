@@ -8,9 +8,9 @@ import { themeById, ART_SRC, PromoTheme, headlineColor } from '@/lib/promoThemes
  *  exact phone-frame mockup of the half- or full-screen view. A theme adds the
  *  celestial background, golden frame and art. “Expand” opens it larger. */
 export function PromoPreview({
-  title, body, image, imageStyle = 'banner', bg = '#141c38', fg = '#ffffff', kind = 'push',
+  title, body, image, imageStyle = 'banner', bg = '#17120A', fg = '#ffffff', kind = 'push',
   displayMode = 'small', portraitImage, ctaText,
-  landingTitle, landingBody, landingBg = '#141c38', landingFg = '#ffffff', code, theme,
+  landingTitle, landingBody, landingBg = '#17120A', landingFg = '#ffffff', code, theme,
   textPosition = 'center', textAlign = 'left', headlineScale = 1, imageFill = false,
 }: {
   title?: string;

@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 /// variant can be added without touching widgets.
 abstract final class AppColors {
   // Backgrounds & surfaces
-  static const Color background = Color(0xFFF2F5FA);
+  static const Color background = Color(0xFFFFFFFF);
   static const Color card = Color(0xFFFFFFFF);
-  static const Color accentLavender = Color(0xFFE6EDF7);
+  static const Color accentLavender = Color(0xFFFFF3D6);
 
   // Brand purples
-  static const Color primary = Color(0xFF2E4A8F);
-  static const Color secondary = Color(0xFF9DB0D8);
+  static const Color primary = Color(0xFF2B2417);
+  static const Color secondary = Color(0xFFD9B25A);
 
   // Text
   static const Color textDark = Color(0xFF2E2E2E);
@@ -33,13 +33,13 @@ abstract final class AppColors {
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF5B79C0), Color(0xFF223C7A)],
+    colors: [Color(0xFF5A4A1E), Color(0xFF231D12)],
   );
 
   /// Softer lavender gradient for banner/section backgrounds.
   static const LinearGradient lavenderGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFEDF1F8), Color(0xFFE7DBFF)],
+    colors: [Color(0xFFFFF9EC), Color(0xFFE7DBFF)],
   );
 }

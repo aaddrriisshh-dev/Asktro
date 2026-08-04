@@ -272,7 +272,7 @@ class _FooterStrip extends StatelessWidget {
         width: 26,
         height: 1,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(colors: [Color(0x00C6CCD6), Color(0x66C6CCD6)]),
+          gradient: LinearGradient(colors: [Color(0x00F5B301), Color(0x66F5B301)]),
         ),
       );
 }

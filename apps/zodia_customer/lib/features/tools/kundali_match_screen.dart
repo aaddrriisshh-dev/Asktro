@@ -298,21 +298,21 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFEDF1F8), Color(0xFFFBF8FF), Color(0xFFFFFDF7)],
+            colors: [Color(0xFFFFF9EC), Color(0xFFFBF8FF), Color(0xFFFFFDF7)],
           ),
         ),
         child: Stack(
           children: [
-            const Positioned(top: 30, right: 26, child: Icon(Icons.auto_awesome, size: 16, color: Color(0x332E4A8F))),
+            const Positioned(top: 30, right: 26, child: Icon(Icons.auto_awesome, size: 16, color: Color(0x332B2417))),
             const Positioned(top: 120, left: 20, child: Icon(Icons.star_rounded, size: 12, color: Color(0x33E7B84B))),
-            const Positioned(top: 210, right: 40, child: Icon(Icons.star_rounded, size: 10, color: Color(0x332E4A8F))),
+            const Positioned(top: 210, right: 40, child: Icon(Icons.star_rounded, size: 10, color: Color(0x332B2417))),
             ListView(
               padding: EdgeInsets.fromLTRB(18, 8, 18, 32 + MediaQuery.of(context).padding.bottom),
               children: [
                 _intro(),
                 const SizedBox(height: 18),
                 if (_result == null) ...[
-                  _personCard(_self, 'Your details', Icons.person_rounded, const Color(0xFF2E4A8F)),
+                  _personCard(_self, 'Your details', Icons.person_rounded, const Color(0xFF2B2417)),
                   _matchGlyph(),
                   _personCard(_partner, "Partner's details", Icons.favorite_rounded, const Color(0xFFC96D8E)),
                   const SizedBox(height: 20),
@@ -337,7 +337,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF16244D), Color(0xFF1E3269)],
+            colors: [Color(0xFF1A150C), Color(0xFF20190F)],
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: Ob.softShadow,
@@ -351,7 +351,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
                   color: Colors.white.withValues(alpha: 0.14),
                   shape: BoxShape.circle,
                   border: Border.all(color: const Color(0x55FFFFFF)),),
-              child: const Icon(Icons.favorite_rounded, color: Color(0xFFE6EAF1), size: 26),
+              child: const Icon(Icons.favorite_rounded, color: Color(0xFFFFE9B8), size: 26),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -370,12 +370,12 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0x33E6EAF1),
+                        color: const Color(0x33FFE9B8),
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: const Color(0x55E6EAF1)),
+                        border: Border.all(color: const Color(0x55FFE9B8)),
                       ),
                       child: const Text('Full report · just ₹49',
-                          style: TextStyle(color: Color(0xFFE6EAF1), fontSize: 11.5, fontWeight: FontWeight.w800),),
+                          style: TextStyle(color: Color(0xFFFFE9B8), fontSize: 11.5, fontWeight: FontWeight.w800),),
                     ),
                 ],
               ),
@@ -397,7 +397,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF2E4A8F), Color(0xFFC96D8E)],
+                  colors: [Color(0xFF2B2417), Color(0xFFC96D8E)],
                 ),
                 shape: BoxShape.circle,
                 boxShadow: Ob.softShadow,
@@ -569,7 +569,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF141C38), Color(0xFF1E3269), Color(0xFF2E4A8F)],
+              colors: [Color(0xFF17120A), Color(0xFF20190F), Color(0xFF2B2417)],
             ),
             borderRadius: BorderRadius.circular(28),
             boxShadow: const [BoxShadow(color: Color(0x3325104F), blurRadius: 30, offset: Offset(0, 14))],

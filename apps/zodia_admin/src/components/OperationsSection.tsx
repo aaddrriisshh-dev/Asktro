@@ -49,7 +49,7 @@ function Skel({ h = 200 }: { h?: number }) { return <div className="dashcard__sk
 
 const axis = { fontSize: 11, fill: '#9891c2' };
 const gridStroke = '#efeafc';
-const tooltipStyle = { background: '#fff', border: '1px solid #e6edf7', borderRadius: 10, color: '#141c38' };
+const tooltipStyle = { background: '#fff', border: '1px solid #FFF3D6', borderRadius: 10, color: '#17120A' };
 
 // ---------------------------------------------------------------- icons
 const I = (p: ReactNode) => (
@@ -208,7 +208,7 @@ function ConsultationActivity() {
           <XAxis dataKey="day" tick={axis} stroke="#e7e1f5" /><YAxis tick={axis} stroke="#e7e1f5" allowDecimals={false} />
           <Tooltip contentStyle={tooltipStyle} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="chat" stackId="a" fill="#2e4a8f" radius={[0, 0, 0, 0]} />
+          <Bar dataKey="chat" stackId="a" fill="#2B2417" radius={[0, 0, 0, 0]} />
           <Bar dataKey="voice" stackId="a" fill="#3b6fd4" />
           <Bar dataKey="video" stackId="a" fill="#12a594" radius={[4, 4, 0, 0]} />
         </BarChart>

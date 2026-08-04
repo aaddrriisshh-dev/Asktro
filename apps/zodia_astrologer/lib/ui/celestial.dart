@@ -13,8 +13,8 @@ class Sky {
   Sky._();
 
   // ---- palette ----
-  static const Color bg = Color(0xFFF1F4F9); // soft lavender-white ground
-  static const Color surface = Color(0xFFEDF1F8); // faint lavender wash
+  static const Color bg = Color(0xFFFFFDF7); // soft lavender-white ground
+  static const Color surface = Color(0xFFFFF9EC); // faint lavender wash
   static const Color card = Color(0xFFFFFFFF);
   static const Color line = Color(0xFFEDEAF6);
 
@@ -22,11 +22,11 @@ class Sky {
   static const Color ink2 = Color(0xFF8B889E); // muted grey
   static const Color ink3 = Color(0xFFB7B4C8); // faint
 
-  static const Color purple = Color(0xFF3552A0); // vibrant brand purple
-  static const Color purpleDeep = Color(0xFF14213F);
+  static const Color purple = Color(0xFF33291B); // vibrant brand purple
+  static const Color purpleDeep = Color(0xFF17120A);
 
-  static const Color gold = Color(0xFFB4BCC9);
-  static const Color goldSoft = Color(0xFFDDE3EC);
+  static const Color gold = Color(0xFFE0A81E);
+  static const Color goldSoft = Color(0xFFFFD98A);
 
   static const Color green = Color(0xFF2FB170);
   static const Color amber = Color(0xFFE0A03A);
@@ -36,17 +36,17 @@ class Sky {
   static const LinearGradient goldGrad = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFE6EAF1), Color(0xFFB4BCC9)],
+    colors: [Color(0xFFFFE9B8), Color(0xFFE0A81E)],
   );
   static const LinearGradient heroGrad = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF2E4A8F), Color(0xFF1E3269), Color(0xFF14213F)],
+    colors: [Color(0xFF2B2417), Color(0xFF20190F), Color(0xFF17120A)],
   );
   static const LinearGradient lavGrad = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFFEDF1F8), Color(0xFFF7F9FC)],
+    colors: [Color(0xFFFFF9EC), Color(0xFFFFFFFF)],
   );
 
   // ---- elevation ----
@@ -175,7 +175,7 @@ class StatTile extends StatelessWidget {
           colors: [Colors.white, Color(0xFFFFFCF4)],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFDDE3EC).withValues(alpha: 0.5)),
+        border: Border.all(color: const Color(0xFFFFD98A).withValues(alpha: 0.5)),
         boxShadow: Sky.soft,
       ),
       child: Column(

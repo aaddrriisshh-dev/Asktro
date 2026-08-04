@@ -10,15 +10,15 @@ import 'store_models.dart';
 import 'store_providers.dart';
 
 // Palette for the Zodia Mall hero — soft celestial lavender + purple + gold.
-const _purple = Color(0xFF2E4A8F);
-const _purpleDeep = Color(0xFF16244D);
+const _purple = Color(0xFF2B2417);
+const _purpleDeep = Color(0xFF1A150C);
 const _ink = Color(0xFF2B2140);
 const _muted = Color(0xFF6E6689);
 const _gold = Color(0xFFC79A33);
 // Headline uses a very dark indigo-blue with a lighter purple accent on the
 // last word, matching the reference.
-const _navy = Color(0xFF10192F);
-const _lilac = Color(0xFF6E86C4);
+const _navy = Color(0xFF120E07);
+const _lilac = Color(0xFFA8791A);
 
 /// Home-screen "Zodia Mall" hero — a single celestial card modeled on the
 /// founder's reference: a white→lavender gradient ground with a faint lotus
@@ -222,7 +222,7 @@ class StoreRail extends ConsumerWidget {
               gradient: const LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
-                colors: [Color(0xFF8A5FDD), Color(0xFF2E4A8F), Color(0xFF4E3596)],
+                colors: [Color(0xFF8A5FDD), Color(0xFF2B2417), Color(0xFF4E3596)],
               ),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [BoxShadow(color: _purple.withValues(alpha: 0.40), blurRadius: 14, offset: const Offset(0, 6))],

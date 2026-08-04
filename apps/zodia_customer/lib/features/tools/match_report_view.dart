@@ -45,7 +45,7 @@ class MatchReportView extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF141C38), Color(0xFF1E3269), Color(0xFF2E4A8F)],
+              colors: [Color(0xFF17120A), Color(0xFF20190F), Color(0xFF2B2417)],
             ),
             borderRadius: BorderRadius.circular(28),
             boxShadow: const [BoxShadow(color: Color(0x3325104F), blurRadius: 30, offset: Offset(0, 14))],

@@ -20,7 +20,7 @@ const AUDIENCES = [
   { key: 'paid', label: 'Paid Users' },
 ] as const;
 const AUD_LABEL: Record<string, string> = { all: 'All Users', unpaid: 'Unpaid Users', paid: 'Paid Users' };
-const PRESETS = ['#141c38', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
+const PRESETS = ['#17120A', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
 
 function genCode() {
   const s = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

@@ -1050,7 +1050,7 @@ class _RemedyBubble extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFEFF2F7), Color(0xFFDDE3EC)],
+            colors: [Color(0xFFFFFDF3), Color(0xFFFFD98A)],
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Sky.gold.withValues(alpha: 0.45)),

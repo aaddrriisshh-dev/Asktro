@@ -123,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
           // Temple scenery flush on the screen bottom. The asset is now fully
-          // opaque (mountains flattened onto the #F1F4F9 background), so its
+          // opaque (mountains flattened onto the #FFFDF7 background), so its
           // top blends into the page and there is no transparency/checkerboard.
           Positioned(
             left: 0,
@@ -153,7 +153,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           fontWeight: FontWeight.w500,
                           height: 0.95,
                           letterSpacing: 1,
-                          color: const Color(0xFF16244D),),),
+                          color: const Color(0xFF1A150C),),),
                   const SizedBox(height: 14),
                   const SparkleDivider(),
                   const SizedBox(height: 16),

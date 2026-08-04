@@ -45,7 +45,7 @@ class PromoSurface extends StatelessWidget {
         ? const Color(0xFFF0CD6E)
         : art == 'zwhite'
             ? Colors.white
-            : const Color(0xFF2E4A8F);
+            : const Color(0xFF2B2417);
     // BlendMode.srcIn recolours the line-art while keeping its alpha.
     return ColorFiltered(
       colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
@@ -145,5 +145,5 @@ LinearGradient promoAccent(PromoTheme t) =>
 /// gradient stops keeps mid-tone/multi-stop themes sensible.
 Color promoHeadline(PromoTheme t) {
   final lum = t.bg.map((c) => c.computeLuminance()).reduce((a, b) => a + b) / t.bg.length;
-  return lum < 0.45 ? const Color(0xFFE6EAF1) : t.tx;
+  return lum < 0.45 ? const Color(0xFFFFE9B8) : t.tx;
 }

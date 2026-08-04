@@ -120,7 +120,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF16244D), Color(0xFF1E3269)],
+          colors: [Color(0xFF1A150C), Color(0xFF20190F)],
         ),
         borderRadius: BorderRadius.circular(22),
         boxShadow: Ob.softShadow,
@@ -129,7 +129,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('✦  TODAY’S ALMANAC',
-              style: TextStyle(color: Color(0xFFE6EAF1), fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.w700),),
+              style: TextStyle(color: Color(0xFFFFE9B8), fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.w700),),
           const SizedBox(height: 4),
           Text(DateFormat('EEEE, d MMMM yyyy').format(DateTime.now()),
               style: GoogleFonts.cormorantGaramond(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w700, height: 1.1),),

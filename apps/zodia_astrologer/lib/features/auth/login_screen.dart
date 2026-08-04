@@ -78,7 +78,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 gradient: RadialGradient(
                   center: Alignment(0, -0.4),
                   radius: 1.1,
-                  colors: [Color(0xFFF7F9FC), Color(0xFFF1F4F9), Color(0xFFEDE7FB)],
+                  colors: [Color(0xFFFFFFFF), Color(0xFFFFFDF7), Color(0xFFEDE7FB)],
                   stops: [0.0, 0.5, 1.0],
                 ),
               ),
@@ -93,7 +93,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Positioned(
             top: topPad + 64,
             right: 42,
-            child: const Icon(Icons.auto_awesome, color: Color(0xFFDDE3EC), size: 16),
+            child: const Icon(Icons.auto_awesome, color: Color(0xFFFFD98A), size: 16),
           ),
           Positioned(
             top: topPad + 150,
@@ -113,7 +113,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 2.2,
-                      color: const Color(0xFF16244D),
+                      color: const Color(0xFF1A150C),
                     ),
                   ),
                 ),

@@ -98,7 +98,7 @@ flutter_launcher_icons:
   min_sdk_android: 24
   # Android 8+ adaptive icon: gold emblem (transparent PNG) floats on the
   # lavender brand background, kept in the mask-safe centre zone.
-  adaptive_icon_background: "#101A38"
+  adaptive_icon_background: "#F5B301"
   adaptive_icon_foreground: "assets/brand/app_icon_fg.png"
 
 flutter:

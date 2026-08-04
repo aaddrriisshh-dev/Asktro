@@ -229,7 +229,7 @@ class _BlogCard extends StatelessWidget {
 Widget _cover(String url, {required int decodeWidth}) {
   if (url.isEmpty) {
     return Container(
-      decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF1E3269), Color(0xFF2E4A8F)])),
+      decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF20190F), Color(0xFF2B2417)])),
       child: const Center(child: Icon(Icons.auto_stories_rounded, color: Colors.white, size: 34)),
     );
   }

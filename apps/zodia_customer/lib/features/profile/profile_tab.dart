@@ -138,9 +138,9 @@ class ProfileTab extends ConsumerWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF5B79C0), Color(0xFF1E3269)],),
+            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF5A4A1E), Color(0xFF20190F)],),
         borderRadius: BorderRadius.circular(26),
-        boxShadow: [BoxShadow(color: const Color(0xFF1E3269).withValues(alpha: 0.28), blurRadius: 22, offset: const Offset(0, 12))],
+        boxShadow: [BoxShadow(color: const Color(0xFF20190F).withValues(alpha: 0.28), blurRadius: 22, offset: const Offset(0, 12))],
       ),
       child: Column(
         children: [
@@ -196,7 +196,7 @@ class ProfileTab extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('WALLET BALANCE',
-                        style: Ob.note.copyWith(color: const Color(0xFFDDE3EC), fontSize: 10, letterSpacing: 1),),
+                        style: Ob.note.copyWith(color: const Color(0xFFFFD98A), fontSize: 10, letterSpacing: 1),),
                     Text(Money.formatPaise(profile?.spendablePaise ?? 0),
                         style: Ob.title.copyWith(color: Colors.white, fontSize: 22),),
                   ],

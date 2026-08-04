@@ -35,9 +35,9 @@ class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
               colors: const [
-                Color(0xFFE6EDF7),
-                Color(0xFFF1F4F9),
-                Color(0xFFE6EDF7),
+                Color(0xFFFFF3D6),
+                Color(0xFFFFFDF7),
+                Color(0xFFFFF3D6),
               ],
               stops: const [0.35, 0.5, 0.65],
               transform: _SlideGradient(dx),

@@ -284,7 +284,7 @@ export default function RechargesPage() {
           <div className="card">
             <h3 style={{ margin: '0 0 12px' }}>Last 30 days</h3>
             <div className="drawer-chart">
-              <DailyChart data={daily} color="#2e4a8f" name="Recharges" money />
+              <DailyChart data={daily} color="#2B2417" name="Recharges" money />
             </div>
           </div>
         </div>

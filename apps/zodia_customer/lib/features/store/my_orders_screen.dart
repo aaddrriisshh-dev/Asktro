@@ -24,7 +24,7 @@ class MyOrdersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final orders = ref.watch(myOrdersProvider);
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5FA),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: const MallAppBar(title: 'My Orders', showCart: false),
       body: orders.when(
         data: (list) {
@@ -86,7 +86,7 @@ class _OrderCard extends StatelessWidget {
       onTap: () => context.push('/store/order/${order.id}'),
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE6EAF1))),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFFFE9B8))),
         child: Column(
           children: [
             Row(

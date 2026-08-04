@@ -33,7 +33,7 @@ class AstrologerCard extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFFDDE3EC), Color(0xFFC6CCD6)],
+                    colors: [Color(0xFFFFD98A), Color(0xFFF5B301)],
                   ),
                 ),
                 child: AppAvatar(

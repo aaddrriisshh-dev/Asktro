@@ -171,7 +171,7 @@ class StoreHomeScreen extends ConsumerWidget {
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFFEFF2F7), Color(0xFFF7E7B7), Color(0xFFF0D691)],
+        colors: [Color(0xFFFFFDF3), Color(0xFFF7E7B7), Color(0xFFF0D691)],
         stops: [0, 0.55, 1],
       ),
       border: Border(top: BorderSide(color: Color(0xFFE7CD8A)), bottom: BorderSide(color: Color(0xFFE7CD8A))),
@@ -189,7 +189,7 @@ class StoreHomeScreen extends ConsumerWidget {
                 right: 14,
                 top: 4,
                 child: IgnorePointer(
-                  child: Text('✦', style: TextStyle(fontSize: 58, color: Color(0x47CED4DE), height: 1)),
+                  child: Text('✦', style: TextStyle(fontSize: 58, color: Color(0x47FFC629), height: 1)),
                 ),
               ),
               child,

@@ -13,11 +13,11 @@ import 'match_koota.dart';
 /// Milan) report from the ProKerala matching payload, and either saves it to the
 /// phone's Files or opens the share sheet. Defensive about the exact shape.
 class MatchReportPdf {
-  static const _navy = PdfColor.fromInt(0xFF141C38);
-  static const _purpleDeep = PdfColor.fromInt(0xFF1E3269);
-  static const _purple = PdfColor.fromInt(0xFF2E4A8F);
-  static const _gold = PdfColor.fromInt(0xFFC6CCD6);
-  static const _goldDeep = PdfColor.fromInt(0xFF9AA3B2);
+  static const _navy = PdfColor.fromInt(0xFF17120A);
+  static const _purpleDeep = PdfColor.fromInt(0xFF20190F);
+  static const _purple = PdfColor.fromInt(0xFF2B2417);
+  static const _gold = PdfColor.fromInt(0xFFF5B301);
+  static const _goldDeep = PdfColor.fromInt(0xFFC08A12);
   static const _green = PdfColor.fromInt(0xFF2F9C63);
   static const _muted = PdfColor.fromInt(0xFF7A7693);
   static const _lav = PdfColor.fromInt(0xFFF3EFFF);
@@ -258,7 +258,7 @@ class MatchReportPdf {
       },
       border: pw.TableBorder.all(color: _line),
       rowDecoration: const pw.BoxDecoration(color: _white),
-      oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFF7F9FC)),
+      oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFFFFFF)),
       data: rows,
     );
   }

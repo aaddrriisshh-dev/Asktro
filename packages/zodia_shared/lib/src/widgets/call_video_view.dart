@@ -14,7 +14,7 @@ class CallVideoView extends StatelessWidget {
   Widget build(BuildContext context) {
     final rtc = call.engine;
     if (rtc == null) {
-      return const ColoredBox(color: Color(0xFF10192F));
+      return const ColoredBox(color: Color(0xFF120E07));
     }
     final topInset = MediaQuery.of(context).padding.top;
     return Stack(
@@ -29,7 +29,7 @@ class CallVideoView extends StatelessWidget {
                     connection: RtcConnection(channelId: call.channel),
                   ),
                 )
-              : const ColoredBox(color: Color(0xFF10192F)),
+              : const ColoredBox(color: Color(0xFF120E07)),
         ),
         // Local self-preview, small rounded card in the top-right.
         Positioned(

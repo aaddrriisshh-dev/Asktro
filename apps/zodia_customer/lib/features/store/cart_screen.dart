@@ -23,7 +23,7 @@ class CartScreen extends ConsumerWidget {
     final total = subtotal + shipping;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5FA),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: const MallAppBar(title: 'Your Cart', showCart: false),
       body: items.isEmpty
           ? const _EmptyCart()
@@ -100,7 +100,7 @@ class _CartRow extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE6EAF1)),
+        border: Border.all(color: const Color(0xFFFFE9B8)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

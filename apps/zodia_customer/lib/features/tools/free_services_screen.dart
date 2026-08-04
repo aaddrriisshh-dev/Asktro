@@ -79,7 +79,7 @@ class FreeServicesScreen extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF16244D), Color(0xFF1E3269)],
+            colors: [Color(0xFF1A150C), Color(0xFF20190F)],
           ),
           borderRadius: BorderRadius.circular(22),
           boxShadow: Ob.softShadow,
@@ -94,7 +94,7 @@ class FreeServicesScreen extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: const Color(0x55FFFFFF)),
               ),
-              child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFE6EAF1), size: 28),
+              child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFFFE9B8), size: 28),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -103,7 +103,7 @@ class FreeServicesScreen extends StatelessWidget {
                 children: [
                   const Text('✦  ON THE HOUSE',
                       style: TextStyle(
-                          color: Color(0xFFE6EAF1),
+                          color: Color(0xFFFFE9B8),
                           fontSize: 11,
                           letterSpacing: 2,
                           fontWeight: FontWeight.w700,),),
@@ -152,7 +152,7 @@ class FreeServicesScreen extends StatelessWidget {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: soon ? const Color(0x1416244D) : Ob.lavenderChip,
+                color: soon ? const Color(0x141A150C) : Ob.lavenderChip,
                 borderRadius: BorderRadius.circular(13),
               ),
               child: Icon(icon, size: 24, color: soon ? Ob.grey : Ob.purple),
@@ -173,7 +173,7 @@ class FreeServicesScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0x1416244D),
+                  color: const Color(0x141A150C),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text('Soon',

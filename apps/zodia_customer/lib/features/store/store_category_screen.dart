@@ -21,7 +21,7 @@ class StoreCategoryScreen extends ConsumerWidget {
     final subs = ref.watch(storeSubcategoriesProvider(categoryId));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5FA),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: MallAppBar(title: categoryName ?? 'Category'),
       body: products.when(
         data: (list) {

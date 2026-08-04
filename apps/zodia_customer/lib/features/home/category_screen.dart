@@ -215,7 +215,7 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const purple = Color(0xFF2E4A8F);
+    const purple = Color(0xFF2B2417);
     const ink = Color(0xFF2A2340);
     return Material(
       color: Colors.white,

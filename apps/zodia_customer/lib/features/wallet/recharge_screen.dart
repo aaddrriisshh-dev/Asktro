@@ -142,7 +142,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
           'name': 'ZODIA',
           'description': 'Wallet recharge',
           'prefill': {'contact': ref.read(myProfileProvider).valueOrNull?.phone ?? ''},
-          'theme': {'color': '#2E4A8F'},
+          'theme': {'color': '#2B2417'},
         });
       },
       failure: (f) {
@@ -236,12 +236,12 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF5B79C0), Color(0xFF1E3269)],
+            colors: [Color(0xFF5A4A1E), Color(0xFF20190F)],
           ),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFF1E3269).withValues(alpha: 0.28),
+                color: const Color(0xFF20190F).withValues(alpha: 0.28),
                 blurRadius: 18,
                 offset: const Offset(0, 8),),
           ],
@@ -260,7 +260,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('WALLET BALANCE',
-                    style: Ob.note.copyWith(color: const Color(0xFFDDE3EC), fontSize: 10, letterSpacing: 1),),
+                    style: Ob.note.copyWith(color: const Color(0xFFFFD98A), fontSize: 10, letterSpacing: 1),),
                 const SizedBox(height: 2),
                 Text(Money.formatPaise(balance),
                     style: Ob.title.copyWith(color: Colors.white, fontSize: 24),),
@@ -653,7 +653,7 @@ class _RechargeCelebrationState extends State<_RechargeCelebration> with SingleT
         child: Transform.scale(
           scale: 0.4 + appear * 0.9,
           child: Icon(Icons.auto_awesome,
-              size: s.size, color: s.gold ? const Color(0xFFE6EAF1) : Colors.white,),
+              size: s.size, color: s.gold ? const Color(0xFFFFE9B8) : Colors.white,),
         ),
       ),
     );
@@ -691,7 +691,7 @@ class _RechargeCelebrationState extends State<_RechargeCelebration> with SingleT
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: RadialGradient(
-                              colors: [Color(0x66DDE3EC), Color(0x1FDDE3EC), Color(0x00DDE3EC)],
+                              colors: [Color(0x66FFD98A), Color(0x1FFFD98A), Color(0x00FFD98A)],
                               stops: [0.0, 0.55, 1.0],
                             ),
                           ),

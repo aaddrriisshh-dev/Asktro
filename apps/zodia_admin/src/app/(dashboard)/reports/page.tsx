@@ -20,7 +20,7 @@ import { MobileSection } from '@/components/MobileSection';
 type Any = Record<string, unknown>;
 const dayKey = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 const msOf = (t: Any, k: string) => (t[k] as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0;
-const TYPE_COLORS: Record<string, string> = { chat: '#3552a0', voice: '#3f8fd0', video: '#d06a9c' };
+const TYPE_COLORS: Record<string, string> = { chat: '#33291B', voice: '#3f8fd0', video: '#d06a9c' };
 
 interface ReportData {
   gross: number; refunds: number; net: number; rechargeCount: number;
@@ -200,12 +200,12 @@ export default function ReportsPage() {
               <div style={{ height: 240 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data.daily} margin={{ top: 8, right: 10, left: -10, bottom: 0 }}>
-                    <defs><linearGradient id="rev" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3552a0" stopOpacity={0.5} /><stop offset="100%" stopColor="#3552a0" stopOpacity={0} /></linearGradient></defs>
+                    <defs><linearGradient id="rev" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#33291B" stopOpacity={0.5} /><stop offset="100%" stopColor="#33291B" stopOpacity={0} /></linearGradient></defs>
                     <CartesianGrid stroke="#efeafc" vertical={false} />
                     <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#9891c2' }} />
                     <YAxis tick={{ fontSize: 11, fill: '#9891c2' }} />
-                    <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e6edf7' }} />
-                    <Area type="monotone" dataKey="revenue" stroke="#3552a0" strokeWidth={2} fill="url(#rev)" />
+                    <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #FFF3D6' }} />
+                    <Area type="monotone" dataKey="revenue" stroke="#33291B" strokeWidth={2} fill="url(#rev)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -218,9 +218,9 @@ export default function ReportsPage() {
                     <CartesianGrid stroke="#efeafc" vertical={false} />
                     <XAxis dataKey="type" tick={{ fontSize: 11, fill: '#9891c2' }} />
                     <YAxis tick={{ fontSize: 11, fill: '#9891c2' }} />
-                    <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e6edf7' }} />
+                    <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #FFF3D6' }} />
                     <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                      {data.byType.map((e) => <Cell key={e.type} fill={TYPE_COLORS[e.type] ?? '#3552a0'} />)}
+                      {data.byType.map((e) => <Cell key={e.type} fill={TYPE_COLORS[e.type] ?? '#33291B'} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>

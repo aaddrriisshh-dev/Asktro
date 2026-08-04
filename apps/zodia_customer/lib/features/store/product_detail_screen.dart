@@ -80,7 +80,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     final p = _p;
     final qty = p == null ? 0 : _qtyInCart(p);
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5FA),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: const MallAppBar(title: 'Product Detail'),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Mall.deep))

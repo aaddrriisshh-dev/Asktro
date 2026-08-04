@@ -178,7 +178,7 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
             colors: [Color(0xFFFCF6E7), Color(0xFFF7EFD8)],
           ),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFD6DCE6)),
+          border: Border.all(color: const Color(0xFFFFE29A)),
         ),
         child: child,
       );

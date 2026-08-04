@@ -1217,11 +1217,11 @@ class _TarotDrawChip extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF5B79C0), Color(0xFF6A44A6), Color(0xFF14213F)],
+                colors: [Color(0xFF5A4A1E), Color(0xFF6A44A6), Color(0xFF17120A)],
                 stops: [0, 0.42, 1],
               ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xEB9AA3B2), width: 1.4), // thin dark-gold frame
+              border: Border.all(color: const Color(0xEBC08A12), width: 1.4), // thin dark-gold frame
               boxShadow: const [BoxShadow(color: Color(0x573C2378), blurRadius: 20, offset: Offset(0, 10))],
             ),
             child: ClipRRect(
@@ -1415,7 +1415,7 @@ class _Bubble extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFEDF1F8), Color(0xFFEFF2F7)],
+            colors: [Color(0xFFFFF9EC), Color(0xFFFFFDF3)],
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),

@@ -146,7 +146,7 @@ class _AuspiciousTimingsScreenState extends ConsumerState<AuspiciousTimingsScree
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF16244D), Color(0xFF1E3269)],
+            colors: [Color(0xFF1A150C), Color(0xFF20190F)],
           ),
           borderRadius: BorderRadius.circular(22),
           boxShadow: Ob.softShadow,
@@ -155,7 +155,7 @@ class _AuspiciousTimingsScreenState extends ConsumerState<AuspiciousTimingsScree
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('✦  MUHURAT',
-                style: TextStyle(color: Color(0xFFE6EAF1), fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.w700),),
+                style: TextStyle(color: Color(0xFFFFE9B8), fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.w700),),
             const SizedBox(height: 4),
             Text('Auspicious timings',
                 style: GoogleFonts.cormorantGaramond(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w700, height: 1.05),),

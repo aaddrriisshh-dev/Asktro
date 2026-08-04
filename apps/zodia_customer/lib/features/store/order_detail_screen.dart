@@ -29,7 +29,7 @@ class OrderDetailScreen extends ConsumerWidget {
     final order = ref.watch(storeOrderProvider(orderId));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5FA),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: MallAppBar(title: justPlaced ? 'Order placed' : 'Order details', showCart: false),
       body: order.when(
         data: (o) => o == null
@@ -68,7 +68,7 @@ class OrderDetailScreen extends ConsumerWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE6EAF1)),
+            border: Border.all(color: const Color(0xFFFFE9B8)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,7 +182,7 @@ class OrderDetailScreen extends ConsumerWidget {
   Widget _itemRow(OrderLine it) => Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE6EAF1))),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFFFE9B8))),
         child: Row(
           children: [
             SizedBox(width: 46, height: 46, child: MallImage(url: it.image, size: 20, radius: 10)),
@@ -202,7 +202,7 @@ class OrderDetailScreen extends ConsumerWidget {
 
   Widget _totals(StoreOrder o) => Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE6EAF1))),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFFFE9B8))),
         child: Column(
           children: [
             _tl('Subtotal', Mall.rupees(o.subtotalPaise)),
@@ -225,7 +225,7 @@ class OrderDetailScreen extends ConsumerWidget {
   Widget _addressCard(ShippingAddress a) => Container(
         padding: const EdgeInsets.all(14),
         width: double.infinity,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE6EAF1))),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFFFE9B8))),
         child: Text(
           '${a.name} · ${a.phone}\n${a.line1}${a.line2.isNotEmpty ? ', ${a.line2}' : ''}'
           '${a.landmark.isNotEmpty ? '\n${a.landmark}' : ''}\n${a.city}, ${a.state} — ${a.pincode}',

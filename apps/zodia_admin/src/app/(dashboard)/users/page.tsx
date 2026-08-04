@@ -98,7 +98,7 @@ export default function CustomerManagementPage() {
             <CustomerBox title="Paid Customers" icon="💚" accent="#2f9c63" list={paid} />
           </MobileSection>
           <MobileSection title="Unpaid Customers" defaultOpen={false}>
-            <CustomerBox title="Unpaid Customers" icon="🤍" accent="#b4bcc9" list={unpaid} />
+            <CustomerBox title="Unpaid Customers" icon="🤍" accent="#E0A81E" list={unpaid} />
           </MobileSection>
         </div>
       )}

@@ -22,7 +22,7 @@ class HomeTab extends ConsumerWidget {
   const HomeTab({super.key});
 
   // vivid accents that pop on the purple hero
-  static const _cGold = Color(0xFFCED4DE);
+  static const _cGold = Color(0xFFFFC629);
   static const _cBlue = Color(0xFF8FD3FF);
   static const _cGreen = Color(0xFF74E6A6);
 

@@ -10,7 +10,7 @@ const MODES: { key: DisplayMode; label: string; hint: string }[] = [
   { key: 'full', label: 'Full-screen', hint: '9:16 portrait fills the phone' },
 ];
 
-const PRESETS = ['#141c38', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
+const PRESETS = ['#17120A', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
 
 export interface LandingState {
   mode: DisplayMode;

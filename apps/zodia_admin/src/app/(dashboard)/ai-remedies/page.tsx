@@ -23,7 +23,7 @@ function ProductHookPicker({ onAttach, onClear, attached }: {
 
   if (attached) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '7px 10px', borderRadius: 9, background: '#edf1f8', border: '1px solid #d8c9f5' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '7px 10px', borderRadius: 9, background: '#FFF9EC', border: '1px solid #d8c9f5' }}>
         <span style={{ fontSize: 12.5 }}>🛍️ <strong>{attached.title}</strong> · “{attached.cta}”</span>
         <button className="btn sm secondary" style={{ marginLeft: 'auto' }} onClick={onClear}>Remove</button>
       </div>

@@ -253,7 +253,7 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
   }
 
   // One flat call-screen colour (no gradient, no split).
-  static const Color _bg = Color(0xFF1E3269);
+  static const Color _bg = Color(0xFF20190F);
 
   @override
   Widget build(BuildContext context) {

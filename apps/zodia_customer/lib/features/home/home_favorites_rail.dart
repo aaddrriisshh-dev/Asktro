@@ -89,7 +89,7 @@ class _FavItem extends ConsumerWidget {
                   padding: const EdgeInsets.all(2.4),
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(colors: [Color(0xFFDDE3EC), Color(0xFFC6CCD6)]),
+                    gradient: LinearGradient(colors: [Color(0xFFFFD98A), Color(0xFFF5B301)]),
                   ),
                   child: AppAvatar(name: name, photoUrl: a?.profilePhoto, size: 58),
                 ),

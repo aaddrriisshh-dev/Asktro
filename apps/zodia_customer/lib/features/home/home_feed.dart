@@ -151,10 +151,10 @@ class HomeFeed extends ConsumerWidget {
           // A couple of soft gold sparkles for a celestial shimmer.
           Positioned(
               left: 26, top: topPad + 6,
-              child: const IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x66C6CCD6), size: 12)),),
+              child: const IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x66F5B301), size: 12)),),
           Positioned(
               right: 128, top: topPad + 2,
-              child: const IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x4DC6CCD6), size: 9)),),
+              child: const IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x4DF5B301), size: 9)),),
           Column(
             children: [
               SizedBox(height: topPad + 12),
@@ -449,7 +449,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
       if (kMonetizationEnabled)
         for (final b in live) _liveBanner(context, b),
       _banner(
-        gradient: _grad(const [Color(0xFF9E7BE0), Color(0xFF2E4A8F), Color(0xFF1E3269)]),
+        gradient: _grad(const [Color(0xFF9E7BE0), Color(0xFF2B2417), Color(0xFF20190F)]),
         kicker: '✦ WELCOME GIFT',
         title: 'Start Your Free\nSession',
         subtitle: 'Your first chat is on us',
@@ -744,7 +744,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
-                        colors: [Color(0x66DDE3EC), Color(0x1FDDE3EC), Color(0x00DDE3EC)],
+                        colors: [Color(0x66FFD98A), Color(0x1FFFD98A), Color(0x00FFD98A)],
                         stops: [0.0, 0.55, 1.0],
                       ),
                     ),
@@ -754,17 +754,17 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
               Positioned(right: -4, bottom: -8, child: illustration),
               const Positioned(
                   right: 34, top: 8,
-                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0xCCE6EAF1), size: 12)),),
+                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0xCCFFE9B8), size: 12)),),
               const Positioned(
                   right: 14, top: 44,
-                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x99E6EAF1), size: 9)),),
+                  child: IgnorePointer(child: Icon(Icons.auto_awesome, color: Color(0x99FFE9B8), size: 9)),),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(kicker,
                       style: Ob.note.copyWith(
-                          color: const Color(0xFFDDE3EC), letterSpacing: 1.3, fontWeight: FontWeight.w600, fontSize: 9.5,),),
+                          color: const Color(0xFFFFD98A), letterSpacing: 1.3, fontWeight: FontWeight.w600, fontSize: 9.5,),),
                   const SizedBox(height: 5),
                   SizedBox(
                     width: 190,
@@ -850,7 +850,7 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
                 shape: BoxShape.circle,
                 border: Border.all(color: Ob.gold.withValues(alpha: 0.55), width: 1.1),
               ),
-              child: Icon(icon, color: const Color(0xFFE6EAF1), size: 15),
+              child: Icon(icon, color: const Color(0xFFFFE9B8), size: 15),
             ),
             const SizedBox(width: 6),
             Flexible(
@@ -992,7 +992,7 @@ class _CelestialAstroCard extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [Color(0xFF5B79C0), Color(0xFFB56B9A), Color(0xFFE8A24C)],
+                        colors: [Color(0xFF5A4A1E), Color(0xFFB56B9A), Color(0xFFE8A24C)],
                       ),
                     ),
                   ),
@@ -1002,7 +1002,7 @@ class _CelestialAstroCard extends StatelessWidget {
                       padding: const EdgeInsets.all(2.5),
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(colors: [Color(0xFFDDE3EC), Color(0xFFC6CCD6)]),
+                        gradient: LinearGradient(colors: [Color(0xFFFFD98A), Color(0xFFF5B301)]),
                       ),
                       child: Stack(
                         clipBehavior: Clip.none,

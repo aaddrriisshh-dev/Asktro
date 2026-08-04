@@ -7,35 +7,35 @@ import 'package:google_fonts/google_fonts.dart';
 /// the rest of the app is unaffected until we roll the system out app-wide.
 ///
 ///   Fonts   headings Cormorant Garamond · body/buttons Poppins
-///   Colors  bg #F1F4F9 · text #141C38/#6E7690 · gold #C6CCD6 · border #DDE3EC
+///   Colors  bg #FFFDF7 · text #17120A/#6E7690 · gold #F5B301 · border #FFD98A
 ///   Spacing pad 24 · section 32 · card 20 · radii btn18/input16/card24
 abstract final class Ob {
   // ---- palette ----
-  static const Color bgColor = Color(0xFFF1F4F9);
+  static const Color bgColor = Color(0xFFFFFDF7);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color navy = Color(0xFF141C38); // primary text
+  static const Color navy = Color(0xFF17120A); // primary text
   static const Color grey = Color(0xFF7A7693); // secondary text
-  static const Color gold = Color(0xFFC6CCD6);
-  static const Color goldDeep = Color(0xFF9AA3B2);
+  static const Color gold = Color(0xFFF5B301);
+  static const Color goldDeep = Color(0xFFC08A12);
   static const Color border = Color(0xFFE8E1F8);
-  static const Color purple = Color(0xFF2E4A8F);
-  static const Color purpleDeep = Color(0xFF1E3269);
-  static const Color lavender = Color(0xFFEDF1F8);
-  static const Color lavenderChip = Color(0xFFE6EDF7);
+  static const Color purple = Color(0xFF2B2417);
+  static const Color purpleDeep = Color(0xFF20190F);
+  static const Color lavender = Color(0xFFFFF9EC);
+  static const Color lavenderChip = Color(0xFFFFF3D6);
 
   // selection (gold tint)
-  static const Color selectedFill = Color(0xFFEFF2F7);
-  static const Color selectedBorder = Color(0xFFCED4DE);
+  static const Color selectedFill = Color(0xFFFFFDF3);
+  static const Color selectedBorder = Color(0xFFFFC629);
 
   static const LinearGradient goldGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFDDE3EC), Color(0xFFC6CCD6)],
+    colors: [Color(0xFFFFD98A), Color(0xFFF5B301)],
   );
   static const LinearGradient goldCircle = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFCED4DE), Color(0xFFAAB2C0)],
+    colors: [Color(0xFFFFC629), Color(0xFFD9A21A)],
   );
 
   // ---- spacing / sizing tokens ----

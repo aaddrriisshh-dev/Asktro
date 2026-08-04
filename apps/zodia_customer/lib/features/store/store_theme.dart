@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 /// taste. Used across the home rail and every store screen.
 abstract final class Mall {
   // Ghee golds
-  static const Color cream = Color(0xFFEFF2F7);
+  static const Color cream = Color(0xFFFFFDF3);
   static const Color light = Color(0xFFF7E6B4);
-  static const Color gold = Color(0xFFCED4DE);
-  static const Color deep = Color(0xFFAAB2C0);
-  static const Color goldInk = Color(0xFF5A6274);
-  static const Color goldLine = Color(0xFFCED4DE);
+  static const Color gold = Color(0xFFFFC629);
+  static const Color deep = Color(0xFFD9A21A);
+  static const Color goldInk = Color(0xFF7A5A00);
+  static const Color goldLine = Color(0xFFFFC629);
 
   // Ink / neutrals on the warm ground
   static const Color ink = Color(0xFF3A2E17);
@@ -18,7 +18,7 @@ abstract final class Mall {
   static const Color titleBrown = Color(0xFF5A3D0C);
 
   // App-cohesive
-  static const Color navy = Color(0xFF141C38);
+  static const Color navy = Color(0xFF17120A);
   static const Color card = Color(0xFFFFFFFF);
   static const Color hair = Color(0xFFEFE7D6);
 
@@ -32,7 +32,7 @@ abstract final class Mall {
   static const LinearGradient gheeGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFEFF2F7), Color(0xFFF7E6B4), Color(0xFFEFCE85), Color(0xFFE7BE68)],
+    colors: [Color(0xFFFFFDF3), Color(0xFFF7E6B4), Color(0xFFEFCE85), Color(0xFFE7BE68)],
     stops: [0, .42, .78, 1],
   );
 
@@ -55,7 +55,7 @@ abstract final class Mall {
   static const LinearGradient navyButton = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF141C38), Color(0xFF4A3A7A)],
+    colors: [Color(0xFF17120A), Color(0xFF4A3A7A)],
   );
 
   /// Format paise → "₹1,499".

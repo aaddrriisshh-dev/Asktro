@@ -41,7 +41,7 @@ class _StoreSearchScreenState extends ConsumerState<StoreSearchScreen> {
     final needle = _q.trim().toLowerCase();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5FA),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
         backgroundColor: Mall.cream,
         elevation: 0,

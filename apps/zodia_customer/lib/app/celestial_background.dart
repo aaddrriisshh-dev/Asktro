@@ -74,7 +74,7 @@ class DotGridBackground extends StatelessWidget {
 class _DotGridPainter extends CustomPainter {
   static const double _gap = 20;
   static const double _radius = 1.3;
-  final Paint _dot = Paint()..color = const Color(0x1A2E4A8F); // ~10% purple
+  final Paint _dot = Paint()..color = const Color(0x1A2B2417); // ~10% purple
 
   @override
   void paint(Canvas canvas, Size size) {

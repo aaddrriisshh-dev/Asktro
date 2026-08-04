@@ -37,7 +37,7 @@ class _TextFallback extends StatelessWidget {
           text: TextSpan(
             style: AppTypography.headline.copyWith(
               fontSize: height * 0.72,
-              color: const Color(0xFF0E1A3A),
+              color: const Color(0xFF151009),
               fontWeight: FontWeight.w700,
             ),
             children: [
@@ -45,7 +45,7 @@ class _TextFallback extends StatelessWidget {
               TextSpan(
                 text: '.in',
                 style: TextStyle(
-                    color: const Color(0xFFBFC6D2), fontSize: height * 0.42,),
+                    color: const Color(0xFFE8AE20), fontSize: height * 0.42,),
               ),
             ],
           ),

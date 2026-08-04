@@ -17,7 +17,7 @@ import { PromoTheme } from '@/lib/promoThemes';
 
 const PLACEMENTS = ['home', 'consults', 'wallet', 'alerts', 'profile'] as const;
 const PLACE_LABEL: Record<string, string> = { home: 'Home', consults: 'Consults', wallet: 'Wallet', alerts: 'Alerts', profile: 'Profile' };
-const PRESETS = ['#141c38', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
+const PRESETS = ['#17120A', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
 
 type BannerType = 'marketing' | 'recharge';
 
@@ -28,14 +28,14 @@ export default function BannersPage() {
   const [bannerType, setBannerType] = useState<BannerType>('marketing');
   const [planId, setPlanId] = useState('');
   const [f, setF] = useState({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
-  const [bg, setBg] = useState('#141c38');
+  const [bg, setBg] = useState('#17120A');
   const [fg, setFg] = useState('#ffffff');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('small');
   const [portraitImage, setPortraitImage] = useState('');
   const [ctaText, setCtaText] = useState('');
   const [lTitle, setLTitle] = useState('');
   const [lBody, setLBody] = useState('');
-  const [lBg, setLBg] = useState('#141c38');
+  const [lBg, setLBg] = useState('#17120A');
   const [lFg, setLFg] = useState('#ffffff');
   const [busy, setBusy] = useState(false);
   const [theme, setTheme] = useState('');
@@ -89,7 +89,7 @@ export default function BannersPage() {
       setBTextPos('center'); setBTextAlign('left'); setBHScale(1); setImageFill(false);
       setBannerType('marketing'); setPlanId('');
       setPortraitImage(''); setCtaText(''); setDisplayMode('small');
-      setLTitle(''); setLBody(''); setLBg('#141c38'); setLFg('#ffffff');
+      setLTitle(''); setLBody(''); setLBg('#17120A'); setLFg('#ffffff');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(false); }
   }
@@ -254,7 +254,7 @@ export default function BannersPage() {
               body={(preview.description as string) || ''}
               image={(preview.image as string) || ''}
               imageStyle="banner"
-              bg={(preview.bgColor as string) || '#141c38'}
+              bg={(preview.bgColor as string) || '#17120A'}
               fg={(preview.textColor as string) || '#ffffff'}
               textPosition={(preview.textPosition as string) || 'center'}
               textAlign={(preview.textAlign as string) || 'left'}

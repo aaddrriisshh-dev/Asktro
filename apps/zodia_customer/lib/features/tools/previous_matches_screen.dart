@@ -113,7 +113,7 @@ class PreviousMatchesScreen extends ConsumerWidget {
                 height: 54,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFF1E3269), Color(0xFF2E4A8F)]),
+                  gradient: const LinearGradient(colors: [Color(0xFF20190F), Color(0xFF2B2417)]),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(

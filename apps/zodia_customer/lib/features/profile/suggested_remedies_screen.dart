@@ -485,7 +485,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [Color(0xFFEDF1F8), Color(0xFFEFF2F7)],
+                        colors: [Color(0xFFFFF9EC), Color(0xFFFFFDF3)],
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: AppColors.warning.withValues(alpha: 0.45)),
@@ -714,7 +714,7 @@ class _RemedyDetailScreenState extends ConsumerState<RemedyDetailScreen> {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFEFF2F7), Color(0xFFEDF1F8)],
+                colors: [Color(0xFFFFFDF3), Color(0xFFFFF9EC)],
               ),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
@@ -1066,7 +1066,7 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
               : const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFFEDF1F8), Color(0xFFEFF2F7)],
+                  colors: [Color(0xFFFFF9EC), Color(0xFFFFFDF3)],
                 ),
           color: mine ? AppColors.primary.withValues(alpha: 0.10) : null,
           borderRadius: BorderRadius.circular(14),

@@ -215,7 +215,7 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFBF7FF), Color(0xFFEDF1F8)],
+          colors: [Color(0xFFFBF7FF), Color(0xFFFFF9EC)],
         ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE9E1F8)),
