@@ -207,3 +207,45 @@ founder's "go" after approval.
 - Deploy from the Mac using the service-account key (never `firebase login`);
   functions one at a time; new callables need a Cloud Run invoker grant.
 - Branch for this work: `claude/asktro-session-handoff-o1ggo8`.
+
+---
+
+## 🟡 ZODIA — white-label demo clone (built for a sales prospect)
+
+**Why:** the founder sells the platform as an IT company; built a rebranded clone
+to demo live to a lead. **NOT for Play** — local demo only.
+
+**What it is:** full copies of all 3 products in separate folders (Asktro 100%
+untouched, git-verified):
+- `apps/zodia_customer` (label **Zodia**, id `in.zodia.customer`)
+- `apps/zodia_astrologer` (label **Zodia Astrologer**, id `in.zodia.astrologer`)
+- `apps/zodia_admin` (**ZODIA Admin** portal)
+- `packages/zodia_shared` (its own copy of shared_flutter; Zodia apps point here)
+
+**Branding:** white + gold-yellow (primary `#F5B301`, charcoal UI `#2B2417`).
+Recoloured via scripted hex maps (tokens + inline hex + portal CSS). Generated
+Zodia icon/emblem/wordmark (gold tile + charcoal "Z"), recoloured zodiac wheels.
+`kMonetizationEnabled = true` → ALL paid features on (wallet, Mall, human
+astrologers, per-min pricing, Razorpay, calls, kundli paywall).
+
+**Backend = REUSE Asktro's** (Blaze not available for a separate project, so
+`zodia-4a766` is parked). `firebase_options.dart` still points to
+`asktro-tech-provate-limited`. So the Zodia demo READS/WRITES Asktro's live DB.
+- ⚠️ Admin actions in the Zodia portal are REAL on Asktro's backend. During demo
+  do NOT: send broadcasts (hit real users), change global config/pricing (Asktro
+  free-v1 depends on it while in review), or delete real data.
+- The one demo write: a human demo astrologer **demo@zodia.in** (hidden in
+  Asktro's free-v1 customer app because it filters to AI-only, so it won't affect
+  review).
+
+**Demo logins:** customer app → test number `+918318259972` / OTP `123456`;
+astrologer app → `demo@zodia.in` / (password set at creation); portal → Asktro
+admin creds.
+
+**Build/run (Mac):** `flutter pub get` + `dart run flutter_launcher_icons` +
+`flutter run --release -d <device>` per app; portal: `cp ../admin/.env.local
+.env.local && npm install && npm run dev`. All three verified working on device.
+
+**To make Zodia a real product later:** enable Blaze on `zodia-4a766`, point both
+`firebase_options.dart` + portal `.env.local` at it, deploy functions/rules,
+seed data, register app SHAs for real phone auth.
