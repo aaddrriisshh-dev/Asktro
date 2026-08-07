@@ -249,3 +249,31 @@ admin creds.
 **To make Zodia a real product later:** enable Blaze on `zodia-4a766`, point both
 `firebase_options.dart` + portal `.env.local` at it, deploy functions/rules,
 seed data, register app SHAs for real phone auth.
+
+---
+
+## 🔑 POST-APPROVAL PLAN (founder's intent — do NOT do before Play approval)
+
+Two separate post-approval tasks the founder wants remembered:
+
+**1. Turn ALL paused features back on (v2).** For the first Play approval the app
+ships FREE with money features HIDDEN via `kMonetizationEnabled = false`
+(everything hidden, nothing deleted). AFTER approval (and once the org/D-U-N-S
+account lands), flip `kMonetizationEnabled = true` and follow
+`docs/FREE_V1_RESTORE.md` to restore wallet/Razorpay/human astrologers/pricing/
+mall/etc., plus the paid privacy + account-deletion pages, then ship the 8-issue
+batch in `docs/POST_APPROVAL_FIXES.md`. Reviewed normally by Google as v2.
+
+**2. Transfer the Firebase/GCP project off the founder's personal email + card.**
+After approval, move ownership + billing of `asktro-tech-provate-limited` from the
+founder's PERSONAL Google account/card to a different email/entity (ideally the
+company/organization). Key facts to reuse:
+- It is an OWNERSHIP + BILLING reassignment, NOT a data migration — Functions,
+  Firestore, Auth, data all stay in place; nothing rebuilds.
+- Ownership: GCP/Firebase IAM → add the new account as Owner, confirm, then remove
+  the personal one. Always keep ≥1 Owner during the switch (add new before remove).
+- Billing: set up the new billing account/card first, then link the project to it
+  and unlink the old — GCP Console → Billing.
+- Optionally migrate the project INTO the company Google Cloud Organization.
+- Play Store developer-account transfer is a SEPARATE process if ever wanted.
+- Timing: ONLY after Play approval / when stable — not during review.
