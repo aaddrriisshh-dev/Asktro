@@ -277,3 +277,18 @@ company/organization). Key facts to reuse:
 - Optionally migrate the project INTO the company Google Cloud Organization.
 - Play Store developer-account transfer is a SEPARATE process if ever wanted.
 - Timing: ONLY after Play approval / when stable — not during review.
+
+---
+
+## 📌 UPDATE — 18 Aug 2026: Applied for Production access
+
+Closed test completed (12+ testers, 14 continuous days). Filled the 3-step
+"Apply for access to production" questionnaire (closed test / about app /
+readiness) with honest answers and clicked **Apply**. Now awaiting Google's
+**production-access review** (typically a few days, up to ~7).
+
+NEXT once access is granted:
+1. Create a **Production release** (same build, versionCode 3 / 1.0.0+3), roll out.
+2. It goes through the normal app review, then publishes to the public store.
+3. Post-launch: the v2 restore (money features back on) + project ownership/billing
+   transfer — see sections above.
