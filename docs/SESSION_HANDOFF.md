@@ -292,3 +292,76 @@ NEXT once access is granted:
 2. It goes through the normal app review, then publishes to the public store.
 3. Post-launch: the v2 restore (money features back on) + project ownership/billing
    transfer — see sections above.
+
+---
+
+## 🚀 UPDATE — 1 Sept 2026: LIVE ON PLAY STORE + 3 post-launch fixes
+
+Asktro is **LIVE on the public Google Play Store (India)**, free-v1
+(`kMonetizationEnabled = false`). Timeline: production release submitted
+22 Aug → rejected 27 Aug (content-rating) → fixed + resubmitted same day →
+**approved & published ~31 Aug**. App status: Production, `in.asktro.customer`.
+
+Three production-only issues surfaced on the live app and were all fixed
+(none required code changes — all config/account/data):
+
+**1. Content-rating rejection (fixed 27 Aug).** Google/IARC rated the app
+**"Adults Only 18+"** everywhere → rejected as an inaccurate rating. Cause: the
+original content-rating questionnaire (25 Jul) had answered YES to **cash
+rewards / gambling with cash payouts**, user-to-user interaction, and shares
+location — describing a gambling app. Fix: retook the questionnaire in Play
+Console (App content → Content rating → Start new questionnaire), category
+**"All other app types"**, answered honestly — only "Online content = Yes" (AI
+content), everything else No. New rating: **Everyone / PEGI 3 / All ages / 3+**.
+Resubmitted; approved. NOTE for v2: turning ON in-app purchases → answer
+"purchase digital goods = Yes"; that does NOT raise the rating to 18+ (purchases
+≠ gambling). Never answer the gambling/cash-rewards questions Yes.
+
+**2. Login OTP failed on the live app** — "This app is not authorized to use
+Firebase Authentication … play_integrity_token was passed, but no matching
+SHA-256 was registered." Cause: **Play App Signing** re-signs the distributed
+app with Google's key, whose SHA-256 was never in Firebase (only the upload/local
+keys were, which is why test builds worked). The app is enrolled in Play
+**"Quantum-ready (beta)"** signing. Fix: added ALL app-signing fingerprints to
+Firebase Console → Project settings → Android app `in.asktro.customer` → SHA
+certificate fingerprints. The DECISIVE one was the real app-signing cert from the
+**Digital Asset Links JSON** on the Play App-signing page:
+`BF:F9:43:CB:6A:55:86:E0:84:A5:AD:60:66:ED:45:A7:D6:4A:2E:1F:95:30:4A:6B:3C:E7:9E:C7:D6:D0:FB:B6`
+(the classical/post-quantum key fingerprints alone were NOT enough — that
+Digital-Asset-Links SHA-256 is the one Play Integrity actually checks). Server-side
+change, no app rebuild. To re-check later: Play Console → Test and release →
+"Protected with Play" → Manage Play app signing → Digital Asset Links JSON.
+
+**3. Kundli chart image blank + AI astrologer silent after 1 msg.** Both traced
+(via Cloud Functions logs → Logs Explorer) to the SAME root: **ProKerala API
+429 "rate limit of 5 requests per 60 seconds"** — the account was on ProKerala's
+**FREE plan** (5 req/min, 5,000 credits). One user opening kundli + chat fires
+5–7 ProKerala calls at once → over the cap → 429. The AI stays silent by design
+when it can't build the chart (`onAiChatMessage: no chart` in logs is misleading —
+it's the 429, not missing birth data; birth data was present and correct).
+- ProKerala account confirmed correct: **"Asktro Tech"** account, Live Client ID
+  `518d3b23-53e5-40da-a1b4-cbd8a2a6d121`, which MATCHES the app's
+  `PROKERALA_CLIENT_ID` secret (GCP Secret Manager, latest version) — so no
+  wrong-account issue.
+- **Fix: subscribed to ProKerala "Emerald" plan** (₹2,499/mo, 350,000 credits,
+  **120 req/min**). Takes effect immediately, no app change. AI chat + chart both
+  work now. (Ruby ₹999/60-per-min would also have sufficed; Emerald for headroom.)
+- One residual: a FAILED kundli fetch during the broken window had cached an EMPTY
+  chart at `users/{uid}/astro/kundli` (client caches `chartSvg:null`). Cleared it
+  manually in Firestore to prove the fix; the chart then loaded fresh.
+
+### ⏭️ QUEUED CODE FIX — apply ONLY right before the next app release (founder said no code changes now)
+In `apps/customer/lib/data/prokerala_repository.dart` `janamKundli()`:
+- On a cache HIT where `chartSvg` is null/empty, **re-fetch the chart** instead of
+  serving the stale empty (self-heals every user who got an empty chart cached
+  during an outage; today we had to delete the cache doc by hand).
+- Also space out / better-cache the ProKerala calls (chat_kundli_card +
+  janam_kundli_screen both call `janamKundli`; getOrBuildChart fires 3 parallel
+  calls) to cut credit burn and stay under the rate limit as users grow.
+These are CLIENT changes → require a new AAB + Play update (faster review than the
+first). Do them bundled with the next release, not before.
+
+### Still-to-test on the live build (was mid-checklist)
+Google Sign-In button, account deletion flow, push notifications, photo-in-chat,
+daily horoscope / panchang / kundli matching, and a Crashlytics glance after real
+use. Also confirm no money UI leaks (free-v1 kill switch).
