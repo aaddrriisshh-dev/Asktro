@@ -365,3 +365,60 @@ first). Do them bundled with the next release, not before.
 Google Sign-In button, account deletion flow, push notifications, photo-in-chat,
 daily horoscope / panchang / kundli matching, and a Crashlytics glance after real
 use. Also confirm no money UI leaks (free-v1 kill switch).
+
+---
+
+## 🔴 PRIORITY-1 BUG (next release) — First-run onboarding lost → new user lands as "Guest"
+
+**Reported 1 Sept 2026** (a friend installed the live app). Symptom: user completes
+ALL onboarding (name, DOB, time, place — place autocomplete worked), logs in via
+OTP, reaches Home — but shows as **"Guest"** with **no details fetched**. Because
+the birth details never reached the account, **nothing works**: no kundli, no
+chart, no AI/astrologer chat. The user only recovered by **re-entering everything
+in the Profile tab** (that path writes straight to the account and works).
+
+### Root cause (verified in code, read-only)
+Profile setup runs **BEFORE login**, so there's no account yet. The details are
+held in a **buffer** (memory + on-disk via SharedPreferences `pending_profile`,
+see `apps/customer/lib/app/router.dart` writePendingProfile/readPendingProfile)
+and only written to `users/{uid}` **after** login — by `ensureProfile` at sign-in
+(`auth_controller.dart _ensureProfile`) and a backstop flush at Home
+(`home_gate.dart _flushPendingProfile` → `repositories.dart applyOnboarding`).
+When that hand-off misses, `ensureProfile` creates a bare `{name:'Guest'}` doc
+(repositories.dart:225 fallback) with no birth details, and the flush has nothing
+to apply → user stuck as Guest. It is the **collect-before-login + buffer→flush
+design that is fragile** (e.g. app killed/timing during the OTP step). NOT data
+loss (recoverable via Profile), and NOT universal (backgrounding ≠ kill; disk
+buffer usually survives — which is why the founder's own account worked). Birth
+data buffers as plain primitives (`birthDateMs` int, `birthTime` string) so JSON
+encoding is NOT the cause. Firestore rules are NOT the blocker (edit-profile writes
+the same fields fine).
+
+### No server-side / no-update fix exists (verified)
+Onboarding timing, buffer and flush are all **hardcoded in the installed app** —
+none read any server config. `firebase_remote_config` is in pubspec but **unused**
+(not wired to anything). So this CANNOT be fixed without shipping a new app
+version. Only user-side workaround meanwhile: complete details in the **Profile
+tab**. There is no way to recover already-lost buffers server-side (the missed
+data only ever lived in that device's buffer).
+
+### The durable fix (do in next release — careful + tested)
+**Reorder: run profile setup AFTER login**, so details write **directly** to
+`users/{uid}` (the same reliable path Profile-edit uses) — no buffer, no hand-off,
+no race. Eliminates the whole bug class. (Interim alt = harden the buffer/flush,
+but keeps the fragile design — NOT preferred.)
+
+### Ship-safely requirements (founder is anxious the live app not break)
+- The live version keeps running unchanged; we publish a NEW tested version.
+- **STAGED ROLLOUT** on Play (10% → 50% → 100%), halt if issues.
+- **MUST run a real fresh-install end-to-end test** (uninstall → onboard → OTP →
+  Home → confirm details landed on the account) BEFORE building the AAB. The
+  pre-launch audits reviewed CODE but never ran the true first-run journey — that
+  is the gap that let this ship.
+- Bundle with the other queued next-release fixes: chart-cache re-fetch, ProKerala
+  call spacing/caching, geocoder reliability (Nominatim → proxied paid Places API),
+  and notification CTA deep-link options.
+
+### Before coding: measure impact (server-side, zero risk)
+Count live users with `name == 'Guest'` / missing `birthDateMs` vs. total in
+Firestore to gauge urgency (patch-this-week vs. bundle-with-next-update).
