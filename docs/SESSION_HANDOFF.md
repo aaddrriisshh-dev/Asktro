@@ -422,3 +422,89 @@ but keeps the fragile design — NOT preferred.)
 ### Before coding: measure impact (server-side, zero risk)
 Count live users with `name == 'Guest'` / missing `birthDateMs` vs. total in
 Firestore to gauge urgency (patch-this-week vs. bundle-with-next-update).
+
+---
+
+## 🟠 NEXT-VERSION UX FIXES (from live testing, 1 Sept 2026) — no code changes yet
+
+Founder is anxious the live app not break; ALL of these are NEXT-RELEASE app
+changes, to ship together with a **staged rollout** + a real fresh-device test
+(incl. a SLOW-network run). Money features are a SEPARATE discussion (excluded).
+
+### P1 — First-run onboarding "Guest" (see the dedicated priority-1 section above)
+UPDATE from testing 1 Sept: reproduced as a **TIMING RACE**, not "left app for OTP."
+Founder reset a number, reinstalled, onboarded as "ZZTEST" with auto-OTP on his
+(fast) phone → **worked** ("Hi ZZTEST", details fetched). But it **failed on a
+friend's device and a second device** (both showed Guest, incl. one with auto-OTP).
+So: fast phone/network wins the race (client writes the details before/around the
+server `onAuthUserCreate` Guest-doc creation); slower phone/spotty network loses →
+Guest with no details. NOT every user, but a real share (slow devices/networks,
+common in India). No server-only fix (birth details live on the phone; the server
+can't invent them). Durable fix = **onboarding AFTER login → direct, confirmed
+write, retry** (kills the race). Files: `auth/onAuthUserCreate.ts` (server Guest
+doc, merge:true, guarded on snap.exists but still races), `apps/customer/lib/
+features/auth/auth_controller.dart` `_ensureProfile`, `data/repositories.dart`
+`ensureProfile`/`applyOnboarding`, `features/home/home_gate.dart` flush,
+`app/router.dart` write/readPendingProfile.
+
+### P2 — Onboarding CTA pushed below the fold on some viewports
+Reported: on a OnePlus the onboarding CTA (e.g. the "you've got free chat" first
+screen) sits far down, only reachable after scrolling — some users won't know to
+scroll and think it's broken. Root cause: `apps/customer/lib/features/profile_setup/
+onboarding_widgets.dart` `OnboardingScaffold` puts `content` + `footer`(CTA) inside
+ONE `SingleChildScrollView` (Expanded) — button scrolls with content, so tall
+content/short viewports push it off-screen. It's the SHARED scaffold used by every
+onboarding step, so one fix covers all steps. Fix: PIN the CTA to the bottom
+(SafeArea/bottomNavigationBar), let only the content scroll above it. Test across
+several screen sizes.
+
+### P3 — Free-chat silent failures (from the UX audit — VERIFY live config first)
+The free build hides recharge, but the backend still gates chat on a one-time
+~3-min free credit (`config/global`: `freeChatMinutes`, `minWalletToStartPaise`;
+defaults 3 and 1800 in `firebase/functions/src/common/config.ts`). If those live
+values are NOT set to the free-v1 values (`freeChatMinutes` huge / `minWalletToStartPaise`
+0 per docs/FREE_V1_RESTORE.md §2), then: (#1 CRITICAL) after the first short chat,
+tapping Chat/Chat-again does NOTHING (client `_promptRecharge` early-returns when
+`!kMonetizationEnabled`) — `astrologer_profile_screen.dart:57-69`,
+`chat_consultation_screen.dart:276-307`; and (#2 MAJOR) the first chat goes
+silently dead ~4 min in when the credit exhausts and the session pauses
+(`tickConsultation.ts:219` pause; `replyEngine.ts:119` never replies on paused;
+client suppresses the paused sheet in free v1 `chat_consultation_screen.dart:631`).
+**FIRST STEP (server-side, no app update, low risk): check `config/global` live —
+if freeChatMinutes/minWalletToStartPaise aren't the free-v1 values, setting them
+makes free chat effectively unlimited and both #1/#2 disappear without a release.**
+If a code-side guard is still wanted, add a friendly "your free session ended"
+message instead of the silent no-op — that part is an app change.
+
+### P4 — Minor onboarding-timing UI glitches (app change)
+- Janam Kundli can show "Please sign in to view your kundli" to a signed-in user if
+  the profile stream hasn't emitted yet — `tools/janam_kundli_screen.dart:41-48`.
+- Daily Horoscope can lock to Aries (first sign) if opened before the profile loads
+  — `tools/horoscope_screen.dart:34-35` (computed once in initState, not re-evaluated).
+- Notifications with a plain/offer deeplink do nothing on tap (only remedy + chat
+  deeplinks handled) — `features/notifications/notifications_tab.dart:42-66`.
+
+### P5 — Geocoder reliability (birth-place autocomplete)
+`apps/customer/lib/data/place_search_service.dart` uses free OpenStreetMap Nominatim
+(keyless), which rate-limits/blocks production app traffic and fails silently (empty
+suggestions). Swap to a reliable Places API, ideally proxied via a Cloud Function so
+the provider can change later without an app update. Add a graceful fallback.
+
+### P6 — Notification CTA deep-link options (portal + app)
+Portal push composer has a CTA label + a Deep-link dropdown, but the dropdown only
+offers Recharge/Home/specific-astrologer/custom (`apps/admin/src/components/
+DeepLinkSelect.tsx`). CTA in-app follows the SAME deeplink via `_followDeeplink`
+(`features/home/home_shell.dart:163`) and works for any EXISTING route. Portal-only
+(no app update) for routes the app already has (Home, /astrologer/:id). NEEDS app
+changes for: destinations with no route yet (generic Chat/consult, Kundli,
+Horoscope, Panchang) and for a CTA target DIFFERENT from the notification tap.
+NOTE: /recharge, /store, /offers routes EXIST and would open on the LIVE free-v1 app,
+exposing hidden money screens — do NOT use those CTAs until v2.
+
+### Queued code-quality/handoff notes (from the audit)
+- Zodia is a hard FORK (near-duplicate of Asktro) → fixes often need doing twice;
+  Asktro is canonical. Consider a shared-source/flavor approach later.
+- Flutter client has almost no tests (backend well-tested). Add tests when touching
+  client code.
+- `docs/` has sprawled/drifted (README/ARCHITECTURE describe an older/aspirational
+  state). Trust code + BILLING_ENGINE.md/DATA_MODEL.md; archive stale planning docs.
