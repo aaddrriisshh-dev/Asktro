@@ -218,3 +218,50 @@ AI for ~1 month, watch the bill, and switch it off if unaffordable:
   (needs D-U-N-S) + transfer the app — cosmetic/branding, not required.
 - Optional: transfer Firebase/GCP project ownership + billing off the personal
   account to the company (ownership + billing reassignment, keep ≥1 owner during switch).
+
+---
+
+## 11. Decisions locked & execution notes (4 Sept 2026)
+
+**Single release (no split).** Do NOT ship a standalone onboarding patch. Ship
+**ONE v2** that includes the fixes **AND** monetization (Mall + human astrologers).
+Reason: current free v1 earns nothing; only ~10–15 friends/family have it and it is
+NOT advertised, so there is no urgency to patch and no point marketing until v2 earns
+money. **Do not market until v2 (with monetization) is live.**
+
+**Account type — confirmed.** An **individual Google Play developer account CAN
+publish a monetized app** (paid, IAP, and Razorpay for exempt items). **D-U-N-S is
+NOT required** — it's only needed to register a NEW account as an "Organization."
+Asktro's existing individual account is fine for full v2 monetization. (Optional
+belt-and-suspenders: verify on Play Console → Developer account → Account details.)
+
+**Approval confidence.** High but not guaranteed (nobody can promise Google). The
+model maps every paid item to a category Google's own policy text explicitly allows
+(physical goods; live 1:1 human service). The v1 rejection cause (content rating) is
+fixed and won't recur. Residual risk = execution details + the human-consult grey
+edge → de-risk with careful declarations, staged rollout, and readiness to justify
+consults as a human service (as AstroTalk/AstroSage do, live on Play).
+
+**Build environment / division of hands.** The assistant's environment has **NO
+Flutter SDK** (verified: `flutter: command not found`) — it can write all Dart/app
+code and build/test the **backend (Node functions)** and **admin portal (Next.js)**,
+but the **Flutter app AAB is built and device-tested on the founder's Mac** (all
+month's builds happened there). The onboarding fresh-install + slow-network test runs
+on the Mac/device.
+
+**Confirmed internal build order for v2:**
+1. Onboarding reorder (after login) + gate + confirmed save, and the OTP redesign.
+2. Monetization turn-on (human consults + Mall paid via Razorpay; AI free; Kundli
+   free; wallet rules; `config/global`; Play declarations).
+3. Notification CTA fix + rendering QA (pin onboarding CTA; promo rendering) + chart
+   self-heal + geocoder + minor bugs.
+4. Scale + cost + AI remote kill-switch + monitoring + security tightening.
+5. Handoff polish → full test (incl. slow-network onboarding + visual QA) → staged
+   rollout 10%→50%→100% → THEN market.
+
+**AI cost lever (locked):** v2 must let AI be turned OFF with no app update (remote
+kill-switch + portal toggle on AI astrologer records). Founder trials AI ~1 month,
+watches the bill, and can have it switched off same-day if unaffordable.
+
+**Next session pickup:** decide "start building v2" go/no-go, then begin Phase 1
+(onboarding + OTP). Nothing is coded yet — planning only.
