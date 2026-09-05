@@ -88,7 +88,7 @@ class PlaceSearchService {
           label: label,
           lat: double.tryParse(f[2]),
           lon: double.tryParse(f[3]),
-        ));
+        ),);
       }
     } catch (_) {
       list = null; // no shard for this prefix
@@ -108,12 +108,12 @@ class PlaceSearchService {
       'limit': '8',
       'countrycodes': 'in',
       'dedupe': '1',
-    });
+    },);
     try {
       final res = await http.get(uri, headers: {
         'User-Agent': 'AsktroApp/1.0 (birth place search)',
         'Accept': 'application/json',
-      }).timeout(const Duration(seconds: 8));
+      },).timeout(const Duration(seconds: 8));
       if (res.statusCode != 200) return const [];
       final data = jsonDecode(res.body);
       if (data is! List) return const [];
@@ -140,7 +140,7 @@ class PlaceSearchService {
           label: label,
           lat: double.tryParse(e['lat']?.toString() ?? ''),
           lon: double.tryParse(e['lon']?.toString() ?? ''),
-        ));
+        ),);
       }
       return out;
     } catch (_) {

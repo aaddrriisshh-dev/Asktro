@@ -219,7 +219,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     child: Text('Wrong number? Change',
-                        style: Ob.note.copyWith(color: Ob.purple, fontWeight: FontWeight.w600)),
+                        style: Ob.note.copyWith(color: Ob.purple, fontWeight: FontWeight.w600),),
                   ),
                   const SizedBox(height: 22),
                   _codeField(),
@@ -238,12 +238,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                   Center(
                     child: _seconds > 0
                         ? Text('Resend code in 00:${_seconds.toString().padLeft(2, '0')}',
-                            style: Ob.note)
+                            style: Ob.note,)
                         : TextButton(
                             onPressed: _resend,
                             child: Text('Resend code',
                                 style: Ob.note.copyWith(
-                                    color: Ob.purple, fontWeight: FontWeight.w600)),
+                                    color: Ob.purple, fontWeight: FontWeight.w600,),),
                           ),
                   ),
                   const SizedBox(height: 18),
