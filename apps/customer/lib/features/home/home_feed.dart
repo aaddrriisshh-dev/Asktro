@@ -105,7 +105,9 @@ class HomeFeed extends ConsumerWidget {
                 title: 'Asktro Verified Astrologers',
                 provider: _topHumanProvider,
                 hideWhenEmpty: true,),
-            _AstroCarousel(title: 'AI Astrologers · Free to chat', provider: _topAiProvider),
+            // The AI personas, presented as "New Astrologers" (each card + profile
+            // still carries the required AI badge). Free & unlimited to chat.
+            _AstroCarousel(title: 'New Astrologers', provider: _topAiProvider),
             _AstroCarousel(
                 title: 'Rising Stars',
                 provider: _risingStarsProvider,
