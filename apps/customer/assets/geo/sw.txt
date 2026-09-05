@@ -1,0 +1,62 @@
+Swamimalai	25	10.9575	79.3293
+Swroop Nagar	35	23.8273	77.9419
+Swarupnagar	28	22.8142	88.8318
+Swamihalli	19	14.9720	76.6125
+Swankha Than Bawa	12	32.5389	74.9347
+Swankha	12	32.5346	74.9315
+Swamibagh	12	32.7444	74.8847
+Swagath Road	19	12.9285	77.5917
+Swami ka Bas	24	28.0460	75.3404
+Swami ka Mathara	24	27.3898	71.4916
+Swapneswar	21	20.4397	85.8742
+Swarah	11	30.5519	77.4295
+Swanta	39	30.6987	77.7718
+Swan	39	30.6904	77.7855
+Swam	35	22.2966	78.5065
+Swami Khapa	35	22.1878	78.5655
+Swaipur	36	28.7015	77.6856
+Swakar	35	23.7309	79.0914
+Swami	36	27.2476	77.9385
+Swarna	40	19.2440	78.2145
+Swara	36	27.0516	78.3982
+Swasd Muaf	36	25.2484	79.7211
+Swas	36	25.6459	83.2960
+Swamulawari Lingotam	40	16.9053	78.8990
+Swami Khera	36	26.5064	80.8495
+Swami Khera	36	26.2414	80.8314
+Swamipur	36	27.6629	81.6023
+Swara	12	33.0365	75.9635
+Swandhlan	12	32.6697	75.2270
+Swatantrapur	36	25.3078	81.6495
+Swarka	11	32.0049	76.7279
+Swarnavarigudem	02	17.1577	81.2241
+Swarna	02	15.8542	80.2858
+Swarnapalem	02	15.8466	80.2549
+Swamireddikandigai	25	13.4335	80.1201
+Swajna	24	25.9670	74.3660
+Swari	39	29.5201	79.8795
+Swalehnagar	36	28.3730	79.3952
+Swasa Buzurg	36	25.8467	80.0098
+Swasa Khurd	36	25.8486	80.0101
+Swandenhalli	19	13.3823	77.1463
+Swrillmbo	19	13.1061	75.3338
+Swamihalli	19	14.9221	76.3146
+Swansi	36	27.3608	80.5983
+Swarnagadde	19	14.3651	74.4208
+Swamulwadi Lingawatam	40	17.2948	78.9506
+Swamigala Gollahalli	19	13.0447	78.0916
+Swamirajpet	19	13.0334	78.4569
+Swamikavundanpm	25	11.3759	77.9958
+Swaminathapuram	25	10.5539	77.3584
+Swaminathapuram	25	9.3728	77.6408
+Swamivila	25	8.1815	77.3519
+Swamiyar Marakkudi	25	8.6374	77.9597
+Swaminathapuram	25	10.2946	78.1220
+Swamiyarpatti	25	9.8243	78.4757
+Swamipatti	25	9.3408	78.4263
+Swaminathapuram	25	10.6848	77.9803
+Swamiyadiyur	25	10.6156	77.8524
+Swami Muttampatti	25	10.4806	77.9902
+Swamiyarpatti	25	10.3558	77.9023
+Swamiyarpatti	25	10.2726	77.9259
+Swandhip	21	20.2382	85.2347

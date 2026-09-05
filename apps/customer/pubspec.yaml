@@ -109,6 +109,7 @@ flutter:
     # build time by path, below) — bundling the whole folder packed ~2.3 MB of
     # unused launcher-icon PNGs into the app, so we list the one runtime file.
     - assets/brand/google_g.svg
+    - assets/geo/
     - assets/illustrations/
     - assets/onboarding/
     - assets/promo/

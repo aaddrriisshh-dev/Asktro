@@ -1,0 +1,104 @@
+Egra	28	21.8995	87.5379
+Egarkunr	38	23.7510	86.7694
+Egmore	25	13.0717	80.2556
+Eghra	38	24.3028	84.4811
+Egattur	25	13.1094	79.8884
+Egpalli	37	18.6590	80.6460
+Egola	09	24.2121	72.3760
+Egaon	16	20.7356	80.0293
+Eguvagolluru	21	18.3912	82.9316
+Egrudi	02	18.1899	82.7795
+Eguva Sonaba	02	18.1958	82.8703
+Eggadigudem	40	17.9800	80.8449
+Eguva Sajja	21	19.4073	83.3621
+Eguvaguda	21	19.4004	83.6163
+Egumetta	02	18.0502	82.4861
+Eguva Rega	21	18.8185	83.1494
+Eguva Gummadi	21	18.7588	83.0707
+Eguva Medangi	21	18.7604	83.1626
+Eguva Dabaru	21	18.9690	83.2264
+Eguva Kuntigam	21	18.6943	83.0053
+Eguva Medangi	02	18.6848	83.1069
+Eguva Sembi	02	18.6490	83.0784
+Eguva Dagarivalasa	02	18.5574	83.1373
+Eguva Pottesu	21	18.9402	83.3202
+Eguva Gunada	02	18.9539	83.5018
+Eguva Manda	02	18.9616	83.6105
+Egulavada	02	18.9427	83.6423
+Eggireddipeta	02	18.4426	83.5929
+Egakandigai	25	13.3432	80.0558
+Egayalasa	02	17.7710	81.7492
+Eghara	34	25.0545	84.1721
+Eguvapalle	02	14.8568	77.9612
+Eguvagangampalle	02	14.0365	77.8099
+Egnasettipalle	02	13.8045	77.6710
+Eguvabandlacheruvu	19	13.8083	77.7925
+Egalkeri	19	15.3407	76.3279
+Egana	34	24.9207	84.7953
+Egharia	35	21.7787	75.9611
+Eguvatamballapalle	02	15.1458	78.9061
+Eguvapalle	02	14.4810	78.0359
+Eguvapalle	02	14.0648	78.0893
+Eguvapalle	02	14.0646	78.2167
+Eguvapatravandlapalle	02	14.0127	78.1999
+Eguvanelaturu	02	14.7585	78.9716
+Eguvapalle	02	14.1975	78.9329
+Eguvapalem	02	14.1981	78.8226
+Eguvaratchapalle	02	14.1754	78.8641
+Eguvapalle	02	14.0774	78.7921
+Eguvakadapalavandlapalle	02	13.9153	78.2212
+Eguvachakkavandlapalle	02	13.9606	78.2476
+Eguvatotlapalle	02	13.8641	78.1948
+Eguvakukkalupalle	02	13.7696	78.1307
+Eguvapalle	02	13.7022	78.1923
+Eguvagopiguttapalle	02	13.7773	78.4689
+Eguvapalem	02	13.6041	78.4341
+Eguvachinnamarri	02	13.6504	78.4516
+Eguvakorivaripalle	02	13.6364	78.4532
+Eguvachintapalli	19	13.5250	78.2745
+Eguvapalle	02	13.5438	78.4080
+Egopalle	02	13.4718	78.3847
+Eguvapalle	02	13.4407	78.4223
+Eguvakammapalle	02	13.4123	78.4067
+Eguvamittapalle	02	13.4509	78.6288
+Eguvakurmayi	02	13.1468	78.6574
+Egapalle	02	13.0593	78.5074
+Eguvacherlopalle	02	15.8945	78.9664
+Egavamittapalli	02	12.6911	78.4073
+Egur	25	12.3492	78.5989
+Eguvapottireddipalle	02	15.3554	78.9672
+Egayapalle	02	14.1589	78.3315
+Eguvapalle	02	14.4998	78.6984
+Eguvapalle	02	14.2783	78.6062
+Eguvagottivedu	02	14.0146	78.5838
+Egavapalle	02	15.1637	79.6315
+Eguvasettivaripalli	02	14.5279	79.1813
+Eguvachenduvayi	02	14.4717	79.0698
+Eguvapalli	02	14.4967	79.0591
+Eguvapalli	02	14.2487	79.0659
+Eguvareddipalli	02	14.2383	79.0779
+Eguvaratsapalli	02	14.2467	79.1054
+Eguvakadiyalapalli	02	14.2370	79.1680
+Eguvakammapalli	02	14.1865	79.1603
+Eguvapalli	02	14.1870	79.0814
+Eguvapalli	02	14.1304	79.3357
+Eguvamodulapalli	02	13.2269	79.0029
+Eguvakandigai	02	13.2011	79.1635
+Eguvakapakhandriga	02	13.4660	79.2989
+Egavanadurgapuram	02	13.2519	79.4001
+Egavanedivadu	02	13.3056	79.3338
+Egavamuddikuppam	02	13.3414	79.3755
+Egavakalpattada	02	13.3260	79.4307
+Egavanadurgapuram	02	13.2507	79.4062
+Egyapuram	25	13.1694	79.4113
+Eguvakonataneri	02	13.8134	79.7274
+Eguvakalavakuru	02	13.8441	79.7482
+Eguvavidhi	02	13.7070	79.6587
+Eguvagullur	02	13.4755	79.5279
+Eguvaputturu	02	13.4446	79.6894
+Eguvatageli	02	13.8210	79.8222
+Eguvamelupaka	02	13.7733	79.9739
+Eguvapundi	02	13.5723	79.7771
+Eggiyankuppam	25	12.1830	79.9605
+Egapuram	25	11.6110	77.9595
+Egirimangalam	25	10.8361	78.6343

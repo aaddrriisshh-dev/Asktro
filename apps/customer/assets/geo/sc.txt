@@ -1,0 +1,4 @@
+Scheli	36	29.6158	77.9293
+Scandanavian Alliance Mission Settlement	16	21.4361	74.0726
+Schoolpalem	02	18.5162	83.9397
+Scottpeta	02	18.6509	83.9449

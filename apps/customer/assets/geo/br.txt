@@ -1,0 +1,529 @@
+Brahmapur	21	19.3115	84.7929
+Brajarajnagar	21	21.8167	83.9167
+Bramhapuri	16	20.6111	79.8610
+Brahmana Periya Agraharam	25	11.3690	77.7063
+Brahmanan di Bari	12	32.6440	74.9110
+Brahmakulam	13	10.5815	76.0693
+Bramhabarada	21	20.7426	86.2445
+Brahmani	16	21.2477	78.9065
+Briddhanagar	26	23.8445	91.3514
+Bruini	30	29.1563	96.1489
+Brookesabad	01	11.6167	92.7500
+Brindabanpur	28	23.3102	87.2788
+Bridgmanganj Bazar	36	27.1984	83.1965
+Bren	12	34.1073	74.8806
+Brancavara	09	20.7150	70.8761
+Bramhagiri	21	19.7970	85.6439
+Brahmaur	11	32.4438	76.5387
+Brahmapuri	16	17.5601	75.5546
+Brahmanwade	16	19.3427	74.0349
+Brahmanvel	16	21.1529	74.2059
+Brahmanigan	21	19.6512	84.0729
+Brahmangaon	35	22.1199	75.2849
+Brahmangaon	16	20.5552	74.2947
+Brahmando	21	19.5000	85.2000
+Brahmakund	30	27.8746	96.3628
+Brahma Kund	34	24.8456	84.9717
+Brahmagiri	21	19.8000	85.6500
+Brahmbad	24	26.9210	77.3227
+Brindabanpur	28	22.5094	88.0614
+Brul	28	22.3797	88.1158
+Brahmanpara	28	22.9196	88.5941
+Brimshan	12	34.3258	74.8177
+Brarbaz	12	34.4862	74.7780
+Branadub	12	34.2534	74.2843
+Braripur	12	34.4073	74.2956
+Bramar	12	34.4677	74.2798
+Brijnagar	12	32.6458	74.8167
+Brokhar	41	34.5222	76.1819
+Brock	41	34.6264	76.0806
+Brok	41	34.6569	76.2458
+Brahman Majra	10	29.9501	77.0467
+Brahman ka Jhonpara	24	25.7175	75.6472
+Brahmanguda	40	17.7603	78.1831
+Brahmarapet	40	17.5614	78.3992
+Breach Candy	16	18.9715	72.8047
+Brahamano ki Dhani	24	28.0045	75.4663
+Brahmanon ki Dhani	24	28.1636	75.3896
+Brahamanon ki Dhani	24	28.2882	75.6458
+Brijlalpura	24	28.1959	75.5884
+Brindavan	24	28.0937	75.5509
+Brahmanon ki Dhani	24	28.0920	75.5361
+Brijpura	35	24.6629	78.8346
+Brijwasin Purwa	36	27.1962	79.7927
+Brahman Purwa	36	27.0176	79.7640
+Brahmanpur	36	26.7887	79.6998
+Brijbhanpura	35	24.7101	79.0693
+Brookefield	19	12.9655	77.7165
+Brahmanwala Tibba	24	27.6418	71.0657
+Brahmaniwali Dahar	24	27.4763	71.6950
+Brajamahanbari	26	24.0299	91.5022
+Brahamanpalle	40	17.1735	80.2909
+Brahmapuri	16	19.0799	76.6326
+Brijis Nagar	35	22.9457	77.1543
+Brahman Khedi	35	22.9011	75.8243
+Brahmanbil	21	21.0601	84.9447
+Brahmanjharilo	21	20.3242	85.9391
+Brundabanpur	21	20.4194	85.3485
+Brahmani	21	20.4614	83.3068
+Brindaban Chak	28	22.4705	87.7739
+Brarpur	12	34.4669	74.6599
+Brar	12	34.3844	74.6796
+Brahmanbasi	24	29.1428	74.7476
+Brahman Majra	10	29.8458	76.8237
+Bralan	12	34.6265	74.0089
+Brariabar	12	34.5092	74.3600
+Brau	11	31.4424	77.6275
+Broli	11	31.1016	77.5109
+Brog	11	31.0628	77.5908
+Brachh	10	30.7197	77.0451
+Brahman Majra	10	30.4471	77.1218
+Brahman Majra	10	30.2877	77.0158
+Brad	11	30.8914	77.2912
+Brahmania	11	30.7182	77.2739
+Bratal	11	30.5740	77.3765
+Brahmjori	24	27.6080	76.0562
+Brahman ka Bas	24	28.0581	75.1735
+Brahmana ka Bas	24	28.4456	75.4124
+Brahampuri	24	26.7384	76.0312
+Brahmbad	24	26.4952	76.6958
+Brihambaj	24	26.9836	76.7815
+Braylan	36	29.5605	77.1762
+Brijnagar	24	25.0658	76.0573
+Brijpura	24	25.1476	76.0758
+Brihamkhera	36	29.3855	77.3020
+Brahmanwara	35	22.1510	78.5161
+Brahmanwara	35	21.9080	78.3314
+Brahmanvada	16	21.0124	78.4346
+Brahmanpipla	35	21.5501	78.8385
+Bring Khera	10	29.9274	74.6454
+Brahman ki Bhagal	24	24.8248	73.5186
+Brahman ka Varla	24	24.6540	73.6081
+Brahman ka Madri	24	24.5616	73.7164
+Brahmpuri	24	24.5340	73.7255
+Brahmpura	35	25.6508	76.6987
+Brantiya	24	25.2126	74.6503
+Brahman Marza	23	30.8395	75.9017
+Brahmapuri	07	28.6819	77.2686
+Brahmpuri	36	28.9713	77.6956
+Brahamjet	23	31.5563	75.8877
+Brahman Dhani	24	24.0160	73.7698
+Brahmanon ki Dhani	24	27.1219	75.6752
+Brahampuri	39	30.3803	78.1229
+Bramkheri	24	24.7014	76.2597
+Brajpura	24	24.3994	76.3345
+Brahmangaon	35	24.1634	76.3529
+Brahmanpet	40	18.6066	79.9571
+Brahmgarhi	36	28.7711	77.9989
+Brijnathpur	36	28.6426	77.7762
+Brahmannagar	36	28.5736	77.8156
+Brahmawadi	16	19.6857	76.8072
+Brans ki Dhani	24	28.1871	75.5316
+Brahmankheda	16	19.8255	76.0525
+Brahmawadgaon	16	19.6425	76.2420
+Brahmanath Tanda	16	19.6946	76.2278
+Bramawakdi	16	19.5242	76.4050
+Brahmanwadi	16	19.3799	76.2730
+Brahmangaon	16	19.4766	76.5123
+Brahmpuri	16	19.3377	76.6322
+Bras	23	30.0455	76.0583
+Brahman Majra	23	30.0485	76.0911
+Brahmapuri	16	19.2322	76.7389
+Brahmangaon	16	19.2372	76.7280
+Brahmanath	16	19.0288	76.6756
+Brahmapuri	16	19.7912	76.9819
+Brahman Majra	23	30.2996	76.3076
+Brishbhanpur	36	27.8275	77.8367
+Brahman Majra	23	30.8882	76.5676
+Brahman Maira	10	30.3098	76.8725
+Brahmapur	19	17.3356	76.8244
+Bramhanwada	16	19.1619	77.3984
+Brahmanpalli	40	18.7042	77.9573
+Brahmanpalli	40	18.2779	77.8352
+Brahmanpalli	40	18.1961	77.8958
+Brijpur	36	27.4022	78.3051
+Bramhanvada	16	20.1597	78.0026
+Brahmanvada	16	20.9543	78.5393
+Brahmani	16	20.8846	78.7010
+Brahmanpalli	40	17.8238	77.9905
+Brijabhari	36	27.4924	77.8842
+Brahman ka Pura	35	26.6133	78.4714
+Brahmanwara	16	21.2555	79.0090
+Brijgarhi	35	26.4132	77.5889
+Brahmanan	36	27.0989	79.5166
+Brahimpur	36	27.1559	79.6530
+Brahman Vellumla	40	17.1597	79.1383
+Brahmpuri	36	27.8265	78.7259
+Brahmanpalli	40	17.7852	79.9869
+Brindavanpuram	40	17.1034	79.8629
+Britjal	36	26.7289	79.6433
+Bramhipur	36	26.5874	79.5753
+Brahmadhar	35	22.0513	76.7886
+Brahmanpura	24	26.8426	78.0298
+Brijpura	35	24.8501	79.6582
+Brahmanpur	36	25.6779	83.0195
+Brahamanpura	36	26.7963	78.6260
+Brahmanpura	36	25.5110	83.4590
+Brijpani	35	24.3843	79.6866
+Brisangpura	35	25.9950	78.6007
+Brahmnagar	36	25.4643	78.5472
+Brijpura	35	24.5341	79.7946
+Brijpur	35	24.5848	79.8959
+Brahmanvada	16	20.6060	77.5376
+Brahmanvad	16	20.5475	77.7280
+Brarhi	34	25.3950	83.7486
+Brahmankhed	16	20.4998	77.5084
+Brahmnath	16	20.2523	77.6804
+Brahmanwara	16	21.0326	77.3671
+Brahmanwara Thadi	16	21.3241	77.7306
+Brahmanvad	16	20.5122	77.9500
+Brahmanwara	16	21.2923	77.7637
+Brahmanwara	16	21.2353	77.8441
+Brahmanwara Gobindpur	16	21.1177	77.9535
+Brahmanwara Bhagat	16	21.1233	77.8030
+Bramhapuri	16	20.8622	77.1017
+Brahmanwada	16	20.1449	77.1745
+Brahmanwada	16	20.1623	77.0260
+Bramhi Buzurg	16	20.7870	77.4327
+Bramhi Khurd	16	20.7848	77.4300
+Bramhi Bai	16	20.7826	77.4325
+Brahma	16	20.0468	77.2503
+Brahmangaon	16	20.0276	77.4111
+Brahmanitola	38	24.3462	83.4651
+Brishbhanpura	35	25.0381	78.6903
+Brahmi	16	20.8399	79.7564
+Brisangpura	36	25.6688	78.8927
+Brahma ka Dera	36	25.5547	80.2805
+Brahmapur	36	25.8280	80.6850
+Bramhwadi	16	18.8616	76.5116
+Brahmi	16	20.3694	77.9001
+Brahmanitoli	38	24.0572	83.8876
+Brameshwar	40	19.2814	78.0121
+Brohar	24	27.9512	76.4318
+Brahmanpalli	40	16.4259	78.7331
+Brahmanigudem	40	17.5939	79.0237
+Brahmanpalli	40	17.5327	79.2160
+Brijpur	36	27.1749	79.0468
+Brahmanpurwa	36	25.9037	80.9330
+Brahmapuri	16	21.3131	78.9575
+Brahmanpur Nawabad	36	25.8453	82.4771
+Brahmon Purwa	36	25.8390	82.7393
+Brahmdewa	36	25.6099	82.5617
+Brijbasi Chak	36	25.2970	82.8173
+Brahmbaba	36	24.8601	82.1460
+Brahamanan ki Dhani	10	28.6740	75.9876
+Brahmanon ki Dhani	10	28.3935	75.9346
+Brahmin Purwa	36	25.5809	82.3826
+Brahmi Khera	36	26.5319	80.7668
+Brahmanpur	36	25.6864	82.9038
+Brahmanpur	36	25.5821	82.9620
+Brahinpura	36	25.5413	82.9508
+Brahmanwala	36	29.5183	78.4401
+Brahman	36	27.4398	81.2270
+Brahman Purwa	36	27.6797	81.6156
+Brijbokan	36	27.1413	81.9600
+Braripura	12	34.1669	74.0720
+Bralipura	12	34.1639	74.0690
+Brahman Khera	36	26.4099	81.0789
+Brahman Khera	36	26.4218	81.1509
+Brahmani	16	20.0613	79.0104
+Brahmani	36	26.2549	81.4001
+Brahman Chak	36	26.4528	81.9173
+Brasin	36	26.3612	81.9677
+Brahimabad	36	27.1550	80.8900
+Brahminwara	16	19.8889	77.0930
+Brahminwara	16	19.5698	76.9986
+Brahima	36	27.3428	81.9537
+Bramhi	16	19.9690	77.6678
+Brahmangaon	16	19.5099	77.8046
+Brahmanpalli	40	18.3565	78.1185
+Brit Purwa	36	26.9361	81.9230
+Brit Purwa	36	26.9607	81.9681
+Brit Dhari	36	26.9647	81.9906
+Brahmanpalli	40	18.1462	78.0165
+Bras	12	33.9336	74.5819
+Brenawan	12	33.8805	74.6603
+Bradipathar	12	33.8317	74.7130
+Brinjan	12	33.8826	74.7280
+Brenapathar	12	33.8365	74.7336
+Brahmanpalli	40	18.7547	78.3074
+Brahmanpalli	40	18.3520	78.2780
+Brahm Chari Purwa	36	26.9434	82.1107
+Brahm Charl Purwa	36	26.9487	82.1158
+Brarigund	12	33.9305	74.8471
+Braripur	12	33.6701	74.9186
+Bri Balhk	12	33.3770	74.9296
+Brahmanpura	36	25.9582	83.1328
+Brahman	36	26.0386	82.2983
+Brahmthan	36	26.6452	82.7233
+Brahman Patti	36	26.2647	82.6519
+Brariyen	41	34.1063	75.2678
+Braripathri	41	34.0532	75.3297
+Brao Bandyun	12	33.8352	75.0454
+Brazul Jagir	12	33.7198	75.0494
+Brazul	12	33.6463	75.0535
+Brinyal	12	33.5835	75.0957
+Bragapur	12	33.7192	75.1843
+Brent	12	33.6821	75.1800
+Bragam	12	33.5897	75.2190
+Brick Kiln	36	26.8235	83.5314
+Broha	36	26.0894	83.6000
+Brar	12	33.8094	75.2899
+Brisyun	12	33.7560	75.3346
+Bror	12	33.8291	75.4091
+Brarsul	12	33.3623	75.3351
+Brahmanpalli	40	18.7236	80.0004
+Branyan	12	33.8354	75.5489
+Brarigot	12	33.4278	75.5302
+Bramani	12	33.4099	75.7421
+Brahmapur	12	33.0829	75.6148
+Bramon	12	33.3836	75.8267
+Bri	12	32.5952	75.0616
+Bringal	12	32.6847	75.2698
+Brijular	12	32.4143	75.5269
+Brahmanpuri	35	22.1949	74.9431
+Brahmanpuri	35	22.1878	74.9591
+Brahmpala	11	32.4163	75.9892
+Breu	11	32.4282	75.9655
+Brahmangaon Vinchun	16	20.1407	74.2482
+Brahmanghati	35	22.3054	75.6758
+Brahmankheri	35	22.8933	75.8283
+Brahman Piplya	35	22.8819	75.9021
+Brahman Majra	10	29.3176	76.8671
+Brahmwal	23	31.5759	75.4383
+Brahmanan	11	31.7810	75.9879
+Brahmanshevge	16	20.4640	74.8826
+Brahmpur	23	31.2652	75.8846
+Brikhu Adwar	11	32.8475	76.1061
+Brahimna	11	32.7474	76.2172
+Braghun	11	32.6729	76.1071
+Brehi	11	32.5795	76.1955
+Bre	11	32.4829	76.2123
+Brui	11	32.3008	76.0354
+Brahmanon ki Merara	24	25.2382	73.8559
+Brahman Bheritola	37	20.8385	80.7835
+Brahman Bheri	37	20.8297	80.7747
+Brahman Lanjhia	37	20.7949	80.7825
+Brahrhani	11	32.4584	76.4842
+Bre	11	32.4428	76.3024
+Brenka	11	32.4456	76.3524
+Brahmarpur	36	27.2436	81.0046
+Bringti	11	32.3062	76.5745
+Brahmmi	11	32.0989	76.6976
+Brampur	11	31.7588	76.0302
+Brahmanpuri	37	21.3852	82.7671
+Brahmanidih	37	21.4424	82.8980
+Brang	11	31.7631	76.7578
+Brahman Mazra	23	30.6215	76.3908
+Brelangi	11	31.5431	78.2635
+Brahman Bedur	19	14.1053	74.9943
+Brahmankheri	35	23.0246	76.0293
+Brahmanduar	37	21.1700	83.1705
+Brijrapali	37	21.8472	83.4734
+Brijgarhi	36	28.1011	78.1816
+Brahmanidihi	21	21.3412	83.3194
+Brahmanipathar	21	21.1470	83.3365
+Brahmanipali	21	21.1360	83.4117
+Brahmani	21	21.9027	83.7165
+Brahmanpali	21	21.4317	83.5015
+Bramhachari	21	21.3534	83.6299
+Brahmanipali	21	21.0322	83.6474
+Brahmantukra	21	21.2942	83.8630
+Brahmani Turum	21	21.0993	83.8463
+Brahmanipali	21	21.0946	83.9193
+Brahmantikra	21	21.2481	83.8266
+Brahmandihi	21	20.9631	83.0831
+Brahman	36	27.8915	81.4857
+Brahmeri	19	13.7245	74.7369
+Brahmanandapuram	02	17.0397	82.2143
+Brahmanagudem	02	16.9375	81.6710
+Brahmalkunta	40	17.2470	80.6048
+Brahmabhatlapalem	02	16.7443	80.1831
+Brahmanapalle	02	16.4554	80.0447
+Brahmanguda	37	19.3355	82.0658
+Brahmonogam	21	18.8403	82.5596
+Brahmanaputtu	21	18.6176	82.5961
+Brahmono Sunku	21	18.8786	82.8583
+Brahmanapalem	02	16.2813	80.7655
+Brahmanavalasa	02	18.4654	83.4124
+Brahmanaguda	02	18.7946	83.9978
+Brahmadevam	02	14.3437	80.0635
+Brijakhera	35	23.4148	76.6765
+Brikham	39	29.9070	79.3563
+Brigchiawas	24	26.2587	74.5408
+Brijpura	24	26.6510	74.7846
+Brijakhal	35	22.3720	76.3346
+Bramhapuri	09	23.7934	73.0927
+Brahmanpuri	16	21.6198	74.5200
+Brahma	34	26.3637	84.8451
+Brahmanpura	36	25.6969	84.0434
+Brahman Bigha	34	24.5404	84.6722
+Brahmanapalle	02	16.0828	79.7542
+Brahmanvad	19	13.8378	74.9999
+Brahmanakeri	19	14.2981	75.0516
+Brahman Mankasale	19	14.1720	75.1021
+Brahmasamudram	02	14.0017	77.4908
+Brahmanayaleru	02	14.6289	77.5076
+Brahmanapalle	02	14.7086	77.5023
+Brahmanapalle	02	14.9959	77.9552
+Brahmadevamarri	02	14.4538	77.9510
+Brahmanapalle	02	14.2658	77.8333
+Brahmanapalle	02	14.1448	77.7956
+Brahmadevarahalli	19	13.8090	77.1689
+Bramhasandra	19	13.4573	77.0827
+Brahmasamudra	19	13.7599	77.2558
+Brahmanapalle	02	13.9655	77.5748
+Brahmeswarapalle	02	13.8138	77.6411
+Bramharahalli	19	13.6590	77.6952
+Brahmanpalli	19	13.8547	77.8752
+Brahmesvara	19	13.9537	75.0802
+Brahmana Taruve	19	13.8641	75.0269
+Brahmanvada	19	13.8408	75.0038
+Brahmogram	35	22.0121	76.7015
+Brahmani	16	19.7665	79.5117
+Brucepettah	19	15.1368	76.9275
+Brahmantola	34	25.7037	85.8861
+Brindabantola	34	24.6495	85.1429
+Brahmapura	19	14.0920	76.3003
+Brahmasamudram	02	14.5380	76.9475
+Brindavanahalli	19	14.3122	76.8627
+Brahmantola	34	26.4996	86.0550
+Brahmadevarahalli	19	13.1627	76.1276
+Brahmasamudra	19	13.5319	76.3696
+Brahmsabpalya	19	13.2694	76.4747
+Brahmanpalli	40	18.8188	79.2085
+Brahmanadoddi	02	15.7917	77.7459
+Brahmantola	34	25.8937	86.6731
+Brammanadoddi	02	15.5347	77.8045
+Brahmanapalle	02	14.6596	77.0612
+Brahmanpalli	40	18.8035	79.3837
+Bramhapuri	09	23.1452	73.6615
+Bramacarambolim	33	15.5688	74.1636
+Brahmanpalli	40	18.6684	79.3863
+Brahmanapalli	40	18.3564	79.3973
+Brahmanvadi	19	15.5631	74.4388
+Brahmawar	19	13.4391	74.7466
+Brahamotar Gachh	34	26.3396	87.8656
+Brindaban	34	25.9044	87.1218
+Brahmagyani	34	25.6066	87.1503
+Brahmapura	34	25.2444	87.0013
+Brahmua	34	25.8011	85.0174
+Brindaban	38	25.0153	87.7115
+Brahmanbaria	28	24.0083	87.7635
+Brindaban	34	25.3184	85.3731
+Brahm Kund	34	25.0156	85.4157
+Brahmanapalle	02	16.5154	79.8322
+Brahmanpalli	40	17.8407	78.4477
+Brahmani Purwa	36	27.3450	80.2450
+Brahmanipur	19	12.6406	77.2389
+Brahmanakotukuru	02	15.8149	78.1998
+Brahmanapalle	02	15.6504	78.2452
+Brahmanapalle	02	15.4228	78.3972
+Brahmanapalle	02	14.9858	78.5440
+Brahmanapalle	02	15.1330	78.9381
+Brahmanapalle	02	15.2448	78.9995
+Brahmanapalle	02	14.4231	78.2021
+Brahmanahalli	19	13.5570	78.1088
+Brahmanapalle	02	13.6687	78.4513
+Brahmanapalli	19	13.4046	78.3386
+Brahmatanr	34	25.6109	85.7310
+Brahmanakottur	02	12.9078	78.3608
+Brahmanamangalam	25	12.8932	78.9229
+Brahmanapalle	02	15.3207	78.9299
+Brahmana Erragudi	02	14.2245	78.6503
+Brahmanapalle	02	15.5535	79.3998
+Brahmanapalle	02	15.0645	79.2892
+Brahmandapuram	02	15.2133	79.9348
+Brahmanapalle	02	15.0746	79.7739
+Bramhanapalli	02	14.7507	79.2430
+Brahmanapalli	02	14.5854	79.1688
+Brahmanapalli	02	14.4274	79.0196
+Brahmanapalli	02	14.2448	79.0933
+Brahmanapalli	02	14.1745	79.1264
+Brahmanapalle	02	14.9718	79.6562
+Bramhanapalle	02	14.3280	79.7732
+Brahmapalle	02	13.4642	79.3013
+Brahmanapalli	02	13.8305	79.5348
+Brahmanacheruvu	02	13.6396	79.7656
+Brahmanapalli	02	13.6149	79.7675
+Brinivasapuram	25	12.6187	79.2585
+Brahmanakatteri	25	12.5626	79.3292
+Brahmadesam	25	12.1172	79.4799
+Brahmadesam	25	12.8388	79.5167
+Brahmadesam	25	12.1989	79.7790
+Brahmagiri	19	11.9364	76.0274
+Brahmadesam	25	11.5449	77.5797
+Brinda	38	23.9390	85.0001
+Brajapur	28	23.4387	85.8737
+Brahmanitola	38	24.1169	84.9099
+Brindaban	38	22.5533	85.4187
+Brahmanitoli	38	23.7128	84.6415
+Brinda	38	23.0015	84.5868
+Brundamal	21	21.8138	84.0230
+Brahmanpali	21	21.6379	84.1018
+Bramadesam	25	8.7309	77.4470
+Bryant Park	25	10.2327	77.4942
+Brahmanappatti	25	10.0803	78.5391
+Bruhadambalpuram	25	10.5610	78.8042
+Brahmapuram	25	10.3443	78.8626
+Bruhadambalpuram	25	10.3500	78.9225
+Brahmanakurichchi	25	9.5930	78.5295
+Brahmanavilai	25	8.3586	77.9605
+Brigton	13	9.5715	77.0078
+Brahmakundam	25	11.9906	78.9267
+Brahmadesam	25	11.3095	78.8994
+Brahmandei	21	21.1788	85.0548
+Brajanathpur	21	21.0058	85.1673
+Brahmundhara	21	21.1644	85.3465
+Brahmundhara	21	21.1739	85.3342
+Brahmarpur	21	21.7485	85.6965
+Brahmanponga	21	21.4425	85.6005
+Brindaband	21	21.5896	85.8437
+Brahmani	21	20.5731	85.1108
+Brahmapura	21	20.4319	85.0953
+Brundabanpur	21	20.1308	85.1372
+Brajaballabhpur	21	20.1227	85.1314
+Brundabanpur	21	20.1608	85.0922
+Brahmanberia	21	20.9368	85.3135
+Brahmania	34	24.9418	86.4222
+Brahmanipali	21	21.4136	84.0415
+Brahmanpara	21	21.4449	84.0817
+Brahmanipali	21	21.0147	84.0121
+Brahmanipal	21	21.1480	84.1148
+Brahmani	21	21.1887	84.2266
+Brahmanimunda	21	21.9134	84.4268
+Brahmanipali	21	21.2913	84.3862
+Brahmangaon	21	21.8174	84.9732
+Brahmanali	21	21.7899	84.9554
+Brahmanali	21	21.8544	84.9151
+Brahmanimal	21	21.5535	84.8391
+Brindabanpur	21	21.5623	84.8301
+Brahmanidei	21	21.6257	84.9145
+Brahmandih	21	21.4513	84.7930
+Brahmanipali	21	21.3449	84.7861
+Brahmachari	21	20.8524	84.2419
+Brahmanipali	21	20.7395	84.1906
+Brodipara	21	20.4673	84.1517
+Brahakhol	21	20.4037	84.2429
+Brahapadar	21	20.3069	84.0414
+Brungijori	21	20.2897	84.0767
+Brindapara	21	20.0832	84.1725
+Brephama	21	20.0720	84.0210
+Brahmanipali	21	20.9628	84.4244
+Brahmansahi	21	20.8235	84.3066
+Brahmangaon	21	20.6580	84.4386
+Brodiguda	21	20.3598	84.3548
+Bradigura	21	20.3986	84.4260
+Brahmonopodoro	21	20.3123	84.4781
+Bradigura	21	20.3897	84.3434
+Brekonaju	21	20.2068	84.3449
+Brodinaju	21	20.0647	84.2502
+Brodinaju	21	20.1132	84.3877
+Brodinaju	21	20.1895	84.3479
+Briapodoro	21	20.2219	84.4966
+Brahmanidai	21	20.8772	84.5259
+Brodiguda	21	20.1979	84.5614
+Brahmonopodoro	21	20.0892	84.5408
+Brundabanpur	21	20.7745	84.9172
+Brahmani Tarang	21	22.2345	84.7808
+Brahman	36	26.7693	81.6775

@@ -1,0 +1,491 @@
+Srinagar	12	34.0857	74.8055
+Sri Ganganagar	24	29.9201	73.8750
+Srikakulam	02	18.2989	83.8975
+Srikalahasti	02	13.7551	79.7014
+Srivilliputhur	25	9.5127	77.6337
+Sri Dungargarh	24	28.0962	74.0087
+Srvanampatti	25	11.0764	77.0045
+Sri Madhopur	24	27.4660	75.5974
+Srinivaspur	19	13.3391	78.2117
+Sriperumbudur	25	12.9676	79.9420
+Srisailain	02	16.0722	78.8682
+Srikandamangalam	13	9.6594	76.3633
+Sreekaryam	13	8.5488	76.9172
+Srisailam Project RFC Township	02	16.0733	78.8741
+Srinagar	39	30.2224	78.7834
+Sriramnagar	40	17.2665	78.2554
+Sriramnagar	02	18.2833	83.5342
+Srirampur	28	22.9485	88.0195
+Srivaikuntam	25	8.6293	77.9128
+Srivardhan	16	18.0459	73.0155
+Srimushnam	25	11.4012	79.4038
+Srirampura	19	12.2549	76.6215
+Srirampuram	25	10.4346	77.8075
+Srigobindpur	23	31.6895	75.4775
+S. Rayavaram	02	17.4546	82.8062
+Sravana Belgola	19	12.8574	76.4889
+Sringeri	19	13.4170	75.2527
+Srungavarapukota	02	18.1108	83.1400
+Srirangapur	40	16.1916	78.0500
+Srirangam	25	10.8573	78.6971
+Sriramapura	19	13.6228	76.4180
+Sriramapur	21	19.8333	83.9000
+Sriramagiri	40	17.5275	81.2947
+Sripudamanjaripur	21	21.3582	86.3293
+Sri Niketan	28	23.6726	87.6608
+Srinagar	24	26.4351	74.7760
+Srinagar	34	25.9373	87.4120
+Srinagar	36	25.1802	79.7749
+Srimangala	19	12.0191	75.9891
+Srikurmam	02	18.2708	84.0044
+Srikhanda	28	23.6022	88.0772
+Srikakulam	02	16.1964	80.8467
+Sriguda	21	19.4191	83.8132
+Srigiripadu	02	16.3055	79.3278
+Sri Chhatarpur	24	24.5428	75.9353
+Sri Bradria	24	27.1047	71.5497
+Srikrishnapur	28	22.9706	88.0291
+Srirampur	28	22.8167	88.4739
+Srichandia	28	22.2839	88.2813
+Srikrishnanagar	28	22.0800	88.3337
+Srirangapur	40	17.0908	78.0836
+Srinagar	25	13.0133	80.2297
+Srinivasa Nagar	19	12.9337	77.5503
+SriNagar	19	12.9432	77.5541
+S R Nagar	19	12.9653	77.5914
+Srirampuram	19	12.9879	77.5625
+Srinagar	10	30.0794	76.7162
+Sriniwas Bag	35	24.8405	78.8354
+Srinagar	35	24.7914	78.9034
+Srinagar	36	27.7792	79.3915
+Srimau	36	27.2155	79.8597
+Sri Gajadharpura	24	26.9996	75.6251
+Srirampura	24	26.8912	75.6678
+Sri Partabsinghpura	12	32.4929	74.9134
+Srirampur	03	26.4286	89.8999
+Srikona	03	24.8352	92.7158
+Sribar Lakhipur	03	24.8193	93.0010
+Srirampalli	21	19.7037	84.3674
+Sridhapur	21	20.8157	86.3769
+Srikanthapur	21	21.7146	87.3957
+Srinagar	28	22.8057	87.5828
+Srikrishnapur	28	21.9344	87.3786
+Sri Gangasinghpura	24	29.0842	75.2168
+Srinagor	10	28.2296	76.3496
+Srahan	11	31.3353	77.3832
+Srinagar	11	30.9665	77.0932
+Srirajdhanpura	24	26.4752	76.1131
+Srirampura	24	26.4261	76.0853
+Srigopalpura	24	26.3869	76.0544
+Sripura	24	26.2985	76.4122
+Srinagar	10	28.9877	77.0421
+Srinagar Madipur	07	28.6730	77.1118
+Srinagar	07	28.6815	77.1388
+Sriniwaspuri	07	28.5650	77.2574
+Sripura	24	27.0953	75.6091
+Sriyon	39	30.2539	78.1963
+Sripur	39	30.3449	78.1405
+Sripat	36	29.4916	78.5746
+Sripura	24	24.8716	76.7594
+Sriramulapalli	40	18.5991	79.0526
+Sriramganj	24	26.2254	75.3235
+Sriramsinghpura	24	26.1566	75.3211
+Srinivasapalli	40	16.7214	78.2138
+Sriguhan	37	20.4057	81.5238
+Srimandal	19	18.0319	77.5543
+Srinivaspet	40	18.6805	77.8814
+Srinivaspur	19	16.3421	77.2698
+Srirampur	36	27.5810	78.7523
+Sri Ramkhed	16	19.8263	78.0387
+Sri Nagla	36	27.6188	79.0755
+Srinagar	36	27.7224	79.2343
+Srinivasulaguda	40	17.1422	78.2000
+Sringardip	16	21.1975	79.2879
+Srinagar	40	17.1979	78.4744
+Srinivaspur	40	16.3404	78.0629
+Sripura	35	24.0519	77.2256
+Sriramgiri	40	17.5940	79.8232
+Srirangapuram	40	17.0927	79.9047
+Srinivasapuram	40	17.1201	79.8986
+Srirampur Tanda	40	16.7096	79.3053
+Srirampur	40	16.7224	79.3037
+Srinivasapuram	40	16.8583	79.8225
+Srirangapuram	40	16.9884	79.9789
+Srirampur	36	25.5248	82.1646
+Srikantpur	36	25.7651	82.9309
+Srikanthpur	36	25.2082	83.2048
+Sriram Bairagi	36	25.5848	83.3417
+Srinagar	36	25.4031	78.5779
+Sri Dattajhirai	16	21.3264	77.4169
+Srinivasapur	19	16.4286	76.5505
+Sripur	40	16.4573	78.2730
+Sripatipalli	40	17.9574	79.2164
+Srinivasapuram	40	17.6965	79.0873
+Sripuram	40	17.2906	79.0531
+Sri Kanchanbhavi	40	17.4599	79.2215
+Srichelma	40	19.3212	78.5352
+Srirampur	36	25.7622	82.5904
+Sripalpur	36	25.6453	82.5866
+Sriniwas Dham	36	25.2200	82.3044
+Sripur	36	25.4267	82.1730
+Srinagar	36	24.6684	82.9392
+Sridatpur	36	27.7918	81.2400
+Srinagra	36	27.6749	81.8633
+Sri Ram Purwa	36	27.2400	81.9032
+Sri Ram Purwa	36	27.2412	81.9141
+Srijot	36	27.2069	81.8616
+Sri Kishan Purwa	36	27.0816	81.8539
+Sri Datt Purwa	36	27.0887	81.9473
+Srikishanpur	36	26.5732	81.3200
+Sri Ram Purwa	36	26.4258	81.3919
+Sripur	36	26.2681	81.8092
+Sri Dat Purwa	36	27.2424	81.5348
+Sripal Dube	36	27.0407	81.6916
+Sri Bhagat Purwa	36	26.9015	81.8956
+Sri Bhukhan Purwa	36	26.9992	81.9125
+Sripur	36	26.2020	81.8688
+Sriram Purwa	36	26.0207	81.9360
+Srinagar	36	26.0505	81.9101
+Srirampur	36	26.0807	81.8631
+Sripur	36	26.1751	81.8544
+Srinagar	36	27.6852	82.0980
+Srirampuram	40	18.9375	78.2533
+Sri Jot	36	27.4962	82.0159
+Sriram Purwa	36	27.4130	82.1208
+Srinagar	36	27.3568	82.2271
+Srinagar	36	27.2553	82.2026
+Sriganj	36	27.0256	82.1249
+Sriganj Bazar	36	27.0274	82.1221
+Srinagar	36	27.2464	82.1935
+Sridatganj Bazar	36	27.3762	82.2989
+Srinagar	36	27.1833	82.4096
+Srinagar	36	27.3303	82.7207
+Sriganj	36	26.5234	82.1841
+Sripur	36	26.1573	82.1141
+Sri	36	26.2227	82.2247
+Srirampalli	40	18.5919	78.9538
+Srinagar	36	26.9524	82.3120
+Sripatpur	36	26.8406	82.4462
+Sriramganj	36	26.5199	82.2920
+Sriganj	36	26.3917	82.2532
+Sripur	36	26.3716	82.7579
+Srinagar	36	26.4926	82.8056
+Srinagar	36	27.0046	83.0932
+Srinagar	36	27.2155	83.1667
+Srigopal Jot	36	27.1660	83.2267
+Srangus	12	33.8363	75.2488
+Sri Narainpur	36	27.1416	83.2971
+Srinagar	36	27.0450	83.7428
+Srinagar	36	27.2044	83.7332
+Sriniwas	36	26.8769	83.1686
+Srinagar	36	26.6855	83.0624
+Srikantpur	36	26.1651	83.0832
+Srikantpur	36	26.0566	83.0353
+Srirampur	36	26.8739	83.4068
+Sripura	36	26.6351	83.3670
+Srinagar	36	26.7026	83.4406
+Srinagar	36	26.4672	83.5815
+Sruchhin	12	33.9207	75.2912
+Srunga	12	33.3818	75.2575
+Srinagar	36	26.8840	83.7806
+Srinagar	36	26.8246	83.8204
+Srinagar	36	26.9637	83.9731
+Srinagar	36	26.2491	83.8961
+Sriramanagaram	40	18.4865	80.4607
+Sri Raghunathpura	12	32.4106	75.3004
+Srinagar	36	25.8148	81.8521
+Srinagar	36	25.8170	81.8335
+Srinagar	36	25.8069	81.8223
+Sripura	24	25.7685	73.6184
+Srikhandi	35	22.5929	75.7430
+Srisinghpura	24	26.7969	75.8667
+Sri Rampura	24	26.7519	75.7509
+Srimallagondi	02	17.9890	81.9845
+Sripur	36	26.0366	81.6963
+Sriramavaram	02	16.8124	81.1950
+Sriparru	02	16.6412	81.1400
+Srirampuram	40	17.2045	80.5662
+Srivenkateshwaraswami	02	17.1557	82.0247
+Sriremapuram	02	17.0334	82.1502
+Srungarayanipalem	02	17.2005	82.1376
+Srirampuram	02	17.6722	82.4822
+Srungadhara Agraharam	02	17.3746	82.2826
+Sri Santi Asramam	02	17.2938	82.2917
+Srungavaram	02	17.3385	82.3586
+Srungadhara Agraharam	02	17.3587	82.4207
+Srungarapadu	02	16.6475	81.3004
+Srirampuram	02	16.8113	81.7318
+Sridhara	40	17.6234	80.8910
+Srungavaram	02	17.5446	82.5251
+Srirampuram	02	17.3160	82.5754
+Srirampuram	02	17.4348	82.7148
+Srirampatnam	02	17.8154	82.9267
+Sriramapuram	02	17.6373	82.9899
+Sriramapuram	02	16.2087	80.1529
+Sripur	21	19.9044	83.2042
+Srimaska	21	19.6157	83.0018
+Srimaska	21	19.6051	82.9987
+Srinkoli	21	19.5794	83.1833
+Srirampuram	02	16.9529	80.7370
+Srirampur	02	19.0705	83.4726
+Sripadar	21	19.4879	83.7220
+Srikhondi	21	19.2754	83.7244
+Srungeipoda	21	18.6111	82.5235
+Sringarapuram	02	16.3869	80.6393
+Sramu	21	19.8502	83.8070
+Sriramapur	21	19.7381	83.8982
+Sriramraj	21	19.4528	83.8516
+Sripur	21	19.4463	83.9428
+Srirampuram	21	19.1729	83.8163
+Srirampuram	21	19.1236	83.7663
+Srirangapuram	02	18.8060	83.3911
+Srirangarajupuram Agraharam	02	18.2765	83.3626
+Srirampuram	02	18.1188	83.2514
+Srungvada	37	18.8965	81.9809
+Sriharipuram Agraharam	02	18.5792	83.5811
+Srirangarajapuram	02	18.5386	83.5920
+Srangararayapuram Agraharam	02	18.6529	83.6574
+Srirangaguda	02	18.7409	83.8673
+Sriramavalasa	02	18.5280	83.9033
+Sriharinayudupeta	02	18.4891	83.7710
+Srinivasacharyulupeta	02	18.4517	83.8737
+Sriramsettipalem	02	17.8539	83.1933
+Srirampuram Agraharam	02	17.9633	83.1544
+Sringavaram	02	17.9037	83.1137
+Sriramavaram	02	17.1019	81.1293
+Srivarigudem	02	17.1874	81.1367
+Srinivasa Chattram	02	14.1499	80.1201
+Sree Jaswant Sagar Dam	09	24.1198	72.7750
+Srikishan	24	25.5348	73.4047
+Srirampur	34	25.1937	84.6562
+Srirampur	34	25.5736	84.8746
+Srichandpur	34	25.5744	84.9300
+Srikoiri	36	26.7357	84.0136
+Sri Rampatti	36	26.7369	84.0567
+Srikishan Sahi	36	26.6237	84.0195
+Srinagar	36	26.5443	84.0324
+Srinagar	34	26.8079	84.3411
+Srinagar	34	26.7830	84.3018
+Sripur Bichwa	39	29.0065	79.9592
+Srirampur	34	25.2827	84.1249
+Srikantpur	34	25.2673	84.2060
+Srirampur	38	24.0385	84.2050
+Sripalpur	36	25.7371	84.4607
+Sripur	34	25.4549	84.4902
+Srinagar	34	25.4436	84.4844
+Sridih	34	24.6361	84.5617
+Sringeri	19	14.7209	75.0627
+Srirangapur	19	14.1545	77.3550
+Srinivasapura	19	14.0087	77.3533
+Srirangamvandlapalle	02	14.0036	77.7799
+Sravanagudi	19	13.8598	77.2435
+Sripathihalli	19	13.2030	77.2044
+Srikantapalya	19	13.1810	77.0446
+Srigiripur	19	13.1525	77.1892
+Srirangarajanapalle	02	13.8566	77.4387
+Srinivasapura	19	13.8231	77.2695
+Sravandanahalli	19	13.6849	77.4258
+Sriramanhalli	19	13.4069	77.3705
+Srinivaspur	19	13.3438	77.3413
+Srikanthapuram	02	13.8203	77.5084
+Srinivasapuradinne	19	13.6978	77.6189
+Sriramanhalli	19	13.1960	77.5574
+Srinivaspur	19	13.1265	77.6484
+Srinivaspur	19	13.1069	77.6253
+Srirampur	19	13.0660	77.6193
+Srinivasapura	19	13.1910	77.8598
+Sringeri Matha	19	13.8237	75.3097
+Sringaratota	19	14.8301	76.0017
+Sringeri Hanumanahalli	19	14.1464	76.1226
+Sravanur	19	12.7410	76.3289
+Sravanahalli	19	12.7257	76.3530
+Srirangapura	19	13.8159	76.1791
+Srirangapura	19	13.0872	76.0729
+Srirangapura	19	13.8120	76.3068
+Sripur	34	26.2362	86.7652
+Sripur	34	26.1151	86.9066
+Sripur Bhajrahi	34	25.9164	86.0670
+Sripur	34	25.5861	86.0803
+Srirangapura	19	12.9955	76.7107
+Sriramanahalli	19	12.7448	76.6524
+Srinivaspur Agrahara	19	12.4299	76.7111
+Srimangaia	19	12.0082	76.0090
+Srinivasapura	19	12.8511	76.3514
+Sravaneri	19	12.8721	76.4238
+Sripur	34	25.6172	86.4730
+Sriramanahalli	19	12.7869	76.7528
+Srinagar	34	25.4296	86.4490
+Srighana	34	25.1736	86.2591
+Srinagar	34	25.9823	86.6662
+Sripur Chakla	34	25.8939	86.7436
+Sripur	34	25.8879	86.7411
+Srirangapuram	02	15.4480	77.9869
+Srirangapuram	02	15.1086	77.7903
+Srinivasapuram	02	15.0817	77.8304
+Sridharaghatta	02	14.9058	77.0117
+Srirangapuram	02	14.7416	77.0742
+Srichand Nawada	34	24.9406	86.2253
+Srirampuri	40	18.8557	79.4915
+Srirampuri	40	18.8447	79.4789
+Srinagar	36	27.3876	80.7048
+Srinagar	36	27.3873	80.5501
+Sripalpur	36	27.2862	80.7156
+Srapur	36	27.2710	80.5019
+Srirampalli	40	18.5421	79.3463
+Sriramulapeta	40	18.3868	79.4119
+Srirampuram	40	18.4869	79.5253
+Sriramalupet	40	18.2771	79.5060
+Sri Rama Rangapuram	19	15.3014	76.7164
+Sri Chak	34	24.6024	84.8594
+Srinagar	34	26.0363	87.0150
+Srimatha	34	25.5023	87.1604
+Sripur	34	25.4002	87.0660
+Srinathpur	38	25.0626	87.2703
+Sripur Bazar	38	25.0937	87.4799
+Srlauniyan	12	33.8002	74.2166
+Srikol	34	25.5577	87.8908
+Sripur	28	25.3699	87.8740
+Sri Chandrapur	28	25.4718	87.9465
+Sripur	34	24.9149	87.0237
+Srirampur	38	24.2774	87.6915
+Sridherpara	38	24.3164	87.7344
+Srikantapur	28	24.0283	87.5393
+Srichandrapur	28	24.0038	87.6203
+Srirampur	38	24.5909	87.8162
+Srinibaspur	28	24.5250	87.8784
+Sriramgaria	38	24.3442	87.7605
+Srirampur	28	24.2726	87.8163
+Sripur	28	24.2994	87.8981
+Srikrishnapur	28	24.2326	87.7941
+Sriphala	28	24.1825	87.7804
+Srikrishnapur	28	24.2069	87.9004
+Srikrishnapur	28	24.1350	87.9628
+Srirampur	34	25.5341	85.3486
+Srirukminipuram	02	16.5683	79.9321
+Srirampur	40	17.7163	78.5587
+Srinivaspuram	40	17.7096	78.7861
+Srihati	03	26.1959	91.5508
+Srirangarajapuram	02	13.3048	79.3557
+Sriniyasapura	19	13.7450	77.8037
+Sripatihalli	19	12.9620	77.1672
+Srinivashalli	19	12.5034	77.4498
+Srirangapuram	02	15.3397	78.6182
+Srinivasapuram	19	13.7740	78.0868
+Srinivasarayunipalle	02	13.7356	78.2313
+Srinivasapura	19	13.4401	78.0133
+Sripativaripalle	02	13.7373	78.4932
+Srirangapura	19	13.1961	78.4478
+Sringere Chadamanahalli	19	13.1136	78.3831
+Srinivasapuram	25	12.5036	77.7968
+Sriramanahalli	25	12.1987	78.2379
+Srinivasapuram	25	12.4689	78.3272
+Sriramapuram	25	12.9163	78.9529
+Srinivasapuram	02	14.4638	78.6747
+Sriramapuram	02	15.9310	79.9123
+Srinivasapuram	02	14.7449	79.1032
+Srirangarazupuram	02	14.1902	79.0890
+Srirangarazupaliam	02	14.1376	79.0662
+Srirampalle	02	14.1250	79.6640
+Sripuram	02	14.0484	79.6262
+Srikolanu	02	14.6631	79.7810
+Srinivasapuram	02	14.5824	79.9334
+Srirangarajupuram	02	14.4930	79.9065
+Srirangapall	02	13.1191	79.1359
+Sriramanayadupuram	02	13.3325	79.4835
+Sripadanellur	25	13.0229	79.2748
+Srikrishnapuram	25	13.1527	79.4519
+Srivilasapuram	25	13.1217	79.4702
+Srinivasapuram	02	13.9093	79.5389
+Srinivasapuram	02	13.7520	79.6015
+Srinivasangaram	02	13.6924	79.5019
+Srinivasapuram	02	13.6768	79.5455
+Sriramapuram	02	13.3026	79.6440
+Srinivasapuram	02	13.4940	79.7335
+Sriramapuram	02	13.4209	79.7102
+Srinivasapuram	25	13.2237	79.5835
+Srinivasapuram	02	13.7239	79.8116
+Srikrishnapuram	25	13.2846	79.8380
+Sriramakuppam	25	13.2950	79.8962
+Srinivasapuramkhandrika	25	13.3022	79.8477
+Srirampuram	02	13.3200	79.8468
+Sriharipuram	02	13.2320	79.7670
+Sri Ramarpalaiyam	25	13.0305	79.9103
+Srinivasapuram	25	12.7463	79.2304
+Srinivasapuram	25	12.9951	79.2947
+Sripadanallur	25	12.0151	79.0307
+Srirangarajapuram	25	12.4237	79.6342
+Srinivasapuram	25	12.1859	79.8999
+Srambe	13	11.8045	76.0928
+Srinivasapuram	25	11.0141	76.9652
+Srikrishnapuram	13	10.8974	76.4227
+Sriram Chauki	38	25.2520	87.5958
+Sriramavarmapuram	13	9.0520	76.5515
+Srirangattuvalavu	25	11.3725	77.3872
+Srinivasapuram	25	11.1084	77.3521
+Srinivasampalaiyam	25	11.4037	77.8642
+Sriraman	25	11.3967	79.3808
+Sripurandan	25	11.0462	79.3110
+Srinivasapuram	25	11.0851	79.3714
+Srirangarajapuram	25	10.9382	79.4101
+Srinivasanallur	25	10.9556	79.4150
+Srinivasanallur	25	10.9386	79.4416
+Srinivasapuram	25	10.9235	79.4329
+Srivanjiyam	25	10.8726	79.5730
+Srikanthapuram	25	10.9883	79.5808
+Sridharpur	21	22.0443	85.6060
+Sridangal	38	24.1779	86.8565
+Srirampur	38	24.1093	86.9664
+Sri Govindapperi	25	8.5783	77.5983
+Srivaramangaipuram	25	8.5369	77.6464
+Srirangarajapuram	25	8.5343	77.7110
+Sriparankusapperi	25	8.5101	77.6997
+Srimulapuram	25	8.1110	77.5533
+Sri Ramankulam	25	8.6593	77.8070
+Srivenkateswarapuram	25	8.5120	77.8327
+Sriparankusanallur	25	8.6247	77.9183
+Srimulakkarai	25	8.6603	77.9348
+Srirangampatti	25	10.8146	78.1728
+Sriramasamudram	25	10.9664	78.2079
+Srirangakavundanpatti	25	10.8155	78.1813
+Srirangakavundanur	25	10.5052	78.1486
+Srirangampatti	25	10.2063	78.2436
+Srinivasanallur	25	10.9728	78.3642
+Srirangakavundanpudur	25	10.7399	77.6394
+Srinivasapalaiyam	25	10.7009	77.5002
+Srirangapuram	25	10.0371	77.6007
+Srirangarajpuram	25	10.8849	78.6784
+Srirangapuram	25	10.1177	78.9164
+Srirangapuram	25	9.2564	78.1884
+Srirangapuram	25	9.1157	78.0736
+Srirangampatti	25	9.7610	78.4210
+Srirangapuram	25	8.4315	77.9264
+Sri Ramanallur	25	8.4731	77.9863
+Srikristnaperi	25	8.4894	77.9184
+Srinivasakapuram	25	8.5163	78.0375
+Sriangakkavundanur	25	10.8176	77.8855
+Sriramapuram	25	10.5272	77.9818
+Srirangakavundanpudur	25	10.5311	77.7730
+Srinivasapuram	25	11.1625	79.1188
+Srinivasanpettai	25	11.9449	79.6225
+Srirangapuram	25	9.9370	77.4839
+Sripuram	25	11.0255	78.7409
+Sriranganur	25	11.0622	78.6222
+Srirampur	21	21.0219	85.1308
+Srirampur	21	21.8175	85.5859
+Sripur	21	21.6404	85.6103
+Srikhanda	21	21.5839	85.5802
+Srimula	21	20.7909	85.4684
+Sripadar	21	20.5610	84.1659
+Sraki	21	20.4691	84.0978
+Srasananda	21	20.3801	84.1873
+Sradipanga	21	20.3496	84.0035
+Srakipara	21	20.3389	84.1886
+Sradeju	21	20.3200	84.1911
+Sramburaha	21	20.2839	84.0673
+Sribantamunda	21	20.9439	84.4526
+Srirampur	21	20.7050	84.4278
+Srikosoru	21	20.5471	84.2818
+Sramabadi	21	20.3391	84.4769
+Sripaju	21	20.5476	84.7244
+Sramabadi	21	20.1887	84.5493
+Srijangram	03	26.3824	90.7331

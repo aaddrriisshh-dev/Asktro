@@ -1,0 +1,6 @@
+DVG Road	19	12.9440	77.5710
+Dvayamdhari	40	19.2919	78.7091
+Dvarankunte	19	14.0068	76.8619
+Dvarakapuri	02	16.4686	79.3676
+Dvarakapuram	25	13.2149	79.4741
+Dvarakapuram	02	13.9112	79.7951

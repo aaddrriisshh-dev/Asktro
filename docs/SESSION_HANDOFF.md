@@ -565,3 +565,37 @@ compiled/tested (no Flutter SDK in the remote env) — founder runs `flutter ana
 
 ### Founder's next action
 Pull on the Mac and run `flutter analyze` in `apps/customer` (I can't compile here).
+
+---
+
+## v2 — Offline birth-place atlas built (P5 resolved) + ghost-session cleanup (5 Sept 2026)
+
+### Offline India atlas (fixes the coords-gate ↔ geocoder coupling)
+The birth-place picker no longer depends on the free Nominatim service at runtime.
+It now searches an **offline atlas bundled in the app** — generated from the
+**GeoNames India** dump: **548,202 places** (cities/towns/villages), each with
+coordinates and **state (100% tagged)**. ~10× AstroSage's ~50k. This is what makes
+the coords-required onboarding gate safe at scale (no throttling, works offline).
+
+- Assets: `apps/customer/assets/geo/` — 390 shard files (~15 MB uncompressed;
+  compresses in the APK), sharded by first 2 letters of the place name, each
+  pre-sorted by population so best-known places surface first.
+- Search + online fallback: `apps/customer/lib/data/place_search_service.dart`
+  (offline first; Nominatim only when a place isn't in the atlas — rarely hit).
+- Generator + how-to-regenerate: `tools/geodata/build_atlas.js` + `tools/geodata/README.md`.
+  The raw GeoNames dump is NOT committed (only the generated shards).
+- Verified: Mumbai/Delhi/Bengaluru/Kolkata/Patna/Varanasi/Meerut resolve with
+  correct coords + state; "Rampur" alone has ~993 distinct village entries.
+- Known minor limitation: same-named villages in the same state show as similar
+  "Name, State" rows (district name not shown). District-level disambiguation
+  would need the GeoNames admin2 file — deferred, not blocking.
+
+### Ghost "Active Consultations = 1" on the admin dashboard
+Root cause: the dashboard card counts ALL `consultations` with `status=='active'`
+globally; a chat session got stuck `active` (its end/tick write never landed) and
+the 1-min sweeper can't catch an `active` doc that has no `lastTickAt` (its query
+filters on that field). No money impact (v1 free) — a display ghost.
+- One-time cleanup script: `firebase/functions/scripts/closeStaleConsultations.js`
+  (run on the Mac with the service-account key; safe — only closes sessions idle
+  >30 min). TODO (v2 hardening): make sweepSessions also reap `active` docs with
+  no `lastTickAt` so this can't recur.

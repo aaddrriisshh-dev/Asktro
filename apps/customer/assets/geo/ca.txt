@@ -1,0 +1,61 @@
+Canning	28	22.3140	88.6651
+Calangute	33	15.5439	73.7553
+Calapor	33	15.4645	73.8466
+Canacona	19	14.9959	74.0506
+Captainganj	36	26.9264	83.7133
+Cavelossim	33	15.1725	73.9419
+Candolim	33	15.5181	73.7626
+Campbell Bay	01	7.0083	93.8942
+Carapur	33	15.5659	73.9871
+Candola	33	15.5205	73.9642
+Castle Rock	19	15.4003	74.3311
+Carmona	33	15.2035	73.9540
+Caranzol	33	15.5071	74.2185
+Caranzol	33	15.3557	74.2856
+Caranzalem	33	15.4672	73.8119
+Carambolim	33	15.4841	73.9220
+Captainganj	36	26.7561	82.5834
+Capao	33	15.5440	73.9086
+Canvorem	33	15.1333	74.0667
+Candeapar	33	15.4268	74.0437
+Cancarvornem	33	15.7118	73.8815
+Cana	33	15.2695	73.9341
+Camorlim	33	15.6333	73.8000
+Calicut	01	11.6000	92.7333
+Calate	33	15.3111	73.9182
+Carbery Grant	39	30.2962	77.9151
+Carbery Grant	39	30.2914	77.9348
+Cannanpalaiyam	25	13.0942	79.9773
+Cantonment	19	12.9944	77.5984
+Campbell Rd	19	12.9648	77.6086
+Camp Mubarikpur	23	30.6103	76.8463
+Campbellpur	03	26.3864	89.8744
+Canal Colony	10	29.3671	75.0152
+Cantonment	36	28.9858	77.6827
+Camel's Back	39	30.4603	78.0811
+Canal Colony	23	30.0414	76.1345
+Canal Colony	23	30.4350	76.5437
+Canal Colony	23	30.1844	76.5275
+Cadbori	16	20.2956	79.5911
+Campiernagar	36	27.0248	83.2760
+Captainganj	36	26.1938	83.0951
+Caidar	12	33.2560	75.6238
+Canal Colony	23	30.9175	74.5863
+Canadian Mission Settlement	16	21.8807	74.4634
+Carignano	11	31.1521	77.2226
+Captainganj	36	26.0948	81.5052
+Captainganj	36	26.0450	81.6697
+Captainganj	39	29.3842	79.3226
+Cantonment	36	28.3304	79.4313
+Cachohalli	19	13.0010	77.4717
+Canajore	19	13.0617	75.6285
+Cajjehosahallikoppal	19	12.7588	76.6859
+Cannanore Karar	13	11.8522	75.4044
+Carambolim-buzruco	33	15.5094	74.1773
+Canasgal	33	15.5356	74.2050
+Cazareachidat	33	15.5315	74.2105
+Cansaulim	33	15.3367	73.8984
+Cavi Rangaswami	19	12.5461	77.2703
+Callavaripalem	02	15.1907	79.9406
+Casturivandlapalli	02	14.1945	79.3071
+Cadmapuram	02	13.2639	79.3481

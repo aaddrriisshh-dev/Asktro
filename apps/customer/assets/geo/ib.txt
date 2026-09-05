@@ -1,0 +1,184 @@
+Ibrahimpatnam	02	16.5830	80.5143
+Ibrahimpatan	40	17.1957	78.6510
+Ibrahimpur	07	28.7757	77.1777
+Ibrampur	33	15.7069	73.9414
+Ibrahimpatan	40	18.9060	78.5836
+Ibniyi	30	28.6499	95.7071
+Ibkot	12	34.3712	73.7879
+Ibrahimpur	40	17.6888	78.8726
+Ibrahimabad	40	17.7960	78.1801
+Ibbalur	19	12.9217	77.6629
+Ibrahimpur	23	30.1716	76.5540
+Ibrahimpura	23	30.5960	76.8014
+Ibe Ka Khirk	35	25.0894	78.9583
+Ibrahimpur	36	27.1434	79.9006
+Ibharampuram	02	15.9065	77.4555
+Ibrahimpur	10	28.0821	76.6329
+Ibanpur	24	28.0152	76.8530
+Ibrahimi	36	30.0412	77.4115
+Ibrahimpura	36	30.0267	77.4338
+Ibrahimpur	24	27.9549	76.8302
+Ibrahimbas	10	27.6828	76.9664
+Ibrahimpur	39	29.8985	78.0685
+Ibrahimpur Majra	36	29.2045	77.3179
+Ibrahimabad Gaonri	36	29.0410	77.3972
+Ibrahimpur	39	29.8951	77.8694
+Ibrahimpur	39	29.9735	77.8929
+Ibrahimpur	39	29.7157	77.9618
+Ibadulpur	36	28.5990	77.5169
+Ibrahimpur Narayan	36	29.2740	78.5554
+Ibrahimpura	24	24.7190	76.9021
+Ibrahimpalli	40	18.5989	79.9638
+Ibrahimpur	36	28.1054	77.7274
+Ibrahimpur	36	28.2224	77.8207
+Ibrahimpur	16	18.6193	77.5702
+Ibrahimpet	40	18.4013	77.9159
+Ibrahimpur	40	17.6199	77.8602
+Ibrahimdoddi	19	16.3214	77.4194
+Ibrahimpur	36	27.8697	78.0211
+Ibrahimpatnam	40	16.5811	77.7489
+Ibrahimpur	36	27.1412	78.7658
+Ibrahimpalli	40	16.7897	77.8149
+Ibrahimabad	40	16.8501	77.9075
+Ibrahimnagar	40	16.7429	77.7806
+Ibrahimpalli	40	17.3279	78.1288
+Ibrahimpur	24	26.9924	77.6779
+Ibrahimnagar	36	27.5414	78.2960
+Ibrahimpur Raus	36	26.8364	79.9521
+Ibrahimpur Nagaria	36	27.4026	78.7125
+Ibrahimpur	36	25.9990	82.9135
+Ibrahimpur	36	25.9510	82.9817
+Ibrahimpur	36	25.7058	83.2230
+Ibrahimpur	36	25.3124	83.2296
+Ibrahimpur	36	25.7265	83.3109
+Ibrahimpur	36	25.5505	83.2953
+Ibrahimpur	36	25.5573	83.2801
+Ibrahimpur	36	25.7080	83.3604
+Ibrahimpur	16	20.6399	76.2651
+Ibrahimpur	16	20.8396	77.5989
+Ibrahimpur	36	25.6296	83.9563
+Ibrahimpur	34	25.0067	83.8433
+Ibrahimpur	16	20.7153	77.9902
+Ibrahimpur Nawabad	36	25.9773	80.3822
+Ibrahimpur	19	16.7913	76.9533
+Ibrahimbagh	40	17.3815	78.3813
+Ibrahimpalli	40	16.8825	78.1596
+Ibrahimpuram	40	17.7606	79.2271
+Ibrahimpur	16	17.4338	76.3485
+Ibrahimpur	19	16.7929	76.1618
+Ibrahimpur	36	25.8266	82.3847
+Ibrahimpur	36	25.8270	82.3739
+Ibrahimabad	36	25.7357	82.6333
+Ibrahimpur	36	25.6152	82.6152
+Ibrahimpur	36	25.6176	82.6951
+Iblispur	36	25.2627	82.9604
+Ibrahimpur	36	29.1352	78.1971
+Ibrahimpur	36	29.0308	78.1219
+Ibrahimpur Khandsal	36	29.3774	78.2668
+Ibrahimpur	36	25.7602	83.7567
+Ibrahimabad	36	26.8716	81.1195
+Ibrahimpur	36	26.8394	81.2148
+Ibrahimpur	36	29.1803	78.3085
+Ibrahimpur	36	29.1730	78.4191
+Ibrahimpur	36	25.7997	81.2179
+Ibrahimpur	36	28.9099	78.4005
+Ibrahimpur Bhawanipur	36	28.7957	78.4780
+Ibrahimpur	36	28.5466	78.7130
+Ibrahimpur	36	26.1926	81.2185
+Ibrahimpur Faizganj	36	28.2009	78.6865
+Ibrahimpurgarhi	36	28.1296	78.7394
+Ibrahimpur	36	27.5410	82.0113
+Ibrahimpur	36	25.4499	81.4728
+Ibrahimpur Deoli	36	26.7651	82.0268
+Ibrahimpur	36	26.6528	82.1150
+Ibrahimpatan	40	18.0225	78.5251
+Ibrahimpur	40	18.2543	78.7695
+Ibrahimnagar	40	18.1482	78.9436
+Ibrahimpur	36	25.9090	83.1259
+Ibrahimpur	36	26.3572	82.6731
+Ibrahimpur	36	26.4389	82.6559
+Ibrahimpur	36	26.4068	82.7164
+Ibrahimpur	36	26.3198	82.7295
+Ibrahimpur	36	26.1157	82.7056
+Ibrahimpur	36	26.1901	82.6543
+Ibrahimpur	36	25.7796	83.3527
+Ibrahim Chak	36	25.8678	83.3363
+Ibrahimpur	36	26.0866	82.8173
+Ibrahimpur	36	26.1463	82.9428
+Ibrahimpur	36	26.1120	82.9753
+Ibrahimpur	36	27.2278	83.3096
+Ibrahimpur	36	26.3474	83.2110
+Ibrahimpur	36	25.6170	81.5429
+Ibrahimpur	36	25.6263	81.6279
+Ibrahimpur Naugira	36	25.5621	81.5601
+Ibrahimpur	36	25.5759	81.6921
+Ibrahimpur	36	25.6520	81.6374
+Ibrahimabad	36	26.2546	83.5111
+Ibrahimabad	36	26.1608	83.5776
+Ibrahimpur	36	25.7003	83.6411
+Ibrahimpur	36	25.3732	81.6435
+Ibrahimpur Bamhrauli	36	25.4505	81.7115
+Ibrahimpur	36	25.4801	81.9269
+Ibban	23	31.3378	75.4482
+Ibrahimpur	23	31.7294	75.5864
+Ibrahimpur	23	31.6602	75.5727
+Ibrahimpura	35	21.9048	75.6937
+Ibrahimpur	36	27.6461	80.8961
+Ibrahimpur	36	27.1105	81.0961
+Ibrahimpur	36	27.0774	81.0891
+Ibrahimpur Kalan	36	27.0411	81.0986
+Ibrahimabad	36	27.1257	81.1536
+Ibrahimpur	23	31.1992	76.1584
+Ibrahimpur	23	31.0163	76.0747
+Ibhapan	09	23.2067	74.1002
+Ibrahimpur	36	30.0380	77.7288
+Ib	21	21.8193	83.9464
+Ibrahimpur	36	26.8993	81.6246
+Ibrahimpeta	40	17.6332	80.9939
+Ibraisupeta	02	17.4581	82.6577
+Ibrahimbada	02	18.3127	83.8605
+Ibrahimpur	34	25.1516	84.4235
+Ibrahimabad	36	25.7844	84.5091
+Ibrahimpur	34	25.9840	84.7145
+Ibrahimnagar	34	25.5689	84.6946
+Ibrahimpur	34	25.0060	84.6430
+Ibrahimpur	34	26.6545	84.6560
+Ibrahimpur	34	25.4262	84.8600
+Ibrahimpur	34	25.3216	84.9197
+Ibrahimpur	34	25.1684	84.9050
+Ibrahimpur	34	24.5864	84.2431
+Ibrahimpur	34	25.3197	84.3958
+Ibrahimpur	34	24.7971	84.4382
+Ibrahimpur	19	15.5433	75.4296
+Ibbidu	19	13.1619	75.9238
+Ibharampuram	19	15.0829	76.9785
+Ibrahimpur	34	25.2454	85.5011
+Iba Bigha	34	24.7199	85.4723
+Ibrahimpur	34	26.1281	86.1200
+Ibbane	19	13.0703	76.0526
+Ibbajala	19	12.1120	76.4457
+Ibrahimpur	34	25.7253	86.1065
+Ibrahimpur	34	25.4263	86.0288
+Ibrahimpalli	40	18.7825	79.0023
+Ibbadi	19	12.9007	75.8063
+Ibrahimpur	34	25.1007	86.6655
+Ibrahimpur	36	27.3188	80.5772
+Ibban Kalan	23	31.5803	74.8456
+Ibban Khurd	23	31.5735	74.8565
+Ibrahimpur	36	26.7268	79.1252
+Ibharampuram	19	15.6628	76.9033
+Ibrahimpur	34	25.2354	87.0343
+Ibrahimpur	34	25.9431	85.1162
+Ibrahimganj	34	25.6933	85.2243
+Ibrahimpur	34	25.1788	85.0628
+Ibrahimpur	34	25.0140	85.0992
+Ibrahimabad	34	25.5377	85.3316
+Ibrahimpur Shiudarshan	34	25.6491	85.4368
+Ibrahimpur	34	25.2796	85.7049
+Ibrahimpur	36	27.8802	80.0745
+Ibrahimpur	36	27.0078	80.2324
+Ibrahimbagh	02	19.0924	78.3449
+Ibbalakhalli	19	12.8022	77.2775
+Ibbalakhalli	19	12.7629	77.2687
+Ibrampalli	02	14.4204	79.0489
+Ibrahimpur	36	25.7157	83.6839
