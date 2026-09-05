@@ -842,8 +842,8 @@ state via `ref.read`. The router is never recreated, so pushed screens (calls)
 survive wallet updates. VERIFIED (5 Sept 2026): after the fix, a 2-device voice
 call HELD PAST 10s on the founder's phones — calls work. (Bonus: this fix protects
 EVERY imperatively-pushed screen from being torn down by a mid-session wallet/
-profile update, not just calls.) Still worth a longer run to eyeball the per-minute
-meter, but the drop bug is resolved.
+profile update, not just calls.) Per-minute meter also confirmed
+over a ~1-minute call (billing looks correct). Voice calls DONE for v2.
 Separately FIXED (a display bug, not the disconnect): my diagnostic had set
 `errorMessage='Conn: connectionStateConnecting…'` and never cleared it, so a LIVE
 call still showed "connecting". Cleaned up `call_engine.dart`:
