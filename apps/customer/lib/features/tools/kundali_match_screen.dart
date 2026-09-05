@@ -159,7 +159,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
 
     // Balance gate BEFORE charging: if short, take them to recharge and return.
     // ... hidden in free v1 — the paywall is bypassed so the report is free
-    if (kMonetizationEnabled && _spendable < _pricePaise) {
+    if (kKundliMatchPaid && _spendable < _pricePaise) {
       setState(() => _error = null);
       await _goRecharge();
       if (!mounted) return;
@@ -189,7 +189,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
     try {
       // ... free v1: use the unpaid direct match (no wallet charge). The paid
       // server function (which deducts ₹49) is used only when money is on.
-      final dynamic data = kMonetizationEnabled
+      final dynamic data = kKundliMatchPaid
           ? (await repo.purchaseMatch(
               girlDatetime: girlDob,
               girlCoordinates: girlCoords,
@@ -364,9 +364,9 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
                   const SizedBox(height: 2),
                   const Text('A complete 8-koota compatibility report, scored out of 36 gunas — with a downloadable PDF.',
                       style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 12.5, height: 1.35),),
-                  // ... '₹49' price badge hidden in free v1
-                  if (kMonetizationEnabled) const SizedBox(height: 8),
-                  if (kMonetizationEnabled)
+                  // Kundli stays FREE in v2 — no price badge (see kKundliMatchPaid).
+                  if (kKundliMatchPaid) const SizedBox(height: 8),
+                  if (kKundliMatchPaid)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -540,7 +540,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
           // ... '₹49' hidden in free v1
           label: Text(_loading
               ? 'Generating your report…'
-              : (kMonetizationEnabled ? 'Check compatibility · ₹49' : 'Check compatibility')),
+              : (kKundliMatchPaid ? 'Check compatibility · ₹49' : 'Check compatibility')),
         ),
       );
 

@@ -1065,8 +1065,8 @@ class _CelestialAstroCard extends StatelessWidget {
               ],
             ),
             const Spacer(),
-            // ... per-minute rate label hidden in free v1
-            if (kMonetizationEnabled)
+            // Per-minute rate only for PAID (human) astrologers — AI is free.
+            if (kMonetizationEnabled && !a.isAI)
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),

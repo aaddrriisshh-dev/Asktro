@@ -68,6 +68,32 @@ export async function applyTick(
   if (!userSnap.exists) return null;
   const user = userSnap.data()!;
 
+  // v2: AI consultations are FREE — never metered, never money-paused. We still
+  // advance the presence markers so the idle/disconnect lifecycle is unchanged
+  // (the sweep can still pause an abandoned AI chat for cleanup, and expirePaused
+  // ends it), but nothing is ever charged and the balance is never touched.
+  if (c.isAI === true) {
+    const FREE_REMAINING_SEC = 359999; // ~100h — "effectively unlimited" for the UI
+    tx.update(consultationRef, {
+      remainingSec: FREE_REMAINING_SEC,
+      warnLevel: 0,
+      lastTickAt: Timestamp.fromMillis(nowMs),
+      ...(ticker === 'customer' ? { customerLastTickAt: Timestamp.fromMillis(nowMs) } : {}),
+      ...(ticker === 'astrologer' ? { astrologerLastTickAt: Timestamp.fromMillis(nowMs) } : {}),
+      networkStatus: networkStatus ?? c.networkStatus ?? 'ok',
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return {
+      status: 'active',
+      remainingSec: FREE_REMAINING_SEC,
+      warnLevel: 0,
+      walletBalance: user.walletBalance ?? 0,
+      bonusBalance: (user.bonusBalance ?? 0) + (user.chatBonusBalance ?? 0),
+      billedSeconds: 0,
+      chargedPaise: 0,
+    };
+  }
+
   const lastTickAtMs: number = (c.lastTickAt as Timestamp | null)?.toMillis() ?? nowMs;
 
   // Presence of each party, with the CALLER's own presence refreshed to now.

@@ -22,7 +22,13 @@
 /// this to `true`, rebuild, and submit v2 (Google reviews it normally). Nothing
 /// was deleted — every money feature is only *hidden* behind this flag. See
 /// docs/FREE_V1_RESTORE.md for the full restore checklist.
-const bool kMonetizationEnabled = false;
+const bool kMonetizationEnabled = true;
+
+/// v2 keeps Kundli / Kundali Match **FREE** even though money is on (paid Kundli
+/// is deferred to v3). This is a SEPARATE switch so enabling monetization never
+/// re-introduces the ₹49 Kundali-Match paywall. Flip to `true` only in v3 when a
+/// compliant paid-Kundli flow is built.
+const bool kKundliMatchPaid = false;
 
 /// Bottom-nav index of the Profile tab. Wallet + Mall sit between Consults and
 /// Profile only when monetization is on, so Profile is index 4 with money on

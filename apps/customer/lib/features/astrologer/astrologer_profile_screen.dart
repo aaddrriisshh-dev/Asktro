@@ -247,8 +247,8 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
                 style: AppTypography.caption.copyWith(color: Colors.white.withValues(alpha: 0.85)),
                 textAlign: TextAlign.center,),
             const SizedBox(height: 10),
-            // ... rate label hidden in free v1
-            if (kMonetizationEnabled)
+            // Rate shown only for PAID (human) astrologers — AI is free.
+            if (kMonetizationEnabled && !a.isAI)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(999)),

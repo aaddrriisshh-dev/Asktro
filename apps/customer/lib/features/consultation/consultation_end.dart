@@ -110,9 +110,11 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
                     _row('Astrologer', widget.astrologer.name),
                     _row('Duration', Money.formatDurationLong(c.duration)),
                     _row('Type', c.type.name),
-                    // ... charged-amount row hidden in free v1
-                    if (kMonetizationEnabled) _row('Amount charged', Money.formatPaise(c.totalCharged)),
-                    if (kMonetizationEnabled && c.receiptNo != null) _row('Receipt', c.receiptNo!),
+                    // Charge/receipt only for PAID (human) consults — AI is free.
+                    if (kMonetizationEnabled && !widget.astrologer.isAI)
+                      _row('Amount charged', Money.formatPaise(c.totalCharged)),
+                    if (kMonetizationEnabled && !widget.astrologer.isAI && c.receiptNo != null)
+                      _row('Receipt', c.receiptNo!),
                   ],
                 ),
               ),

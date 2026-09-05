@@ -84,8 +84,8 @@ class AstrologerCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // ... per-minute rate label hidden in free v1
-              if (kMonetizationEnabled) LabelBadge(text: a.rateLabel, filled: false),
+              // Per-minute rate only for PAID (human) astrologers — AI is free.
+              if (kMonetizationEnabled && !a.isAI) LabelBadge(text: a.rateLabel, filled: false),
             ],
           ),
           if (!compact) ...[

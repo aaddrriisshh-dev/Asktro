@@ -138,6 +138,11 @@ export const createConsultation = onCall(async (req) => {
     // (chat/voice/video) has its own rate; each falls back to the astrologer's
     // legacy single `ratePerMinutePaise`, then to the global base rate (e.g. AI
     // personas or astrologers onboarded before per-type pricing).
+    // v2 monetization: AI consultations are FREE (the hook), human astrologer
+    // consultations are PAID. This is decided structurally by `isAI`, NOT by
+    // config, so AI can never be charged even if the global price/gate change.
+    const isAI = astrologer.isAI === true;
+
     const typeRateField =
       type === 'voice' ? 'voiceRatePaise' : type === 'video' ? 'videoRatePaise' : 'chatRatePaise';
     const typeRate = astrologer[typeRateField] as number | undefined;
@@ -151,7 +156,9 @@ export const createConsultation = onCall(async (req) => {
     // Clamp against a server-config ceiling so a corrupted/absurd astrologer rate
     // can never price a session above the sane maximum, and never negative/NaN.
     const maxRate = config.maxConsultationPricePerMinutePaise ?? 50000;
-    const price = Number.isFinite(rawPrice) && rawPrice > 0 ? Math.min(rawPrice, maxRate) : config.consultationPricePerMinutePaise;
+    const humanPrice = Number.isFinite(rawPrice) && rawPrice > 0 ? Math.min(rawPrice, maxRate) : config.consultationPricePerMinutePaise;
+    // AI is free → priced at 0 and never metered (applyTick short-circuits on isAI).
+    const price = isAI ? 0 : humanPrice;
 
     // The one-time free CHAT credit (chatBonusBalance) is usable ONLY with AI or
     // base-rate astrologers. Premium human astrologers charge from the first
@@ -163,7 +170,9 @@ export const createConsultation = onCall(async (req) => {
     const spendable = (customer.walletBalance ?? 0) +
         (customer.bonusBalance ?? 0) +
         (chatCreditEligible ? (customer.chatBonusBalance ?? 0) : 0);
-    if (!canStartConsultation(spendable, config.minWalletToStartPaise)) {
+    // AI is free, so it never requires a minimum balance to start. Only a PAID
+    // (human) consultation is gated on the wallet minimum.
+    if (!isAI && !canStartConsultation(spendable, config.minWalletToStartPaise)) {
       throw new HttpsError(
         'failed-precondition',
         'INSUFFICIENT_BALANCE',
@@ -195,7 +204,7 @@ export const createConsultation = onCall(async (req) => {
     tx.set(consultationRef, {
       customerId,
       astrologerId,
-      isAI: astrologer.isAI === true,
+      isAI,
       type,
       pricePerMinute: price,
       pricePerSecond: pricePerSecond(price),

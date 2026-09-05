@@ -599,3 +599,60 @@ filters on that field). No money impact (v1 free) — a display ghost.
   (run on the Mac with the service-account key; safe — only closes sessions idle
   >30 min). TODO (v2 hardening): make sweepSessions also reap `active` docs with
   no `lastTickAt` so this can't recur.
+
+---
+
+## v2 Phase 2 — Monetization turned on (5 Sept 2026)
+
+`kMonetizationEnabled = true`. Money model: **AI chat FREE, human consults PAID
+(wallet/Razorpay), Kundli FREE, Mall PAID (Razorpay-direct).**
+
+### Code changes
+- **AI is now structurally FREE** (not config-dependent):
+  - `billing/createConsultation.ts`: AI (`astrologer.isAI`) → `price = 0` and the
+    `minWalletToStartPaise` start-gate is **skipped** for AI. Humans keep real
+    per-type rate + the gate.
+  - `billing/tickConsultation.ts` `applyTick`: **short-circuits for `c.isAI`** —
+    never charges, never money-pauses, never touches balances; still advances
+    presence markers so the idle/disconnect cleanup lifecycle is unchanged.
+- **Kundli stays FREE**: new flag `kKundliMatchPaid = false` (feature_flags.dart),
+  separate from `kMonetizationEnabled`. `kundali_match_screen.dart` now gates the
+  ₹49 paywall/badge/label on `kKundliMatchPaid` (v3 flips it when a compliant paid
+  flow exists). The paid server fn `purchaseKundliMatch` simply goes unused.
+- **AI shows no price / no cost UI**: rate badge hidden for AI in
+  `astrologer_card.dart`, `astrologer_profile_screen.dart`, `home_feed.dart`
+  (`&& !a.isAI`); chat countdown + low-balance warnings suppressed for AI
+  (`chat_consultation_screen.dart`); AI consult-end hides charge/receipt rows
+  (`consultation_end.dart`). Support FAQ copy updated (AI free / human paid).
+- Verified: `tsc --noEmit` clean on functions; Flutter analyze pending on Mac.
+- Dev "dummy gateway" recharge (`admin/devTools.ts`) confirmed SAFE — hard-locked
+  to the local emulator (`FUNCTIONS_EMULATOR`), permanently inert in production.
+- Mall confirmed Razorpay-direct, never wallet/bonus (audit) — no change needed.
+
+### REQUIRED before/at v2 release (NOT code — do these or it leaks money)
+1. **Deploy the two changed functions** (existing → redeploy, no invoker grant):
+   `firebase deploy --only functions:createConsultation` then
+   `...functions:tickConsultation` (one at a time, service-account key). Deploy
+   BEFORE/with the app release — they're backward-compatible (live AI stays free).
+2. **Firestore `config/global` (edit live, no deploy):**
+   - `minWalletToStartPaise` → **1800** (₹18 min to start a HUMAN consult; AI ignores it).
+   - `freeChatMinutes` → **small (e.g. 3) or 0**. It is currently **999999** (free-v1
+     hack). LEFT HUGE IT IS A LEAK: it mints a huge `chatBonusBalance` welcome credit
+     that is spendable on **base-rate human chats**, so new users could chat with a
+     ₹9-rate human for free forever. Must be reduced for v2.
+3. **Human astrologer rates:** set human rates **above the ₹9 base** (config
+   `consultationPricePerMinutePaise`) so the chat-only welcome credit
+   (`chatBonusBalance`) can't be spent on them (`chatCreditEligible` is true only
+   for AI or base-rate chats). Also consider zeroing existing ~33 users'
+   `chatBonusBalance` (low risk — friends/family).
+4. **Portal data:** delete the fake demo astrologers (`seed_astrologers.mjs` names,
+   stock photos) + placeholder products; add 2-3 REAL astrologers (founder + friends)
+   and real products before submitting. Astrologers/products are portal-managed — no
+   app update needed to add/remove later.
+5. **Play Console:** declare financial features truthfully; Data safety → add
+   Payment info + Purchase history; store listing/screenshots may show wallet/
+   consults/Mall (do NOT headline "paid AI" — AI is free).
+
+### Still open in later phases
+- Notification-CTA fix (Phase 3), scale/AI-cost kill-switch + sweeper ghost-active
+  hardening (Phase 4), full device test + staged rollout (Phase 5).
