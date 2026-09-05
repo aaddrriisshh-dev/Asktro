@@ -724,3 +724,13 @@ unlimited) until the founder decides to cap/kill.
   Razorpay-direct; recharge is idempotent with a dead-letter + reconcile.
 
 Verified: functions `tsc --noEmit` clean. Flutter analyze pending on Mac.
+
+---
+
+## Backlog / future maintenance (NOT for this v2 release)
+- **Node.js 20 runtime upgrade** (Cloud Functions): Node 20 deprecated 30 Apr 2026,
+  decommissioned 30 Oct 2026. Bump the functions runtime (e.g. Node 22) + redeploy.
+  Backend-only — NO app update. Do before Oct 2026.
+- **Trailing-comma lint cleanup** (~61 `require_trailing_commas` infos in older
+  Flutter files): cosmetic only, zero behaviour change. `dart format` fixes all at
+  once. Tidy-up whenever; not required for release.
