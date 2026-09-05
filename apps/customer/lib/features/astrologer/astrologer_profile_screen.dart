@@ -10,8 +10,8 @@ import '../consultation/chat_consultation_screen.dart';
 import '../consultation/call_consultation_screen.dart';
 import '../moderation/moderation_actions.dart';
 
-// kCallsEnabled / kVideoEnabled live in app/feature_flags.dart — both OFF in v2
-// (chat-only). The Voice/Video buttons below are further gated by `!a.isAI`.
+// kCallsEnabled / kVideoEnabled live in app/feature_flags.dart — v2 has VOICE on,
+// VIDEO hidden. The Voice/Video buttons below are further gated by `!a.isAI`.
 
 final _astrologerProvider =
     StreamProvider.autoDispose.family<Astrologer, String>((ref, id) {

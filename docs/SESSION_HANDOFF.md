@@ -798,26 +798,37 @@ one or push on every customer message with the existing throttle. Write a
 `deeplink: asktro://chat/<consultationId>` (or consultation deeplink). Deploy
 `onChatMessageNudge` alone — can ship anytime, even after launch.
 
-## v2 fix (5 Sept 2026) — HIDE Voice/Video calls (chat-only launch)
-**Problem found in testing:** tapping Voice/Video on a human astrologer started a
-"call" that connected for a few seconds then self-disconnected. Root cause: the
-real-time calling engine (Agora) was REMOVED from v2 (prebuilt AARs clash with
-modern AGP — see pubspec.yaml note), so `call_consultation_screen.dart` has NO
-audio layer (it only comments "talks over Agora"). The call still ran the chat
-billing lifecycle, so a broken call could even CHARGE the customer.
+## v2 calls (5 Sept 2026) — VOICE on, VIDEO hidden (founder decision)
+**Correction to an earlier wrong note:** Agora is NOT removed. The app-level
+pubspecs say "agora removed" but it was MOVED to the shared package:
+`packages/shared_flutter/pubspec.yaml` → `agora_rtc_engine: ^6.6.3` (6.x has a
+proper Android namespace; both apps get the engine transitively). The full call
+path is built END-TO-END:
+- Engine: `packages/shared_flutter/lib/src/services/call_engine.dart` (join/leave,
+  mic/camera, events) + `call_video_view.dart`.
+- Token: `firebase/functions/src/agora/token.ts` (`generateAgoraToken`, exported
+  in index.ts; 1-hour TTL; distinct uids customer=1/astrologer=2; needs secrets
+  `AGORA_APP_ID` + `AGORA_APP_CERTIFICATE`).
+- Channel: `createConsultation.ts` sets `agoraChannel` for voice/video.
+- Customer UI: `call_consultation_screen.dart` (ringback → join → billing).
+- Astrologer UI: `incoming_call.dart` (ring) + `astrologer_consultation_screen.dart`
+  (accept → join → `accept()` activates billing when audio connects).
 
-**Fix (done, pushed):** added `kCallsEnabled = false` / `kVideoEnabled = false`
-to `apps/customer/lib/app/feature_flags.dart` and gated every Voice/Video entry
-point on them:
-- `astrologer_profile_screen.dart` — removed the local `= true` consts (now uses
-  the feature_flags ones); `showVoice`/`showVideo` already `&& !a.isAI`.
-- `astrologer_card.dart` — split the voice/video buttons and gated each on
-  `kCallsEnabled` / `kVideoEnabled` (was only `!a.isAI`).
-Result: app is cleanly CHAT-ONLY. No entry point reaches `CallConsultationScreen`.
-(`consultations_tab.dart` still shows call icons for any historical voice/video
-rows — display only, harmless.)
+**Founder decision (5 Sept 2026):** v2 ships with VOICE calls ON, VIDEO hidden.
+Set in `apps/customer/lib/app/feature_flags.dart`: `kCallsEnabled = true`,
+`kVideoEnabled = false`. Every Voice button gated on `kCallsEnabled && !a.isAI`,
+every Video button on `kVideoEnabled && !a.isAI` (profile + directory card).
 
-**Future phase — bring calls back:** re-integrate a working RTC engine (Agora
-with fixed namespace, or a replacement), wire `CallConsultationScreen` to real
-audio/video, test the full billing lifecycle on a live call, then flip
-`kCallsEnabled`/`kVideoEnabled` back to `true`. App change → needs an app update.
+**OPEN BUG — voice call drops after a few seconds (must fix before submit):**
+media connects then disconnects. NOT the billing sweep (`sweepStaleSessions` runs
+only every 1 min, so it can't cause a 3-sec drop) and NOT token expiry (1-hour
+TTL). Points to the Agora MEDIA layer — almost certainly the `AGORA_APP_ID` /
+`AGORA_APP_CERTIFICATE` secrets not matching the Agora console project (or the
+project's certificate/mode). Diagnose via: (a) the error text the call screen
+already renders (`call.errorMessage` — shows the Agora reason), (b) confirm the
+two secrets in Secret Manager match the live Agora project, (c) confirm
+`generateAgoraToken` is deployed. GATE: voice must pass a live 2-device call test
+(stays connected, billing meter runs) before the final submission build.
+
+**Video — future phase:** re-enable `kVideoEnabled` once video is tested end to
+end. App change → needs an app update.

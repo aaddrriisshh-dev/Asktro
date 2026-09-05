@@ -30,13 +30,15 @@ const bool kMonetizationEnabled = true;
 /// compliant paid-Kundli flow is built.
 const bool kKundliMatchPaid = false;
 
-/// Voice / video calling (Agora) is REMOVED from v2 — the prebuilt Agora AARs
-/// clash with modern AGP, so real-time calls are staged for a dedicated "calls"
-/// phase. v2 is CHAT-ONLY: these flags hide EVERY Voice/Video button (profile +
-/// directory cards) so a user is never offered a call that instantly disconnects
-/// (there is no RTC engine to connect). Flip to `true` only once the calling
-/// engine is back in AND calls are tested end-to-end.
-const bool kCallsEnabled = false;
+/// Calling in v2: VOICE is ON, VIDEO is hidden (founder decision, 5 Sept 2026).
+/// The Agora engine ships via `shared_flutter` (agora_rtc_engine 6.6.3), and the
+/// full call path — token function, channel, ringing, activation, billing — is
+/// built on both apps. `kCallsEnabled` gates every Voice button; `kVideoEnabled`
+/// gates every Video button (each further requires `!a.isAI`).
+///   NOTE: voice must pass a live 2-device call test (no early disconnect)
+///   before the final submission build — the drop seen in testing points to the
+///   Agora App ID / App Certificate secrets, not the app code.
+const bool kCallsEnabled = true;
 const bool kVideoEnabled = false;
 
 /// Bottom-nav index of the Profile tab. Wallet + Mall sit between Consults and
