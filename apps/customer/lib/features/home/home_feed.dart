@@ -104,11 +104,15 @@ class HomeFeed extends ConsumerWidget {
             _AstroCarousel(
                 title: 'Asktro Verified Astrologers',
                 provider: _topHumanProvider,
+                humansOnly: true,
                 hideWhenEmpty: true,
                 titleBadge: const VerifiedBadge(size: 18),),
             // The AI personas, presented as "New Astrologers" (each card + profile
             // still carries the required AI badge). Free & unlimited to chat.
-            _AstroCarousel(title: 'New Astrologers', provider: _topAiProvider),
+            _AstroCarousel(
+                title: 'New Astrologers',
+                provider: _topAiProvider,
+                aiOnly: true,),
             _AstroCarousel(
                 title: 'Rising Stars',
                 provider: _risingStarsProvider,
@@ -885,6 +889,8 @@ class _AstroCarousel extends ConsumerStatefulWidget {
     required this.title,
     required this.provider,
     this.onlyRisingStars = false,
+    this.humansOnly = false,
+    this.aiOnly = false,
     this.hideWhenEmpty = false,
     this.titleBadge,
   });
@@ -896,6 +902,10 @@ class _AstroCarousel extends ConsumerStatefulWidget {
   // "View all" from Rising Stars opens the tagged-only directory; from Top
   // Astrologers it opens the full directory.
   final bool onlyRisingStars;
+  // "View all" keeps the rail's kind: the Verified rail lists only humans, and
+  // "New Astrologers" only AI. Rising Stars stays a mix (both false).
+  final bool humansOnly;
+  final bool aiOnly;
   // When true, the whole rail (header included) renders nothing while its list
   // is empty — so the "Real astrologers" section simply doesn't appear until
   // real humans exist, instead of showing an empty "none yet" placeholder.
@@ -918,8 +928,16 @@ class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
 
   void _viewAll() => Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => SearchScreen(
-          title: widget.onlyRisingStars ? 'Rising Stars' : 'All Astrologers',
+          title: widget.onlyRisingStars
+              ? 'Rising Stars'
+              : widget.humansOnly
+                  ? 'Verified Astrologers'
+                  : widget.aiOnly
+                      ? 'New Astrologers'
+                      : 'All Astrologers',
           onlyRisingStars: widget.onlyRisingStars,
+          humansOnly: widget.humansOnly,
+          aiOnly: widget.aiOnly,
         ),
       ),);
 

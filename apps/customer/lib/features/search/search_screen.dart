@@ -6,7 +6,13 @@ import '../../app/providers.dart';
 import '../astrologer/astrologer_card.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key, this.title, this.onlyRisingStars = false});
+  const SearchScreen({
+    super.key,
+    this.title,
+    this.onlyRisingStars = false,
+    this.humansOnly = false,
+    this.aiOnly = false,
+  });
 
   /// Optional directory label (e.g. "All Astrologers", "Rising Stars"). Shown
   /// in the search hint so the user knows which set they're browsing.
@@ -14,6 +20,11 @@ class SearchScreen extends ConsumerStatefulWidget {
 
   /// When true, the directory is limited to admin-tagged Rising Stars.
   final bool onlyRisingStars;
+
+  /// Limit the directory to a single kind so "View all" matches its rail:
+  /// [humansOnly] for the Verified rail, [aiOnly] for "New Astrologers".
+  final bool humansOnly;
+  final bool aiOnly;
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -31,7 +42,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     try {
       results = await ref
           .read(astrologerRepositoryProvider)
-          .search(q, risingOnly: widget.onlyRisingStars);
+          .search(
+            q,
+            risingOnly: widget.onlyRisingStars,
+            humansOnly: widget.humansOnly,
+            aiOnly: widget.aiOnly,
+          );
     } catch (_) {
       // A denied/failed directory read (e.g. auth not yet settled) should show
       // an empty result, not crash the app.

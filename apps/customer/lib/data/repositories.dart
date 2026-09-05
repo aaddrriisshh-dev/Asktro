@@ -157,7 +157,12 @@ class AstrologerRepository {
 
   /// Client-side name/expertise search over the active directory. For large
   /// scale this would be backed by a search index; kept simple and correct here.
-  Future<List<Astrologer>> search(String query, {bool risingOnly = false}) async {
+  Future<List<Astrologer>> search(
+    String query, {
+    bool risingOnly = false,
+    bool humansOnly = false,
+    bool aiOnly = false,
+  }) async {
     final q = query.trim().toLowerCase();
     // No Firestore `active` filter: seeded personas don't set the field, and a
     // where-clause on a missing field silently drops them. Filter tolerantly
@@ -166,6 +171,10 @@ class AstrologerRepository {
     var all = snap.docs.where(_visible).map(_map).toList()
       ..sort((a, b) => b.rating.compareTo(a.rating));
     if (risingOnly) all = all.where((a) => a.risingStar).toList();
+    // "View all" from a single-kind rail stays that kind: the Verified rail
+    // (humans, paid) shows only humans, "New Astrologers" (AI, free) only AI.
+    if (humansOnly) all = all.where((a) => !a.isAI).toList();
+    if (aiOnly) all = all.where((a) => a.isAI).toList();
     if (q.isEmpty) return all;
     return all
         .where((a) =>
