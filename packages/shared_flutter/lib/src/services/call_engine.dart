@@ -75,6 +75,7 @@ class CallEngine extends ChangeNotifier {
           remoteUid = uid;
           remoteJoined = true;
           phase = CallPhase.connected;
+          errorMessage = null; // clear any transient "connecting" notice
           notifyListeners();
         },
         onUserOffline:
@@ -86,45 +87,24 @@ class CallEngine extends ChangeNotifier {
           remoteUid = null;
           notifyListeners();
         },
-        // DIAGNOSTIC (pre-launch): surface EVERY connection transition + reason
-        // so a call that drops after a few seconds tells us exactly WHY on
-        // screen — e.g. invalidToken / tokenExpired / invalidAppId (credentials)
-        // vs interrupted / keepAliveTimeout (network/UDP can't reach Agora). A
-        // deliberate leave and the normal join are NOT treated as errors.
+        // Surface only a GENUINE, fatal failure; clear any stale notice the
+        // moment the connection is established. Normal "connecting" is conveyed
+        // by the screen's own "Connecting…" state (call.isLive) — never an error
+        // line, otherwise a perfectly live call looks stuck (the bug we hit while
+        // diagnosing). onConnectionLost is a transient blip the SDK auto-recovers
+        // from and the authoritative end stays server-driven (billing), so we do
+        // not tear down or alarm on it; other onError codes are logged only.
         onConnectionStateChanged: (RtcConnection connection,
             ConnectionStateType state, ConnectionChangedReasonType reason,) {
-          final r = reason.name;
-          if (r != 'connectionChangedLeaveChannel' &&
-              r != 'connectionChangedJoinSuccess') {
-            errorMessage = 'Conn: ${state.name} · $r';
-          }
-          if (state == ConnectionStateType.connectionStateFailed) {
+          if (state == ConnectionStateType.connectionStateConnected) {
+            errorMessage = null;
+          } else if (state == ConnectionStateType.connectionStateFailed) {
             phase = CallPhase.failed;
+            errorMessage = 'Call connection failed. Please try again.';
           }
-          debugPrint('CallEngine conn: ${state.name} / $r');
-          notifyListeners();
-        },
-        // Fires ~10s after the media link can no longer be sustained (the classic
-        // "connects then drops" symptom). Signaling had succeeded, so App ID +
-        // token were accepted — this points at the network/UDP path to Agora.
-        onConnectionLost: (RtcConnection connection) {
-          errorMessage = 'Connection lost — network/UDP could not reach Agora.';
-          debugPrint('CallEngine: onConnectionLost');
-          notifyListeners();
-        },
-        // Agora asks for a fresh token — means the current one was rejected or
-        // expired (App Certificate / App ID mismatch is the usual cause).
-        onRequestToken: (RtcConnection connection) {
-          errorMessage = 'Token rejected — App ID / Certificate likely mismatched.';
-          debugPrint('CallEngine: onRequestToken');
-          notifyListeners();
-        },
-        onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
-          debugPrint('CallEngine: onTokenPrivilegeWillExpire');
           notifyListeners();
         },
         onError: (ErrorCodeType err, String msg) {
-          errorMessage = 'Agora ${err.name}: $msg';
           debugPrint('CallEngine error: ${err.name} / $msg');
           notifyListeners();
         },

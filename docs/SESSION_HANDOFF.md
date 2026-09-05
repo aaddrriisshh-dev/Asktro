@@ -819,16 +819,29 @@ Set in `apps/customer/lib/app/feature_flags.dart`: `kCallsEnabled = true`,
 `kVideoEnabled = false`. Every Voice button gated on `kCallsEnabled && !a.isAI`,
 every Video button on `kVideoEnabled && !a.isAI` (profile + directory card).
 
-**OPEN BUG — voice call drops after a few seconds (must fix before submit):**
-media connects then disconnects. NOT the billing sweep (`sweepStaleSessions` runs
-only every 1 min, so it can't cause a 3-sec drop) and NOT token expiry (1-hour
-TTL). Points to the Agora MEDIA layer — almost certainly the `AGORA_APP_ID` /
-`AGORA_APP_CERTIFICATE` secrets not matching the Agora console project (or the
-project's certificate/mode). Diagnose via: (a) the error text the call screen
-already renders (`call.errorMessage` — shows the Agora reason), (b) confirm the
-two secrets in Secret Manager match the live Agora project, (c) confirm
-`generateAgoraToken` is deployed. GATE: voice must pass a live 2-device call test
-(stays connected, billing meter runs) before the final submission build.
+**Voice calls: MEDIA + AUDIO work; a ~10s AUTO-disconnect is still OPEN (5 Sept 2026).**
+What's PROVEN good: Agora Analytics (analytics-lab.agora.io) Call Search shows the
+test channels (`asktro_…`) with **PCU 2 / ACU 2 (both users joined)**, durations up
+to **3 min 38 s**, **0% audio freeze**, and the founder confirmed **both sides could
+hear each other and talk**. All app/creds verified correct end to end: App ID
+`431bbf9bef6746128fa56474dd3e88bb` (matches Agora "Default Project"), App
+Certificate matches exactly, token fetch/parse fine, join options fine, secrets set.
+STILL OPEN: with **both phones untouched on a table**, the call **auto-disconnects
+at ~10s on its own** (NOT the user hanging up — do not assume that). Note Agora also
+logged some calls at 19–52s and one 3m38s, so the cutoff is not a hard 10s every
+time — looks intermittent. Root cause NOT yet found; needs FACTS from the
+consultation doc (status/endReason/activatedAt/endedAt/billedSeconds/pausedAt/
+networkStatus) and/or Cloud Functions logs (tickConsultation / sweepStaleSessions /
+endConsultation) around a failing call — do not guess.
+Separately FIXED (a display bug, not the disconnect): my diagnostic had set
+`errorMessage='Conn: connectionStateConnecting…'` and never cleared it, so a LIVE
+call still showed "connecting". Cleaned up `call_engine.dart`:
+`onConnectionStateChanged` clears `errorMessage` on `connectionStateConnected`,
+`onUserJoined` clears it too, only a real `connectionStateFailed` shows a message,
+verbose diagnostic callbacks removed.
+HYGIENE: the Agora App Certificate value appeared in chat during diagnosis — rotate
+it in the Agora console + re-set `AGORA_APP_CERTIFICATE` + redeploy
+`generateAgoraToken` later.
 
 **Video — future phase:** re-enable `kVideoEnabled` once video is tested end to
 end. App change → needs an app update.
