@@ -38,7 +38,15 @@ class _JanamKundliScreenState extends ConsumerState<JanamKundliScreen> {
       _error = null;
       _needsBirthPlace = false;
     });
-    final profile = ref.read(myProfileProvider).valueOrNull;
+    // The profile stream may not have emitted yet on first open (the user is
+    // already signed in past the gate) — wait briefly before deciding, so a
+    // signed-in user never sees a spurious "Please sign in" flash.
+    var profile = ref.read(myProfileProvider).valueOrNull;
+    final uid = ref.read(currentUidProvider);
+    for (var i = 0; i < 15 && profile == null && uid != null && mounted; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      profile = ref.read(myProfileProvider).valueOrNull;
+    }
     final repo = ref.read(prokeralaRepositoryProvider);
     if (profile == null || repo == null) {
       setState(() {

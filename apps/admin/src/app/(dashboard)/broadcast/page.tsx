@@ -38,6 +38,7 @@ export default function BroadcastPage() {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('small');
   const [portraitImage, setPortraitImage] = useState('');
   const [ctaText, setCtaText] = useState('');
+  const [ctaDeeplink, setCtaDeeplink] = useState('');
   const [lTitle, setLTitle] = useState('');
   const [lBody, setLBody] = useState('');
   const [lBg, setLBg] = useState('#2e2b5f');
@@ -73,6 +74,7 @@ export default function BroadcastPage() {
         displayMode,
         portraitImage: displayMode !== 'small' ? (portraitImage.trim() || undefined) : undefined,
         ctaText: displayMode !== 'small' ? (ctaText.trim() || undefined) : undefined,
+        ctaDeeplink: displayMode !== 'small' ? (ctaDeeplink.trim() || undefined) : undefined,
         landingTitle: displayMode !== 'small' ? (lTitle.trim() || undefined) : undefined,
         landingBody: displayMode !== 'small' ? (lBody.trim() || undefined) : undefined,
         landingBgColor: displayMode !== 'small' ? lBg : undefined,
@@ -85,7 +87,7 @@ export default function BroadcastPage() {
       setBroadcastId(crypto.randomUUID()); // fresh key for the next message
       setF({ title: '', body: '', deeplink: '', image: '' });
       setTheme('');
-      setPortraitImage(''); setCtaText(''); setDisplayMode('small');
+      setPortraitImage(''); setCtaText(''); setCtaDeeplink(''); setDisplayMode('small');
       setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(false); }
@@ -140,6 +142,11 @@ export default function BroadcastPage() {
           <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
             cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
             bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
+
+          {displayMode !== 'small' && (
+            <div className="af" style={{ marginTop: 12 }}><span>Button (CTA) — go to</span>
+              <DeepLinkSelect value={ctaDeeplink} onChange={setCtaDeeplink} /></div>
+          )}
 
           <div style={{ marginTop: 18 }}>
             <button className="btn" disabled={busy} onClick={send}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button>

@@ -26,6 +26,10 @@ class _Prediction {
 class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
   late ZodiacSign _sign;
   bool _loading = true;
+  // Whether _sign reflects the user's real birth date (vs the placeholder default
+  // shown before the profile stream emits, or a manual pick). Guards against a
+  // late profile emission overriding a deliberate choice.
+  bool _signResolved = false;
   List<_Prediction>? _predictions; // rich (ProKerala) — the only reading source
 
   @override
@@ -33,6 +37,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
     super.initState();
     final birth = ref.read(myProfileProvider).valueOrNull?.birthDate;
     _sign = birth != null ? ZodiacSign.fromDate(birth) : ZodiacSign.all.first;
+    _signResolved = birth != null;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -41,6 +46,22 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
       _loading = true;
       _predictions = null;
     });
+
+    // initState can run before the profile stream emits, defaulting the sign to
+    // the first one (Aries). On the first load, wait briefly for the real birth
+    // date and correct the sign — but never override a resolved/manual choice.
+    if (!_signResolved) {
+      var birth = ref.read(myProfileProvider).valueOrNull?.birthDate;
+      final uid = ref.read(currentUidProvider);
+      for (var i = 0; i < 15 && birth == null && uid != null && mounted; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        birth = ref.read(myProfileProvider).valueOrNull?.birthDate;
+      }
+      if (birth != null && mounted) {
+        _sign = ZodiacSign.fromDate(birth);
+        _signResolved = true;
+      }
+    }
 
     // Predictions come ONLY from ProKerala. We deliberately do NOT substitute a
     // third-party API or app-generated text — a user must never be shown a
@@ -182,6 +203,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
 
   void _select(ZodiacSign s) {
     if (s.name == _sign.name) return;
+    _signResolved = true; // a deliberate choice — don't let a late profile override it
     setState(() => _sign = s);
     _load();
   }

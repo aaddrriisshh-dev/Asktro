@@ -109,6 +109,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     if (!mounted) return;
     final data = m.data;
     final deeplink = (data['deeplink'] as String?) ?? '';
+    // The CTA button has its OWN destination, separate from where a plain tap
+    // goes. Falls back to the tap deeplink when the admin didn't set one.
+    final ctaDeeplink = (data['ctaDeeplink'] as String?) ?? '';
     // A chat-message notification opens the conversation DIRECTLY — never the
     // promo popup. (It carries the astrologer's photo as its image, which would
     // otherwise fall into the image/promo path below and show "View offer".)
@@ -147,7 +150,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         heroTagline: null,
         imageUrl: imageUrl,
         imageStyle: imageStyle,
-        onAction: () => _followDeeplink(deeplink),
+        onAction: () => _followDeeplink(ctaDeeplink.isNotEmpty ? ctaDeeplink : deeplink),
       );
     } else if (deeplink.isNotEmpty) {
       _followDeeplink(deeplink);

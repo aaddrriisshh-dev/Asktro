@@ -7,14 +7,18 @@ import { useState } from 'react';
 const DESTS = [
   { key: '', label: 'No deep link (do nothing on tap)' },
   { key: '/recharge', label: 'Recharge / Wallet' },
+  { key: '/store', label: 'Asktro Mall' },
+  { key: '/offers', label: 'Offers & Coupons' },
   { key: '/home', label: 'Home' },
   { key: 'astro', label: 'A specific astrologer…' },
   { key: 'custom', label: 'Custom route (advanced)' },
 ] as const;
 
+const DIRECT = ['/recharge', '/store', '/offers', '/home'];
+
 function selectionFor(value: string): string {
   if (value === '') return '';
-  if (value === '/recharge' || value === '/home') return value;
+  if (DIRECT.includes(value)) return value;
   if (value.startsWith('/astrologer/')) return 'astro';
   return 'custom';
 }
@@ -28,7 +32,7 @@ export function DeepLinkSelect({ value, onChange }: { value: string; onChange: (
 
   function pick(k: string) {
     setSel(k);
-    if (k === '/recharge' || k === '/home') onChange(k);
+    if (DIRECT.includes(k)) onChange(k);
     else if (k === 'astro') onChange('/astrologer/');
     else onChange(''); // '' or 'custom' — start empty, fill via the input
   }

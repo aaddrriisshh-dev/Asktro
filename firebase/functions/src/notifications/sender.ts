@@ -72,6 +72,7 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
     data: {
       type: String(n.type ?? ''),
       deeplink: String(n.deeplink ?? ''),
+      ctaDeeplink: String(n.ctaDeeplink ?? ''),
       image: String(n.image ?? ''),
       imageStyle: String(n.imageStyle ?? ''),
       displayMode: String(n.displayMode ?? 'small'),
@@ -110,6 +111,9 @@ export interface BroadcastParams {
   body: string;
   type?: string;
   deeplink?: string;
+  /** Where the CTA button goes — SEPARATE from the tap `deeplink`. Falls back to
+   *  `deeplink` on the app side when empty. */
+  ctaDeeplink?: string;
   image?: string;
   imageStyle?: 'banner' | 'portrait';
   bgColor?: string;
@@ -131,7 +135,7 @@ function buildNotifDoc(uid: string, p: BroadcastParams) {
   return {
     userId: uid, title: p.title, body: p.body,
     type: p.type ?? 'announcement',
-    deeplink: p.deeplink ?? null, image: p.image ?? null, imageStyle: p.imageStyle ?? null,
+    deeplink: p.deeplink ?? null, ctaDeeplink: p.ctaDeeplink ?? null, image: p.image ?? null, imageStyle: p.imageStyle ?? null,
     bgColor: p.bgColor ?? null, textColor: p.textColor ?? null, displayMode: p.displayMode ?? 'small',
     portraitImage: p.portraitImage ?? null, ctaText: p.ctaText ?? null,
     landingTitle: p.landingTitle ?? null, landingBody: p.landingBody ?? null,
@@ -179,6 +183,7 @@ export async function runBroadcast(
       data: {
         type: String(params.type ?? 'announcement'),
         deeplink: String(params.deeplink ?? ''),
+        ctaDeeplink: String(params.ctaDeeplink ?? ''),
         image: String(params.image ?? ''),
         imageStyle: String(params.imageStyle ?? ''),
         displayMode: String(params.displayMode ?? 'small'),
@@ -300,6 +305,7 @@ export const sendBroadcast = onCall(
         displayMode: d.displayMode ?? 'small',
         image: d.image ?? null,
         deeplink: d.deeplink ?? null,
+        ctaDeeplink: d.ctaDeeplink ?? null,
         delivered: delivered >= 0 ? delivered : null,
         channel,
         imageStyle: d.imageStyle ?? null,

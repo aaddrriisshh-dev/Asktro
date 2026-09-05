@@ -656,3 +656,35 @@ filters on that field). No money impact (v1 free) — a display ghost.
 ### Still open in later phases
 - Notification-CTA fix (Phase 3), scale/AI-cost kill-switch + sweeper ghost-active
   hardening (Phase 4), full device test + staged rollout (Phase 5).
+
+---
+
+## v2 Phase 3 — notification CTA fix + minor timing bugs (5 Sept 2026)
+
+### Notification CTA now has its OWN destination (separate from the tap)
+- Backend `notifications/sender.ts`: new `ctaDeeplink` carried through
+  `BroadcastParams` → `buildNotifDoc` → both push payloads (per-user trigger +
+  topic) and the finalized broadcast record.
+- App `home_shell.dart`: the promo-popup CTA now navigates to `ctaDeeplink`
+  (falls back to the tap `deeplink` when empty).
+- Portal `broadcast/page.tsx`: added a "Button (CTA) — go to" picker (shown for
+  half/full popups); `DeepLinkSelect` destinations expanded with **Asktro Mall
+  (/store)** and **Offers (/offers)** (valid now that money is on).
+- Deploy at release: redeploy functions `onNotificationCreated` + `sendBroadcast`;
+  redeploy the admin portal (Vercel). Routes with no app route yet (Kundli/
+  Horoscope/Chat tab) are still not offered as destinations — deferred.
+
+### Minor timing bugs fixed (app)
+- `notifications/notifications_tab.dart`: tapping a notification with a plain
+  route deeplink ('/store', '/recharge', 'asktro://…') now follows it (was a dead
+  tap; only remedy/chat worked).
+- `tools/janam_kundli_screen.dart`: waits briefly for the profile stream before
+  deciding — a signed-in user no longer sees a spurious "Please sign in" flash.
+- `tools/horoscope_screen.dart`: waits for the real birth date and corrects the
+  zodiac sign (was locking to Aries if opened before the profile loaded); a manual
+  sign pick is respected and never overridden by a late profile emission.
+
+Verified: functions + admin `tsc --noEmit` clean. Flutter analyze pending on Mac.
+
+### Deferred to Phase 5
+Visual rendering QA of promos/onboarding on multiple screen sizes (needs a device).
