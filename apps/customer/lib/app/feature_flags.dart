@@ -30,6 +30,15 @@ const bool kMonetizationEnabled = true;
 /// compliant paid-Kundli flow is built.
 const bool kKundliMatchPaid = false;
 
+/// Voice / video calling (Agora) is REMOVED from v2 — the prebuilt Agora AARs
+/// clash with modern AGP, so real-time calls are staged for a dedicated "calls"
+/// phase. v2 is CHAT-ONLY: these flags hide EVERY Voice/Video button (profile +
+/// directory cards) so a user is never offered a call that instantly disconnects
+/// (there is no RTC engine to connect). Flip to `true` only once the calling
+/// engine is back in AND calls are tested end-to-end.
+const bool kCallsEnabled = false;
+const bool kVideoEnabled = false;
+
 /// Bottom-nav index of the Profile tab. Wallet + Mall sit between Consults and
 /// Profile only when monetization is on, so Profile is index 4 with money on
 /// and index 2 with money off. Anything that jumps to the Profile tab must use

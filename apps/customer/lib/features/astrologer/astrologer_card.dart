@@ -108,8 +108,10 @@ class AstrologerCard extends StatelessWidget {
                   filled: a.isAI,
                   onTap: () => context.push('/astrologer/${a.id}', extra: requestedSkill),
                 ),
-                // AI personas are chat-only — no voice/video.
-                if (!a.isAI) ...[
+                // AI personas are chat-only — no voice/video. Human voice/video
+                // are hidden in v2 too (kCalls/kVideoEnabled OFF — calling engine
+                // removed), so the whole app is chat-only until calls return.
+                if (!a.isAI && kCallsEnabled) ...[
                   const SizedBox(width: AppSpacing.sm),
                   _ModeButton(
                     icon: Icons.call_outlined,
@@ -117,6 +119,8 @@ class AstrologerCard extends StatelessWidget {
                     enabled: a.isConsultable,
                     onTap: () => context.push('/astrologer/${a.id}', extra: requestedSkill),
                   ),
+                ],
+                if (!a.isAI && kVideoEnabled) ...[
                   const SizedBox(width: AppSpacing.sm),
                   _ModeButton(
                     icon: Icons.videocam_outlined,

@@ -797,3 +797,27 @@ one or push on every customer message with the existing throttle. Write a
 `notifications` doc with `userId: astrologerId`, `type: 'chat_message'`,
 `deeplink: asktro://chat/<consultationId>` (or consultation deeplink). Deploy
 `onChatMessageNudge` alone — can ship anytime, even after launch.
+
+## v2 fix (5 Sept 2026) — HIDE Voice/Video calls (chat-only launch)
+**Problem found in testing:** tapping Voice/Video on a human astrologer started a
+"call" that connected for a few seconds then self-disconnected. Root cause: the
+real-time calling engine (Agora) was REMOVED from v2 (prebuilt AARs clash with
+modern AGP — see pubspec.yaml note), so `call_consultation_screen.dart` has NO
+audio layer (it only comments "talks over Agora"). The call still ran the chat
+billing lifecycle, so a broken call could even CHARGE the customer.
+
+**Fix (done, pushed):** added `kCallsEnabled = false` / `kVideoEnabled = false`
+to `apps/customer/lib/app/feature_flags.dart` and gated every Voice/Video entry
+point on them:
+- `astrologer_profile_screen.dart` — removed the local `= true` consts (now uses
+  the feature_flags ones); `showVoice`/`showVideo` already `&& !a.isAI`.
+- `astrologer_card.dart` — split the voice/video buttons and gated each on
+  `kCallsEnabled` / `kVideoEnabled` (was only `!a.isAI`).
+Result: app is cleanly CHAT-ONLY. No entry point reaches `CallConsultationScreen`.
+(`consultations_tab.dart` still shows call icons for any historical voice/video
+rows — display only, harmless.)
+
+**Future phase — bring calls back:** re-integrate a working RTC engine (Agora
+with fixed namespace, or a replacement), wire `CallConsultationScreen` to real
+audio/video, test the full billing lifecycle on a live call, then flip
+`kCallsEnabled`/`kVideoEnabled` back to `true`. App change → needs an app update.
