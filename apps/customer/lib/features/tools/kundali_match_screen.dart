@@ -540,7 +540,7 @@ class _KundaliMatchScreenState extends ConsumerState<KundaliMatchScreen> {
           // ... '₹49' hidden in free v1
           label: Text(_loading
               ? 'Generating your report…'
-              : (kKundliMatchPaid ? 'Check compatibility · ₹49' : 'Check compatibility')),
+              : (kKundliMatchPaid ? 'Check compatibility · ₹49' : 'Check compatibility'),),
         ),
       );
 

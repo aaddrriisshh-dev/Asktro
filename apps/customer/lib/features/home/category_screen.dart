@@ -47,7 +47,7 @@ class SkillCategory {
 
 const kSkillCategories = <SkillCategory>[
   SkillCategory('Vedic', Icons.auto_awesome_rounded,
-      ['Vedic Astrology', 'KP System', 'KP Astrology', 'Lal Kitab', 'Nadi Astrology']),
+      ['Vedic Astrology', 'KP System', 'KP Astrology', 'Lal Kitab', 'Nadi Astrology'],),
   SkillCategory('Palmistry', Icons.back_hand_rounded, ['Palmistry']),
   SkillCategory('Numerology', Icons.calculate_rounded, ['Numerology']),
   SkillCategory('Tarot', Icons.style_rounded, ['Tarot']),
@@ -88,7 +88,7 @@ class _AstrologerListScreen extends StatelessWidget {
           Icon(icon, size: 20),
           const SizedBox(width: 8),
           Text(title),
-        ]),
+        ],),
       ),
       body: Consumer(builder: (context, ref, _) {
         final async = ref.watch(provider);
@@ -118,7 +118,7 @@ class _AstrologerListScreen extends StatelessWidget {
                   ),
                 ),
         );
-      }),
+      },),
     );
   }
 }
@@ -140,7 +140,7 @@ class CategoryRow extends StatelessWidget {
             for (final c in kDiscoveryCategories)
               _PillData(c.icon, c.label, () => _open(context,
                   title: c.label, icon: c.icon, emptyLabel: 'No ${c.label.toLowerCase()} astrologers yet',
-                  provider: astrologersBySpecializationProvider(c.tag))),
+                  provider: astrologersBySpecializationProvider(c.tag),),),
           ],
         ),
         const SizedBox(height: 10),
@@ -150,7 +150,7 @@ class CategoryRow extends StatelessWidget {
             for (final s in kSkillCategories)
               _PillData(s.icon, s.label, () => _open(context,
                   title: s.label, icon: s.icon, emptyLabel: 'No ${s.label} astrologers yet',
-                  provider: astrologersBySkillProvider(s.label), requestedSkill: s.label)),
+                  provider: astrologersBySkillProvider(s.label), requestedSkill: s.label,),),
           ],
         ),
       ],
@@ -169,7 +169,7 @@ class CategoryRow extends StatelessWidget {
         title: title, icon: icon, provider: provider, emptyLabel: emptyLabel,
         requestedSkill: requestedSkill,
       ),
-    ));
+    ),);
   }
 }
 

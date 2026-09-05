@@ -24,7 +24,7 @@ final _recentChatsProvider = StreamProvider.autoDispose<List<Consultation>>((ref
           .map((d) => Consultation.fromMap(d.id, d.data()))
           .where((c) => c.type == ConsultationType.chat)
           .take(8)
-          .toList());
+          .toList(),);
 });
 
 /// The astrologer behind a chat (name/photo/AI), resolved once per id.
@@ -74,7 +74,7 @@ class ContinueRail extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: Text('View all  →',
-                        style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700, fontSize: 13)),
+                        style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700, fontSize: 13),),
                   ),
                 ),
               ],
@@ -148,7 +148,7 @@ class _ContinueCard extends ConsumerWidget {
           astrologer: astro,
           readOnly: c.status.isTerminal,
         ),
-      ));
+      ),);
     }
 
     return GestureDetector(
@@ -201,11 +201,11 @@ class _ContinueCard extends ConsumerWidget {
                       Flexible(
                         child: Text(name,
                             style: Ob.option.copyWith(fontWeight: FontWeight.w800, fontSize: 13.5),
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                            maxLines: 1, overflow: TextOverflow.ellipsis,),
                       ),
                       const SizedBox(width: 5),
                       Text(_ago(lastAt),
-                          style: Ob.note.copyWith(fontSize: 10.5, color: Ob.navy.withValues(alpha: 0.5))),
+                          style: Ob.note.copyWith(fontSize: 10.5, color: Ob.navy.withValues(alpha: 0.5)),),
                     ],
                   ),
                   const SizedBox(height: 3),
@@ -213,14 +213,14 @@ class _ContinueCard extends ConsumerWidget {
                       style: Ob.note.copyWith(
                           fontSize: 12,
                           color: unread > 0 ? Ob.navy : Ob.navy.withValues(alpha: 0.6),
-                          fontWeight: unread > 0 ? FontWeight.w700 : FontWeight.w400),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                          fontWeight: unread > 0 ? FontWeight.w700 : FontWeight.w400,),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,),
                   const SizedBox(height: 4),
                   Text(c.status.isOpen ? 'Resume' : 'View chat',
                       style: Ob.note.copyWith(
                           fontSize: 11,
                           color: c.status.isOpen ? AppColors.success : Ob.purple,
-                          fontWeight: FontWeight.w800)),
+                          fontWeight: FontWeight.w800,),),
                 ],
               ),
             ),
@@ -247,7 +247,7 @@ class _ContinueCard extends ConsumerWidget {
                 child: Text(unread > 9 ? '9+' : '$unread',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                        color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w900, height: 1.05)),
+                        color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w900, height: 1.05,),),
               ),
             ),
         ],

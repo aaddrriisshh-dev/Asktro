@@ -106,7 +106,7 @@ class _StoreSearchScreenState extends ConsumerState<StoreSearchScreen> {
                     const Icon(Icons.search_off_rounded, size: 44, color: Mall.warmGrey),
                     const SizedBox(height: 12),
                     Text('No products match “$_q”.',
-                        textAlign: TextAlign.center, style: const TextStyle(color: Mall.warmGrey)),
+                        textAlign: TextAlign.center, style: const TextStyle(color: Mall.warmGrey),),
                   ],
                 ),
               ),
@@ -119,7 +119,7 @@ class _StoreSearchScreenState extends ConsumerState<StoreSearchScreen> {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text('${results.length} result${results.length == 1 ? '' : 's'}',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Mall.warmGrey)),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Mall.warmGrey),),
                 ),
               ),
               Expanded(
@@ -145,7 +145,7 @@ class _StoreSearchScreenState extends ConsumerState<StoreSearchScreen> {
                             content: Text('Added to cart'),
                             duration: Duration(milliseconds: 1200),
                             behavior: SnackBarBehavior.floating,
-                          ));
+                          ),);
                       },
                     );
                   },
@@ -157,7 +157,7 @@ class _StoreSearchScreenState extends ConsumerState<StoreSearchScreen> {
         loading: () => const Center(child: CircularProgressIndicator(color: Mall.deep)),
         error: (e, __) => Center(
           child: Text('Could not load products.\n$e',
-              textAlign: TextAlign.center, style: const TextStyle(color: Mall.warmGrey)),
+              textAlign: TextAlign.center, style: const TextStyle(color: Mall.warmGrey),),
         ),
       ),
     );
@@ -177,10 +177,10 @@ class _Hint extends StatelessWidget {
             Icon(Icons.storefront_outlined, size: 46, color: Mall.goldLine),
             SizedBox(height: 12),
             Text('Search Asktro Mall',
-                style: TextStyle(fontFamily: 'serif', fontSize: 18, fontWeight: FontWeight.w700, color: Mall.titleBrown)),
+                style: TextStyle(fontFamily: 'serif', fontSize: 18, fontWeight: FontWeight.w700, color: Mall.titleBrown),),
             SizedBox(height: 6),
             Text('Type a product, category or keyword to find it.',
-                textAlign: TextAlign.center, style: TextStyle(color: Mall.warmGrey, fontSize: 13.5)),
+                textAlign: TextAlign.center, style: TextStyle(color: Mall.warmGrey, fontSize: 13.5),),
           ],
         ),
       ),

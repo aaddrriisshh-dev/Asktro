@@ -36,7 +36,7 @@ class FavoritesRail extends ConsumerWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       child: Text('View all  →',
-                          style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700, fontSize: 13)),
+                          style: Ob.option.copyWith(color: Ob.purple, fontWeight: FontWeight.w700, fontSize: 13),),
                     ),
                   ),
               ],
@@ -112,7 +112,7 @@ class _FavItem extends ConsumerWidget {
             const SizedBox(height: 5),
             Text(name,
                 style: Ob.note.copyWith(fontSize: 11.5, color: Ob.navy, fontWeight: FontWeight.w600),
-                maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+                maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,),
           ],
         ),
       ),

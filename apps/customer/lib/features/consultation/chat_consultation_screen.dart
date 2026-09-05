@@ -240,7 +240,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),)
                         : const Icon(Icons.chat_bubble_rounded, size: 18),
                     label: Text(_chatAgainBusy ? 'Starting…' : 'Chat again',
-                        style: AppTypography.body.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+                        style: AppTypography.body.copyWith(color: Colors.white, fontWeight: FontWeight.w700),),
                   ),
                 ),
               ),
@@ -267,11 +267,11 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
         ref.read(analyticsProvider).logEvent(AnalyticsEvents.consultationStarted, params: {
           'type': ConsultationType.chat.name,
           'astrologerId': a.id,
-        });
+        },);
         // Replace the transcript so Back doesn't return to a dead session.
         Navigator.of(context).pushReplacement(MaterialPageRoute(
           builder: (_) => ChatConsultationScreen(consultationId: start.consultationId, astrologer: a),
-        ));
+        ),);
       },
       failure: (f) {
         if (f.code == 'INSUFFICIENT_BALANCE') {
@@ -578,7 +578,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     final joinedIds = messages
         .where((m) => m['type'] == 'system' &&
             m['id'] is String &&
-            (m['text'] ?? '').toString().toLowerCase().contains('joined'))
+            (m['text'] ?? '').toString().toLowerCase().contains('joined'),)
         .map((m) => m['id'] as String);
     if (!_joinBaselineSet) {
       _chimedJoins.addAll(joinedIds); // pre-existing → don't chime on open
@@ -1241,10 +1241,10 @@ class _TarotDrawChip extends StatelessWidget {
                         _TarotFan(),
                         SizedBox(height: 9),
                         Text('Open my cards',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15.5, letterSpacing: 0.2)),
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15.5, letterSpacing: 0.2),),
                         SizedBox(height: 2),
                         Text('Tap to draw your three cards',
-                            style: TextStyle(color: Color(0xD1E7D7FF), fontWeight: FontWeight.w500, fontSize: 11)),
+                            style: TextStyle(color: Color(0xD1E7D7FF), fontWeight: FontWeight.w500, fontSize: 11),),
                       ],
                     ),
                   ),
@@ -1376,7 +1376,7 @@ class _Bubble extends StatelessWidget {
                           child: SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2)))),
+                              child: CircularProgressIndicator(strokeWidth: 2),),),),
                   errorWidget: (_, __, ___) =>
                       const Icon(Icons.broken_image_outlined),
                 ),

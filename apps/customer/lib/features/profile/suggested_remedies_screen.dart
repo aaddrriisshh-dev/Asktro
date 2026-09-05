@@ -825,7 +825,7 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
           SnackBar(
               content: Text(optOut
                   ? 'Messages from your astrologer are now turned off.'
-                  : "You'll receive messages from your astrologer again.")),
+                  : "You'll receive messages from your astrologer again.",),),
         );
       }
     } catch (_) {/* best-effort */}
@@ -842,7 +842,7 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
         context: context,
         backgroundColor: AppColors.card,
         shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),),
         builder: (ctx) => SafeArea(
           top: false,
           child: Padding(
@@ -852,10 +852,10 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Astrologer messages are off',
-                  style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 16)),
+                  style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 16),),
               const SizedBox(height: 6),
               Text('You have turned off messages and guidance from your astrologer. You can turn them back on anytime.',
-                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary, height: 1.4)),
+                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary, height: 1.4),),
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
@@ -883,7 +883,7 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
       isScrollControlled: true,
       backgroundColor: AppColors.card,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Padding(
           padding: EdgeInsets.only(
@@ -894,16 +894,16 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
               // never sit under the bottom safe area.
               bottom: MediaQuery.of(ctx).viewInsets.bottom +
                   MediaQuery.of(ctx).viewPadding.bottom +
-                  24),
+                  24,),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Turn off astrologer messages?',
-                  style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 16)),
+                  style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, fontSize: 16),),
               const SizedBox(height: 6),
               Text('You will no longer receive any messages or guidance from ${widget.astro} on your remedies. You can turn this back on anytime.',
-                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary, height: 1.4)),
+                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary, height: 1.4),),
               const SizedBox(height: 14),
               InkWell(
                 borderRadius: BorderRadius.circular(12),
@@ -924,7 +924,7 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
                         child: Padding(
                           padding: const EdgeInsets.only(top: 12),
                           child: Text("I understand I won't receive any more messages from my astrologer.",
-                              style: AppTypography.caption.copyWith(color: AppColors.textDark, height: 1.4)),
+                              style: AppTypography.caption.copyWith(color: AppColors.textDark, height: 1.4),),
                         ),
                       ),
                     ],
@@ -949,7 +949,7 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
                 child: TextButton(
                   onPressed: () => Navigator.of(ctx).pop(),
                   child: Text('Cancel',
-                      style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                      style: AppTypography.caption.copyWith(color: AppColors.textSecondary),),
                 ),
               ),
             ],
@@ -987,7 +987,7 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Icon(optedOut ? Icons.notifications_off_rounded : Icons.more_horiz_rounded,
-                    size: 20, color: AppColors.textSecondary),
+                    size: 20, color: AppColors.textSecondary,),
               ),
             ),
           ],
@@ -1006,7 +1006,7 @@ class _RemedyThreadViewState extends ConsumerState<_RemedyThreadView> {
                 const SizedBox(width: 7),
                 Expanded(
                   child: Text("Astrologer messages are off. Tap ⋯ above to turn them back on.",
-                      style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                      style: AppTypography.caption.copyWith(color: AppColors.textSecondary),),
                 ),
               ],
             ),

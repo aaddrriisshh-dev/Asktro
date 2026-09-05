@@ -35,7 +35,7 @@ class StoreShipping {
                 : const [],
             feePaise: paise(z['feePaise'], 0),
             freeOverPaise: paise(z['freeThresholdPaise'], 0),
-          )).toList(),
+          ),).toList(),
     );
   }
 

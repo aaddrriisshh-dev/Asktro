@@ -308,7 +308,7 @@ class HomeFeed extends ConsumerWidget {
           // Notification bell → the Notifications screen (no longer a bottom tab).
           _iconCircle(Icons.notifications_none_rounded,
               () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const NotificationsTab())),),
+                  MaterialPageRoute(builder: (_) => const NotificationsTab()),),),
           const SizedBox(width: 5),
           // Support-agent avatar → customer support page.
           GestureDetector(

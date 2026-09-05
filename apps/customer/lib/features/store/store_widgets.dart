@@ -143,7 +143,7 @@ class ProductCard extends StatelessWidget {
                           boxShadow: [BoxShadow(color: Color(0x66281A08), blurRadius: 7, offset: Offset(0, 3))],
                         ),
                         child: Text('${Mall.rupees(savings)} OFF',
-                            style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Mall.gold, letterSpacing: 0.2)),
+                            style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Mall.gold, letterSpacing: 0.2),),
                       ),
                     ),
                   Positioned(
@@ -215,7 +215,7 @@ class ProductCard extends StatelessWidget {
                           Icon(Icons.shopping_cart_outlined, size: 15, color: product.inStock ? Mall.gold : Colors.white70),
                           const SizedBox(width: 7),
                           Text(product.inStock ? 'ADD TO CART' : 'OUT OF STOCK',
-                              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: 0.4, color: Colors.white)),
+                              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: 0.4, color: Colors.white),),
                         ],
                       ),
                     ),
