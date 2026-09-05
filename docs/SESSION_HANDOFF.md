@@ -731,9 +731,15 @@ Verified: functions `tsc --noEmit` clean. Flutter analyze pending on Mac.
 - **Node.js 20 runtime upgrade** (Cloud Functions): Node 20 deprecated 30 Apr 2026,
   decommissioned 30 Oct 2026. Bump the functions runtime (e.g. Node 22) + redeploy.
   Backend-only — NO app update. Do before Oct 2026.
-- **Trailing-comma lint cleanup** (~61 `require_trailing_commas` infos in older
-  Flutter files): cosmetic only, zero behaviour change. `dart format` fixes all at
-  once. Tidy-up whenever; not required for release.
+- **Trailing-comma lint cleanup** — ✅ DONE (5 Sept 2026). Ran `dart fix --apply
+  --code=require_trailing_commas` in `apps/customer` (54 fixes / 10 files),
+  verified with `flutter analyze` (0 errors, down to 7 harmless cosmetic infos),
+  committed + pushed to `claude/asktro-session-handoff-o1ggo8`. Also fixed a
+  stray accidental terminal-command paste in `lib/preview.dart` (restored from
+  the clean repo copy — it was a local-only Mac corruption). Remaining 7 infos
+  (unnecessary_import / curly_braces / prefer_const in
+  `chat_consultation_screen.dart`) are also auto-fixable via `dart fix` if we
+  want a fully clean analyze later; harmless.
 
 ## Backlog (added 5 Sept 2026) — app size reduction (a FUTURE version)
 - **Enable R8/ProGuard code shrinking + upload the deobfuscation (mapping) file.**
