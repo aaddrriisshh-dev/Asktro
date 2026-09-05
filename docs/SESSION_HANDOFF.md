@@ -745,3 +745,13 @@ Verified: functions `tsc --noEmit` clean. Flutter analyze pending on Mac.
   `-keep` rules, test the full app end-to-end (Razorpay, Agora, Firebase, deep
   links), then upload the `mapping.txt` with the release. App change → needs an
   app update. Pair with the Node 20 runtime bump already listed above.
+
+## Next task (founder-requested) — Delete astrologer from the portal
+Add a **Delete astrologer** action in the admin portal (Astrologer Management),
+so no script is needed. Needs: (1) a new admin-only callable `deleteAstrologer`
+(firestore.rules keep astrologer delete server-only) that removes the doc (+ its
+private/financials subdoc); (2) a Delete button + confirm dialog in
+`apps/admin/.../astrologers` (list card or Edit form). Deploy the new function
+(NEW callable → needs the Cloud Run invoker grant) + redeploy the portal.
+Interim: `firebase/functions/scripts/deleteSeedHumanAstrologers.js` handles bulk
+removal by script.
