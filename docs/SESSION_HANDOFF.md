@@ -734,3 +734,14 @@ Verified: functions `tsc --noEmit` clean. Flutter analyze pending on Mac.
 - **Trailing-comma lint cleanup** (~61 `require_trailing_commas` infos in older
   Flutter files): cosmetic only, zero behaviour change. `dart format` fixes all at
   once. Tidy-up whenever; not required for release.
+
+## Backlog (added 5 Sept 2026) — app size reduction (a FUTURE version)
+- **Enable R8/ProGuard code shrinking + upload the deobfuscation (mapping) file.**
+  Goal: reduce the per-user DOWNLOAD size (v2 is ~72 MB new-install) — founder
+  wants smaller downloads for users at scale. Also gives readable native crash
+  reports. NOT done in v2 on purpose (enabling shrinking hastily before a launch
+  can break things). Do it CAREFULLY in a later app update: set `minifyEnabled`
+  (+ shrinkResources) in `apps/customer/android/app/build.gradle`, add proper
+  `-keep` rules, test the full app end-to-end (Razorpay, Agora, Firebase, deep
+  links), then upload the `mapping.txt` with the release. App change → needs an
+  app update. Pair with the Node 20 runtime bump already listed above.
