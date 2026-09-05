@@ -238,15 +238,21 @@ class UserRepository {
   Future<void> updateProfile(String uid, Map<String, dynamic> patch) =>
       _doc(uid).set({...patch, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
 
-  /// Idempotently merge the pre-login onboarding buffer onto an existing profile.
-  /// Used by the home-gate backstop when the primary create at sign-in didn't
-  /// land the details (stale session, trigger race, flaky write). Reserved
-  /// function-owned fields are stripped so the client update rule can't deny it
-  /// (a lone `referredBy` used to sink the whole write). Safe to call repeatedly.
-  Future<void> applyOnboarding(String uid, Map<String, dynamic> buffer) {
-    final safe = sanitizeClientProfile(buffer);
-    if (safe.isEmpty) return Future.value();
-    return _doc(uid).set({...safe, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+  /// Server-confirmed check that the onboarding ESSENTIALS actually persisted:
+  /// a real name, a date of birth, and a birth place with coordinates. Read is
+  /// forced from the SERVER (not the offline cache) so a write that never left
+  /// the device is not mistaken for a success — this is what profile setup polls
+  /// after writing before it lets the user into Home. Throws if the server is
+  /// unreachable (offline); the caller treats that as "not yet saved" and retries.
+  Future<bool> essentialsSaved(String uid) async {
+    final snap = await _doc(uid).get(const GetOptions(source: Source.server));
+    final m = snap.data();
+    if (m == null) return false;
+    final name = ((m['name'] ?? '') as String).trim();
+    final hasName = name.isNotEmpty && name.toLowerCase() != 'guest';
+    final hasDob = m['birthDateMs'] != null;
+    final hasPlace = m['birthLat'] != null && m['birthLng'] != null;
+    return hasName && hasDob && hasPlace;
   }
 
   Future<void> toggleFavourite(String uid, String astrologerId, bool fav) => _doc(uid).update({

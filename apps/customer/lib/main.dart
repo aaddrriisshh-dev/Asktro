@@ -58,13 +58,11 @@ Future<void> main() async {
   };
 
   final onboardingDone = await readOnboardingDone();
-  final setupDone = await readSetupDone();
 
   runApp(
     ProviderScope(
       overrides: [
         onboardingDoneProvider.overrideWith((_) => onboardingDone),
-        setupDoneProvider.overrideWith((_) => setupDone),
       ],
       child: const AsktroCustomerApp(),
     ),

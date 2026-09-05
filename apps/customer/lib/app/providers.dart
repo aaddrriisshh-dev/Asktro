@@ -32,10 +32,6 @@ final authStateProvider = StreamProvider<User?>((ref) {
 /// widgets like the home top bar can jump to another tab (e.g. Profile).
 final homeTabProvider = StateProvider<int>((_) => 0);
 
-/// Profile details collected during pre-login setup (setup now runs BEFORE
-/// login). Buffered here, then written to Firestore right after sign-in.
-final pendingProfileProvider = StateProvider<Map<String, dynamic>?>((_) => null);
-
 /// The user's chosen app language code ('en','hi','mr','pa','te','kn').
 /// Persisted to the profile; full UI translation is rolled out progressively.
 final appLanguageProvider = StateProvider<String>((_) => 'en');

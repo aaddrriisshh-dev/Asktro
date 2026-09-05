@@ -508,3 +508,60 @@ exposing hidden money screens — do NOT use those CTAs until v2.
   client code.
 - `docs/` has sprawled/drifted (README/ARCHITECTURE describe an older/aspirational
   state). Trust code + BILLING_ENGINE.md/DATA_MODEL.md; archive stale planning docs.
+
+---
+
+## v2 Phase 1 IMPLEMENTED — onboarding reorder + OTP redesign (5 Sept 2026)
+
+Branch `claude/asktro-session-handoff-o1ggo8`. Code written but NOT yet
+compiled/tested (no Flutter SDK in the remote env) — founder runs `flutter analyze`
++ device tests on the Mac. Live app untouched until a new release is built & rolled out.
+
+### What changed (the "Guest" bug fix — reorder after login)
+- **Flow is now: splash → login → OTP → profile setup → home** (was: setup → login →
+  home with a fragile pre-login buffer). Setup now writes birth details DIRECTLY to
+  `users/{uid}` — no buffer, no hand-off race.
+- **Router gate** (`app/router.dart`): a signed-in user with missing ESSENTIALS is
+  held at `/setup` and cannot reach Home. Essentials = **name + date of birth + birth
+  place WITH coordinates**. Birth time stays optional (unknown → noon, ProKerala still
+  called). Helper `profileEssentialsComplete()`. While the profile stream is still
+  loading we hold on splash (so a returning complete user never flashes the setup screen).
+- **Confirmed save + retry** (`profile_setup_screen.dart` `_saveWithRetry`): writes via
+  `UserRepository.ensureProfile`, then read-backs from the SERVER (`essentialsSaved`,
+  `Source.server`) to confirm it truly persisted; up to 3 attempts with backoff; bounded
+  by timeouts so an offline `set()` can't hang the button. On failure → inline error,
+  user held here (never dumped inside half-saved). Details live in widget state, so a
+  retry re-sends everything.
+- **Place step now REQUIRES a picked result with coordinates** (was: free text allowed).
+  This matches the gate and fixes coordless → blank-chart accounts.
+- Removed: pre-login buffer (`pendingProfileProvider`, `writePendingProfile`/read/clear,
+  `setupDoneProvider`/read/set), `home_gate.dart` (backstop flush), `applyOnboarding`,
+  the congrats-screen "Explore More" skip (it would just loop back through the gate).
+- `auth_controller._ensureProfile` now just guarantees the base account doc (money
+  zeroed); details come from the post-login setup screen.
+- Server `onAuthUserCreate.ts` left as-is — its bare `{name:'Guest'}` doc is now just a
+  placeholder the gate treats as incomplete (sends user to setup). No race to lose.
+
+### OTP screen redesign (`features/auth/otp_screen.dart`)
+- On-brand celestial theme (same zodiac-wheel + scenery bg as Login), AppLogo, Cormorant
+  title, sparkle divider — no longer a bare AI-looking TextField.
+- 6 segmented cells driven by a transparent field with `AutofillHints.oneTimeCode` →
+  **OS SMS auto-fill + auto-submit** at 6 digits; digits-only; paste works.
+- "sent to +91 XXXXX XXXXX" + **Wrong number? Change**; **resend timer** (60s); clean
+  **Verifying…** state; **gentle shake + inline error** on a wrong code; Android instant-
+  verify path handled (login's `onAutoVerified` navigates). Success → `/home` (gate decides).
+- CTA pinned to the bottom of every onboarding step (`onboarding_widgets.dart`
+  `OnboardingScaffold`) — content scrolls above it. Fixes the below-the-fold CTA bug.
+
+### ⚠ DEPENDENCY / RISK to close before release
+- The gate now REQUIRES birth-place coordinates, and the place picker uses **Nominatim**
+  (P5), which rate-limits/fails silently in production. If it returns nothing, a user is
+  **stuck at the place step**. → **P5 geocoder fix must land in this same v2** (reliable
+  Places API, proxied, with graceful fallback). Until then, testers must pick a place
+  from the dropdown. This is the one hard coupling introduced by the coords requirement.
+- Existing v1 accounts with no coords (or name still "Guest") will be sent to `/setup`
+  once on next launch to complete details — a one-time, self-healing re-entry (their
+  charts were blank anyway). Expected, not a bug.
+
+### Founder's next action
+Pull on the Mac and run `flutter analyze` in `apps/customer` (I can't compile here).

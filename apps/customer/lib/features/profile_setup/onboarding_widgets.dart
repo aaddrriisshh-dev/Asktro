@@ -65,26 +65,23 @@ class OnboardingScaffold extends StatelessWidget {
                   const SizedBox(height: 18),
                   StepBar(currentIndex: stepIndex!, total: totalSteps, currentIcon: stepIcon),
                 ],
-                // Content and the CTA scroll together, so the button sits DIRECTLY
-                // under wherever the content ends — not pinned to the screen bottom
-                // with a blank gap above it. Any leftover space falls BELOW the
-                // button and just shows the celestial background. On the rare tall
-                // step (or with the keyboard up) the whole thing scrolls as one,
-                // so nothing is ever clipped.
+                // The CTA is PINNED to the bottom; only the content scrolls above
+                // it. This guarantees the primary button is always reachable on
+                // every screen size — it can never drop below the fold on a tall
+                // step or a short device (the old below-the-fold bug). With the
+                // keyboard up, the Scaffold resizes and the button stays sitting
+                // just above the keyboard while the content scrolls underneath.
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(
-                        Ob.screenPad, Ob.section, Ob.screenPad, 24,),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        content,
-                        const SizedBox(height: 24),
-                        footer,
-                      ],
-                    ),
+                        Ob.screenPad, Ob.section, Ob.screenPad, 16,),
+                    child: content,
                   ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(Ob.screenPad, 4, Ob.screenPad, 16),
+                  child: footer,
                 ),
               ],
             ),

@@ -5,8 +5,6 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
-import '../../app/router.dart';
-import '../../data/messaging_service.dart';
 
 /// Auth actions: phone OTP, Google, Apple. On success we ensure a `users/{uid}`
 /// profile exists (money fields zeroed; the onCustomerSignup function backfills
@@ -109,22 +107,17 @@ class AuthController {
   Future<void> _ensureProfile(UserCredential cred, {required String phone, String? name, String? email}) async {
     final uid = cred.user?.uid;
     if (uid == null) return;
-    // Onboarding details collected before login (buffered in memory, and on disk
-    // so they survive an app restart during the OTP step). Written together with
-    // the profile in a single create — no separate flush, no race.
-    final pending = _ref.read(pendingProfileProvider) ?? await readPendingProfile();
+    // Guarantee a base account doc exists (money fields zeroed; onCustomerSignup
+    // backfills the referral code + welcome bonus). The astrology DETAILS are no
+    // longer collected before login — profile setup runs AFTER sign-in and writes
+    // them straight to this uid, gated by the router until the essentials exist.
+    // So there is no pre-login buffer to hand off and no hand-off race.
     await _ref.read(userRepositoryProvider).ensureProfile(
           uid,
           phone: phone,
           name: name ?? cred.user?.displayName,
           email: email ?? cred.user?.email,
-          profile: pending,
         );
-    // Deliberately DO NOT clear the buffer here. If this create silently didn't
-    // land the details (offline write that never synced, trigger/create race,
-    // or the doc pre-existed as a bare 'Guest'), clearing now would lose the only
-    // copy. The home gate re-applies the buffer against the profile on first
-    // arrival at /home and clears it only after that write succeeds.
     _ref.read(analyticsProvider).logEvent(AnalyticsEvents.login);
   }
 

@@ -6,16 +6,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
-import '../../app/router.dart';
 import '../../data/place_search_service.dart';
 import 'onboarding_style.dart';
 import 'onboarding_widgets.dart';
 
-/// First-run onboarding for a new customer, in the celestial navy/gold ASKTRO
+/// Profile setup for a signed-in customer, in the celestial navy/gold ASKTRO
 /// design: a "Congratulations — free chat unlocked" hook, then a seven-step
 /// wizard (name → gender → birth date → birth time → place → relationship →
-/// languages) that writes the astrology profile to Firestore and flips
-/// `onboardingComplete`, after which the home gate swaps in the real home.
+/// languages). Setup runs AFTER login (v2), so the details are written DIRECTLY
+/// to `users/{uid}` — no pre-login buffer, no hand-off race. The write is
+/// confirmed against the server before we move on, and the router gate holds the
+/// user here until the essentials (name + date of birth + birth place with
+/// coordinates) are saved, so nobody ever lands inside the app as a "Guest".
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key, this.initialName});
   final String? initialName;
@@ -29,6 +31,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   int _step = -1; // -1 = congrats hook, 0..6 = steps
   bool _saving = false;
+  String? _saveError;
 
   late final TextEditingController _name =
       TextEditingController(text: widget.initialName ?? '');
@@ -73,7 +76,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       case 1:
         return _gender != null;
       case 4:
-        return _birthPlace != null && _birthPlace!.trim().isNotEmpty;
+        // Require a PICKED place with coordinates (not free-typed text): the
+        // chart needs lat/lng, and the router gate treats coordinates as an
+        // essential — so accepting text-without-coords here would bounce the
+        // user straight back to this step.
+        return _birthLat != null && _birthLng != null;
       case 5:
         return _relationship != null;
       case 6:
@@ -90,7 +97,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   Future<void> _finish() async {
-    await _completeSetup({
+    await _save({
       'name': _name.text.trim(),
       'gender': _gender,
       'birthDateMs': _birthDate.millisecondsSinceEpoch,
@@ -106,39 +113,69 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     });
   }
 
-  Future<void> _skip() async {
-    await _completeSetup({
-      if (_name.text.trim().isNotEmpty) 'name': _name.text.trim(),
-      'onboardingComplete': true,
+  /// Setup runs AFTER login, so a uid always exists: write the details straight
+  /// to `users/{uid}` and CONFIRM the write landed on the server before moving
+  /// to Home. On a network hiccup we retry with a short backoff; if it still
+  /// can't be confirmed we surface an inline error and keep the user here rather
+  /// than dropping them inside the app half-saved. The details entered are held
+  /// in the widget's own state, so a retry re-sends everything — nothing is lost.
+  Future<void> _save(Map<String, dynamic> data) async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) {
+      // Should not happen (the gate only shows setup to a signed-in user), but
+      // never write to a null account — send them back to login.
+      if (mounted) context.go('/login');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _saveError = null;
     });
+    final ok = await _saveWithRetry(uid, data);
+    if (!mounted) return;
+    if (ok) {
+      ref.read(analyticsProvider).logEvent('profile_setup_complete');
+      context.go('/home');
+    } else {
+      setState(() {
+        _saving = false;
+        _saveError =
+            "Couldn't save your details. Please check your connection and try again.";
+      });
+    }
   }
 
-  /// Setup runs before login, so there's usually no uid yet: buffer the details
-  /// and move to login (they're written to Firestore right after sign-in by the
-  /// home gate). If a user is already signed in (e.g. editing later), save now.
-  Future<void> _completeSetup(Map<String, dynamic> data) async {
-    setState(() => _saving = true);
-    // ALWAYS buffer the details in memory AND on disk, whether or not a uid
-    // already exists. Setup normally runs before login (no uid), but a persisted
-    // Firebase session can leave a STALE uid here — if we only wrote to that uid
-    // and skipped the buffer, the details would never reach the account the user
-    // actually logs into next, and they'd land as a nameless "Guest". Buffering
-    // unconditionally means the home-gate backstop can always recover them.
-    ref.read(pendingProfileProvider.notifier).state = data;
-    await writePendingProfile(data);
-    final uid = ref.read(currentUidProvider);
-    if (uid != null) {
+  /// Write + server-confirm, up to 3 attempts. Firestore's `set` future does not
+  /// resolve while offline, so we bound the write with a timeout and treat the
+  /// SERVER read-back — not the local cache — as the source of truth for whether
+  /// it actually persisted.
+  Future<bool> _saveWithRetry(String uid, Map<String, dynamic> data) async {
+    final repo = ref.read(userRepositoryProvider);
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    for (var attempt = 0; attempt < 3; attempt++) {
       try {
-        await ref.read(userRepositoryProvider).applyOnboarding(uid, data);
-        ref.read(analyticsProvider).logEvent('profile_setup_complete');
+        await repo
+            .ensureProfile(
+              uid,
+              phone: user?.phoneNumber ?? '',
+              name: data['name'] as String?,
+              email: user?.email,
+              profile: data,
+            )
+            .timeout(const Duration(seconds: 8));
       } catch (_) {
-        // Non-fatal: the buffer is on disk and the home-gate backstop retries.
+        // Offline/slow — the confirm read below is what actually decides.
+      }
+      final saved = await repo
+          .essentialsSaved(uid)
+          .timeout(const Duration(seconds: 8), onTimeout: () => false)
+          .catchError((_) => false);
+      if (saved) return true;
+      if (attempt < 2) {
+        await Future<void>.delayed(Duration(milliseconds: 600 * (attempt + 1)));
       }
     }
-    await setSetupDone();
-    ref.read(setupDoneProvider.notifier).state = true;
-    if (!mounted) return;
-    context.go(uid != null ? '/home' : '/login');
+    return false;
   }
 
   @override
@@ -183,6 +220,16 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (_saveError != null) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              _saveError!,
+              textAlign: TextAlign.center,
+              style: Ob.note.copyWith(color: const Color(0xFFD25360)),
+            ),
+          ),
+        ],
         GoldButton(
           label: label,
           icon: icon,
@@ -218,8 +265,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   Widget _congrats() {
     return OnboardingScaffold(
       stepIndex: null,
-      showExploreMore: true,
-      onExploreMore: _saving ? null : _skip,
       content: Column(
         children: [
           const SizedBox(height: 4),

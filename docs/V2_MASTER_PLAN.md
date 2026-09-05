@@ -1,7 +1,9 @@
 # Asktro — Version 2 Master Plan
 
 **Date compiled:** 4 Sept 2026
-**Status:** Planning complete → ready to implement. NO code changed yet.
+**Status:** Implementing. **Phase 1 DONE in code** (onboarding reorder after login +
+gate + confirmed save; OTP redesign; CTA pinned) — see SESSION_HANDOFF.md "v2 Phase 1
+IMPLEMENTED". Not yet compiled/tested; live app untouched. Phases 2–5 pending.
 **Goal:** Ship a paid v2 that (a) fixes the live bugs, (b) turns on **compliant**
 monetization, (c) is hardened for ~100k downloads — and gets **fast Play approval**
 with low rejection risk. Roll out via **staged rollout** after a real fresh-device
