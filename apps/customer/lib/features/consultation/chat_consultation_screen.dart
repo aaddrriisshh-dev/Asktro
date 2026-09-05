@@ -928,7 +928,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
               data: (s) => ConsultationHeader(
                 astrologerName: widget.astrologer.name,
                 photoUrl: widget.astrologer.profilePhoto,
-                verified: widget.astrologer.verified,
+                verified: widget.astrologer.verified && !widget.astrologer.isAI,
                 remainingSec: s.displayRemainingSec,
                 warnLevel: s.warnLevel,
                 onRecharge: _goRecharge,

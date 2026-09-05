@@ -55,7 +55,7 @@ class AstrologerCard extends StatelessWidget {
                           child: Text(a.name,
                               style: AppTypography.subtitle, overflow: TextOverflow.ellipsis,),
                         ),
-                        if (a.verified) ...[
+                        if (a.verified && !a.isAI) ...[
                           const SizedBox(width: 6),
                           const VerifiedBadge(),
                         ],

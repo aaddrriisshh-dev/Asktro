@@ -99,10 +99,10 @@ class HomeFeed extends ConsumerWidget {
             // astrologers. Each hides itself when the user has none yet.
             const ContinueRail(),
             const FavoritesRail(),
-            // Real (human) astrologers first — the paid consults. Auto-hides
+            // Verified (human) astrologers first — the paid consults. Auto-hides
             // until real humans are added from the portal.
             _AstroCarousel(
-                title: 'Talk to a Real Astrologer',
+                title: 'Asktro Verified Astrologers',
                 provider: _topHumanProvider,
                 hideWhenEmpty: true,),
             _AstroCarousel(title: 'AI Astrologers · Free to chat', provider: _topAiProvider),
@@ -1061,7 +1061,7 @@ class _CelestialAstroCard extends StatelessWidget {
                         style: Ob.title.copyWith(fontSize: 14.5),
                         overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,),
                   ),
-                  if (a.verified) ...[const SizedBox(width: 3), const VerifiedBadge(size: 13)],
+                  if (a.verified && !a.isAI) ...[const SizedBox(width: 3), const VerifiedBadge(size: 13)],
                 ],
               ),
             ),

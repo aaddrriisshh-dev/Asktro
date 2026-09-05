@@ -277,11 +277,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             text: TextSpan(
               style: Ob.subtitle.copyWith(fontSize: 16, color: Ob.navy),
               children: const [
-                TextSpan(text: "You've unlocked your "),
+                TextSpan(text: "You've unlocked "),
                 TextSpan(
-                    text: 'Free Chat',
+                    text: 'unlimited free chats',
                     style: TextStyle(color: Ob.goldDeep, fontWeight: FontWeight.w600),),
-                TextSpan(text: ' with an Astrologer  ✦'),
+                TextSpan(text: ' with our AI astrologer  ✦'),
               ],
             ),
           ),
@@ -289,7 +289,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           const Center(child: SparkleDivider()),
           const SizedBox(height: 16),
           Text(
-            'Our expert will guide you with clarity,\ninsights and personalized solutions.',
+            'Plus verified human astrologers,\nhere whenever you need deeper guidance.',
             style: Ob.subtitle,
             textAlign: TextAlign.center,
           ),
@@ -354,7 +354,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       ),
       child: Row(
         children: [
-          _feature(Icons.chat_bubble_outline_rounded, 'Free 1st Chat', 'Answers in real-time.'),
+          _feature(Icons.chat_bubble_outline_rounded, 'Unlimited AI Chat', 'Free, in real-time.'),
           _feature(Icons.shield_outlined, '100% Private', 'Safe & confidential.'),
           _feature(Icons.workspace_premium_outlined, 'Verified Experts', 'Trusted astrologers.'),
           _feature(Icons.access_time_rounded, 'Quick & Easy', 'Guidance anytime.'),

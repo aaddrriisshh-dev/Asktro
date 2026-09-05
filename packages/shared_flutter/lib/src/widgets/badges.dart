@@ -3,7 +3,8 @@ import '../theme/app_colors.dart';
 import '../theme/app_dimens.dart';
 import '../theme/app_typography.dart';
 
-/// Small purple verified checkmark chip.
+/// Small GREEN verified checkmark chip (a green circle with a white tick) — the
+/// trust mark on Asktro Verified (human) astrologers.
 class VerifiedBadge extends StatelessWidget {
   const VerifiedBadge({super.key, this.size = 16});
   final double size;
@@ -13,7 +14,7 @@ class VerifiedBadge extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+      decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),
       child: Icon(Icons.check, size: size * 0.7, color: Colors.white),
     );
   }
