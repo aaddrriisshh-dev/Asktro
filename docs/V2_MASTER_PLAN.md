@@ -70,8 +70,13 @@ but Google *could* reclassify one day. Keeping it genuinely human is the protect
 - **Fix:** move **profile setup to AFTER login** → details write **directly** to
   `users/{uid}`. No buffer, no race.
 - **Close every loophole (3 locks):**
-  1. **Gate:** after login, if the account has no birth details, the app blocks entry
-     to Home until they're filled. No details = no entry (never a Guest inside the app).
+  1. **Gate:** after login, if the account is missing the ESSENTIALS, the app blocks
+     entry to Home until they're filled. **Essentials = name + date of birth + birth
+     PLACE (coordinates)** — the things the chart actually needs. **Birth TIME stays
+     OPTIONAL:** "don't know time" (`birthTimeKnown=false`) → chart uses noon (as
+     today, ProKerala still called) and the user **passes the gate**. No essentials =
+     held at the details step (never a Guest inside the app). Also pin the onboarding
+     **CTA to the bottom** here (fixes the below-the-fold issue across all steps).
   2. **Confirmed save + retry:** verify the write actually landed before proceeding;
      retry on network hiccup.
   3. **Slow-network test (required):** test on emulator throttled to 2G/EDGE, on a
