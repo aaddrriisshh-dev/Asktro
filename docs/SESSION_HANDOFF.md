@@ -826,13 +826,21 @@ to **3 min 38 s**, **0% audio freeze**, and the founder confirmed **both sides c
 hear each other and talk**. All app/creds verified correct end to end: App ID
 `431bbf9bef6746128fa56474dd3e88bb` (matches Agora "Default Project"), App
 Certificate matches exactly, token fetch/parse fine, join options fine, secrets set.
-STILL OPEN: with **both phones untouched on a table**, the call **auto-disconnects
-at ~10s on its own** (NOT the user hanging up — do not assume that). Note Agora also
-logged some calls at 19–52s and one 3m38s, so the cutoff is not a hard 10s every
-time — looks intermittent. Root cause NOT yet found; needs FACTS from the
-consultation doc (status/endReason/activatedAt/endedAt/billedSeconds/pausedAt/
-networkStatus) and/or Cloud Functions logs (tickConsultation / sweepStaleSessions /
-endConsultation) around a failing call — do not guess.
+ROOT CAUSE FOUND + FIXED (5 Sept 2026): the paid call auto-dropped at ~10s because
+the **GoRouter was being recreated on every profile change**. `routerProvider` did
+`ref.watch(myProfileProvider)` (+ authState + splashGate) in its body, so each time
+the user doc changed the whole router rebuilt — and that tears down the navigation
+stack, INCLUDING the imperatively-pushed `CallConsultationScreen` (opened via
+`Navigator.push`, not a GoRoute). Billing deducts the wallet on the FIRST ~10s tick
+→ user doc changes → router rebuilds → call screen destroyed at ~10s. Proof in the
+consultation records: `customerLastTickAt` stops at +10–12s every time (customer
+screen gone), billing caps there, call ends; free-AI chat was spared because it
+never changes the wallet. **Fix:** `apps/customer/lib/app/router.dart` now builds
+the GoRouter ONCE and drives redirect re-evaluation with a `refreshListenable`
+(`ValueNotifier` bumped by `ref.listen` on auth/profile/splash); redirect reads
+state via `ref.read`. The router is never recreated, so pushed screens (calls)
+survive wallet updates. GATE: rebuild the customer app + one clean 2-device voice
+call — confirm it holds past 10s, audio both ways, meter runs, ends only on tap.
 Separately FIXED (a display bug, not the disconnect): my diagnostic had set
 `errorMessage='Conn: connectionStateConnecting…'` and never cleared it, so a LIVE
 call still showed "connecting". Cleaned up `call_engine.dart`:

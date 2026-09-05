@@ -60,14 +60,28 @@ Future<void> setOnboardingDone() async {
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authStateProvider);
-  final splashReady = ref.watch(splashGateProvider).hasValue;
-  final profileAsync = ref.watch(myProfileProvider);
+  // Build the GoRouter ONCE. Do NOT `ref.watch` fast-changing providers here:
+  // that recreates the whole router and tears down the live navigation stack —
+  // including an imperatively-pushed, in-progress voice/video call screen — every
+  // time the watched value changes. The wallet updates on EVERY ~10s billing
+  // tick, so watching the profile here was silently killing paid calls after
+  // ~10s (chat with a free AI was spared: no wallet change = no rebuild). Instead
+  // we re-run the redirect via `refreshListenable` and read the current
+  // auth/profile/splash state with `ref.read` inside `redirect`.
+  final refresh = ValueNotifier<int>(0);
+  ref.listen(authStateProvider, (_, __) => refresh.value++);
+  ref.listen(myProfileProvider, (_, __) => refresh.value++);
+  ref.listen(splashGateProvider, (_, __) => refresh.value++);
+  ref.onDispose(refresh.dispose);
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
+    refreshListenable: refresh,
     redirect: (context, state) {
+      final auth = ref.read(authStateProvider);
+      final splashReady = ref.read(splashGateProvider).hasValue;
+      final profileAsync = ref.read(myProfileProvider);
       final loc = state.matchedLocation;
 
       // Hold on splash while auth resolves and the launch animation plays.
