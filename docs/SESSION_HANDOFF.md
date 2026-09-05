@@ -832,3 +832,19 @@ two secrets in Secret Manager match the live Agora project, (c) confirm
 
 **Video — future phase:** re-enable `kVideoEnabled` once video is tested end to
 end. App change → needs an app update.
+
+## Pre-submission MUST-VERIFY (added 5 Sept 2026)
+- **Google Sign-In end-to-end on the PRODUCTION-signed build:** tap "Continue with
+  Google", pick an account, and confirm it (a) logs in, (b) fetches name + email +
+  photo, and (c) creates/links the profile correctly (no duplicate/broken user).
+  Google Sign-In needs the OAuth client's SHA registered for EACH signing key:
+  Play app-signing SHA (prod) + upload SHA. Verify on the real release/track build,
+  not a debug APK.
+- **Voice call holds (no ~10s drop) on two devices** with billing running — see the
+  calls section above. Gate the final build on this.
+- **Testing note (production-safe):** the DEBUG keystore SHA-1/SHA-256 is being
+  added to Firebase so debug APKs can do phone-OTP / Google login. Multiple
+  fingerprints per app are supported and only the matching build uses each — this
+  does NOT affect or risk the production app. (Phone OTP on an unregistered debug
+  build falls back to a reCAPTCHA web flow that errors "missing initial state" —
+  that was the debug login failure seen 5 Sept 2026, not an app bug.)
