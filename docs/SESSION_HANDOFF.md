@@ -755,3 +755,17 @@ private/financials subdoc); (2) a Delete button + confirm dialog in
 (NEW callable → needs the Cloud Run invoker grant) + redeploy the portal.
 Interim: `firebase/functions/scripts/deleteSeedHumanAstrologers.js` handles bulk
 removal by script.
+
+## Pending for NEXT BUILD (fold in before final submission) — added 5 Sept 2026
+- **"View all" now filters by rail kind.** The Verified rail and "New
+  Astrologers" rail previously both opened the same "All Astrologers" directory
+  (humans + AI mixed). Fixed: Verified → View all shows HUMANS only; New
+  Astrologers → View all shows AI only; Rising Stars stays MIXED. Files:
+  `apps/customer/lib/data/repositories.dart` (search() gained `humansOnly`/
+  `aiOnly`), `apps/customer/lib/features/search/search_screen.dart` (passes them
+  through), `apps/customer/lib/features/home/home_feed.dart` (`_AstroCarousel`
+  gained the flags; Verified rail `humansOnly:true`, New rail `aiOnly:true`).
+  Committed + pushed to `claude/asktro-session-handoff-o1ggo8`. NOT yet built to
+  a device — verify in the next AAB. (Home rails themselves are already live via
+  Firestore snapshots, so newly-added verified astrologers appear instantly — no
+  code change needed for "instant show-up".)
