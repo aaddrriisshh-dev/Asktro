@@ -104,7 +104,8 @@ class HomeFeed extends ConsumerWidget {
             _AstroCarousel(
                 title: 'Asktro Verified Astrologers',
                 provider: _topHumanProvider,
-                hideWhenEmpty: true,),
+                hideWhenEmpty: true,
+                titleBadge: const VerifiedBadge(size: 18),),
             // The AI personas, presented as "New Astrologers" (each card + profile
             // still carries the required AI badge). Free & unlimited to chat.
             _AstroCarousel(title: 'New Astrologers', provider: _topAiProvider),
@@ -885,9 +886,13 @@ class _AstroCarousel extends ConsumerStatefulWidget {
     required this.provider,
     this.onlyRisingStars = false,
     this.hideWhenEmpty = false,
+    this.titleBadge,
   });
   final String title;
   final AutoDisposeStreamProvider<List<Astrologer>> provider;
+  // Optional badge shown before the rail title (e.g. the green verified check on
+  // "Asktro Verified Astrologers"). Falls back to the gold sparkle.
+  final Widget? titleBadge;
   // "View all" from Rising Stars opens the tagged-only directory; from Top
   // Astrologers it opens the full directory.
   final bool onlyRisingStars;
@@ -934,7 +939,7 @@ class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
           padding: const EdgeInsets.fromLTRB(12, 22, 12, 10),
           child: Row(
             children: [
-              const Icon(Icons.auto_awesome, size: 17, color: Ob.gold),
+              widget.titleBadge ?? const Icon(Icons.auto_awesome, size: 17, color: Ob.gold),
               const SizedBox(width: 7),
               Expanded(child: Text(widget.title, style: Ob.title.copyWith(fontSize: 20))),
               GestureDetector(

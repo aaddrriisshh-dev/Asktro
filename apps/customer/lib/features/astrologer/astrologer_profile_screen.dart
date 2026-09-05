@@ -211,25 +211,28 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
                   ),
               ],
             ),
-            const SizedBox(height: 12),
-            // ASKTRO Verified badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFFF3D97C), Color(0xFFD4AF37)]),
-                borderRadius: BorderRadius.circular(999),
+            // "ASKTRO VERIFIED" is the trust mark for real human experts only —
+            // never shown on a New (AI) astrologer's profile.
+            if (!a.isAI) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Color(0xFFF3D97C), Color(0xFFD4AF37)]),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.verified_rounded, size: 14, color: Color(0xFF3A2A6E)),
+                    const SizedBox(width: 5),
+                    Text('ASKTRO VERIFIED',
+                        style: AppTypography.caption.copyWith(
+                            color: const Color(0xFF3A2A6E), fontWeight: FontWeight.w800, fontSize: 10.5, letterSpacing: 0.5,),),
+                  ],
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.verified_rounded, size: 14, color: Color(0xFF3A2A6E)),
-                  const SizedBox(width: 5),
-                  Text('ASKTRO VERIFIED',
-                      style: AppTypography.caption.copyWith(
-                          color: const Color(0xFF3A2A6E), fontWeight: FontWeight.w800, fontSize: 10.5, letterSpacing: 0.5,),),
-                ],
-              ),
-            ),
+            ],
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
