@@ -69,6 +69,27 @@ class AstrologerRepository {
         return list.take(limit).toList();
       });
 
+  /// Top HUMAN astrologers (paid consults) — the money-makers, spotlighted first
+  /// on Home. Hidden automatically until real humans exist. Sorted by rating.
+  Stream<List<Astrologer>> watchTopHuman({int limit = 12}) => _col
+      .limit(100)
+      .snapshots()
+      .map((s) {
+        final list = s.docs.where(_visible).map(_map).where((a) => !a.isAI).toList()
+          ..sort((a, b) => b.rating.compareTo(a.rating));
+        return list.take(limit).toList();
+      });
+
+  /// Top AI astrologers (free to chat). Sorted by rating.
+  Stream<List<Astrologer>> watchTopAI({int limit = 12}) => _col
+      .limit(100)
+      .snapshots()
+      .map((s) {
+        final list = s.docs.where(_visible).map(_map).where((a) => a.isAI).toList()
+          ..sort((a, b) => b.rating.compareTo(a.rating));
+        return list.take(limit).toList();
+      });
+
   /// Admin-curated "Rising Stars". Shows astrologers tagged `risingStar: true`
   /// from the portal; before any are tagged, falls back to the newest joiners
   /// so the rail is never empty.

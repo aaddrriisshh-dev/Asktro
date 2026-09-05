@@ -688,3 +688,39 @@ Verified: functions + admin `tsc --noEmit` clean. Flutter analyze pending on Mac
 
 ### Deferred to Phase 5
 Visual rendering QA of promos/onboarding on multiple screen sizes (needs a device).
+
+---
+
+## v2 Phase 4 — AI cost controls + real/AI home sections (5 Sept 2026)
+
+### AI cost controls (config/global — change LIVE, no app update)
+In `ai/replyEngine.ts` `onAiChatMessage`, before any Gemini/chart work:
+- **`aiEnabled`** (bool; default/absent = on). Set **`false`** to stop ALL AI
+  replies instantly — kills the Gemini bill. The user gets a polite "AI is
+  resting, try a human astrologer" note instead of silence.
+- **`aiDailyMessageCap`** (number; 0/absent = **unlimited**). Per-user daily free
+  AI message cap; when hit, the user is told to come back tomorrow / consult a
+  human. Counter stored on `users/{uid}.aiUsage {date,count}`, resets daily (UTC).
+Both are plain fields on the `config/global` Firestore doc — edit in the console
+or portal; no deploy, no app update. Default behaviour unchanged (AI free +
+unlimited) until the founder decides to cap/kill.
+
+### Home: real astrologers spotlighted, AI clearly separate
+- `repositories.dart`: `watchTopHuman()` + `watchTopAI()` (filter `isAI`).
+- `home_feed.dart`: top rails are now **"Talk to a Real Astrologer"** (human,
+  paid — shown FIRST; `hideWhenEmpty` so it doesn't appear until real humans are
+  added from the portal) then **"AI Astrologers · Free to chat"**; "Rising Stars"
+  stays mixed below. AI cards already carry the required **AI badge** (unchanged).
+- `_AstroCarousel` gained a `hideWhenEmpty` flag (whole rail renders nothing —
+  header included — while empty).
+
+### Notes
+- Sweeper ghost-active hardening: now LOW risk — with the AI free short-circuit
+  advancing `lastTickAt`, every active session has a tick marker so `billStaleActive`
+  catches stale ones; the old ghosts were legacy and the cleanup script handles
+  them. A null-`lastTickAt` reaper branch is deferred (would need a new index).
+- Security: covered by the pre-flip audit — rules enforce zeroed money on create +
+  notChanging on update; dev dummy-gateway is emulator-locked; Mall is
+  Razorpay-direct; recharge is idempotent with a dead-letter + reconcile.
+
+Verified: functions `tsc --noEmit` clean. Flutter analyze pending on Mac.

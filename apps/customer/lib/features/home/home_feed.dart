@@ -26,8 +26,11 @@ import '../wallet/promo_surface.dart';
 
 final _risingStarsProvider = StreamProvider.autoDispose<List<Astrologer>>(
     (ref) => ref.watch(astrologerRepositoryProvider).watchRisingStars(),);
-final _topRatedProvider = StreamProvider.autoDispose<List<Astrologer>>(
-    (ref) => ref.watch(astrologerRepositoryProvider).watchTopRated(),);
+// Human astrologers (paid) spotlighted first; AI (free) just below.
+final _topHumanProvider = StreamProvider.autoDispose<List<Astrologer>>(
+    (ref) => ref.watch(astrologerRepositoryProvider).watchTopHuman(),);
+final _topAiProvider = StreamProvider.autoDispose<List<Astrologer>>(
+    (ref) => ref.watch(astrologerRepositoryProvider).watchTopAI(),);
 final _homeBannersProvider = StreamProvider.autoDispose<List<PromoBanner>>(
     (ref) => ref.watch(catalogRepositoryProvider).watchBanners('home'),);
 
@@ -78,7 +81,8 @@ class HomeFeed extends ConsumerWidget {
         color: Ob.purple,
         onRefresh: () async {
           ref.invalidate(_risingStarsProvider);
-          ref.invalidate(_topRatedProvider);
+          ref.invalidate(_topHumanProvider);
+          ref.invalidate(_topAiProvider);
         },
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
@@ -95,7 +99,13 @@ class HomeFeed extends ConsumerWidget {
             // astrologers. Each hides itself when the user has none yet.
             const ContinueRail(),
             const FavoritesRail(),
-            _AstroCarousel(title: 'Top Astrologers', provider: _topRatedProvider),
+            // Real (human) astrologers first — the paid consults. Auto-hides
+            // until real humans are added from the portal.
+            _AstroCarousel(
+                title: 'Talk to a Real Astrologer',
+                provider: _topHumanProvider,
+                hideWhenEmpty: true,),
+            _AstroCarousel(title: 'AI Astrologers · Free to chat', provider: _topAiProvider),
             _AstroCarousel(
                 title: 'Rising Stars',
                 provider: _risingStarsProvider,
@@ -872,12 +882,17 @@ class _AstroCarousel extends ConsumerStatefulWidget {
     required this.title,
     required this.provider,
     this.onlyRisingStars = false,
+    this.hideWhenEmpty = false,
   });
   final String title;
   final AutoDisposeStreamProvider<List<Astrologer>> provider;
   // "View all" from Rising Stars opens the tagged-only directory; from Top
   // Astrologers it opens the full directory.
   final bool onlyRisingStars;
+  // When true, the whole rail (header included) renders nothing while its list
+  // is empty — so the "Real astrologers" section simply doesn't appear until
+  // real humans exist, instead of showing an empty "none yet" placeholder.
+  final bool hideWhenEmpty;
 
   @override
   ConsumerState<_AstroCarousel> createState() => _AstroCarouselState();
@@ -904,6 +919,12 @@ class _AstroCarouselState extends ConsumerState<_AstroCarousel> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(widget.provider);
+    // An auto-hiding rail (e.g. "Talk to a Real Astrologer") shows nothing at all
+    // — not even its header — until it actually has astrologers to display.
+    if (widget.hideWhenEmpty) {
+      final data = async.valueOrNull;
+      if (data == null || data.isEmpty) return const SizedBox.shrink();
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

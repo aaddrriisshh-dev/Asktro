@@ -143,6 +143,34 @@ export const onAiChatMessage = onDocumentCreated(
         return;
       }
       const config = await getGlobalConfig();
+      const cfgAny = config as unknown as Record<string, unknown>;
+
+      // ── AI cost controls (config/global — change live, NO app update) ──
+      // 1) Master kill-switch: set `aiEnabled:false` to stop ALL AI replies
+      //    instantly (kills the Gemini bill) if costs spike. The user gets a
+      //    polite note instead of silence.
+      if (cfgAny.aiEnabled === false) {
+        await writeAstro(consultationId, c.astrologerId as string,
+          'Our AI astrologer is taking a short rest right now 🙏 Please try again a little later, or consult one of our expert astrologers.');
+        return;
+      }
+      // 2) Per-user daily free-message cap (`aiDailyMessageCap`; 0 or absent =
+      //    unlimited). Guards against a runaway bill at scale.
+      const dailyCap = Number(cfgAny.aiDailyMessageCap ?? 0) || 0;
+      if (dailyCap > 0) {
+        const today = new Date().toISOString().slice(0, 10); // UTC yyyy-mm-dd
+        const usage = (user.aiUsage as { date?: string; count?: number } | undefined) ?? {};
+        const usedToday = usage.date === today ? (usage.count ?? 0) : 0;
+        if (usedToday >= dailyCap) {
+          await writeAstro(consultationId, c.astrologerId as string,
+            "You've reached today's free AI messages 🌙 Please come back tomorrow, or consult one of our expert astrologers now.");
+          return;
+        }
+        // Count this message (resets automatically on a new day).
+        await db.collection('users').doc(c.customerId as string)
+          .set({ aiUsage: { date: today, count: usedToday + 1 } }, { merge: true });
+      }
+
       const configModels = (config as unknown as Record<string, unknown>).aiModels as
         | Partial<Record<'router' | 'filler' | 'reading', string>>
         | undefined;
