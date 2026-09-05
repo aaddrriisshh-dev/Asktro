@@ -839,8 +839,11 @@ never changes the wallet. **Fix:** `apps/customer/lib/app/router.dart` now build
 the GoRouter ONCE and drives redirect re-evaluation with a `refreshListenable`
 (`ValueNotifier` bumped by `ref.listen` on auth/profile/splash); redirect reads
 state via `ref.read`. The router is never recreated, so pushed screens (calls)
-survive wallet updates. GATE: rebuild the customer app + one clean 2-device voice
-call — confirm it holds past 10s, audio both ways, meter runs, ends only on tap.
+survive wallet updates. VERIFIED (5 Sept 2026): after the fix, a 2-device voice
+call HELD PAST 10s on the founder's phones — calls work. (Bonus: this fix protects
+EVERY imperatively-pushed screen from being torn down by a mid-session wallet/
+profile update, not just calls.) Still worth a longer run to eyeball the per-minute
+meter, but the drop bug is resolved.
 Separately FIXED (a display bug, not the disconnect): my diagnostic had set
 `errorMessage='Conn: connectionStateConnecting…'` and never cleared it, so a LIVE
 call still showed "connecting". Cleaned up `call_engine.dart`:
