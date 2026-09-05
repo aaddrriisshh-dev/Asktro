@@ -775,3 +775,25 @@ removal by script.
   a device — verify in the next AAB. (Home rails themselves are already live via
   Firestore snapshots, so newly-added verified astrologers appear instantly — no
   code change needed for "instant show-up".)
+
+## Backlog (added 5 Sept 2026) — per-message push to the ASTROLOGER (backend-only)
+**What:** During a LIVE consult, when the CUSTOMER sends a chat message, the
+astrologer gets NO push if their phone is locked / app closed. Only the customer
+side gets per-message nudges today (`onChatMessageNudge` pushes `customerId`
+only). Confirmed by testing on the founder's phone (5 Sept 2026).
+
+**Already works (verified):** astrologer FCM token registration, notification
+permission, and delivery — the "New consultation request" push arrives even with
+the astrologer phone LOCKED and app CLOSED (via `createConsultation` → a
+`notifications` doc with `userId: astrologerId` → `onNotificationCreated`).
+
+**Fix (deferred, NOT a launch blocker — backend-only, NO app update needed):**
+extend `firebase/functions/src/notifications/chatNudge.ts` to also nudge the
+astrologer when `senderId === customerId` and the astrologer is "away" — mirror
+the existing customer branch (throttle + max-nudges). Needs an astrologer-side
+"away" signal: check for an `astrologerLastTickAt`/presence field on the consult
+(from `presence_heartbeat.dart`/`tickConsultation`); if none exists, either add
+one or push on every customer message with the existing throttle. Write a
+`notifications` doc with `userId: astrologerId`, `type: 'chat_message'`,
+`deeplink: asktro://chat/<consultationId>` (or consultation deeplink). Deploy
+`onChatMessageNudge` alone — can ship anytime, even after launch.
