@@ -59,6 +59,7 @@ export const sweepStaleSessions = onSchedule(
     // loop blew the timeout before jobs 4-5 ran during correlated disconnects).
     const jobs: Array<[string, () => Promise<void>]> = [
       ['billStaleActive', () => billStaleActive(config, nowMs)],
+      ['expireOrphanActive', () => expireOrphanActive(config, nowMs)],
       ['expirePaused', () => expirePaused(config, nowMs)],
       ['expireWaiting', () => expireWaiting(config, nowMs)],
       ['reconcileAvailability', () => reconcileAvailability()],
@@ -120,6 +121,68 @@ export async function billStaleActive(config: GlobalConfig, nowMs: number): Prom
         networkStatus: 'reconnecting',
         updatedAt: FieldValue.serverTimestamp(),
       });
+    }),
+  );
+}
+
+// --- 1b. GHOST guard: `active` sessions that never got a single heartbeat ---
+// billStaleActive's query is `status == 'active' AND lastTickAt <= cutoff`.
+// In Firestore an inequality filter SILENTLY EXCLUDES any document missing that
+// field — so an `active` doc whose `lastTickAt` was never written is invisible
+// to billStaleActive, never gets pushed to `paused`, and so never reaches
+// `expired` via expirePaused either. It sits `active` forever and inflates the
+// admin "Active Consultations" card — the "ghost consultation" the founder saw.
+//
+// Every legitimate activation path (activateConsultation, replyEngine,
+// creditRecharge resume, pauseResume) seeds lastTickAt, so a null-lastTickAt
+// `active` doc is a genuine orphan (legacy data, a crash between activation and
+// the first heartbeat, or a hand-edited/test doc) — never a healthy live chat.
+// We scan `active` docs directly (few at any moment — only real live sessions)
+// and close any with no heartbeat that are older than the session timeout. No
+// billing: with no lastTickAt, no confirmed activity ever happened.
+export async function expireOrphanActive(config: GlobalConfig, nowMs: number): Promise<void> {
+  const cutoffMs = nowMs - Math.max(config.sessionTimeoutSec, 300) * 1000;
+  const active = await db
+    .collection(Collections.consultations)
+    .where('status', '==', 'active')
+    .limit(SWEEP_LIMIT)
+    .get();
+
+  const orphans = active.docs.filter((d) => {
+    const c = d.data();
+    if (c.lastTickAt) return false; // has a heartbeat — billStaleActive owns it
+    const bornMs =
+      (c.startTime as Timestamp | undefined)?.toMillis?.() ??
+      (c.createdAt as Timestamp | undefined)?.toMillis?.() ??
+      0;
+    // 0 = no timestamps at all → a definite orphan. Otherwise only close it once
+    // it's older than the session timeout, so a just-activated session whose very
+    // first heartbeat is momentarily in flight is never touched.
+    return bornMs === 0 || bornMs <= cutoffMs;
+  });
+
+  await forEachLimited(orphans, SWEEP_CONCURRENCY, (doc) =>
+    db.runTransaction(async (tx) => {
+      const snap = await tx.get(doc.ref);
+      if (!snap.exists) return;
+      const c = snap.data()!;
+      // Re-check under the transaction: it may have received its first tick (now
+      // has lastTickAt → billStaleActive owns it) or ended since the scan.
+      if (c.status !== 'active' || c.lastTickAt) return;
+      tx.update(doc.ref, {
+        status: 'expired',
+        paymentStatus: 'settled',
+        endTime: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      // Free a human astrologer's call lock if this orphan was a voice/video call.
+      if (isCall(c.type) && c.isAI !== true) {
+        tx.set(
+          db.collection(Collections.astrologers).doc(c.astrologerId),
+          { available: true, updatedAt: FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+      }
     }),
   );
 }
