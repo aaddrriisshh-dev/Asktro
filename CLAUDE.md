@@ -33,6 +33,31 @@ GOOGLE_APPLICATION_CREDENTIALS="$HOME/Projects/Asktro/firebase/functions/service
 source). It must stay in `.gitignore` (never commit) and ideally in
 `functions/.gcloudignore` too, so it isn't bundled into the deployed function.
 
+# Deploying the Admin Portal (Vercel) — MANDATORY: pull first
+
+The admin portal (`apps/admin`, → asktro-admin.vercel.app) is **NOT
+git-connected**. `vercel --prod` ships whatever files are **on the founder's
+Mac at that moment** — it does NOT pull from GitHub. So any code the assistant
+pushed to a branch is invisible to the deploy until the Mac pulls it.
+
+**Before telling the founder to deploy the portal, ALWAYS give the pull step
+first and confirm it landed. Never say "deploy" without "pull first".**
+
+```
+# 1) on the Mac, pull the branch the assistant just pushed to:
+cd ~/Projects/Asktro && git pull origin <active-branch>
+# 2) only then deploy:
+cd ~/Projects/Asktro/apps/admin && vercel --prod
+```
+
+If the assistant ever says a portal feature is "done, go deploy" without the
+pull, the founder ships stale code and the feature appears missing. This
+already happened once — do not repeat it.
+
+**General deploy rule (every deploy, portal or functions):** the assistant's
+work lives on GitHub; the founder's Mac is a separate copy. Before ANY deploy
+from the Mac, make sure the Mac has pulled the exact code being deployed.
+
 # Active initiatives
 
 - **AI Astrologer engine + retention engine** — an in-progress design the founder
