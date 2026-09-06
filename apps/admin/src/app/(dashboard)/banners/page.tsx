@@ -44,6 +44,7 @@ export default function BannersPage() {
   const [bTextAlign, setBTextAlign] = useState('left');
   const [bHScale, setBHScale] = useState(1);
   const [imageFill, setImageFill] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
   function applyTheme(t: PromoTheme | null) {
@@ -59,6 +60,49 @@ export default function BannersPage() {
   };
   const chosenPlan = plans.find((p) => p.id === planId);
 
+  function resetForm() {
+    setEditingId(null);
+    setF({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
+    setTheme('');
+    setBTextPos('center'); setBTextAlign('left'); setBHScale(1); setImageFill(false);
+    setBannerType('marketing'); setPlanId('');
+    setPortraitImage(''); setCtaText(''); setDisplayMode('small');
+    setBg('#2e2b5f'); setFg('#ffffff');
+    setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
+  }
+
+  // Load an existing banner into the form so it can be edited in place
+  // (change a deep link, swap the image, retitle) instead of only viewed.
+  function startEdit(b: Row) {
+    setEditingId(b.id);
+    setBannerType(((b.bannerType as BannerType) === 'recharge') ? 'recharge' : 'marketing');
+    setPlanId((b.planId as string) || '');
+    setF({
+      title: (b.title as string) || '',
+      description: (b.description as string) || '',
+      image: (b.image as string) || '',
+      // A recharge banner's deeplink is derived from its plan; keep the field
+      // clear so it doesn't leak the generated /recharge?plan=… back into the box.
+      deeplink: (b.bannerType as string) === 'recharge' ? '' : ((b.deeplink as string) || ''),
+      placement: (b.placement as string) || 'home',
+    });
+    setBg((b.bgColor as string) || '#2e2b5f');
+    setFg((b.textColor as string) || '#ffffff');
+    setTheme((b.theme as string) || '');
+    setBTextPos((b.textPosition as string) || 'center');
+    setBTextAlign((b.textAlign as string) || 'left');
+    setBHScale((b.headlineScale as number) ?? 1);
+    setImageFill(b.imageFillsSheet === true);
+    setDisplayMode(((b.displayMode as string) || 'small') as DisplayMode);
+    setPortraitImage((b.portraitImage as string) || '');
+    setCtaText((b.ctaText as string) || '');
+    setLTitle((b.landingTitle as string) || '');
+    setLBody((b.landingBody as string) || '');
+    setLBg((b.landingBgColor as string) || '#2e2b5f');
+    setLFg((b.landingTextColor as string) || '#ffffff');
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   async function push() {
     if (!f.title.trim()) return alert('Title is required.');
     if (bannerType === 'recharge' && !planId) return alert('Pick the recharge plan this banner promotes.');
@@ -66,10 +110,10 @@ export default function BannersPage() {
     const deeplink = bannerType === 'recharge' ? `/recharge?plan=${planId}` : (f.deeplink.trim() || null);
     setBusy(true);
     try {
-      await addDoc(collection(db, 'banners'), {
+      const data = {
         bannerType, planId: bannerType === 'recharge' ? planId : null,
         title: f.title.trim(), description: f.description.trim(), image: f.image.trim(),
-        deeplink, placement: f.placement, bgColor: bg, textColor: fg, active: true,
+        deeplink, placement: f.placement, bgColor: bg, textColor: fg,
         textPosition: f.image.trim() ? bTextPos : 'center',
         textAlign: f.image.trim() ? bTextAlign : 'left',
         headlineScale: f.image.trim() ? bHScale : 1,
@@ -82,14 +126,21 @@ export default function BannersPage() {
         landingBgColor: displayMode !== 'small' ? lBg : null,
         landingTextColor: displayMode !== 'small' ? lFg : null,
         theme: theme || null,
-        createdBy: user?.uid ?? null, createdByName: adminName || null, createdAt: serverTimestamp(),
-      });
-      setF({ title: '', description: '', image: '', deeplink: '', placement: 'home' });
-      setTheme('');
-      setBTextPos('center'); setBTextAlign('left'); setBHScale(1); setImageFill(false);
-      setBannerType('marketing'); setPlanId('');
-      setPortraitImage(''); setCtaText(''); setDisplayMode('small');
-      setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
+      };
+      if (editingId) {
+        // Edit an existing banner — keep its active state, author and created time;
+        // just record who last touched it and when.
+        await updateDoc(doc(db, 'banners', editingId), {
+          ...data,
+          updatedBy: user?.uid ?? null, updatedByName: adminName || null, updatedAt: serverTimestamp(),
+        });
+      } else {
+        await addDoc(collection(db, 'banners'), {
+          ...data, active: true,
+          createdBy: user?.uid ?? null, createdByName: adminName || null, createdAt: serverTimestamp(),
+        });
+      }
+      resetForm();
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(false); }
   }
@@ -99,7 +150,7 @@ export default function BannersPage() {
       <h1 style={{ marginBottom: 2 }}>Banners Management</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>Design the banner, preview it, then Commit &amp; Push to the chosen area of the app.</p>
 
-      <MobileSection title="Create banner" defaultOpen={false}>
+      <MobileSection title={editingId ? '✎ Edit banner' : 'Create banner'} defaultOpen={!!editingId}>
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0,0.82fr) minmax(0,1.18fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
         {/* LEFT — live preview, pinned so it never overlaps the form */}
         <PromoPreview kind="banner" theme={theme} title={f.title} body={f.description} image={f.image} imageStyle="banner" bg={bg} fg={fg}
@@ -211,7 +262,10 @@ export default function BannersPage() {
             </label>
           )}
 
-          <div style={{ marginTop: 16 }}><button className="btn" disabled={busy} onClick={push}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button></div>
+          <div style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button className="btn" disabled={busy} onClick={push}>{busy ? 'Saving…' : editingId ? '✓ Save changes' : '⚡ Commit & Push'}</button>
+            {editingId && <button className="btn secondary" disabled={busy} onClick={resetForm}>Cancel</button>}
+          </div>
         </div>
       </div>
       </MobileSection>
@@ -233,6 +287,7 @@ export default function BannersPage() {
                     <td data-label="Live"><button className={`btn sm ${b.active ? 'secondary' : ''}`} onClick={() => updateDoc(doc(db, 'banners', b.id), { active: !b.active })}>{b.active ? 'On' : 'Off'}</button></td>
                     <td data-label="" style={{ whiteSpace: 'nowrap' }}>
                       <button className="btn sm secondary" title="Preview this banner" onClick={() => setPreview(b)} style={{ marginRight: 6 }}>👁 View</button>
+                      <button className="btn sm secondary" title="Edit this banner" onClick={() => startEdit(b)} style={{ marginRight: 6 }}>✎ Edit</button>
                       <button className="btn sm danger" onClick={() => { if (confirm('Delete this banner?')) deleteDoc(doc(db, 'banners', b.id)); }}>Delete</button>
                     </td>
                   </tr>

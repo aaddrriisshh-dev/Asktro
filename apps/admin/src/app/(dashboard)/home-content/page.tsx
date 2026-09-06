@@ -294,6 +294,21 @@ function StoreHeroEditor() {
               shape="wide"
               label="Upload product PNG"
             />
+            {/* One-tap fall back to the beautiful bundled Mall banner. Clearing the
+                image makes the app render its built-in hero art (no upload needed). */}
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => setForm((f) => ({ ...f, image: '' }))}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px' }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/store-hero-default.webp" alt="Default Mall banner" style={{ width: 64, height: 40, objectFit: 'contain', borderRadius: 6 }} />
+                Use the default banner image
+              </button>
+              {form.image === '' && <span className="muted" style={{ fontSize: 12 }}>✓ Using the default banner art</span>}
+            </div>
           </Field>
           <Field label="Headline (the last word shows in purple)">
             <input
