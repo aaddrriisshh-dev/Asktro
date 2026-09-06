@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { doc, getDoc, deleteDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { callFn, Row } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
@@ -60,12 +60,14 @@ export default function AstrologerViewPage() {
   async function deleteAstrologer() {
     if (!a || delBusy) return;
     const nm = (a.name as string) || 'this astrologer';
-    // Two-step confirm — deletion is permanent and can't be undone.
-    if (!window.confirm(`Delete ${nm}? This permanently removes the profile from the store. This cannot be undone.`)) return;
-    if (!window.confirm(`Are you absolutely sure? ${nm} will disappear from the app immediately.`)) return;
+    // Server-side delete (deleteAstrologer callable): disables the login,
+    // removes them from the app (active:false) and preserves history/audit.
+    // A direct client deleteDoc is blocked by the security rules by design.
+    if (!window.confirm(`Delete ${nm}? They will be removed from the app immediately and can no longer log in. This cannot be undone.`)) return;
+    if (!window.confirm(`Are you absolutely sure? ${nm} will disappear from the app right away.`)) return;
     setDelBusy(true);
     try {
-      await deleteDoc(doc(db, 'astrologers', id));
+      await callFn('deleteAstrologer', { astrologerId: id });
       router.push('/astrologers');
     } catch (e) { alert('Failed to delete: ' + (e as Error).message); setDelBusy(false); }
   }

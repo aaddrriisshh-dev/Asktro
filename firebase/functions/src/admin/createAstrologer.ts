@@ -249,7 +249,11 @@ export const deleteAstrologer = onCall(async (req) => {
     // Auth user may not exist for legacy random-id docs — still disable the profile.
   }
   await db.collection(Collections.astrologers).doc(astrologerId!).set(
-    { accountStatus: 'disabled', onlineStatus: false, available: false, updatedAt: FieldValue.serverTimestamp() },
+    // active:false is what actually hides them from every app rail/search — the
+    // customer app's visibility gate is `active !== false`. Also disabled +
+    // offline + unavailable. The doc is kept (soft delete) so consultation
+    // history, earnings and audit remain intact and it's reversible if needed.
+    { accountStatus: 'disabled', active: false, onlineStatus: false, available: false, updatedAt: FieldValue.serverTimestamp() },
     { merge: true },
   );
   await db.collection(Collections.auditLogs).add({
