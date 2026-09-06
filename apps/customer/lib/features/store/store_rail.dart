@@ -43,7 +43,11 @@ class StoreRail extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cats = ref.watch(storeRootCategoriesProvider);
-    if (cats.isEmpty) return const SizedBox.shrink();
+    // While the store has no categories yet, DON'T hide the Mall — show it as an
+    // honest "Coming Soon" teaser (no products advertised, no category strip, the
+    // button lands on the store's own "being stocked" screen). It turns back into
+    // the full "Explore Mall" automatically the moment real categories exist.
+    final launchingSoon = cats.isEmpty;
 
     final h = ref.watch(_storeHeroProvider).valueOrNull ?? const <String, dynamic>{};
     String s(String k, String d) {
@@ -51,9 +55,13 @@ class StoreRail extends ConsumerWidget {
       return v.isNotEmpty ? v : d;
     }
 
-    final headline = s('headline', 'Blessings for Every Aspect of Life');
-    final subtext = s('subtext', 'Our products bring peace & positivity.');
-    final cta = s('cta', 'Explore Mall');
+    final headline = launchingSoon
+        ? 'Blessed products, launching soon'
+        : s('headline', 'Blessings for Every Aspect of Life');
+    final subtext = launchingSoon
+        ? 'Our spiritual store is being stocked — check back soon ✦'
+        : s('subtext', 'Our products bring peace & positivity.');
+    final cta = launchingSoon ? 'Coming Soon' : s('cta', 'Explore Mall');
     final heroImage = (h['image'] ?? '').toString().trim();
 
     return Container(
@@ -117,8 +125,11 @@ class StoreRail extends ConsumerWidget {
           Column(
             children: [
               _heroMiddle(context, headline, subtext, cta, heroImage),
-              const SizedBox(height: 12),
-              _CategoryStrip(cats: cats),
+              // No category strip until the store is actually stocked.
+              if (!launchingSoon) ...[
+                const SizedBox(height: 12),
+                _CategoryStrip(cats: cats),
+              ],
               const SizedBox(height: 12), // bottom inset so the panel floats
             ],
           ),
