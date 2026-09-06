@@ -479,9 +479,9 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
         _banner(
           gradient: _grad(const [Color(0xFF6A47C7), Color(0xFF432B85), Color(0xFF2C1E5C)]),
           kicker: '✦ DIVINE BLESSINGS',
-          title: 'Book Group\nPujas',
+          title: 'Group\nPujas',
           subtitle: 'By verified pandits',
-          cta: 'Book Now',
+          cta: 'Coming Soon',
           illustration: Padding(
             padding: const EdgeInsets.only(right: 6, bottom: 2),
             child: Image.asset(Ob.pujaMandala, height: 108),
@@ -1098,18 +1098,34 @@ class _CelestialAstroCard extends StatelessWidget {
                   maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,),
             ),
             const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.star_rounded, size: 14, color: Ob.gold),
-                const SizedBox(width: 2),
-                Text(a.rating.toStringAsFixed(1),
-                    style: Ob.option.copyWith(fontSize: 12, fontWeight: FontWeight.w700),),
-                const SizedBox(width: 7),
-                Text('${a.experience}y exp',
-                    style: Ob.note.copyWith(fontSize: 11.5, color: Ob.navy.withValues(alpha: 0.6)),),
-              ],
-            ),
+            // AI shows an honest free/instant line (no fabricated experience/
+            // rating); humans show real rating/exp, with a 0 rating on a brand-
+            // new human hidden so it never reads as a bare "0.0".
+            if (a.isAI)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.bolt_rounded, size: 14, color: Ob.purple),
+                  const SizedBox(width: 3),
+                  Text('Free • Instant',
+                      style: Ob.option.copyWith(fontSize: 12, fontWeight: FontWeight.w700, color: Ob.purple),),
+                ],
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (a.rating > 0) ...[
+                    const Icon(Icons.star_rounded, size: 14, color: Ob.gold),
+                    const SizedBox(width: 2),
+                    Text(a.rating.toStringAsFixed(1),
+                        style: Ob.option.copyWith(fontSize: 12, fontWeight: FontWeight.w700),),
+                    const SizedBox(width: 7),
+                  ],
+                  Text(a.experience > 0 ? '${a.experience}y exp' : 'New',
+                      style: Ob.note.copyWith(fontSize: 11.5, color: Ob.navy.withValues(alpha: 0.6)),),
+                ],
+              ),
             const Spacer(),
             // Per-minute rate only for PAID (human) astrologers — AI is free.
             if (kMonetizationEnabled && !a.isAI)

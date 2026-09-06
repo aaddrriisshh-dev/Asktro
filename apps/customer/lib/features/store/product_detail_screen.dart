@@ -165,13 +165,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  const Icon(Icons.star_rounded, size: 17, color: Color(0xFFE0A92E)),
-                  const SizedBox(width: 4),
-                  Text(p.rating.toStringAsFixed(1),
-                      style: const TextStyle(fontWeight: FontWeight.w700, color: Mall.ink, fontSize: 13),),
-                  if (p.ratingCount > 0)
+                  // Star + score only for products with REAL ratings; otherwise
+                  // just the product tagline (no fabricated "0.0").
+                  if (p.ratingCount > 0) ...[
+                    const Icon(Icons.star_rounded, size: 17, color: Color(0xFFE0A92E)),
+                    const SizedBox(width: 4),
+                    Text(p.rating.toStringAsFixed(1),
+                        style: const TextStyle(fontWeight: FontWeight.w700, color: Mall.ink, fontSize: 13),),
                     Text('  (${p.ratingCount})', style: const TextStyle(color: Mall.warmGrey, fontSize: 12.5)),
-                  const Text('  ·  Trusted, energised & certified', style: TextStyle(color: Mall.warmGrey, fontSize: 12.5)),
+                    const Text('  ·  Trusted, energised & certified', style: TextStyle(color: Mall.warmGrey, fontSize: 12.5)),
+                  ] else
+                    const Text('Trusted, energised & certified', style: TextStyle(color: Mall.warmGrey, fontSize: 12.5)),
                 ],
               ),
               const SizedBox(height: 12),
@@ -329,22 +333,28 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       children: [
         const Text('Ratings & Reviews', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Mall.navy)),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            Text(p.rating.toStringAsFixed(1),
-                style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Mall.ink, height: 1),),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                StarRow(rating: p.rating, size: 16),
-                const SizedBox(height: 3),
-                Text(p.ratingCount > 0 ? '${p.ratingCount} ratings' : 'Be the first to review',
-                    style: const TextStyle(fontSize: 12, color: Mall.warmGrey),),
-              ],
-            ),
-          ],
-        ),
+        // Only show the score + stars once there are REAL ratings; an unrated
+        // product shows a plain invite instead of a fabricated "0.0".
+        if (p.ratingCount > 0)
+          Row(
+            children: [
+              Text(p.rating.toStringAsFixed(1),
+                  style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Mall.ink, height: 1),),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  StarRow(rating: p.rating, size: 16),
+                  const SizedBox(height: 3),
+                  Text('${p.ratingCount} ratings',
+                      style: const TextStyle(fontSize: 12, color: Mall.warmGrey),),
+                ],
+              ),
+            ],
+          )
+        else
+          const Text('No ratings yet — be the first to review.',
+              style: TextStyle(fontSize: 12.5, color: Mall.warmGrey),),
         if (reviews.isNotEmpty) const SizedBox(height: 14),
         for (final r in reviews) _reviewTile(r),
       ],

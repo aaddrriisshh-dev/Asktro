@@ -783,7 +783,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                                 .copyWith(fontWeight: FontWeight.w800, fontSize: 15.5),
                             overflow: TextOverflow.ellipsis,),
                       ),
-                      if (a.verified) ...[
+                      if (a.verified && !a.isAI) ...[
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -806,20 +806,39 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                           ),
                         ),
                       ],
+                      if (a.isAI) ...[
+                        const SizedBox(width: 6),
+                        const AiBadge(compact: true),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _statChip(Icons.workspace_premium_rounded,
-                          a.experience > 0 ? '${a.experience} yrs' : 'New', 'Experience',),
-                      const SizedBox(width: 8),
-                      _statChip(Icons.forum_rounded, '${a.totalConsultations}', 'Sessions'),
-                      const SizedBox(width: 8),
-                      _statChip(Icons.star_rounded,
-                          a.rating > 0 ? a.rating.toStringAsFixed(1) : '—', 'Rating', gold: true,),
-                    ],
-                  ),
+                  // AI shows honest, true attributes; humans show real stats with
+                  // zeros hidden (no fabricated experience/sessions/rating on AI).
+                  if (a.isAI)
+                    Row(
+                      children: [
+                        _statChip(Icons.bolt_rounded, 'Free', 'to chat'),
+                        const SizedBox(width: 8),
+                        _statChip(Icons.flash_on_rounded, 'Instant', 'replies'),
+                        const SizedBox(width: 8),
+                        _statChip(Icons.schedule_rounded, '24×7', 'available'),
+                      ],
+                    )
+                  else
+                    Row(
+                      children: [
+                        _statChip(Icons.workspace_premium_rounded,
+                            a.experience > 0 ? '${a.experience} yrs' : 'New', 'Experience',),
+                        const SizedBox(width: 8),
+                        if (a.totalConsultations > 0) ...[
+                          _statChip(Icons.forum_rounded, '${a.totalConsultations}', 'Sessions'),
+                          const SizedBox(width: 8),
+                        ],
+                        _statChip(Icons.star_rounded,
+                            a.rating > 0 ? a.rating.toStringAsFixed(1) : '—', 'Rating', gold: true,),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -929,6 +948,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 astrologerName: widget.astrologer.name,
                 photoUrl: widget.astrologer.profilePhoto,
                 verified: widget.astrologer.verified && !widget.astrologer.isAI,
+                isAI: widget.astrologer.isAI,
                 remainingSec: s.displayRemainingSec,
                 warnLevel: s.warnLevel,
                 onRecharge: _goRecharge,

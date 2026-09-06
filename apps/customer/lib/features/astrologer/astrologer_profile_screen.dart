@@ -255,15 +255,29 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
                 child: Text(a.rateLabel, style: AppTypography.body.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
               ),
             const SizedBox(height: 18),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _stat('${a.rating.toStringAsFixed(1)}★', 'Rating'),
-                _stat('${a.experience}y', 'Experience'),
-                _stat('${a.totalConsultations}', 'Sessions'),
-                _stat('${a.followers}', 'Followers'),
-              ],
-            ),
+            // AI shows honest, true attributes (free / instant / always-available)
+            // — never fabricated human experience, ratings, sessions or followers.
+            // Humans show their real stats, with zero values hidden so a brand-new
+            // astrologer never displays a bare "0.0★ / 0 Sessions / 0 Followers".
+            if (a.isAI)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _stat('Free', 'to chat'),
+                  _stat('Instant', 'replies'),
+                  _stat('24×7', 'available'),
+                ],
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _stat(a.experience > 0 ? '${a.experience}y' : 'New', 'Experience'),
+                  if (a.rating > 0) _stat('${a.rating.toStringAsFixed(1)}★', 'Rating'),
+                  if (a.totalConsultations > 0) _stat('${a.totalConsultations}', 'Sessions'),
+                  if (a.followers > 0) _stat('${a.followers}', 'Followers'),
+                ],
+              ),
           ],
         ),
       ),

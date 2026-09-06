@@ -24,6 +24,7 @@ class ConsultationHeader extends StatelessWidget {
     required this.onBack,
     required this.onEnd,
     this.showCountdown = true,
+    this.isAI = false,
   });
 
   final String astrologerName;
@@ -39,6 +40,10 @@ class ConsultationHeader extends StatelessWidget {
   /// hidden and replaced by a plain "Add cash" shortcut. When true (a fresh
   /// free user on their 3 free minutes), the countdown is shown.
   final bool showCountdown;
+
+  /// AI persona → show the AI disclosure badge in the live chat header, so an AI
+  /// is never mistaken for a human during the conversation itself.
+  final bool isAI;
 
   Color get _timerColor => switch (warnLevel) {
         >= 2 => AppColors.error,
@@ -73,6 +78,7 @@ class ConsultationHeader extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,),
                     ),
                     if (verified) ...[const SizedBox(width: 4), const VerifiedBadge(size: 13)],
+                    if (isAI) ...[const SizedBox(width: 4), const AiBadge(compact: true)],
                   ],
                 ),
               ),

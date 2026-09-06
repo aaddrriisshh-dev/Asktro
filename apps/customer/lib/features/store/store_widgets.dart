@@ -146,23 +146,26 @@ class ProductCard extends StatelessWidget {
                             style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Mall.gold, letterSpacing: 0.2),),
                       ),
                     ),
-                  Positioned(
-                    right: 8, bottom: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.96),
-                        borderRadius: BorderRadius.circular(9),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 6, offset: const Offset(0, 2))],
+                  // Show the star badge only once a product has REAL ratings —
+                  // never a fabricated default score on an unrated product.
+                  if (product.ratingCount > 0)
+                    Positioned(
+                      right: 8, bottom: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.96),
+                          borderRadius: BorderRadius.circular(9),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 6, offset: const Offset(0, 2))],
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.star_rounded, size: 12, color: Color(0xFFE0A92E)),
+                          const SizedBox(width: 2),
+                          Text(product.rating.toStringAsFixed(1),
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF2B2412)),),
+                        ],),
                       ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.star_rounded, size: 12, color: Color(0xFFE0A92E)),
-                        const SizedBox(width: 2),
-                        Text(product.rating.toStringAsFixed(1),
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF2B2412)),),
-                      ],),
                     ),
-                  ),
                   if (!product.inStock)
                     Positioned.fill(
                       child: Container(

@@ -72,15 +72,30 @@ class AstrologerCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.star_rounded, size: 16, color: AppColors.warning),
-                        const SizedBox(width: 2),
-                        Text(a.rating.toStringAsFixed(1), style: AppTypography.caption),
-                        const SizedBox(width: 8),
-                        Text('${a.experience}y exp', style: AppTypography.caption),
-                      ],
-                    ),
+                    // AI = honest "free / instant" line (no fabricated human
+                    // experience/rating). Humans = real stats; a 0 rating (brand
+                    // new astrologer) is hidden so it never shows a bare "0.0".
+                    if (a.isAI)
+                      Row(
+                        children: [
+                          const Icon(Icons.bolt_rounded, size: 15, color: AppColors.primary),
+                          const SizedBox(width: 2),
+                          Text('Free • Instant reply', style: AppTypography.caption),
+                        ],
+                      )
+                    else
+                      Row(
+                        children: [
+                          if (a.rating > 0) ...[
+                            const Icon(Icons.star_rounded, size: 16, color: AppColors.warning),
+                            const SizedBox(width: 2),
+                            Text(a.rating.toStringAsFixed(1), style: AppTypography.caption),
+                            const SizedBox(width: 8),
+                          ],
+                          Text(a.experience > 0 ? '${a.experience}y exp' : 'New',
+                              style: AppTypography.caption,),
+                        ],
+                      ),
                   ],
                 ),
               ),
