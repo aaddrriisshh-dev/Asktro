@@ -81,6 +81,20 @@ export function UsersActivityTable() {
 
   const searching = searchTerm.trim().length > 0;
 
+  // Astrologers log in through the SAME Firebase auth as customers, so the
+  // server's "every login gets a profile" trigger (onAuthUserCreate) also mints
+  // a `users/{uid}` doc for each astrologer the moment they open the astrologer
+  // app. An astrologer's auth uid == their `astrologers/{uid}` doc id, so we load
+  // those ids once and hide them here — this is a customer table, not a staff
+  // list. `null` = not loaded yet (the data load below waits for it so an
+  // astrologer never flashes into view before the filter is ready).
+  const [astroIds, setAstroIds] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    getDocs(collection(db, 'astrologers'))
+      .then((s) => setAstroIds(new Set(s.docs.map((d) => d.id))))
+      .catch(() => setAstroIds(new Set())); // degrade gracefully: filter nothing
+  }, []);
+
   // Total user count — one server-side aggregation, no docs downloaded.
   useEffect(() => {
     getCountFromServer(collection(db, 'users'))
@@ -103,11 +117,12 @@ export function UsersActivityTable() {
       // Remember the cursor for the NEXT page (last doc of this page).
       pageCursors.current[p + 1] = pageDocs[pageDocs.length - 1];
       setAtEnd(!hasMore);
-      setRows(pageDocs.map(mapUser).filter((u) => u.status !== 'deleted'));
+      const astro = astroIds ?? new Set<string>();
+      setRows(pageDocs.map(mapUser).filter((u) => u.status !== 'deleted' && !astro.has(u.id)));
     } catch (e) {
       setErr((e as Error).message); setRows([]);
     }
-  }, [perPage]);
+  }, [perPage, astroIds]);
 
   const runSearch = useCallback(async (term: string) => {
     const t = term.trim();
@@ -119,17 +134,21 @@ export function UsersActivityTable() {
       const field = /^\+?\d+$/.test(t) ? 'phone' : 'name';
       const qy = query(collection(db, 'users'), orderBy(field), startAt(t), endAt(t + ''), limit(SEARCH_LIMIT));
       const snap = await getDocs(qy);
-      setRows(snap.docs.map(mapUser).filter((u) => u.status !== 'deleted'));
+      const astro = astroIds ?? new Set<string>();
+      setRows(snap.docs.map(mapUser).filter((u) => u.status !== 'deleted' && !astro.has(u.id)));
     } catch (e) {
       setErr((e as Error).message); setRows([]);
     }
-  }, []);
+  }, [astroIds]);
 
-  // Drive loading off committed search term + page + perPage.
+  // Drive loading off committed search term + page + perPage. Wait for the
+  // astrologer-id set first so staff never flash into the customer list before
+  // the filter is ready (loadBrowsePage/runSearch rebuild when it arrives).
   useEffect(() => {
+    if (astroIds === null) return;
     if (searching) runSearch(searchTerm);
     else loadBrowsePage(page);
-  }, [searching, searchTerm, page, perPage, runSearch, loadBrowsePage]);
+  }, [astroIds, searching, searchTerm, page, perPage, runSearch, loadBrowsePage]);
 
   function submitSearch(term: string) {
     pageCursors.current = [undefined];
