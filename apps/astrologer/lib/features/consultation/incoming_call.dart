@@ -37,6 +37,7 @@ class _IncomingCallGateState extends ConsumerState<IncomingCallGate> {
   final Set<String> _known = {};
   bool _seeded = false;
   bool _ringing = false;
+  AudioPlayer? _chatChime;
 
   @override
   Widget build(BuildContext context) {
@@ -83,17 +84,42 @@ class _IncomingCallGateState extends ConsumerState<IncomingCallGate> {
         if (ageMs >= 100000 || !widget.self.onlineStatus) continue; // stale / offline
         final isCall = r.c.type == ConsultationType.voice || r.c.type == ConsultationType.video;
         // A CALL is "answer now" — a full-screen ring, one at a time. A CHAT is
-        // "take it when you can": we do NOT float an app-wide banner for it — it
-        // was redundant (already shown in the dashboard "New consultations" card,
-        // the Consults tab badge, and a push) and lingered annoyingly over the
-        // live chat.
-        if (isCall && !_ringing) {
-          _ring(r);
-          break;
+        // "take it when you can": no full-screen takeover (it's already shown in
+        // the dashboard "New consultations" card + the Consults tab badge), but
+        // we DO play a short chime + haptic so a waiting chat customer isn't
+        // missed while the astrologer is looking at another screen.
+        if (isCall) {
+          if (!_ringing) {
+            _ring(r);
+            break;
+          }
+        } else {
+          _chimeChat();
         }
       }
     });
     return const SizedBox.shrink();
+  }
+
+  /// A short, soft alert for a NEW incoming chat request while the app is open —
+  /// a brief snippet of the ring (not the full looping call ringtone) plus a
+  /// light haptic. Best-effort; never throws into the UI.
+  Future<void> _chimeChat() async {
+    try {
+      HapticFeedback.mediumImpact();
+      final player = _chatChime ??= AudioPlayer();
+      await player.stop();
+      await player.setVolume(0.6);
+      await player.play(AssetSource('audio/incoming_ring.wav'));
+      // Stop after a brief cue so it reads as a "ding", not a call ring.
+      Timer(const Duration(milliseconds: 1600), () => _chatChime?.stop());
+    } catch (_) {/* alert is best-effort */}
+  }
+
+  @override
+  void dispose() {
+    _chatChime?.dispose();
+    super.dispose();
   }
 
   Future<void> _ring(SessionRow row) async {
