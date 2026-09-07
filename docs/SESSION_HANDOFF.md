@@ -66,6 +66,26 @@ DATA message + screen wake) so a locked phone rings instantly like WhatsApp.
 Real native work + on-device testing across several phones. NOT a Play blocker
 (calls/chats work with the app open).
 
+**Background-call keep-alive (founder decision 7 Sept — DEFER to this fast-follow):**
+When the customer backgrounds a LIVE call (puts it on speaker + switches to
+another app — a common Indian-user pattern), Android can freeze the Dart
+heartbeat timer and Agora needs a foreground service to keep the mic/audio
+alive. The correct, standard fix (WhatsApp/AstroTalk all do it; Agora docs
+require it) is a **foreground service of type `microphone`** started at
+call-live and stopped at call-end — protects BOTH audio and the billing meter.
+It was scoped, big-players' approach confirmed, and additive integration point
+identified (start in `CallEngine.join`, stop in `CallEngine.leave`;
+packages/shared_flutter/lib/src/services/call_engine.dart). NOT built into v2
+because the CUSTOMER app currently declares ZERO foreground services on purpose
+(manifest even strips Agora's MEDIA_PROJECTION to avoid the Play FGS review
+flag), and adding a mic FGS requires a Play Console foreground-service-type
+DECLARATION at submission (type + description + ~30-sec demo video of a live
+call — standard/normally-approved for calling apps, but one extra gate).
+Founder chose: **submit v2 clean/fast now, add this in the first update.**
+On-screen and on-ear (proximity screen-off) calls are unaffected; only the
+switch-to-another-app-mid-call case is exposed until this ships. NO
+foreground-service code was written into v2 (stopped before writing any).
+
 Already shipped this session in the ASTROLOGER app (sideloaded, not Play):
 in-app chat chime + haptic, battery-optimization prompt, ring-on-app-open for
 a fresh pending call, incoming_consult ringing channel (native).
