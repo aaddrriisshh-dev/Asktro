@@ -387,9 +387,14 @@ service cloud.firestore {
     // ================= payouts =================
     match /payouts/{id} {
       allow read: if isAdmin() || isSelf(resource.data.astrologerId);
-      // astrologer may request; approval/processing is function/admin only
+      // astrologer may request; approval/processing is function/admin only.
+      // amount must be a positive whole number (paise) — defense-in-depth so a
+      // hand-crafted negative/NaN request can't even be created (the
+      // processPayout callable also validates it server-side).
       allow create: if isSelf(request.resource.data.astrologerId)
-        && request.resource.data.status == 'pending';
+        && request.resource.data.status == 'pending'
+        && request.resource.data.amount is int
+        && request.resource.data.amount > 0;
       allow update, delete: if false;
     }
 

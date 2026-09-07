@@ -99,6 +99,17 @@ export async function applyPayoutDecision(
     failedPrecondition(`Cannot ${decision} a ${p.status} payout.`);
   }
 
+  // The payout `amount` is written by the astrologer client at request time, so
+  // it MUST be validated server-side before we act on it (matches adjustWallet /
+  // refund). Without this a negative/NaN amount passes the `> pending` check and
+  // then `increment(-amount)` INFLATES pendingPayout (a real money leak). Reject
+  // anything that isn't a positive whole number of paise for any non-reject action.
+  const amount = p.amount;
+  if (decision !== 'rejected' &&
+      !(typeof amount === 'number' && Number.isFinite(amount) && Number.isInteger(amount) && amount > 0)) {
+    failedPrecondition('INVALID_PAYOUT_AMOUNT');
+  }
+
   // Guard against paying out more than the astrologer has actually accrued
   // (amount is client-set at request time). pendingPayout lives in the private
   // financials subdoc (off the public directory doc). Read must precede writes.
