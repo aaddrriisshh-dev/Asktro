@@ -477,6 +477,15 @@ export const onAiConsultationCreated = onDocumentCreated(
       const astro = (await db.collection('astrologers').doc(c.astrologerId).get()).data();
       if (!astro || astro.isAI !== true) return;
       const displayName = String(astro.name ?? astro.displayName ?? 'Acharya');
+      // AI-honesty disclosure (matches how the market leader discloses): an
+      // explicit, worded system notice that this chat is with an AI astrologer,
+      // written FIRST (earliest timestamp → renders at the top, then scrolls away
+      // as the conversation flows, so it discloses without dominating the screen).
+      // This is the clear, app-level disclosure that pairs with the visible "AI"
+      // badge; it is what keeps the in-character persona honest at the app level.
+      // AI chats only — this handler is already gated on astro.isAI above.
+      await writeDisclaimer(consultationId,
+        'This is an automated message to confirm that your chat has started with an AI astrologer.');
       const astroGender = astro.gender === 'female' ? 'female' : astro.gender === 'male' ? 'male' : undefined;
       // Personalise + detect a RETURNING client (cheap reads, no LLM). A returning
       // client gets a warm "welcome back — continue where we left off, or something
@@ -779,6 +788,18 @@ async function writeSystem(consultationId: string, text: string) {
   return db.collection('consultations').doc(consultationId).collection('messages').add({
     senderId: 'system',
     type: 'system',
+    text,
+    timestamp: FieldValue.serverTimestamp(),
+    delivered: true,
+    seen: true,
+  });
+}
+/** A one-time AI-disclosure notice. Distinct `type: 'disclaimer'` so the client
+ *  renders it as a subtle light-yellow line, not a grey status line or a bubble. */
+async function writeDisclaimer(consultationId: string, text: string) {
+  return db.collection('consultations').doc(consultationId).collection('messages').add({
+    senderId: 'system',
+    type: 'disclaimer',
     text,
     timestamp: FieldValue.serverTimestamp(),
     delivered: true,

@@ -207,6 +207,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                         itemCount: messages.length,
                         itemBuilder: (_, i) {
                           final m = messages[i];
+                          if (m['type'] == 'disclaimer') {
+                            return _DisclaimerLine(text: (m['text'] ?? '') as String);
+                          }
                           if (m['type'] == 'system') {
                             return _SystemLine(text: (m['text'] ?? '') as String);
                           }
@@ -991,6 +994,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                             itemCount: messages.length,
                             itemBuilder: (_, i) {
                               final m = messages[i];
+                              if (m['type'] == 'disclaimer') {
+                                return _DisclaimerLine(text: (m['text'] ?? '') as String);
+                              }
                               if (m['type'] == 'system') {
                                 return _SystemLine(text: (m['text'] ?? '') as String);
                               }
@@ -1042,6 +1048,45 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
               onRemove: _removeStaged,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A subtle, one-line AI-disclosure notice (light amber), shown once at the top
+/// of an AI chat. Deliberately understated — it discloses that the chat is with
+/// an AI astrologer without pulling the eye, the same low-key treatment the
+/// market leader uses — and scrolls up out of view as the conversation grows.
+class _DisclaimerLine extends StatelessWidget {
+  const _DisclaimerLine({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = text.trim();
+    if (t.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8E1), // light amber, low-contrast
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFF2E6BD)),
+          ),
+          // Small font on purpose: it's a longer line, kept tiny + muted so it
+          // discloses without pulling the eye (same treatment the market leader uses).
+          child: Text(
+            t,
+            textAlign: TextAlign.center,
+            style: AppTypography.caption.copyWith(
+              color: const Color(0xFF8A7A45),
+              fontSize: 10.5,
+              height: 1.3,
+            ),
+          ),
         ),
       ),
     );
