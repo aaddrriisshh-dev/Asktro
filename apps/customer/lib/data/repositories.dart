@@ -170,7 +170,15 @@ class AstrologerRepository {
     final snap = await _col.limit(500).get();
     var all = snap.docs.where(_visible).map(_map).toList()
       ..sort((a, b) => b.rating.compareTo(a.rating));
-    if (risingOnly) all = all.where((a) => a.risingStar).toList();
+    if (risingOnly) {
+      // Match the rail's never-empty rule (see watchRisingStars): show the
+      // admin-tagged Rising Stars, but before any are tagged in the portal fall
+      // back to the full list so "View all" is never empty while the rail shows
+      // astrologers. Without this the rail (with fallback) and View-all (strict)
+      // disagree — the rail lists people but View-all says "none found".
+      final tagged = all.where((a) => a.risingStar).toList();
+      all = tagged.isNotEmpty ? tagged : all;
+    }
     // "View all" from a single-kind rail stays that kind: the Verified rail
     // (humans, paid) shows only humans, "New Astrologers" (AI, free) only AI.
     if (humansOnly) all = all.where((a) => !a.isAI).toList();
