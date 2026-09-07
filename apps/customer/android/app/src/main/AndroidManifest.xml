@@ -16,6 +16,18 @@
          (avoids the Play "screen sharing / foreground service" review flag). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"
         tools:node="remove"/>
+    <!-- Agora also merges in its screen-capture SERVICE + helper ACTIVITY and a bare
+         FOREGROUND_SERVICE permission. This app never screen-shares, so a leftover
+         mediaProjection foreground service would trip the Play screen-recording /
+         foreground-service review. Strip the permission here and the two components
+         inside <application> below. NFC is pulled in by a dependency and is unused.
+         (READ_PHONE_STATE is intentionally NOT stripped — Agora uses it to pause
+         audio for an incoming phone call; it is justifiable for a calling app and
+         needs no Play permissions declaration.) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"
+        tools:node="remove"/>
+    <uses-permission android:name="android.permission.NFC"
+        tools:node="remove"/>
     <application
         android:label="Asktro Clarity"
         android:name="${applicationName}"
@@ -42,6 +54,15 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Remove Agora's unused screen-sharing components so no mediaProjection
+             (screen-recording) foreground service ships in the release bundle. We do
+             not use Agora screen sharing; see the permission strips above. -->
+        <service
+            android:name="io.agora.rtc2.extensions.MediaProjectionMgr$LocalScreenSharingService"
+            tools:node="remove" />
+        <activity
+            android:name="io.agora.rtc2.extensions.MediaProjectionMgr$LocalScreenCaptureAssistantActivity"
+            tools:node="remove" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
