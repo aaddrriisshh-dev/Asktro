@@ -35,6 +35,9 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
   bool _graceShown = false;
   bool _leftForTerminal = false;
   bool _pausedShown = false;
+  // Voice/video calls get NO free time: when the wallet hits ₹0 the server pauses
+  // the session and we END the call right away (so no un-billed talk continues).
+  bool _balanceEnded = false;
 
   CallEngine? _call;
   bool _callJoinStarted = false;
@@ -171,14 +174,26 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
     }
     if (s.warnLevel < 1) _lowBalanceShown = false;
 
-    if (s.status == ConsultationStatus.paused && !_pausedShown && mounted) {
-      await _showPaused();
+    if (s.status == ConsultationStatus.paused && !_balanceEnded && mounted) {
+      await _endForBalance();
     }
   }
 
-  Future<void> _showPaused() async {
-    _pausedShown = true;
-    await showDialog<void>(
+  /// Voice/video calls get NO free time. When the wallet hits ₹0 the server
+  /// pauses the session; we END the call immediately (audio stops at once, so no
+  /// un-billed talk continues), finalize the already-billed session, and tell the
+  /// customer they ran out of balance. There is NO resume — to continue they
+  /// recharge and start a fresh call.
+  Future<void> _endForBalance() async {
+    _balanceEnded = true;
+    _leftForTerminal = true; // we show our own message; suppress the generic end summary
+    _call?.removeListener(_onCallChanged);
+    _call?.leave();
+    _call = null;
+    // The session was billed up to the exhaustion instant; finalize it cleanly.
+    await ref.read(consultationControllerProvider(_id).notifier).end();
+    if (!mounted) return;
+    final action = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (_) => Dialog(
@@ -190,34 +205,35 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.pause_circle_filled_rounded, size: 56, color: AppColors.primary),
+              const Icon(Icons.account_balance_wallet_outlined, size: 56, color: AppColors.primary),
               const SizedBox(height: AppSpacing.md),
-              Text('Call Paused', style: AppTypography.subtitle, textAlign: TextAlign.center),
+              Text('Out of balance', style: AppTypography.subtitle, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.xs),
-              Text('Recharge now to continue the call where you left off.',
+              Text('Your balance ran out, so the call ended. Recharge to start a new call with your astrologer.',
                   style: AppTypography.caption, textAlign: TextAlign.center,),
               const SizedBox(height: AppSpacing.xl),
               PrimaryButton(
                 label: 'Recharge',
-                onPressed: () {
-                  Navigator.pop(context);
-                  _goRecharge();
-                },
+                onPressed: () => Navigator.pop(context, 'recharge'),
               ),
               const SizedBox(height: AppSpacing.sm),
               SecondaryButton(
-                label: 'End Call',
-                onPressed: () {
-                  Navigator.pop(context);
-                  _end(confirm: false);
-                },
+                label: 'Back',
+                onPressed: () => Navigator.pop(context, 'back'),
               ),
             ],
           ),
         ),
       ),
     );
-    _pausedShown = false;
+    if (!mounted) return;
+    // Recharge routes to the wallet (call screen stays underneath), then we leave
+    // the ended call screen so the customer lands back on the astrologer to call
+    // again. "Back" just leaves the ended call screen.
+    if (action == 'recharge') {
+      await context.push('/recharge');
+    }
+    if (mounted) Navigator.of(context).maybePop();
   }
 
   Future<void> _goRecharge() async {
