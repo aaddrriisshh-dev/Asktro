@@ -262,6 +262,13 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+    // Saved home pop-ups (portal-managed library; the LIVE one is mirrored into
+    // homeSections/popup which the app reads). Same contract as banners: any
+    // signed-in user may read, only admins author. Content only, nothing money.
+    match /popups/{popupId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
     match /blogs/{blogId} {
       // Signed-in users read PUBLISHED blogs; admins also read drafts. Authored
       // in the admin portal. Content only — nothing sensitive here.
