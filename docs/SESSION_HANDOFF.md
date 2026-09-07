@@ -6,6 +6,36 @@ re-deriving context._
 
 ---
 
+## 🧪 NEXT TESTING PHASE (founder's checklist) — added 7 Sept 2026
+
+Founder tested the debug build live (`flutter run`) on 7 Sept and cleared most
+of the app. These items are deferred to the NEXT testing round (to run on the
+device, ideally incl. a slow-network pass) BEFORE the final AAB:
+
+- [ ] **Voice call** — start a call, confirm it holds past 10s and stays
+  connected; astrologer + customer can hear each other.
+- [ ] **Billing per-minute** — confirm the meter charges correctly over ~1 min.
+- [ ] **Legal/consent as PRIORITY** — check Terms/Privacy/Disclaimer links open
+  readable pages, and that consent is clear, BEFORE login → home.
+- [ ] **Onboarding TWICE** — delete the founder's number, then onboard once via
+  **phone OTP** and once via **Google sign-in**; confirm details persist (no
+  "Guest") on both. (Ties to the P1 onboarding-race fix.)
+- [ ] **Home Pop-up portal management** (built 7 Sept) — on `/home-popup`:
+  Add a pop-up → appears in the Saved list → 👁 View (preview), ✎ Edit,
+  Delete, and **Go live** (only one live at a time). Confirm the live one
+  actually shows on app open and its deep-link (dropdown) navigates correctly.
+- [ ] **Rising Stars humans-only** — re-confirm in the final AAB (verified on
+  the debug build 7 Sept).
+
+Verified GOOD on 7 Sept debug build: home banners/pujas/live-sessions "Coming
+Soon", rails + View-all (Verified=humans, New=AI, Rising Stars=humans),
+AI-honesty compliance, empty Mall, OTP login + legal links, AI chat replies.
+Non-issues confirmed (debug-build-only, fine in production): OTP reCAPTCHA
+slowness, "Simulate payment (test)" button. Chat-button cold-start delay left
+as-is (no warming — founder's call).
+
+---
+
 ## ✅✅ SUBMITTED FOR REVIEW — 31 Jul 2026 (LATEST). READ THIS FIRST.
 
 **The Free-v1 was built, verified end-to-end, and SUBMITTED to Google.** Play
