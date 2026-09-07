@@ -9,13 +9,17 @@ import { DrawerFilter } from '@/components/DrawerFilter';
 import { useCardFilter } from '@/lib/useCardFilter';
 
 const msOf = (t: { toMillis?: () => number } | undefined) => t?.toMillis?.() ?? 0;
-const lastActive = (u: Row) => msOf(u.updatedAt) || msOf(u.createdAt);
-const LIVE_WINDOW = 30 * 60 * 1000; // "live" = active in the last 30 minutes
-const isLive = (m: number) => m > 0 && Date.now() - m < LIVE_WINDOW;
+// "Live" = a real presence heartbeat within the last few minutes (the customer
+// app writes presence/{uid}.lastSeen while foregrounded, and stops when closed).
+const LIVE_WINDOW = 3 * 60 * 1000;
+// The portal buckets Today/Yesterday by INDIA day (users are in IST, UTC+5:30);
+// the shared range is UTC-day-based, so shift the event time by +5:30 before
+// comparing — that makes the comparison land on the correct India day.
+const IST = 5.5 * 60 * 60 * 1000;
 
 const PAGE_OPTIONS = [10, 100, 500, 1000];
 
-function CustomerBox({ title, icon, accent, list, live }: { title: string; icon: string; accent: string; list: Row[]; live?: boolean }) {
+function CustomerBox({ title, icon, accent, list, liveSet }: { title: string; icon: string; accent: string; list: Row[]; liveSet?: Set<string> }) {
   const [limit, setLimit] = useState(10);
   const shown = list.slice(0, limit);
   return (
@@ -29,7 +33,7 @@ function CustomerBox({ title, icon, accent, list, live }: { title: string; icon:
           <div key={u.id} className="custrow">
             <div style={{ minWidth: 0 }}>
               <span className="nm">
-                {live && isLive(lastActive(u)) && <span className="live-dot" style={{ marginRight: 6 }} />}
+                {liveSet?.has(u.id) && <span className="live-dot" style={{ marginRight: 6 }} />}
                 {u.name || 'Unnamed'}
               </span>
               <span className="ph">{u.phone || u.id.slice(0, 10)}</span>
@@ -55,32 +59,57 @@ function CustomerBox({ title, icon, accent, list, live }: { title: string; icon:
 
 export default function CustomerManagementPage() {
   const { rows, loading } = useCollection('users');
+  const { rows: presenceRows } = useCollection('presence');
+  const { rows: astrologerRows } = useCollection('astrologers');
   const [search, setSearch] = useState('');
-  // Same date presets as the rest of the portal. Scopes the lists by SIGNUP date
-  // (createdAt); defaults to All Time so the view is unchanged until a range is picked.
   const { preset, setPreset, custom, setCustom, range } = useCardFilter('customers', 'allTime');
 
-  const base = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let r = rows.filter((u) => u.accountStatus !== 'deleted');
-    r = r.filter((u) => {
-      const m = msOf(u.createdAt);
-      return m >= range.start && m < range.end;
-    });
-    if (q) r = r.filter((u) => (u.name ?? '').toLowerCase().includes(q) || (u.phone ?? '').includes(q) || u.id.includes(q));
-    return r;
-  }, [rows, search, range.start, range.end]);
+  // Real-time presence: uid -> last heartbeat ms.
+  const presenceMs = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of presenceRows) m.set(p.id, msOf(p.lastSeen));
+    return m;
+  }, [presenceRows]);
 
-  const live = useMemo(() => base.filter((u) => isLive(lastActive(u))).sort((a, b) => lastActive(b) - lastActive(a)), [base]);
-  const paid = useMemo(() => base.filter((u) => ((u.totalRecharge ?? 0) as number) > 0).sort((a, b) => msOf(b.createdAt) - msOf(a.createdAt)), [base]);
-  const unpaid = useMemo(() => base.filter((u) => ((u.totalRecharge ?? 0) as number) === 0).sort((a, b) => msOf(b.createdAt) - msOf(a.createdAt)), [base]);
+  // Astrologers are NOT customers — exclude them from every customer list.
+  // (The backend now also keeps them out of `users`; this is belt-and-suspenders.)
+  const astroIds = useMemo(() => new Set(astrologerRows.map((a) => a.id)), [astrologerRows]);
+
+  // A customer's real "last active" = the most recent of their presence
+  // heartbeat, any data write (recharge/consult/profile), or signup.
+  const lastActive = (u: Row) => Math.max(presenceMs.get(u.id) ?? 0, msOf(u.updatedAt), msOf(u.createdAt));
+  const isLiveNow = (u: Row) => (presenceMs.get(u.id) ?? 0) > Date.now() - LIVE_WINDOW;
+  const inRange = (ms: number) => ms > 0 && ms + IST >= range.start && ms + IST < range.end;
+
+  // Customers only: not deleted, not an astrologer, matching the search.
+  const customers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((u) =>
+      u.accountStatus !== 'deleted'
+      && !astroIds.has(u.id)
+      && (!q || (u.name ?? '').toLowerCase().includes(q) || (u.phone ?? '').includes(q) || u.id.includes(q)),
+    );
+  }, [rows, search, astroIds]);
+
+  // LIVE is a now-metric: who is actually live right now, regardless of the date
+  // filter (a customer who signed up months ago but is live today still shows).
+  const live = useMemo(
+    () => customers.filter(isLiveNow).sort((a, b) => (presenceMs.get(b.id) ?? 0) - (presenceMs.get(a.id) ?? 0)),
+    [customers, presenceMs],
+  );
+  // Paid / Unpaid are scoped to customers ACTIVE in the selected period.
+  const activeInRange = useMemo(() => customers.filter((u) => inRange(lastActive(u))), [customers, range.start, range.end, presenceMs]);
+  const paid = useMemo(() => activeInRange.filter((u) => ((u.totalRecharge ?? 0) as number) > 0).sort((a, b) => lastActive(b) - lastActive(a)), [activeInRange]);
+  const unpaid = useMemo(() => activeInRange.filter((u) => ((u.totalRecharge ?? 0) as number) === 0).sort((a, b) => lastActive(b) - lastActive(a)), [activeInRange]);
+
+  const liveSet = useMemo(() => new Set(live.map((u) => u.id)), [live]);
 
   return (
     <div>
       <div className="uat-head">
         <div>
           <h1 style={{ marginBottom: 2 }}>Customer Management</h1>
-          <p className="muted" style={{ margin: 0, fontSize: 13 }}>Live customers, and all customers split by paid vs unpaid — by signup date ({range.label}).</p>
+          <p className="muted" style={{ margin: 0, fontSize: 13 }}>Live customers right now, plus everyone active in the selected period split by paid vs unpaid ({range.label}, India time).</p>
         </div>
         <input className="input uat-search" placeholder="Search name or phone…" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
@@ -92,13 +121,13 @@ export default function CustomerManagementPage() {
       {loading ? <p className="muted" style={{ marginTop: 16 }}>Loading…</p> : (
         <div className="cust3">
           <MobileSection title="Live Customers" defaultOpen={true}>
-            <CustomerBox title="Live Customers" icon="🟢" accent="#3cb371" list={live} live />
+            <CustomerBox title="Live Customers" icon="🟢" accent="#3cb371" list={live} liveSet={liveSet} />
           </MobileSection>
           <MobileSection title="Paid Customers" defaultOpen={false}>
-            <CustomerBox title="Paid Customers" icon="💚" accent="#2f9c63" list={paid} />
+            <CustomerBox title="Paid Customers" icon="💚" accent="#2f9c63" list={paid} liveSet={liveSet} />
           </MobileSection>
           <MobileSection title="Unpaid Customers" defaultOpen={false}>
-            <CustomerBox title="Unpaid Customers" icon="🤍" accent="#c9a227" list={unpaid} />
+            <CustomerBox title="Unpaid Customers" icon="🤍" accent="#c9a227" list={unpaid} liveSet={liveSet} />
           </MobileSection>
         </div>
       )}

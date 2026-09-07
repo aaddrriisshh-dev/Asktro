@@ -20,6 +20,7 @@ import '../promo/welcome_offer.dart';
 import '../store/store_home_screen.dart';
 import '../notifications/notifications_tab.dart';
 import '../profile/profile_tab.dart';
+import 'presence_heartbeat.dart';
 
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
@@ -310,12 +311,19 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         SystemNavigator.pop();
       },
       child: Scaffold(
-      body: IndexedStack(
-        index: index,
-        children: List.generate(
-          _tabs.length,
-          (i) => _visitedTabs.contains(i) ? _tabs[i] : const SizedBox.shrink(),
-        ),
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: index,
+            children: List.generate(
+              _tabs.length,
+              (i) => _visitedTabs.contains(i) ? _tabs[i] : const SizedBox.shrink(),
+            ),
+          ),
+          // Invisible: marks the customer "live" in the admin portal while the
+          // app is foregrounded (stops when backgrounded/closed).
+          const PresenceHeartbeat(),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
