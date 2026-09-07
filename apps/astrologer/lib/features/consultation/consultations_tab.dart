@@ -387,6 +387,11 @@ class _ConsultCard extends ConsumerWidget {
                   ],
                 ),
               ]
+              // A terminal session with no billed time (missed / expired / not
+              // connected / cancelled) — show it as ended with no charge, NOT
+              // "In progress" (that mislabel is why ended calls looked stuck).
+              else if (c.status.isTerminal)
+                Text('Ended · no charge', style: Sky.label.copyWith(fontSize: 12, color: Sky.ink3, fontWeight: FontWeight.w700))
               else if (c.status == ConsultationStatus.waiting)
                 Text('Tap to accept →', style: Sky.label.copyWith(fontSize: 12, color: Sky.gold, fontWeight: FontWeight.w700))
               else
