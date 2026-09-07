@@ -25,6 +25,16 @@ export const onAuthUserCreate = functionsV1
     const ref = db.collection(Collections.users).doc(uid);
 
     try {
+      // Astrologers are NOT customers — they must never get a `users` (customer)
+      // profile. An astrologer's auth uid == astrologers/{uid} (createAstrologer
+      // writes it) and carries a role:'astrologer' claim. Skip either signal.
+      // createAstrologer ALSO deletes any users doc minted in the create-race
+      // window, so both orderings are covered. (Admins are intentionally NOT
+      // skipped — an admin may also be a genuine customer.)
+      if ((user.customClaims as { role?: string } | undefined)?.role === 'astrologer') return;
+      const astroSnap = await db.collection(Collections.astrologers).doc(uid).get();
+      if (astroSnap.exists) return;
+
       const snap = await ref.get();
       if (snap.exists) return; // client already created it — nothing to do
 
