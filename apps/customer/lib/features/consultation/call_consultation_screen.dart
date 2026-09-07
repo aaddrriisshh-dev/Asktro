@@ -89,21 +89,27 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
   Future<void> _joinCall(Consultation c) async {
     final video = c.type == ConsultationType.video;
     final mic = await Permission.microphone.request();
+    if (!mounted) return;
     if (!mic.isGranted) {
-      _toast('Microphone permission is needed for the call.');
+      // No mic = no call. Never sit on "Connecting…" while the meter runs —
+      // tell the user and cancel the (still-ringing) request so nothing bills.
+      _toast('Microphone permission is needed for the call. Please allow it and try again.');
+      await _cancelRinging();
       return;
     }
     if (video) {
       final cam = await Permission.camera.request();
+      if (!mounted) return;
       if (!cam.isGranted) {
-        _toast('Camera permission is needed for a video call.');
+        _toast('Camera permission is needed for a video call. Please allow it and try again.');
+        await _cancelRinging();
         return;
       }
     }
-    if (!mounted) return;
     final engine = CallEngine()..addListener(_onCallChanged);
     _call = engine;
     final tok = await ref.read(rtcTokenServiceProvider).tokenFor(c.id);
+    if (!mounted) return;
     tok.when(
       success: (cred) => engine.join(
         appId: cred.appId,
@@ -112,7 +118,15 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
         uid: cred.uid,
         video: video,
       ),
-      failure: (f) => _toast('Could not connect the call: ${f.message}'),
+      failure: (f) {
+        // No call token → tear down the half-built engine and cancel the call,
+        // so the customer is never stuck "Connecting…" or billed for silence.
+        engine.removeListener(_onCallChanged);
+        engine.leave();
+        _call = null;
+        _toast('Could not connect the call: ${f.message}');
+        _cancelRinging();
+      },
     );
   }
 
