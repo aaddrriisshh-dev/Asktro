@@ -207,6 +207,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                         itemCount: messages.length,
                         itemBuilder: (_, i) {
                           final m = messages[i];
+                          if (m['type'] == 'userinfo') {
+                            return _Bubble(text: (m['text'] ?? '') as String, mine: true, seen: true);
+                          }
                           if (m['type'] == 'disclaimer') {
                             return _DisclaimerLine(text: (m['text'] ?? '') as String);
                           }
@@ -994,6 +997,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                             itemCount: messages.length,
                             itemBuilder: (_, i) {
                               final m = messages[i];
+                              if (m['type'] == 'userinfo') {
+                                return _Bubble(text: (m['text'] ?? '') as String, mine: true, seen: true);
+                              }
                               if (m['type'] == 'disclaimer') {
                                 return _DisclaimerLine(text: (m['text'] ?? '') as String);
                               }

@@ -477,15 +477,6 @@ export const onAiConsultationCreated = onDocumentCreated(
       const astro = (await db.collection('astrologers').doc(c.astrologerId).get()).data();
       if (!astro || astro.isAI !== true) return;
       const displayName = String(astro.name ?? astro.displayName ?? 'Acharya');
-      // AI-honesty disclosure (matches how the market leader discloses): an
-      // explicit, worded system notice that this chat is with an AI astrologer,
-      // written FIRST (earliest timestamp → renders at the top, then scrolls away
-      // as the conversation flows, so it discloses without dominating the screen).
-      // This is the clear, app-level disclosure that pairs with the visible "AI"
-      // badge; it is what keeps the in-character persona honest at the app level.
-      // AI chats only — this handler is already gated on astro.isAI above.
-      await writeDisclaimer(consultationId,
-        'This is an automated message to confirm that your chat has started with an AI astrologer.');
       const astroGender = astro.gender === 'female' ? 'female' : astro.gender === 'male' ? 'male' : undefined;
       // Personalise + detect a RETURNING client (cheap reads, no LLM). A returning
       // client gets a warm "welcome back — continue where we left off, or something
@@ -493,6 +484,18 @@ export const onAiConsultationCreated = onDocumentCreated(
       // if they choose to continue). A first-timer gets a simple warm greeting.
       const userData = (await db.collection('users').doc(c.customerId).get()).data() ?? {};
       const first = firstName(userData.name) ?? '';
+      // Opening sequence (mirrors the market leader): the client's birth details as
+      // their own first bubble → the AI-disclosure notice → "joining…"/"joined" →
+      // greeting. The details line is DISPLAY-ONLY (senderId 'system', type
+      // 'userinfo'): it is never a customer message, so it neither triggers a reply
+      // (onAiChatMessage gates on senderId === customerId) nor any billing.
+      const details = buildBirthDetails(userData);
+      if (details) await writeUserInfo(consultationId, details);
+      // AI-honesty disclosure — an explicit, worded notice that this chat is with
+      // an AI astrologer; the clear app-level disclosure that pairs with the visible
+      // "AI" badge. AI chats only (this handler is gated on astro.isAI above).
+      await writeDisclaimer(consultationId,
+        'This is an automated message to confirm that your chat has started with an AI astrologer.');
       // The session's discipline for the OPENER: a skill entered via a tile
       // overrides the persona's default (so a Numerology-tagged Vedic astrologer
       // opens numerology-led), else the astrologer's own tradition.
@@ -806,6 +809,54 @@ async function writeDisclaimer(consultationId: string, text: string) {
     seen: true,
   });
 }
+/** The client's birth details shown as their own opening bubble (like the market
+ *  leader). DISPLAY-ONLY: senderId 'system' + type 'userinfo' so it is NOT a
+ *  customer message — it never triggers an AI reply or any billing; the client
+ *  renders `userinfo` right-aligned like a sent message. */
+async function writeUserInfo(consultationId: string, text: string) {
+  return db.collection('consultations').doc(consultationId).collection('messages').add({
+    senderId: 'system',
+    type: 'userinfo',
+    text,
+    timestamp: FieldValue.serverTimestamp(),
+    delivered: true,
+    seen: true,
+  });
+}
+const _MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+  'August', 'September', 'October', 'November', 'December'];
+/** "21 September 1991" in IST (mirrors birthIso's IST shift). */
+function fmtBirthDate(ms: number): string {
+  const d = new Date(ms + IST_MS);
+  return `${d.getUTCDate()} ${_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+/** "14:40" → "02:40 PM". */
+function fmtBirthTime(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  if (Number.isNaN(h)) return hhmm;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return `${two(hr)}:${two(Number.isNaN(m) ? 0 : m)} ${ampm}`;
+}
+/** Build the opening "Below are my details" block from the user's saved profile,
+ *  using readable labels. Returns '' if there is nothing worth showing. */
+function buildBirthDetails(u: Record<string, unknown>): string {
+  const name = str(u.name)?.trim();
+  const genderRaw = str(u.gender)?.trim();
+  const gender = genderRaw ? genderRaw[0].toUpperCase() + genderRaw.slice(1) : '';
+  const dobMs = num(u.birthDateMs);
+  const timeKnown = u.birthTimeKnown !== false;
+  const birthTime = str(u.birthTime);
+  const place = str(u.birthPlace)?.trim();
+  const lines = ['Hi,', 'Below are my details:'];
+  if (name) lines.push(`Name: ${name}`);
+  if (gender) lines.push(`Gender: ${gender}`);
+  if (dobMs) lines.push(`Date of birth: ${fmtBirthDate(dobMs)}`);
+  lines.push(`Time of birth: ${timeKnown && birthTime ? fmtBirthTime(birthTime) : 'Not known'}`);
+  if (place) lines.push(`Place of birth: ${place}`);
+  // Only worth showing if we actually have some birth data beyond the header.
+  return lines.length > 2 ? lines.join('\n') : '';
+}
 /**
  * Id of the newest CUSTOMER message — used to bail only when a newer message
  * FROM THE USER superseded us. It ignores the astrologer's OWN replies: a
@@ -846,7 +897,14 @@ async function loadBurstAndHistory(
   const docs = q.docs.map((d) => d.data() as Record<string, unknown>);
   const usable = (m: Record<string, unknown>): string | null => {
     const t = String(m.text ?? '').trim();
-    return t && m.type !== 'image' && m.type !== 'system' ? t : null;
+    // Exclude non-conversation messages from the AI's context: images, the grey
+    // status lines (system), the AI-disclosure notice (disclaimer) and the
+    // display-only birth-details bubble (userinfo) — the last two are UI, not
+    // turns, and must never leak into the prompt (the disclosure text especially).
+    return t &&
+      m.type !== 'image' && m.type !== 'system' &&
+      m.type !== 'disclaimer' && m.type !== 'userinfo'
+      ? t : null;
   };
   // Trailing run of the customer's own messages (newest-first) = settled burst.
   // Photos the customer sent in that run don't end the burst; we keep up to the
