@@ -459,7 +459,22 @@ that bar and close the open items.
 - Confirm the founder's admin account role (Super) is correct and least-privilege
   for others.
 
-### 9.6 Privacy & data
+### 9.6 Play Billing vs Razorpay for wallet recharge (VERIFY — real policy risk)
+The Play Console dashboard prompts "To monetise this app, set up a merchant
+account" — that's Google nudging us toward **Google Play Billing (IAP)**. We use
+**Razorpay** for wallet recharge + Mall. Google's **Payments policy** generally
+requires Play Billing for in-app purchases of **digital** content/services, with
+limited exemptions (physical goods/services are exempt; some categories differ).
+Astrology consultations sit in a gray area, and market apps navigate it various
+ways. **v2 passing automated review does NOT prove long-term payments-policy
+compliance** — Google can flag it later. Action: research where consultation
+credit + Mall fall under the current Payments policy, confirm Razorpay is
+permissible (or which parts need Play Billing), and document the basis. Do this
+early — it affects the whole money model, including the AI paid engine (§2).
+Mall (physical remedies/products) is likely exempt (physical goods); the wallet/
+consult credit is the part to verify.
+
+### 9.7 Privacy & data
 - In-app privacy policy is accurate (Firebase, Razorpay, Agora, ProKerala,
   Gemini, Nominatim). Website privacy policy: add the Nominatim line (§7).
 - Birth data + phone are PII — retention/TTL policies in place; account-deletion
