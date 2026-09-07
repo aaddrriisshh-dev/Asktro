@@ -97,15 +97,22 @@ class AstrologerRepository {
       .limit(100)
       .snapshots()
       .map((s) {
-        final docs = s.docs.where(_visible).toList();
-        final tagged = docs
+        // Rising Stars is a HUMANS-ONLY, admin-curated rail — AI personas are
+        // never eligible.
+        final humans = s.docs
+            .where(_visible)
+            .where((d) => (d.data()['isAI'] ?? false) != true)
+            .toList();
+        final tagged = humans
             .where((d) => (d.data()['risingStar'] ?? false) == true)
             .map(_map)
             .toList()
           ..sort((a, b) => b.rating.compareTo(a.rating));
         if (tagged.isNotEmpty) return tagged.take(limit).toList();
-        docs.sort((a, b) => _createdMs(b).compareTo(_createdMs(a)));
-        return docs.take(limit).map(_map).toList();
+        // Before any human is tagged Rising Star in the portal, fall back to the
+        // newest human joiners so the rail is never empty (still never AI).
+        humans.sort((a, b) => _createdMs(b).compareTo(_createdMs(a)));
+        return humans.take(limit).map(_map).toList();
       });
 
   Stream<List<Astrologer>> watchNewest({int limit = 10}) => _col
@@ -171,13 +178,12 @@ class AstrologerRepository {
     var all = snap.docs.where(_visible).map(_map).toList()
       ..sort((a, b) => b.rating.compareTo(a.rating));
     if (risingOnly) {
-      // Match the rail's never-empty rule (see watchRisingStars): show the
-      // admin-tagged Rising Stars, but before any are tagged in the portal fall
-      // back to the full list so "View all" is never empty while the rail shows
-      // astrologers. Without this the rail (with fallback) and View-all (strict)
-      // disagree — the rail lists people but View-all says "none found".
-      final tagged = all.where((a) => a.risingStar).toList();
-      all = tagged.isNotEmpty ? tagged : all;
+      // Rising Stars = HUMANS ONLY, admin-curated (never AI). Prefer the tagged
+      // humans; before any are tagged in the portal, fall back to all humans so
+      // "View all" is never empty and matches the rail (see watchRisingStars).
+      final humans = all.where((a) => !a.isAI).toList();
+      final tagged = humans.where((a) => a.risingStar).toList();
+      all = tagged.isNotEmpty ? tagged : humans;
     }
     // "View all" from a single-kind rail stays that kind: the Verified rail
     // (humans, paid) shows only humans, "New Astrologers" (AI, free) only AI.
