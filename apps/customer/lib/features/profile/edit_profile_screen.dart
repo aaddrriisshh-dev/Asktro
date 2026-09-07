@@ -45,6 +45,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Timer? _placeDebounce;
   List<PlaceResult> _placeResults = const [];
   bool _placeLoading = false;
+  // True once a search has finished for the current text and returned nothing —
+  // so we can tell the user "no match, pick from the list" instead of leaving a
+  // silent dead-end (the confusing case: a spelling/script the atlas lacks).
+  bool _placeNoMatch = false;
+  // Set when Save is blocked because the typed place has no coordinates — shown
+  // as a visible red line under the field (a snackbar behind the bottom bar was
+  // being missed).
+  String? _placeError;
   double? _birthLat;
   double? _birthLng;
   // The originally-saved place + coords. Typing in the place box nulls the live
@@ -116,11 +124,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
     // The app REQUIRES a birth place with coordinates (astrology engine + the
     // home gate). Refuse to save without them — otherwise saving would erase the
-    // coordinates and silently eject the user back into onboarding.
+    // coordinates and silently eject the user back into onboarding. Surface the
+    // reason RIGHT AT the field (red line) so it can't be missed, and never leave
+    // the button in a limbo state.
     if (placeText.isEmpty || _birthLat == null || _birthLng == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Please pick your birth place from the suggestions so your chart stays accurate.'),
-      ));
+      setState(() {
+        _placeError = placeText.isEmpty
+            ? 'Enter your birth place and pick a city from the list.'
+            : 'Tap a city from the dropdown list so your chart stays accurate. '
+                'If nothing appears, check the spelling (English works best).';
+      });
       return;
     }
     setState(() => _saving = true);
@@ -236,23 +249,37 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     // only trustworthy for a place chosen from the geocoded suggestions.
     _birthLat = null;
     _birthLng = null;
+    _placeError = null; // clear any prior "pick from the list" warning
     _placeDebounce?.cancel();
     final q = v.trim();
     if (q.length < 2) {
       setState(() {
         _placeResults = const [];
         _placeLoading = false;
+        _placeNoMatch = false;
       });
       return;
     }
-    setState(() => _placeLoading = true);
+    setState(() {
+      _placeLoading = true;
+      _placeNoMatch = false;
+    });
     _placeDebounce = Timer(const Duration(milliseconds: 450), () async {
-      final r = await _placeService.search(q);
-      if (!mounted || q != _place.text.trim()) return;
-      setState(() {
-        _placeResults = r;
-        _placeLoading = false;
-      });
+      List<PlaceResult> r = const [];
+      try {
+        r = await _placeService.search(q);
+      } finally {
+        // Always clear the spinner for the current query — a slow/empty online
+        // fallback must never leave the field spinning forever (the bug the
+        // founder hit typing a place the atlas didn't have).
+        if (mounted && q == _place.text.trim()) {
+          setState(() {
+            _placeResults = r;
+            _placeLoading = false;
+            _placeNoMatch = r.isEmpty;
+          });
+        }
+      }
     });
   }
 
@@ -479,7 +506,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       _place.selection = TextSelection.collapsed(offset: r.label.length);
                       _birthLat = r.lat;
                       _birthLng = r.lon;
-                      setState(() => _placeResults = const []);
+                      setState(() {
+                        _placeResults = const [];
+                        _placeNoMatch = false;
+                        _placeError = null;
+                      });
                       FocusScope.of(context).unfocus();
                     },
                     child: Padding(
@@ -492,6 +523,25 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ),
                   ),
               ],
+            ),
+          ),
+        // A visible reason under the field — replaces the easily-missed snackbar
+        // and the silent dead-end. Red when Save was blocked; a soft hint when a
+        // search found nothing so the user knows to pick from the list / fix the
+        // spelling rather than staring at an empty box.
+        if (_placeError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(_placeError!,
+                style: Ob.note.copyWith(color: const Color(0xFFD25360), fontSize: 12.5)),
+          )
+        else if (_placeNoMatch)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              'No matching city found. Pick one from the list as you type — '
+              'if it doesn’t show, try the English spelling.',
+              style: Ob.note.copyWith(color: Ob.grey, fontSize: 12.5),
             ),
           ),
       ],
