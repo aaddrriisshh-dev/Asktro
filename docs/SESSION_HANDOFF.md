@@ -55,6 +55,21 @@ Deferred (not launch blockers): Node 20→22 runtime (before 30 Oct 2026, also
 unblocks the onAuthUserCreate deploy), dashboard count-cards excluding
 astrologers/admins server-side, per-message push to the astrologer.
 
+### POST-LAUNCH FAST-FOLLOW #1 (founder decision 7 Sept) — reliable locked-phone call/chat alerts
+Founder chose: **submit v2 now, build this right after.** On aggressive OEMs
+(tested on his Samsung) an incoming call/chat push to a LOCKED phone is
+delayed 15–20s (Doze + Cloud Function cold start) — the push DOES arrive with
+sound (channel is fine), just too late. Robust fix = (a) `minInstances` warm
+pool on `createConsultation` + `onNotificationCreated` (kills cold-start
+seconds), and (b) a native **full-screen-intent** incoming-call (high-priority
+DATA message + screen wake) so a locked phone rings instantly like WhatsApp.
+Real native work + on-device testing across several phones. NOT a Play blocker
+(calls/chats work with the app open).
+
+Already shipped this session in the ASTROLOGER app (sideloaded, not Play):
+in-app chat chime + haptic, battery-optimization prompt, ring-on-app-open for
+a fresh pending call, incoming_consult ringing channel (native).
+
 Verified GOOD on 7 Sept debug build: home banners/pujas/live-sessions "Coming
 Soon", rails + View-all (Verified=humans, New=AI, Rising Stars=humans),
 AI-honesty compliance, empty Mall, OTP login + legal links, AI chat replies.
