@@ -47,13 +47,29 @@ class _IncomingCallGateState extends ConsumerState<IncomingCallGate> {
           rows.where((r) => r.c.status == ConsultationStatus.waiting).toList();
       final waitingIds = waiting.map((r) => r.c.id).toSet();
 
-      // First real snapshot establishes the baseline — never ring for requests
-      // that were already pending when the app opened.
+      // First real snapshot establishes the baseline. We DON'T re-ring old
+      // pending requests on every app open — but we DO ring once if the
+      // astrologer opened the app to a genuinely FRESH pending call (e.g. the
+      // call arrived while the app was closed / the phone was locked, and they
+      // tapped in). Only a call, only within the request window, only online.
       if (!_seeded) {
+        _seeded = true;
         _known
           ..clear()
           ..addAll(waitingIds);
-        _seeded = true;
+        if (widget.self.onlineStatus && !_ringing) {
+          SessionRow? freshCall;
+          for (final r in waiting) {
+            final isCall = r.c.type == ConsultationType.voice || r.c.type == ConsultationType.video;
+            if (!isCall) continue;
+            final ageMs = DateTime.now().millisecondsSinceEpoch - (r.createdAtMs ?? 0);
+            if (ageMs >= 100000) continue; // stale — the server will expire it
+            if (freshCall == null || (r.createdAtMs ?? 0) > (freshCall.createdAtMs ?? 0)) {
+              freshCall = r; // ring the most recent fresh call
+            }
+          }
+          if (freshCall != null) _ring(freshCall);
+        }
         return;
       }
 
