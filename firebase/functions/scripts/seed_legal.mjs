@@ -35,7 +35,7 @@ const YES = process.argv.includes('--yes');
 
 const PRIVACY = `ASKTRO — PRIVACY POLICY
 
-Last updated: 20 July 2026
+Last updated: 5 September 2026
 
 This Privacy Policy explains how Asktro Tech Private Limited ("Asktro", "we", "us" or "our") collects, uses, discloses and protects your information when you use the Asktro mobile application and related services (collectively, the "Platform"). Asktro provides astrology consultations and related content. By creating an account or using the Platform, you consent to the practices described in this Policy. If you do not agree, please do not use the Platform.
 
@@ -101,7 +101,7 @@ For any questions about this Policy or your data, contact us at support@asktro.i
 
 const TERMS = `ASKTRO — TERMS OF SERVICE
 
-Last updated: 20 July 2026
+Last updated: 5 September 2026
 
 These Terms of Service ("Terms") are a legally binding agreement between you and Asktro Tech Private Limited ("Asktro", "we", "us" or "our") governing your access to and use of the Asktro mobile application and related services (the "Platform"). By creating an account or using the Platform, you agree to these Terms and to our Privacy Policy. If you do not agree, do not use the Platform.
 
@@ -160,7 +160,7 @@ Questions about these Terms may be sent to support@asktro.in.
 
 const DISCLAIMER = `ASKTRO — DISCLAIMER
 
-Last updated: 20 July 2026
+Last updated: 5 September 2026
 
 1. FOR GUIDANCE AND ENTERTAINMENT ONLY
 All astrology content, readings, predictions, horoscopes, birth charts, remedies and consultations provided on the Asktro platform ("Platform") are intended for guidance, self-reflection and entertainment purposes only. They are NOT a substitute for professional advice of any kind — medical, psychological, psychiatric, legal, financial or otherwise. You should always seek the advice of a qualified professional for any such matters, and you should never disregard or delay seeking professional advice because of anything you read or hear on the Platform.
