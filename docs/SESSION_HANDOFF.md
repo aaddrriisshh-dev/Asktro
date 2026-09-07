@@ -70,6 +70,29 @@ Already shipped this session in the ASTROLOGER app (sideloaded, not Play):
 in-app chat chime + haptic, battery-optimization prompt, ring-on-app-open for
 a fresh pending call, incoming_consult ringing channel (native).
 
+### PRE-SUBMISSION AUDIT (7 Sept) — 5 parallel deep audits, all findings + fixes
+Ran 5 code-verified audits (customer crash/robustness, money/billing, Mall/
+portal e-commerce, backend scalability/security, feature-completeness). Verdict:
+fundamentally solid — money server-only + idempotent, no data leaks, features
+complete, video truly hidden, Mall + image-compression solid. FIXED this pass:
+- [x] BLOCKER: Edit Profile wiped birth coords → ejected to onboarding (v1-class
+  data loss, in the Edit screen). Fixed (preserve coords + refuse save w/o them).
+- [x] Voice call stuck 'Connecting…' on mic/token failure → now cancels cleanly.
+- [x] Resume an open voice call opened chat → now opens the call screen.
+- [x] Payout amount unvalidated (negative could inflate pendingPayout) → validated
+  in applyPayoutDecision + payouts create rule.
+- [x] FCM registration logged FATAL crashes on broken Play Services → guarded.
+- [x] Login 'Continue' could hang on a rare SDK throw → guarded.
+- [x] Ended calls mislabeled 'In progress' in astrologer Completed tab → now
+  'Ended · no charge' (display-only; sessions were already terminal).
+DEFERRED (minor, post-launch): store list swallows load errors; soft small
+thumbnails; report-content rate limit; astrologer-rating rules gap; dailyStats
+hot-doc shard; auto-resume 15s dead-air; grace-in-any-bucket; /otp arg guard;
+delete-dialog controller leak; non-existent astrologer blank page.
+CONFIG to confirm: founder's admin account = Super (to stock Mall); TTL policies
+enabled (rateLimits/dailyStats applied). Also fast-follow: bill only real
+talk-time (meter starts when call truly LIVE, not on accept) — founder approved.
+
 Verified GOOD on 7 Sept debug build: home banners/pujas/live-sessions "Coming
 Soon", rails + View-all (Verified=humans, New=AI, Rising Stars=humans),
 AI-honesty compliance, empty Mall, OTP login + legal links, AI chat replies.
