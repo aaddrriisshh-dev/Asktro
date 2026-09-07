@@ -26,6 +26,34 @@ device, ideally incl. a slow-network pass) BEFORE the final AAB:
   actually shows on app open and its deep-link (dropdown) navigates correctly.
 - [ ] **Rising Stars humans-only** — re-confirm in the final AAB (verified on
   the debug build 7 Sept).
+- [ ] **"Live" heartbeat** — run the updated app → open portal Customer page →
+  you appear under "Live Customers" → close the app → you drop off within ~3 min.
+- [ ] **Portal — astrologers gone** from Users Activity AND Customer Management
+  (verified once on 7 Sept; re-glance after any data change).
+- [ ] **Portal — Home Pop-up** management: Add → Saved list → View / Edit /
+  Delete / Go-live; live preview; deep-link dropdown; the Live one shows on app
+  open and its deep-link navigates.
+- [ ] **Portal — Banner edit** (change deep link/image) + **Mall hero "use
+  default image"** + **Delete astrologer** button all work.
+- [ ] **Final signed AAB only:** "Simulate payment (test)" is GONE (real
+  Razorpay only) and OTP is fast/silent (no reCAPTCHA) — both are debug-only.
+
+### Pending deploys / actions (not tests) — 7 Sept 2026
+- [ ] **onAuthUserCreate** function — retry after a ~30-min cooldown (a stuck
+  1st-Gen "operation in progress" lock; repeated retries kept re-locking it).
+  NON-blocking: astrologers-not-customers is already delivered by
+  createAstrologer + the cleanup script + the portal filter.
+- [x] createAstrologer deployed; removeAstrologerUserDocs.js run (4 removed);
+  firestore rules (popups) deployed; portal (Vercel) deployed with Home Pop-up
+  list + new Customer page.
+- [ ] **Legal pages live** on asktro.in/privacy,/terms,/disclaimer,
+  /account-deletion (sent to web developer).
+- [ ] **Build the final AAB** (folds in all app changes: Rising Stars, presence
+  heartbeat, onboarding gate) → smoke test → submit → staged rollout.
+
+Deferred (not launch blockers): Node 20→22 runtime (before 30 Oct 2026, also
+unblocks the onAuthUserCreate deploy), dashboard count-cards excluding
+astrologers/admins server-side, per-message push to the astrologer.
 
 Verified GOOD on 7 Sept debug build: home banners/pujas/live-sessions "Coming
 Soon", rails + View-all (Verified=humans, New=AI, Rising Stars=humans),
