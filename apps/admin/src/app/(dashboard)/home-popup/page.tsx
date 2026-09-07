@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ImageUpload } from '@/components/ImageUpload';
+import { PromoPreview } from '@/components/PromoPreview';
+import { DeepLinkSelect } from '@/components/DeepLinkSelect';
 import { PROMO_THEMES } from '@/lib/promoThemes';
 
 type Audience = 'all' | 'paid' | 'unpaid';
@@ -116,6 +118,22 @@ export default function HomePopupPage() {
     }
   };
 
+  // Delete = take the live pop-up down and clear the fields. We overwrite the
+  // doc with DEFAULTS (active:false) rather than removing it, so the app keeps
+  // reading a valid "inactive" doc it already handles — no risk of a missing-doc
+  // edge case in the app.
+  const remove = async () => {
+    if (!confirm('Delete this pop-up? It stops showing in the app and clears these fields.')) return;
+    setSaving(true);
+    try {
+      await setDoc(doc(db, 'homeSections', 'popup'), { ...DEFAULTS, updatedAt: serverTimestamp() });
+      setForm(DEFAULTS);
+      setSavedAt(null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!loaded) return <p className="muted">Loading…</p>;
 
   const audiences: [Audience, string][] = [
@@ -125,14 +143,22 @@ export default function HomePopupPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 720 }}>
+    <div>
       <h1 style={{ marginBottom: 2 }}>Home Pop-up Banner</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>
         A pop-up that greets people when they open the app. Target paid or unpaid users, choose the look,
         add an image and a button. Changes go live instantly — no rebuild. Shown once per app launch.
       </p>
 
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 8px' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'minmax(0,0.82fr) minmax(0,1.18fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
+        {/* LEFT — live preview of exactly what the pop-up will look like in the app */}
+        <PromoPreview kind={form.code.trim() ? 'coupon' : 'push'} theme={form.theme}
+          title={form.title} body={form.body} image={form.image} imageStyle={form.imageStyle}
+          displayMode={form.displayMode} ctaText={form.ctaLabel} code={form.code} imageFill={form.imageFill} />
+
+        {/* RIGHT — everything you edit */}
+        <div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 8px' }}>
         <input type="checkbox" checked={form.active} onChange={(e) => set('active', e.target.checked)} />
         <strong>Show this pop-up on the home screen</strong>
       </label>
@@ -198,8 +224,8 @@ export default function HomePopupPage() {
           </Field>
         </div>
 
-        <Field label="Button opens (deep link — e.g. /recharge, /store, /wallet)">
-          <input className="input" value={form.deeplink} placeholder="/recharge" onChange={(e) => set('deeplink', e.target.value)} />
+        <Field label="Button opens — pick a destination">
+          <DeepLinkSelect value={form.deeplink} onChange={(v) => set('deeplink', v)} />
         </Field>
 
         <Field label="Image (optional)">
@@ -231,12 +257,15 @@ export default function HomePopupPage() {
         <span className="muted" style={{ fontSize: 12 }}>Fills the fields with the current ₹77 welcome offer — tweak &amp; save.</span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
         <button className="btn" onClick={save} disabled={saving}>
           {saving ? 'Saving…' : 'Save & publish'}
         </button>
+        <button className="btn secondary danger" onClick={remove} disabled={saving}>🗑 Delete pop-up</button>
         {savedAt && <span className="muted" style={{ fontSize: 13 }}>Saved at {savedAt}</span>}
       </div>
+        </div>{/* /right column */}
+      </div>{/* /grid */}
     </div>
   );
 }
