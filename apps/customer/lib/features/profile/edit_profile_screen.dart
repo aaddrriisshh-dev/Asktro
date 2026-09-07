@@ -47,6 +47,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   bool _placeLoading = false;
   double? _birthLat;
   double? _birthLng;
+  // The originally-saved place + coords. Typing in the place box nulls the live
+  // coords (they're only trustworthy for a picked suggestion), so we keep the
+  // originals to restore them when the place wasn't actually changed — never
+  // silently wipe valid birth coordinates.
+  String _origPlace = '';
+  double? _origLat;
+  double? _origLng;
 
   bool _prefilled = false;
   bool _saving = false;
@@ -66,6 +73,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _place.text = p.birthPlace ?? '';
     _birthLat = p.birthLat;
     _birthLng = p.birthLng;
+    _origPlace = (p.birthPlace ?? '').trim();
+    _origLat = p.birthLat;
+    _origLng = p.birthLng;
     _gender = p.gender;
     _birthDate = p.birthDate;
     _timeKnown = p.birthTimeKnown;
@@ -91,6 +101,26 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     if (name.isEmpty) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Please enter your name.')));
+      return;
+    }
+    final placeText = _place.text.trim();
+    // Typing in the place box nulls the live coords. If the place wasn't actually
+    // changed (same text as saved, or the geocoder couldn't re-suggest it), keep
+    // the original coordinates rather than wiping them.
+    if ((_birthLat == null || _birthLng == null) &&
+        placeText == _origPlace &&
+        _origLat != null &&
+        _origLng != null) {
+      _birthLat = _origLat;
+      _birthLng = _origLng;
+    }
+    // The app REQUIRES a birth place with coordinates (astrology engine + the
+    // home gate). Refuse to save without them — otherwise saving would erase the
+    // coordinates and silently eject the user back into onboarding.
+    if (placeText.isEmpty || _birthLat == null || _birthLng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please pick your birth place from the suggestions so your chart stays accurate.'),
+      ));
       return;
     }
     setState(() => _saving = true);

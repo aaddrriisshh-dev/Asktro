@@ -12,15 +12,17 @@ class MessagingService {
   final UserRepository _users;
 
   Future<void> registerFor(String uid) async {
-    await _messaging.requestPermission();
-    final token = await _messaging.getToken();
-    // Guard the Firestore token write: if it runs before auth has fully settled
-    // (or just after sign-out), the write is permission-denied and, unguarded,
-    // crashes app startup. Best-effort — a missed token just means the next
-    // launch/refresh re-registers it.
+    // requestPermission()/getToken() can THROW on devices with missing or broken
+    // Play Services / Firebase Installations errors. Unguarded, that rejected
+    // future surfaces as an uncaught async error → logged as a FATAL crash in
+    // Crashlytics even though nothing user-facing broke (it deflates the
+    // crash-free metric Google watches). Guard the whole registration —
+    // best-effort; a missed token just re-registers on the next launch/refresh.
     try {
+      await _messaging.requestPermission();
+      final token = await _messaging.getToken();
       if (token != null) await _users.registerFcmToken(uid, token);
-    } catch (_) {/* non-fatal */}
+    } catch (_) {/* non-fatal — never crash startup over push registration */}
     _messaging.onTokenRefresh.listen((t) => _users.registerFcmToken(uid, t).catchError((_) {}));
     // Subscribe to the all-users topic so mass broadcasts reach this device via
     // a single topic message (no per-user fan-out on the server).

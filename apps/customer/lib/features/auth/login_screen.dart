@@ -55,25 +55,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
     });
     final e164 = '+91${_phone.text.trim()}';
-    await ref.read(authControllerProvider).startPhoneVerification(
-      e164Phone: e164,
-      codeSent: (verificationId, resendToken) {
-        if (!mounted) return;
-        setState(() => _loading = false);
-        context.push('/otp',
-            extra: OtpArgs(phone: e164, verificationId: verificationId, resendToken: resendToken),);
-      },
-      onAutoVerified: (_) {
-        if (mounted) context.go('/home');
-      },
-      onError: (failure) {
-        if (!mounted) return;
-        setState(() {
-          _loading = false;
-          _error = failure.message;
-        });
-      },
-    );
+    try {
+      await ref.read(authControllerProvider).startPhoneVerification(
+        e164Phone: e164,
+        codeSent: (verificationId, resendToken) {
+          if (!mounted) return;
+          setState(() => _loading = false);
+          context.push('/otp',
+              extra: OtpArgs(phone: e164, verificationId: verificationId, resendToken: resendToken),);
+        },
+        onAutoVerified: (_) {
+          if (mounted) context.go('/home');
+        },
+        onError: (failure) {
+          if (!mounted) return;
+          setState(() {
+            _loading = false;
+            _error = failure.message;
+          });
+        },
+      );
+    } catch (_) {
+      // If verifyPhoneNumber throws outright (rare SDK/transport error) instead
+      // of invoking onError, reset so the button never stays stuck spinning.
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Something went wrong. Please try again.';
+      });
+    }
   }
 
   Future<void> _social(Future<Result<void>> Function() action) async {

@@ -4,6 +4,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 
 import '../../app/providers.dart';
 import '../../app/feature_flags.dart';
+import '../consultation/call_consultation_screen.dart';
 import '../consultation/chat_consultation_screen.dart';
 
 /// Consultation history for the current customer (Part 3).
@@ -85,6 +86,15 @@ class _HistoryTile extends ConsumerWidget {
 
     void openChat() {
       if (astro == null) return;
+      // A still-OPEN voice/video call must resume into the CALL screen, not the
+      // chat screen (previously every resume opened chat, breaking call resume).
+      final isCall = c.type == ConsultationType.voice || c.type == ConsultationType.video;
+      if (open && isCall) {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => CallConsultationScreen(consultationId: c.id, astrologer: astro),
+        ),);
+        return;
+      }
       Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => ChatConsultationScreen(
           consultationId: c.id,
