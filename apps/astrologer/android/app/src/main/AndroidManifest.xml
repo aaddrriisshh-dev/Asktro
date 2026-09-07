@@ -3,6 +3,10 @@
     <!-- Required to show incoming-request notifications on Android 13+ and to buzz. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Lets the app ask to be exempted from battery optimization so incoming
+         call/chat pushes reliably wake a locked phone (staff app for astrologers;
+         real-time consultation delivery). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <!-- Voice/video calls (Agora RTC). -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>

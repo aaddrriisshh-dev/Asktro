@@ -7,6 +7,7 @@ import '../../app/providers.dart';
 import '../../ui/celestial.dart';
 import 'home_tab.dart';
 import 'presence_heartbeat.dart';
+import 'battery_optimization_prompt.dart';
 import '../consultation/consultations_tab.dart';
 import '../wallet/wallet_tab.dart';
 import '../notifications/notifications_tab.dart';
@@ -127,6 +128,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 // Invisible sentinel: presence heartbeat so a crashed/dropped app
                 // is forced offline server-side (no "ghost online").
                 PresenceHeartbeat(uid: astrologer.id),
+                // Invisible: asks to exempt the app from battery optimization so
+                // incoming call/chat pushes reliably wake a locked phone.
+                const BatteryOptimizationPrompt(),
               ],
             ),
           ),
