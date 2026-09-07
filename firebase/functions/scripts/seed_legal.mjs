@@ -50,11 +50,11 @@ Asktro Tech Private Limited is the data fiduciary responsible for your personal 
    • Birth details — your date of birth, time of birth and place of birth, along with gender, relationship status and preferred languages. These are used to generate your astrological charts and readings and constitute sensitive personal data, which we process only with your consent.
    • Consultation content — the messages, questions and information you share during chat or call consultations with astrologers.
 (b) Transaction information — wallet balance, recharge history, coupons applied, amounts charged per consultation, and payment status. Card, UPI and bank details are collected and processed directly by our payment gateway and are not stored by Asktro.
-(c) Information collected automatically — device model, operating system, app version, IP address, language, approximate usage and diagnostic logs, and a push-notification token.
+(c) Information collected automatically — device model, operating system, app version, IP address, language, approximate usage and diagnostic logs (collected through Google Firebase Analytics and Firebase Crashlytics), and a push-notification token.
 (d) Information from third parties — if you sign in with Google or Apple, we receive your basic profile (name, email, and a unique identifier) from that provider.
 
 3. HOW WE USE YOUR INFORMATION
-We use your information to: create and manage your account; generate astrological charts and personalised readings from your birth details; connect you with astrologers and enable chat and call consultations; operate the wallet, process recharges and bill consultations; apply promotions, referrals and coupons; send service messages and, where enabled, notifications; provide customer support and resolve grievances; detect, prevent and address fraud, abuse and security incidents; and comply with applicable law.
+We use your information to: create and manage your account; generate astrological charts and personalised readings from your birth details, including automated replies from our AI astrologer where you choose it; connect you with astrologers and enable chat and call consultations; operate the wallet, process recharges and bill consultations; apply promotions, referrals and coupons; send service messages and, where enabled, notifications; provide customer support and resolve grievances; detect, prevent and address fraud, abuse and security incidents; and comply with applicable law.
 
 4. LEGAL BASIS AND CONSENT
 We process your personal data on the basis of the consent you provide when you register and when you enter your birth details, and as necessary to provide the services you request, to comply with legal obligations, and for our legitimate interests in operating and securing the Platform. You may withdraw your consent at any time (see Section 9); withdrawal does not affect processing carried out before withdrawal, and may limit your ability to use certain features.
@@ -62,12 +62,14 @@ We process your personal data on the basis of the consent you provide when you r
 5. HOW WE SHARE INFORMATION
 We do not sell your personal data. We share it only as follows:
    • Astrologers — to provide a consultation, the astrologer you connect with can see the information relevant to your reading (such as your name, birth details and the questions you ask). Astrologers are bound by confidentiality obligations.
-   • Service providers — we use trusted providers to run the Platform: Google Firebase (authentication, database, hosting, notifications and infrastructure), our payment gateway Razorpay (payments and refunds), and Agora (voice and video calling). These providers process data on our behalf under contractual safeguards.
+   • Service providers — we use trusted providers to run the Platform, each processing data on our behalf under contractual safeguards: Google Firebase (authentication, database, hosting, push notifications, analytics and crash diagnostics); our payment gateway Razorpay (payments and refunds); Agora (voice and video calling); and ProKerala (astrological chart, horoscope and compatibility calculations), to which we send birth date, time and place/coordinates.
+   • AI astrologer — where you choose to consult our AI astrologer, the messages and any photos you share in that chat, together with your name, age, gender and birth-chart details, are sent to Google's Gemini generative-AI service to generate the replies. Consultations with a human astrologer are not sent to the AI.
+   • Birth-place search — when you type your place of birth, the text you enter may be sent to the OpenStreetMap "Nominatim" service to find matching locations. We do not collect your device's GPS location.
    • Legal and safety — we may disclose information to comply with law, court orders or lawful requests by public authorities, and to protect the rights, safety and property of Asktro, our users and the public.
    • Business transfers — if we are involved in a merger, acquisition or asset sale, your information may be transferred, subject to this Policy.
 
 6. THIRD-PARTY SERVICES
-The Platform relies on the following third parties, each governed by its own privacy policy: Google/Firebase, Razorpay and Agora. We encourage you to review their policies. We are not responsible for the privacy practices of third-party services we do not control.
+The Platform relies on the following third parties, each governed by its own privacy policy: Google/Firebase (including Firebase Analytics, Crashlytics and the Google Gemini AI service), Razorpay, Agora, ProKerala, and OpenStreetMap (Nominatim). We encourage you to review their policies. We are not responsible for the privacy practices of third-party services we do not control.
 
 7. DATA RETENTION
 We retain your personal data for as long as your account is active or as needed to provide the services, and thereafter only as required to comply with legal, tax and regulatory obligations, resolve disputes and enforce our agreements. When data is no longer required, we delete or anonymise it.
