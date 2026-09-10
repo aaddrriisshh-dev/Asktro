@@ -31,7 +31,14 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDTgJRhfYDXivkNOzPkSBi6ysW9osb4f0A',
-    appId: '1:234450497443:android:db9b7956f99ffc88ef3416',
+    // Must match the RUNNING package `in.asktro.astrologer` (see android/app/
+    // build.gradle.kts applicationId). The Google Services Gradle plugin is not
+    // applied, so Firebase initializes from THIS file, not google-services.json —
+    // a stale appId here silently breaks FCM push (token binds to appId↔package)
+    // while Auth/Firestore keep working. This was pointing at the old
+    // com.example.asktro_astrologer app (…db9b7956…), so astrologers got no
+    // call/chat push on a closed app. Corrected to the in.asktro.astrologer appId.
+    appId: '1:234450497443:android:61583f32134edde2ef3416',
     messagingSenderId: '234450497443',
     projectId: 'asktro-tech-provate-limited',
     storageBucket: 'asktro-tech-provate-limited.firebasestorage.app',
