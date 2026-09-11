@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { callFn, Row } from '@/lib/hooks';
 import { ImageUpload } from '@/components/ImageUpload';
 
@@ -94,6 +96,28 @@ export function AstrologerFormModal({
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
   const toggle = (list: string[], setList: (x: string[]) => void, v: string) =>
     setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+
+  // Contact PII (email + phone) lives in astrologers/{id}/private/contact, NOT on
+  // the public directory doc — so the edit form must fetch it to show the login
+  // email and pre-fill the phone. Rules allow any admin to read this private doc.
+  // Email stays read-only (it's the Auth login); phone is editable.
+  useEffect(() => {
+    if (mode !== 'edit' || !a.id) return;
+    let alive = true;
+    getDoc(doc(db, 'astrologers', String(a.id), 'private', 'contact'))
+      .then((snap) => {
+        const c = snap.data();
+        if (!alive || !c) return;
+        setF((prev) => ({
+          ...prev,
+          email: str(c.email) || prev.email,
+          phone: prev.phone || str(c.phone),
+        }));
+      })
+      .catch(() => {/* non-fatal — email just stays blank */});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, a.id]);
 
   async function save() {
     if (!f.name.trim()) return alert('Name is required.');
