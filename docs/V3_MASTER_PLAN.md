@@ -523,5 +523,72 @@ consult credit is the part to verify.
 5. **v3 scope cut line:** everything above is a lot — which items are v3 vs v3.x?
    (Recommend: AI paid engine + video + code/Node cleanup = v3 core; retention
    Phase 3 + upsells = v3.1.)
+
+---
+
+## 13. Portal ↔ App wiring audit (11 Sept 2026)
+
+Ran a full end-to-end wiring audit across all portal ↔ customer/astrologer app
+features (3 parallel deep audits: content surfaces, config/pricing/notifications,
+ops surfaces). **Verdict: no broken wiring, no field mismatches, no active money
+leak.** Every money path (per-minute charge, AI-free, wallet gate, coupon credit,
+recharge, Mall) is correctly server-authoritative; displayed price == charged
+price. The items below are the gaps found — all minor, latent (misconfig-only),
+or UX-completeness. None break the live app. Fold into v3.
+
+### Ranked fixes
+1. **AI kill-switch has no portal UI** — `aiEnabled` (stop all AI instantly) and
+   `aiDailyMessageCap` are read/enforced in `ai/replyEngine.ts` but can only be
+   changed by hand-editing `config/global`. Add portal toggles so a non-technical
+   admin can pull the lever in an incident. Reader already deployed → **portal-only
+   fix.** (Ties to the AI paid engine §2 launch safety.)
+2. **`freeChatMinutes` unclamped → latent money leak** — no leak today (default 3),
+   but the pricing-page input has no max and `onUserCreate.ts` multiplies it
+   straight into every new user's `chatBonusBalance` (spendable on base-rate human
+   chats). Clamp in portal + server-side `welcomeBonus` cap. **Portal + functions
+   deploy.**
+3. **"All Users"/"Astrologers" broadcasts absent from the in-app Notifications tab**
+   — the topic path (`sender.ts`) sends push + promo popup but writes no per-user
+   `notifications` doc, so the tab only shows paid/unpaid/list segments. By design
+   for scale, but the bell is incomplete. **Functions deploy.**
+4. **Support: two divergent close paths** — closing from `/support` page uses a
+   direct `updateDoc` that skips the customer notification + audit log; the
+   dashboard card's close (`closeSupportTicket`) does it right. Make `/support` use
+   the callable. **Portal-only.**
+5. **Smaller items:**
+   - Support admin replies reach the customer only via the notifications tab, not
+     inside the ticket thread (customer support screen doesn't render `thread`).
+     *(App change.)*
+   - No portal visibility of `accountDeletions` (stuck deletion jobs invisible).
+     *(Portal-only.)*
+   - Rate-less astrologer: client defaults to ₹9/min while server falls back to
+     `config.consultationPricePerMinutePaise`; client also skips the server's
+     max-rate clamp. Only bites if an astrologer has no rate set AND base price was
+     changed. *(App change.)*
+   - Product price/stock writes are Super-Admin-only (`firestore.rules`) — fine for
+     the founder; blocks lower-tier admins from restocking/pricing. *(Rules/role
+     decision.)*
+   - Custom non-theme bg/text colours on a push are delivered but ignored by the
+     tap-rendered promo popup (only `theme` is read). *(Minor app change.)*
+   - Block is checked only at consultation creation, not re-checked mid-chat — a
+     block during a live session doesn't sever it until it ends. *(Minor.)*
+
+### By design / no action
+- `onlineStatus` is driven by the astrologer app's presence heartbeat, not a portal
+  switch — the portal only displays the live dot.
+- Money visibility (humans, Mall, rates, money-route deeplinks) hangs off the
+  **compile-time** `kMonetizationEnabled` flag — changing it needs an app release,
+  not a portal/function deploy. It is `true` now.
+- Dead unused method `watchNewest()` (`repositories.dart`) has a bad `active`
+  filter but has no caller → no impact. Delete during the §4 code cleanup.
+- Coupons portal only ever creates `type:'flat'`; the server's percentage branch is
+  unused (not a bug).
+
+### Deploy classification for these fixes
+- **Portal-only (pull + Vercel redeploy):** #1 AI controls UI, #4 support close
+  path, accountDeletions view.
+- **Functions deploy:** #2 server welcomeBonus cap, #3 broadcast→notifications doc.
+- **App release (new AAB):** support thread display, rate fallback + client clamp,
+  promo popup custom colours.
 </content>
 </invoke>
