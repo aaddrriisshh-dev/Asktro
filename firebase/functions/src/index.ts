@@ -94,7 +94,7 @@ export { resolveOpsItem } from './admin/ops';
 export { purgeOldChatData } from './ops/retention';
 
 // ---- Admin astrologer provisioning ----
-export { createAstrologer, updateAstrologer, deleteAstrologer } from './admin/createAstrologer';
+export { createAstrologer, updateAstrologer, deleteAstrologer, setAstrologerPassword } from './admin/createAstrologer';
 
 // ---- Admin support-ticket actions ----
 export { replySupportTicket, closeSupportTicket, reopenSupportTicket } from './admin/support';

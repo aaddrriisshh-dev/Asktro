@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { db, auth } from '@/lib/firebase';
+import { useAuth } from '@/lib/auth-context';
 import { callFn, Row } from '@/lib/hooks';
 import { ImageUpload } from '@/components/ImageUpload';
 
@@ -31,6 +33,14 @@ function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () 
 const str = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v));
 const arr = (v: unknown) => (Array.isArray(v) ? (v as string[]) : []);
 const rupees = (paise: unknown) => (typeof paise === 'number' ? String(paise / 100) : '');
+
+// A readable, reasonably strong password to hand to an astrologer on reset.
+function genPassword(): string {
+  const s = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let out = 'Ast-';
+  for (let i = 0; i < 10; i++) out += s[Math.floor(Math.random() * s.length)];
+  return out;
+}
 
 /**
  * One form for both creating and editing an astrologer. In `edit` mode every
@@ -76,6 +86,35 @@ export function AstrologerFormModal({
   const [isAI, setIsAI] = useState(a.isAI === true);
   const [risingStar, setRisingStar] = useState(a.risingStar === true);
   const [busy, setBusy] = useState(false);
+
+  // Password reset (edit mode, Super Admin only). Firebase can't reveal an
+  // existing password, so we SET a new one — gated by the admin re-entering their
+  // own portal password (Firebase reauthentication), never a hardcoded secret.
+  const { user } = useAuth();
+  const [showReset, setShowReset] = useState(false);
+  const [newPwd, setNewPwd] = useState('');
+  const [adminPwd, setAdminPwd] = useState('');
+  const [resetBusy, setResetBusy] = useState(false);
+
+  async function resetPassword() {
+    const np = newPwd.trim();
+    if (np.length < 6) return alert('New password must be at least 6 characters.');
+    if (!adminPwd) return alert('Enter YOUR portal password to confirm this reset.');
+    if (!user?.email) return alert('Session error — please log out and back in.');
+    setResetBusy(true);
+    try {
+      // Verify it's really you before changing anyone's credentials.
+      await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, adminPwd));
+      await callFn('setAstrologerPassword', { astrologerId: a.id, newPassword: np });
+      alert(`Password updated.\n\nLogin: ${f.email}\nNew password: ${np}\n\nShare these with the astrologer. (This won't be shown again.)`);
+      setNewPwd(''); setAdminPwd(''); setShowReset(false);
+    } catch (e) {
+      const msg = (e as Error).message || '';
+      if (msg.includes('wrong-password') || msg.includes('invalid-credential') || msg.includes('invalid-login'))
+        alert('Your portal password is incorrect. The astrologer password was NOT changed.');
+      else alert('Could not reset the password: ' + msg);
+    } finally { setResetBusy(false); }
+  }
 
   // Persona flavour (AI). Pre-fills from the stored `persona` object in edit mode.
   const pa = (a.persona && typeof a.persona === 'object' ? a.persona : {}) as Record<string, unknown>;
@@ -251,6 +290,39 @@ export function AstrologerFormModal({
               <input className="input" type="text" placeholder="Set a password (min 6 chars), or leave blank"
                 value={f.password} onChange={(e) => set('password', e.target.value)} />
             </label>
+          )}
+
+          {mode === 'edit' && isSuper && (
+            <div style={{ marginTop: 12, padding: 14, border: '1px solid var(--line)', borderRadius: 10 }}>
+              <p className="af-label" style={{ marginTop: 0 }}>🔑 Login password</p>
+              <p className="muted" style={{ fontSize: 12, marginTop: -4, marginBottom: 10 }}>
+                Passwords are stored encrypted and can’t be shown — not even here. To give an
+                astrologer their credentials, set a new password below and share it with them.
+              </p>
+              {!showReset ? (
+                <button type="button" className="btn sm secondary" onClick={() => setShowReset(true)}>Reset password</button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <label className="af"><span>New password (min 6)</span>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input className="input" type="text" placeholder="Set a new password"
+                        value={newPwd} onChange={(e) => setNewPwd(e.target.value)} />
+                      <button type="button" className="btn sm secondary" onClick={() => setNewPwd(genPassword())}>Generate</button>
+                    </div>
+                  </label>
+                  <label className="af"><span>Confirm with YOUR portal password</span>
+                    <input className="input" type="password" placeholder="Your own admin login password"
+                      value={adminPwd} onChange={(e) => setAdminPwd(e.target.value)} />
+                  </label>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button type="button" className="btn sm" disabled={resetBusy} onClick={resetPassword}>
+                      {resetBusy ? 'Saving…' : 'Set new password'}
+                    </button>
+                    <button type="button" className="btn sm secondary" onClick={() => { setShowReset(false); setNewPwd(''); setAdminPwd(''); }}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           <label className="af" style={{ marginTop: 12 }}><span>Bio</span>

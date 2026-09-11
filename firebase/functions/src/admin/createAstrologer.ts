@@ -242,6 +242,43 @@ export const updateAstrologer = onCall(async (req) => {
   return { ok: true };
 });
 
+/**
+ * Reset an astrologer's LOGIN password (SUPER ADMIN only).
+ *
+ * Firebase stores passwords hashed — they can NEVER be read back, so there is no
+ * "view password". A Super Admin sets a NEW password here and hands it to the
+ * astrologer. The portal gates this behind the admin re-entering their OWN login
+ * password (Firebase reauthentication) so a walked-up/left-open session can't
+ * silently reset credentials. The password value itself is never logged.
+ */
+export const setAstrologerPassword = onCall(async (req) => {
+  const actor = assertRole(req, 'admin');
+  if (req.auth?.token?.adminRole !== 'super') {
+    failedPrecondition('Only a Super Admin can reset an astrologer password.');
+  }
+  const { astrologerId, newPassword } = (req.data ?? {}) as { astrologerId?: string; newPassword?: string };
+  if (!astrologerId) badRequest('astrologerId is required.');
+  const pwd = typeof newPassword === 'string' ? newPassword : '';
+  if (pwd.length < 6) badRequest('Password must be at least 6 characters.');
+
+  // Only ever reset an account that is actually an astrologer in our directory.
+  const snap = await db.collection(Collections.astrologers).doc(astrologerId!).get();
+  if (!snap.exists) failedPrecondition('No such astrologer.');
+
+  try {
+    await auth.updateUser(astrologerId!, { password: pwd });
+  } catch (e: unknown) {
+    throw new HttpsError('internal', (e as { message?: string })?.message ?? 'Could not reset the password.');
+  }
+
+  // Audit the action WITHOUT recording the password value.
+  await db.collection(Collections.auditLogs).add({
+    actorUid: actor, actorRole: 'admin', action: 'setAstrologerPassword',
+    targetType: 'astrologer', targetId: astrologerId, createdAt: FieldValue.serverTimestamp(),
+  });
+  return { ok: true };
+});
+
 /** Soft-remove an astrologer: disable login + mark disabled (history preserved). */
 export const deleteAstrologer = onCall(async (req) => {
   const actor = requireOpsOrSuper(req);
