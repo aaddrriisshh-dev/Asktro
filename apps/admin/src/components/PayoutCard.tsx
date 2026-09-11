@@ -42,7 +42,7 @@ function usePayouts(range: Range): CardView<PayoutData> {
         const byDay = new Map<string, number>();
         const payouts: PayoutRow[] = [];
         snap.forEach((doc) => {
-          const p = doc.data() as { amount?: number; status?: string; method?: string; astrologerName?: string; astrologerId?: string; createdAt?: Timestamp };
+          const p = doc.data() as { amount?: number; status?: string; method?: string; upi?: string; astrologerName?: string; astrologerId?: string; createdAt?: Timestamp };
           const amt = p.amount ?? 0;
           totalAmount += amt;
           if (p.status === 'pending') { pendingAmount += amt; pendingCount += 1; }
@@ -55,6 +55,7 @@ function usePayouts(range: Range): CardView<PayoutData> {
             astrologerName: p.astrologerName ?? (p.astrologerId ?? 'Astrologer').slice(0, 10),
             amount: amt,
             method: p.method ?? '—',
+            upi: p.upi ?? '',
             status: p.status ?? 'pending',
             createdMs: ms,
           });

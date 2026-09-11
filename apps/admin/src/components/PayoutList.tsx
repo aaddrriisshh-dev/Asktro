@@ -13,6 +13,7 @@ export interface PayoutRow {
   astrologerName: string;
   amount: number; // paise
   method: string;
+  upi?: string; // the astrologer's UPI address to pay out to
   status: string; // pending | approved | processed | rejected
   createdMs: number;
 }
@@ -78,6 +79,14 @@ export function PayoutList({ payouts }: { payouts: PayoutRow[] }) {
           <div className="pay-main">
             <span className="pay-name">{p.astrologerName}</span>
             <span className="pay-sub">{p.method} · {formatDate(p.createdMs)}</span>
+            {p.upi && (
+              <button
+                className="btn sm secondary"
+                title="Click to copy UPI ID"
+                style={{ fontFamily: 'monospace', fontSize: 12, marginTop: 4, alignSelf: 'flex-start' }}
+                onClick={() => navigator.clipboard?.writeText(p.upi!)}
+              >{p.upi} ⧉</button>
+            )}
           </div>
           <div className="pay-right">
             <span className="pay-amount">{formatPaise(p.amount)}</span>

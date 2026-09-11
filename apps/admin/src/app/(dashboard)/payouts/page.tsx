@@ -25,13 +25,18 @@ export default function PayoutsPage() {
         ) : (
           <div style={{ overflowX: 'auto' }}>
           <table className="cardify">
-            <thead><tr><th>Astrologer</th><th>Amount</th><th>Method</th><th>Requested</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Astrologer</th><th>Amount</th><th>Method</th><th>UPI ID</th><th>Requested</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {rows.map((p) => (
                 <tr key={p.id}>
-                  <td data-label="Astrologer" style={{ fontFamily: 'monospace', fontSize: 12 }}>{p.astrologerId?.slice(0, 10)}</td>
+                  <td data-label="Astrologer">{p.astrologerName ?? (p.astrologerId?.slice(0, 10) ?? '—')}</td>
                   <td data-label="Amount">{formatPaise(p.amount)}</td>
                   <td data-label="Method">{p.method ?? '—'}</td>
+                  <td data-label="UPI ID">
+                    {p.upi
+                      ? <button className="btn sm secondary" title="Click to copy" style={{ fontFamily: 'monospace', fontSize: 12 }} onClick={() => navigator.clipboard?.writeText(p.upi)}>{p.upi} ⧉</button>
+                      : <span className="muted">—</span>}
+                  </td>
                   <td data-label="Requested">{formatDate(p.createdAt?.toMillis?.())}</td>
                   <td data-label="Status"><span className={`badge ${badge(p.status)}`}>{p.status}</span></td>
                   <td data-label="" style={{ display: 'flex', gap: 6 }}>
