@@ -138,9 +138,9 @@ export const createConsultation = onCall(async (req) => {
     // (chat/voice/video) has its own rate; each falls back to the astrologer's
     // legacy single `ratePerMinutePaise`, then to the global base rate (e.g. AI
     // personas or astrologers onboarded before per-type pricing).
-    // v2 monetization: AI consultations are FREE (the hook), human astrologer
-    // consultations are PAID. This is decided structurally by `isAI`, NOT by
-    // config, so AI can never be charged even if the global price/gate change.
+    // v3 monetization: BOTH AI and human consultations are PAID per-minute. AI is
+    // priced via the same rate resolution below; a new user's first free minutes
+    // come from the one-time chat welcome credit (chatBonusBalance), not a ₹0 price.
     const isAI = astrologer.isAI === true;
 
     const typeRateField =
@@ -157,8 +157,9 @@ export const createConsultation = onCall(async (req) => {
     // can never price a session above the sane maximum, and never negative/NaN.
     const maxRate = config.maxConsultationPricePerMinutePaise ?? 50000;
     const humanPrice = Number.isFinite(rawPrice) && rawPrice > 0 ? Math.min(rawPrice, maxRate) : config.consultationPricePerMinutePaise;
-    // AI is free → priced at 0 and never metered (applyTick short-circuits on isAI).
-    const price = isAI ? 0 : humanPrice;
+    // AI is priced per-minute like a human (same rate resolution above) and metered
+    // by applyTick each tick. The free opening comes from chatBonusBalance, not price.
+    const price = humanPrice;
 
     // The one-time free CHAT credit (chatBonusBalance) is usable ONLY with AI or
     // base-rate astrologers. Premium human astrologers charge from the first

@@ -107,8 +107,8 @@ class HomeFeed extends ConsumerWidget {
                 humansOnly: true,
                 hideWhenEmpty: true,
                 titleBadge: const VerifiedBadge(size: 18),),
-            // The AI personas, presented as "New Astrologers" (each card + profile
-            // still carries the required AI badge). Free & unlimited to chat.
+            // The AI personas, presented as "New Astrologers" — disclosed by "AI"
+            // in the name and the in-chat AI-disclosure line. Paid per-minute.
             _AstroCarousel(
                 title: 'New Astrologers',
                 provider: _topAiProvider,
@@ -1098,7 +1098,7 @@ class _CelestialAstroCard extends StatelessWidget {
                   maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,),
             ),
             const SizedBox(height: 6),
-            // AI shows an honest free/instant line (no fabricated experience/
+            // AI shows an honest instant-reply line (no fabricated experience/
             // rating); humans show real rating/exp, with a 0 rating on a brand-
             // new human hidden so it never reads as a bare "0.0".
             if (a.isAI)
@@ -1107,7 +1107,7 @@ class _CelestialAstroCard extends StatelessWidget {
                 children: [
                   const Icon(Icons.bolt_rounded, size: 14, color: Ob.purple),
                   const SizedBox(width: 3),
-                  Text('Free • Instant',
+                  Text('Instant reply',
                       style: Ob.option.copyWith(fontSize: 12, fontWeight: FontWeight.w700, color: Ob.purple),),
                 ],
               )
@@ -1127,8 +1127,8 @@ class _CelestialAstroCard extends StatelessWidget {
                 ],
               ),
             const Spacer(),
-            // Per-minute rate only for PAID (human) astrologers — AI is free.
-            if (kMonetizationEnabled && !a.isAI)
+            // Per-minute rate for every paid astrologer (AI is now paid too).
+            if (kMonetizationEnabled)
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),

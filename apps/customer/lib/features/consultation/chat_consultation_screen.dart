@@ -820,8 +820,6 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                   if (a.isAI)
                     Row(
                       children: [
-                        _statChip(Icons.bolt_rounded, 'Free', 'to chat'),
-                        const SizedBox(width: 8),
                         _statChip(Icons.flash_on_rounded, 'Instant', 'replies'),
                         const SizedBox(width: 8),
                         _statChip(Icons.schedule_rounded, '24×7', 'available'),

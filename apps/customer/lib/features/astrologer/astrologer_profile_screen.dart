@@ -246,15 +246,15 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
                 style: AppTypography.caption.copyWith(color: Colors.white.withValues(alpha: 0.85)),
                 textAlign: TextAlign.center,),
             const SizedBox(height: 10),
-            // Rate shown only for PAID (human) astrologers — AI is free.
-            if (kMonetizationEnabled && !a.isAI)
+            // Rate shown for every paid astrologer (AI is now paid too).
+            if (kMonetizationEnabled)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(999)),
                 child: Text(a.rateLabel, style: AppTypography.body.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
               ),
             const SizedBox(height: 18),
-            // AI shows honest, true attributes (free / instant / always-available)
+            // AI shows honest, true attributes (instant / always-available)
             // — never fabricated human experience, ratings, sessions or followers.
             // Humans show their real stats, with zero values hidden so a brand-new
             // astrologer never displays a bare "0.0★ / 0 Sessions / 0 Followers".
@@ -262,7 +262,6 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _stat('Free', 'to chat'),
                   _stat('Instant', 'replies'),
                   _stat('24×7', 'available'),
                 ],

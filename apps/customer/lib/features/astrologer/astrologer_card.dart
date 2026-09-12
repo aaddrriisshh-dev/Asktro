@@ -68,7 +68,7 @@ class AstrologerCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    // AI = honest "free / instant" line (no fabricated human
+                    // AI = honest "instant reply" line (no fabricated human
                     // experience/rating). Humans = real stats; a 0 rating (brand
                     // new astrologer) is hidden so it never shows a bare "0.0".
                     if (a.isAI)
@@ -76,7 +76,7 @@ class AstrologerCard extends StatelessWidget {
                         children: [
                           const Icon(Icons.bolt_rounded, size: 15, color: AppColors.primary),
                           const SizedBox(width: 2),
-                          Text('Free • Instant reply', style: AppTypography.caption),
+                          Text('Instant reply', style: AppTypography.caption),
                         ],
                       )
                     else
@@ -95,8 +95,8 @@ class AstrologerCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Per-minute rate only for PAID (human) astrologers — AI is free.
-              if (kMonetizationEnabled && !a.isAI) LabelBadge(text: a.rateLabel, filled: false),
+              // Per-minute rate for every paid astrologer (AI is now paid too).
+              if (kMonetizationEnabled) LabelBadge(text: a.rateLabel, filled: false),
             ],
           ),
           if (!compact) ...[
