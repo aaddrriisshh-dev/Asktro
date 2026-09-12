@@ -107,6 +107,13 @@ export async function prokeralaGet(
       token = await getToken(clientId, clientSecret);
       res = await doFetch(token);
     }
+    // Call spacing: on a transient rate-limit (429) or unavailable (503), wait a
+    // short randomized moment and retry ONCE, so a burst of concurrent chart
+    // builds rides out ProKerala's per-minute cap instead of failing outright.
+    if (res.status === 429 || res.status === 503) {
+      await new Promise((r) => setTimeout(r, 300 + Math.floor(Math.random() * 500)));
+      res = await doFetch(token);
+    }
     // Read the body as text first so we can log ProKerala's exact error on a
     // failure (a bad-request reason, an auth message, a rate-limit note, etc.).
     const raw = await res.text().catch(() => '');

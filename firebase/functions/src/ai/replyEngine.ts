@@ -589,9 +589,15 @@ async function getOrBuildChart(
   let natal: Record<string, unknown> | null | undefined;
   let advanced: Record<string, unknown> | null | undefined;
   const baseSnap = await baseRef.get();
-  if (baseSnap.exists && baseSnap.data()?.birthKey === birthKey) {
-    natal = baseSnap.data()!.natal as Record<string, unknown>;
-    advanced = baseSnap.data()!.advanced as Record<string, unknown>;
+  const cachedBase = baseSnap.exists && baseSnap.data()?.birthKey === birthKey ? baseSnap.data()! : null;
+  const cachedNatal = cachedBase?.natal as Record<string, unknown> | undefined;
+  const cachedAdvanced = cachedBase?.advanced as Record<string, unknown> | undefined;
+  // Self-heal: reuse the cache only when it actually holds usable data; a
+  // partial/corrupt/legacy entry (no planet_position, or missing advanced) is
+  // treated as a miss and rebuilt, so the AI never reads a broken chart.
+  if (cachedNatal?.planet_position && cachedAdvanced) {
+    natal = cachedNatal;
+    advanced = cachedAdvanced;
   } else {
     [natal, advanced] = await Promise.all([
       prokeralaGet('v2/astrology/planet-position', { ayanamsa: 1, coordinates, datetime: birthDatetime, la: 'en' }, clientId, clientSecret),
