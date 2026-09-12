@@ -239,7 +239,6 @@ class _AstrologerProfileScreenState extends ConsumerState<AstrologerProfileScree
                       style: AppTypography.title.copyWith(color: Colors.white),
                       textAlign: TextAlign.center, overflow: TextOverflow.ellipsis,),
                 ),
-                if (a.isAI) ...[const SizedBox(width: 6), const AiBadge()],
               ],
             ),
             const SizedBox(height: 4),

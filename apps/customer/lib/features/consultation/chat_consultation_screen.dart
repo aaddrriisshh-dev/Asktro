@@ -812,10 +812,6 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                           ),
                         ),
                       ],
-                      if (a.isAI) ...[
-                        const SizedBox(width: 6),
-                        const AiBadge(compact: true),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 8),

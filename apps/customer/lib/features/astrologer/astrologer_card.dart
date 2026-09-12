@@ -59,10 +59,6 @@ class AstrologerCard extends StatelessWidget {
                           const SizedBox(width: 6),
                           const VerifiedBadge(),
                         ],
-                        if (a.isAI) ...[
-                          const SizedBox(width: 6),
-                          const AiBadge(compact: true),
-                        ],
                       ],
                     ),
                     const SizedBox(height: 2),
