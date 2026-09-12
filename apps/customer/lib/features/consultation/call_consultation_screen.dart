@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,6 +44,13 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
   CallEngine? _call;
   bool _callJoinStarted = false;
 
+  // A soft looping ringing tone while the call is still "Calling…", so the
+  // customer hears the phone ringing and stays engaged instead of staring at a
+  // silent screen. It stops the instant the astrologer picks up (active) or the
+  // call ends. If the sound file is missing it just fails silently — never a crash.
+  AudioPlayer? _ringback;
+  bool _ringbackOn = false;
+
   // Local 1-second stopwatch for a smooth in-call timer between server ticks.
   Timer? _uiTick;
   DateTime? _activeSince;
@@ -52,9 +60,29 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
   @override
   void dispose() {
     _uiTick?.cancel();
+    _ringback?.dispose();
     _call?.removeListener(_onCallChanged);
     _call?.leave();
     super.dispose();
+  }
+
+  // Start the looping ringing tone (idempotent). Wrapped so a missing asset or a
+  // busy audio device can never take the call screen down.
+  void _startRingback() {
+    if (_ringbackOn) return;
+    _ringbackOn = true;
+    final p = AudioPlayer();
+    _ringback = p;
+    p.setReleaseMode(ReleaseMode.loop);
+    p.play(AssetSource('sounds/ringback.wav')).catchError((_) {/* no sound is fine */});
+  }
+
+  void _stopRingback() {
+    if (!_ringbackOn && _ringback == null) return;
+    _ringbackOn = false;
+    _ringback?.stop().catchError((_) {});
+    _ringback?.dispose();
+    _ringback = null;
   }
 
   void _onCallChanged() {
@@ -76,6 +104,13 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
         !_callJoinStarted) {
       _callJoinStarted = true;
       _joinCall(c);
+    }
+    // Ring while we're still waiting for the astrologer to accept; silence it the
+    // moment the call goes live or ends.
+    if (c.status == ConsultationStatus.waiting) {
+      _startRingback();
+    } else {
+      _stopRingback();
     }
     if (c.status == ConsultationStatus.active) {
       if (_activeSince == null) {

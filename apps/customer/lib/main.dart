@@ -12,6 +12,21 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Wrap the whole startup: if Firebase init (e.g. broken/outdated Play Services
+  // on some devices) or the local-storage read fails, the app would otherwise die
+  // on a frozen splash AND go unreported (crash handlers aren't installed yet).
+  // Instead we catch it, try to report it, and show a "tap to retry" screen.
+  try {
+    await _startup();
+  } catch (e, st) {
+    try {
+      FirebaseCrashlytics.instance.recordError(e, st, reason: 'startup failed', fatal: true);
+    } catch (_) {/* Firebase never came up — can't report; still show retry below */}
+    runApp(_StartupErrorApp(onRetry: main));
+  }
+}
+
+Future<void> _startup() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // App Check. Cloud Functions callables fetch an App Check token alongside the
@@ -67,4 +82,39 @@ Future<void> main() async {
       child: const AsktroCustomerApp(),
     ),
   );
+}
+
+/// Shown only when startup itself failed (before the app could draw). A calm
+/// "couldn't start — retry" screen instead of a frozen splash; Retry re-runs the
+/// whole startup (e.g. once the network settles or Play Services updates).
+class _StartupErrorApp extends StatelessWidget {
+  const _StartupErrorApp({required this.onRetry});
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFFF5F2FF),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.refresh_rounded, size: 48, color: Color(0xFF6A47C7)),
+                const SizedBox(height: 16),
+                const Text("Couldn't start", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                const Text('Please check your internet connection and try again.', textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                FilledButton(onPressed: onRetry, child: const Text('Retry')),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

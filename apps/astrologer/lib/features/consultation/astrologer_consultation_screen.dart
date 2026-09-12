@@ -297,7 +297,13 @@ class _State extends ConsumerState<AstrologerConsultationScreen> {
   }
 
   Future<void> _quickNote(Consultation c) async {
-    final current = await ref.read(astrologerRepositoryProvider).watchPrivateNote(widget.self.id, c.customerId).first;
+    // Guard the note read: a transient/permission error here would otherwise
+    // throw an unhandled async exception (recorded as a crash) the moment the
+    // astrologer taps the note action. Fall back to a blank note instead.
+    String current = '';
+    try {
+      current = await ref.read(astrologerRepositoryProvider).watchPrivateNote(widget.self.id, c.customerId).first;
+    } catch (_) {/* start with an empty note — no crash */}
     if (!mounted) return;
     final ctrl = TextEditingController(text: current);
     await showModalBottomSheet(

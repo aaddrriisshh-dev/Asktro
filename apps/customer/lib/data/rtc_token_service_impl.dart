@@ -8,7 +8,11 @@ class RtcTokenServiceImpl implements RtcTokenService {
   @override
   Future<Result<AgoraCredentials>> tokenFor(String consultationId, {int agoraUid = 0}) async {
     try {
-      final res = await _fn.httpsCallable('generateAgoraToken').call<Map<String, dynamic>>(
+      // 45s cap so a stalled network fails into the "couldn't join" path instead
+      // of leaving the customer stuck on "Connecting…" for the ~70s default.
+      final res = await _fn
+          .httpsCallable('generateAgoraToken', options: HttpsCallableOptions(timeout: const Duration(seconds: 45)))
+          .call<Map<String, dynamic>>(
         {'consultationId': consultationId, 'agoraUid': agoraUid},
       );
       final m = Map<String, dynamic>.from(res.data);
