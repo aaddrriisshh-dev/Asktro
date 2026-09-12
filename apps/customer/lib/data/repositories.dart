@@ -115,16 +115,6 @@ class AstrologerRepository {
         return humans.take(limit).map(_map).toList();
       });
 
-  Stream<List<Astrologer>> watchNewest({int limit = 10}) => _col
-      .where('active', isEqualTo: true)
-      .limit(100)
-      .snapshots()
-      .map((s) {
-        final docs = s.docs.where(_visible).toList()
-          ..sort((a, b) => _createdMs(b).compareTo(_createdMs(a)));
-        return docs.take(limit).map(_map).toList();
-      });
-
   Stream<Astrologer> watchOne(String id) =>
       _col.doc(id).snapshots().map(_map);
 
