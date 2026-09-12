@@ -49,6 +49,7 @@ const NAV = [
   { href: '/kundali-downloads', label: 'Kundali Downloads', icon: I(<><path d="M12 2.5l2.2 6.4 6.8.3-5.3 4.2 1.8 6.6L12 16.9 6.5 20l1.8-6.6L3 9.2l6.8-.3z" /><path d="M12 12v6M9.5 15.5L12 18l2.5-2.5" /></>) },
   { href: '/cms', label: 'CMS', icon: I(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></>) },
   { href: '/audit', label: 'Audit Log', icon: I(<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />) },
+  { href: '/account-deletions', label: 'Account Deletions', icon: I(<><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></>) },
   { href: '/payouts', label: 'Payouts', icon: I(<><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="16" cy="12" r="1.7" /></>) },
   { href: '/pricing', label: 'Pricing & Settings', icon: I(<><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></>) },
   { href: '/moderation', label: 'Trust & Safety', icon: I(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></>) },
