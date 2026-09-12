@@ -459,20 +459,30 @@ that bar and close the open items.
 - Confirm the founder's admin account role (Super) is correct and least-privilege
   for others.
 
-### 9.6 Play Billing vs Razorpay for wallet recharge (VERIFY — real policy risk)
-The Play Console dashboard prompts "To monetise this app, set up a merchant
-account" — that's Google nudging us toward **Google Play Billing (IAP)**. We use
-**Razorpay** for wallet recharge + Mall. Google's **Payments policy** generally
-requires Play Billing for in-app purchases of **digital** content/services, with
-limited exemptions (physical goods/services are exempt; some categories differ).
-Astrology consultations sit in a gray area, and market apps navigate it various
-ways. **v2 passing automated review does NOT prove long-term payments-policy
-compliance** — Google can flag it later. Action: research where consultation
-credit + Mall fall under the current Payments policy, confirm Razorpay is
-permissible (or which parts need Play Billing), and document the basis. Do this
-early — it affects the whole money model, including the AI paid engine (§2).
-Mall (physical remedies/products) is likely exempt (physical goods); the wallet/
-consult credit is the part to verify.
+### 9.6 Play Billing vs Razorpay for wallet recharge — VERIFIED OK (low risk)
+Initially flagged as a risk-to-verify (the Play Console nudges "set up a merchant
+account" toward Google Play Billing). **Verified 12 Sept 2026 against the live
+market — our wallet + Razorpay model is in line and compliant:**
+- **Why it's allowed (India-specific):** the CCI antitrust ruling forced Google to
+  allow third-party payment processing and **Google paused enforcement of
+  mandatory Play Billing in India**. So Indian apps use external gateways for
+  in-app digital/service purchases without Play Billing.
+- **Market evidence (both bypass Play Billing, direct to their own merchant):**
+  - **AstroTalk** (market leader) — **wallet recharge** (₹100 → wallet), paid via
+    an external aggregator: VPA `astrotalk2.esbz@hdfcbank` (Easebuzz → HDFC), UPI +
+    cards. This is the SAME model as Asktro (wallet + Razorpay).
+  - **REVA** (fully-AI astrologer app, 10k+ downloads) — **UPI AutoPay
+    subscription** via Paytm (direct-to-merchant mandate), also external.
+- **Takeaway:** Asktro's closed-loop wallet recharged via Razorpay is standard and
+  safe for India today. Keep this documented (it's a *paused-enforcement*
+  regulatory situation, not a permanent written guarantee) but it is **not a
+  blocker** — charge for AI via Razorpay in v3.
+- **Parked (not now, per founder):** AstroTalk charges **18% GST** on recharges
+  (₹100 → ₹118). Revisit whether Asktro should collect GST on recharges — a TAX
+  matter, separate from the payment gateway. Deferred.
+- **Model note for §2:** REVA's subscription (auto-debit, ₹/month) is an
+  alternative to per-minute AI billing — worth A/B testing later. Both are doable
+  via Razorpay/Paytm UPI AutoPay.
 
 ### 9.7 Privacy & data
 - In-app privacy policy is accurate (Firebase, Razorpay, Agora, ProKerala,
