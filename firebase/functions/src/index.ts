@@ -90,7 +90,7 @@ export { refundConsultation } from './admin/refund';
 export { resolveOpsItem } from './admin/ops';
 
 // ---- Data retention (default OFF; flag-gated) ----
-export { purgeOldChatData } from './ops/retention';
+export { purgeOldChatData, purgeOldRecords } from './ops/retention';
 
 // ---- Admin astrologer provisioning ----
 export { createAstrologer, updateAstrologer, deleteAstrologer, setAstrologerPassword } from './admin/createAstrologer';

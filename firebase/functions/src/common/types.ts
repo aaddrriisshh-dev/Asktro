@@ -50,6 +50,12 @@ export interface GlobalConfig {
   /** Days to retain chat content before the retention purge strips it (0 = keep
    *  forever / purge disabled). Only acts when featureFlags.retention is true. */
   chatRetentionDays?: number;
+  /** Days to keep in-app notification docs before the reaper deletes them (0 =
+   *  keep forever). Only acts when featureFlags.retention is true. */
+  notificationRetentionDays?: number;
+  /** Days to keep internal ops `alerts` docs before the reaper deletes them (0 =
+   *  keep forever). Only acts when featureFlags.retention is true. */
+  alertRetentionDays?: number;
   featureFlags: Record<string, boolean>;
 }
 

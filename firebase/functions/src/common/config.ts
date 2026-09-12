@@ -16,12 +16,17 @@ export const DEFAULT_CONFIG: GlobalConfig = {
   freeChatMinutes: 3, // welcome free chat minutes for new customers
   graceMinutes: 1, // one free grace minute when balance runs out mid-session
   maxConcurrentChatsPerAstrologer: 5, // fairness cap; tunable without a deploy
-  chatRetentionDays: 0, // 0 = keep chat content forever (purge disabled)
+  // Retention windows (used only when featureFlags.retention is true). Sensible
+  // defaults so enabling the master flag applies standard periods; each is
+  // overridable from the portal without a deploy.
+  chatRetentionDays: 90, // strip chat text/media from ended chats after 90 days
+  notificationRetentionDays: 30, // delete in-app notifications after 30 days
+  alertRetentionDays: 60, // delete internal ops alerts after 60 days
   featureFlags: {
     voice: true,
     video: true,
     referrals: true,
-    retention: false, // chat-retention purge OFF until a policy window is set
+    retention: false, // ALL retention purges OFF until the operator flips this on
   },
 };
 
