@@ -37,6 +37,7 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
   int _overall = 0;
   final _review = TextEditingController();
   bool _submitting = false;
+  bool _favAdded = false; // set once the user taps "Add to favourites" here
 
   Future<void> _submit() async {
     // Overall is the headline score (drives the astrologer's average); the other
@@ -93,6 +94,11 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
   @override
   Widget build(BuildContext context) {
     final c = widget.consultation;
+    // Offer "add to favourites" only when they haven't already favourited this
+    // astrologer (hidden entirely if they have — no duplicate prompt).
+    final alreadyFav = ref.watch(myProfileProvider).valueOrNull
+            ?.favouriteAstrologers.contains(widget.astrologer.id) ??
+        false;
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -119,6 +125,21 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
+              if (!alreadyFav || _favAdded) ...[
+                _favouriteTile(
+                  added: _favAdded,
+                  name: widget.astrologer.name,
+                  onAdd: () async {
+                    final p = ref.read(myProfileProvider).valueOrNull;
+                    if (p == null) return;
+                    await ref
+                        .read(userRepositoryProvider)
+                        .toggleFavourite(p.id, widget.astrologer.id, true);
+                    if (mounted) setState(() => _favAdded = true);
+                  },
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
               Text('Rate your experience', style: AppTypography.subtitle),
               const SizedBox(height: AppSpacing.sm),
               Container(
@@ -167,6 +188,39 @@ class _ConsultationEndScreenState extends ConsumerState<_ConsultationEndScreen> 
             Text(k, style: AppTypography.caption),
             Flexible(child: Text(v, style: AppTypography.body, overflow: TextOverflow.ellipsis)),
           ],
+        ),
+      );
+
+  /// "Add to favourites" prompt on the end screen. Tappable until added, then a
+  /// quiet confirmation. Only rendered when they aren't already a favourite.
+  Widget _favouriteTile({required bool added, required String name, required Future<void> Function() onAdd}) =>
+      GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: added ? null : onAdd,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: added ? AppColors.success.withValues(alpha: 0.08) : AppColors.card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: added ? AppColors.success : AppColors.border),
+            boxShadow: added ? null : AppShadows.soft,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(added ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  size: 20, color: added ? AppColors.success : AppColors.error,),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(added ? 'Added to favourites' : 'Add $name to favourites',
+                    style: AppTypography.body.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: added ? AppColors.success : AppColors.textDark,),
+                    overflow: TextOverflow.ellipsis,),
+              ),
+            ],
+          ),
         ),
       );
 
