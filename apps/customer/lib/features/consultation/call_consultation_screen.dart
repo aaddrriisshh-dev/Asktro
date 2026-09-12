@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -77,7 +78,11 @@ class _CallConsultationScreenState extends ConsumerState<CallConsultationScreen>
       _joinCall(c);
     }
     if (c.status == ConsultationStatus.active) {
-      _activeSince ??= DateTime.now();
+      if (_activeSince == null) {
+        _activeSince = DateTime.now();
+        // Real-phone feel: a short buzz the moment the astrologer picks up.
+        HapticFeedback.mediumImpact();
+      }
       _uiTick ??= Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() {});
       });
