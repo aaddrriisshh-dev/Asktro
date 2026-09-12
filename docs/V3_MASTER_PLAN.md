@@ -600,5 +600,26 @@ or UX-completeness. None break the live app. Fold into v3.
 - **Functions deploy:** #2 server welcomeBonus cap, #3 broadcast→notifications doc.
 - **App release (new AAB):** support thread display, rate fallback + client clamp,
   promo popup custom colours.
+
+---
+
+## 14. Pending — decide & do LAST (after all other v3 work)
+
+These are intentionally parked at the very end — not v3 core, not "v4," just the
+last things to do once everything above is complete.
+
+1. **Report / remedy upsells (second revenue line).** Soft, in-reading nudges to a
+   paid remedy (gemstone / pooja / rudraksha → buy in Mall) and paid downloadable
+   reports (Kundali / Marriage / Career / Sade Sati, ₹149–199). **Founder needs to
+   design the FEEL first:** it must come from the astrologer naturally and **never
+   read like a sales message** — a soft, relevant, occasional push only, never
+   pushy or fear-driven. Do NOT build until the founder has decided the approach.
+   (Builds on existing pieces: the AI already writes remedy cards; PDF/download +
+   a paywall flag already exist.)
+2. **Full portal audit + fix the dashboard male/female ratio.** The admin dashboard
+   currently shows an **incorrect male/female ratio** — run an audit to find the
+   cause (likely the `dailyStats.signups` gender rollup vs the live users) and fix
+   it. While there, **audit everything on the portal** end-to-end (every card,
+   count, and control) for correctness, not just this one number.
 </content>
 </invoke>
