@@ -16,7 +16,7 @@ const fmt = (m: number) => (m ? new Date(m).toLocaleString('en-IN') : '—');
 
 /** Split console for Phone (voice) and Video sessions: Live on the left,
  *  date-filtered Completed on the right. Reads consultations of the given type. */
-export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video'; title: string; icon: string }) {
+export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video' | 'chat'; title: string; icon: string }) {
   const { preset, setPreset, custom, setCustom, range } = useCardFilter(`sessions:${type}`, 'last30');
   const [live, setLive] = useState<Any[] | null>(null);
   const [done, setDone] = useState<Any[] | null>(null);
@@ -96,9 +96,11 @@ export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video'
       <h1 style={{ marginBottom: 2 }}>{icon} {title}</h1>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>Live sessions on the left, completed sessions on the right.</p>
 
-      <div className="card" style={{ marginTop: 14, borderLeft: '4px solid var(--gold)' }}>
-        <strong>Heads up:</strong> <span className="muted">{type === 'voice' ? 'Voice' : 'Video'} calling isn’t live in the apps yet (it arrives with the Agora phase), so these panels are ready but stay empty until the first {type} call.</span>
-      </div>
+      {type !== 'chat' && (
+        <div className="card" style={{ marginTop: 14, borderLeft: '4px solid var(--gold)' }}>
+          <strong>Heads up:</strong> <span className="muted">{type === 'voice' ? 'Voice' : 'Video'} calling isn’t live in the apps yet (it arrives with the Agora phase), so these panels are ready but stay empty until the first {type} call.</span>
+        </div>
+      )}
 
       <div className="sess-split">
         {/* LEFT — Live */}
