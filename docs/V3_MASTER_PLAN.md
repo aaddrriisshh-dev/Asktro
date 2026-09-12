@@ -652,3 +652,73 @@ last things to do once everything above is complete.
    count, and control) for correctness, not just this one number.
 </content>
 </invoke>
+
+---
+
+## 15. CRASH & RESILIENCE AT 100k (audited — DISCUSS before implementing fixes)
+
+Full crash-resilience audit of the backend (Cloud Functions + Firestore) and both
+Flutter apps. **Verdict: the app is well-built.** Money paths are idempotent +
+transactional with dead-letter/reconcile backstops; crash reporting is properly
+wired; the hot paths are guarded. The remaining risks are **timeouts, memory, and
+edge cases — not lost money or "it falls over."** Nothing here is being changed
+yet — the founder wants to talk through it first.
+
+### 15.1 Strengths already in place
+- **Backend money-safety:** idempotent recharge (per-paymentId + per-orderId) and
+  refund (per-opId); fully-transactional billing tick clamped to presence;
+  idempotent endConsultation; per-customer create lock; dead-letter + 5-min
+  reconcile for recharge/store; fail-open rate limiter; sharded dailyStats.
+- **Graceful 3rd-party degradation:** Gemini + ProKerala adapters return null on
+  any failure (caller stays silent / doesn't charge); ProKerala retries 401 + 429/503;
+  Agora token capped to affordable balance; AI reply pipeline never re-throws.
+- **Monitoring:** an `alerts` collection → Slack fires on every money/trust failure;
+  logger.error in every catch (surfaces in Cloud Error Reporting).
+- **Apps:** Crashlytics wired in both (FlutterError.onError + PlatformDispatcher.onError,
+  RenderFlex overflows non-fatal); hardened Firestore model parsing (num→int, null
+  coalesced); shared error/empty/loading views; callable wrapper w/ 120s timeout;
+  pervasive `mounted` checks; disciplined stream/timer/engine disposal; place-search
+  never throws.
+
+### 15.2 Risks to fix (prioritized)
+**Backend**
+- **P0 — `onAiChatMessage` can hit the 60s default timeout** (3.5s debounce + up to
+  2 Gemini "thinking" calls + paced bubbles up to ~9s each). On timeout it's killed
+  mid-reply (typing dots stick, half-written bubble). → set `timeoutSeconds` 180–300;
+  cap paced bubbles / shorten the typing ceiling.
+- **P1 — no fetch timeout (AbortController) on any outbound call** (Gemini, ProKerala,
+  Slack, Razorpay). A hung upstream holds the invocation for the whole timeout,
+  burning instance slots; `createRechargeOrder` can hang a paying user 60s. → wrap
+  every fetch with an AbortController timeout (Gemini ~25s, ProKerala ~10s, Slack ~5s;
+  pass a timeout to the Razorpay client).
+- **P1 — reply-engine memory under `concurrency:80` on 512MiB** with two 5MB inline
+  images per vision read → OOM risk (kills all 80 in-flight). → give onAiChatMessage
+  its own memory (1GiB) and/or lower its concurrency.
+- **P2** — moderation `onChatMessageCreated` body not wrapped in try/catch (flag/alert
+  silently lost on a Firestore blip). → wrap + logger.error.
+- **P2** — a transaction ABORTED on `verifyRecharge`/`createRechargeOrder` surfaces to
+  the client; the webhook is the idempotent backstop → treat the Razorpay webhook as
+  MANDATORY + alert if no payment.captured webhook seen in N hours.
+- **P2** — `sendBroadcast` large segment can stall half-delivered (needs manual
+  re-invoke) → scheduled auto-resume of broadcasts stuck `sending`.
+- **P3** — `onNotificationCreated` token-prune `.update()` throws on a deleted user →
+  use set(merge) / .catch. TTL policies are manual (confirm at launch — already on the
+  release list). `getGlobalConfig` read failure unguarded → fall back to DEFAULT_CONFIG.
+
+**Apps**
+- **P1 — startup `Firebase.initializeApp` failure is invisible** (it runs before
+  Crashlytics exists) → a blank/frozen splash reaches no report. → wrap init in
+  try/catch; on failure show a "couldn't start — retry" screen instead of a frozen
+  splash.
+- **P2** — unguarded stream `.first` in the astrologer quick-note action → wrap in
+  try/catch.
+- **P3** — RTC token callable has no explicit timeout (~70s "Connecting…" freeze on a
+  stalled network) → add a 20–30s timeout into the existing cancel path.
+- **P4/P5** — optional: timeout fallback for an unbounded spinner; a `mounted` guard
+  after the native date/time pickers in the tools screens.
+
+### 15.3 Monitoring gap
+Money failures alert loudly (alerts → Slack), but **availability failures**
+(function timeout/OOM, Gemini/ProKerala brownout, a broadcast stuck `sending`) only
+`logger.error` — an operator sees them only if watching logs. → add Cloud Monitoring
+alert policies on function error/OOM/execution-time metrics + `alerts` rows for these.
