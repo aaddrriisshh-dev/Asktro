@@ -10,7 +10,17 @@ import { Collections } from '../common/collections';
 import { assertAuthed, badRequest, failedPrecondition, notFound } from '../common/errors';
 import { AGORA_APP_ID, AGORA_APP_CERTIFICATE } from '../common/secrets';
 
-const TOKEN_TTL_SEC = 3600; // 1 hour; clients renew via this function
+const MAX_TTL_SEC = 3600; // hard ceiling for any token (1 hour)
+// Backstop against Agora minutes accruing past the paid balance if a client fails
+// to leave the channel on exhaustion (the app already leaves on pause; this guards
+// a crashed/misbehaving/hostile client). The CUSTOMER's token is issued to last
+// only as long as they can afford + a generous buffer, so a stuck channel drops
+// itself shortly after the balance would run out. It NEVER cuts a legitimate call:
+// the app ends the call at the pause instant (≤ affordable), well before this, and
+// a network reconnect re-mints a fresh token. The astrologer (unbilled) keeps the
+// full ceiling. Calls have no mid-call resume, so affordability is fixed at join.
+const TTL_BUFFER_SEC = 300; // 5-min cushion over affordable time (covers reconnects/settle)
+const MIN_TTL_SEC = 120;    // floor so a low-balance call still connects cleanly
 
 export const generateAgoraToken = onCall(
   { secrets: [AGORA_APP_ID, AGORA_APP_CERTIFICATE] },
@@ -39,7 +49,25 @@ export const generateAgoraToken = onCall(
     // treats them as one user (uid 0) and one kicks the other, so calls silently
     // fail to connect. A call has exactly these two human parties (AI never calls).
     const numericUid = uid === c.customerId ? 1 : 2;
-    const privilegeExpire = Math.floor(Timestamp.now().toMillis() / 1000) + TOKEN_TTL_SEC;
+
+    // The astrologer (unbilled) gets the full ceiling. The customer's token lasts
+    // only as long as their balance can pay for + a buffer — a stuck channel then
+    // drops itself instead of billing Agora past ₹0. Over-provision spendable (sum
+    // every bucket) and add a wide buffer so a paying customer is never cut short.
+    let ttlSec = MAX_TTL_SEC;
+    if (uid === c.customerId) {
+      const ratePerMin = Number(c.pricePerMinute) || 0;
+      if (ratePerMin > 0) {
+        const uSnap = await db.collection(Collections.users).doc(c.customerId).get();
+        const u = uSnap.data() ?? {};
+        const spendablePaise = (Number(u.walletBalance) || 0) + (Number(u.bonusBalance) || 0) + (Number(u.chatBonusBalance) || 0);
+        const affordableSec = Math.ceil((spendablePaise / ratePerMin) * 60);
+        ttlSec = Math.min(MAX_TTL_SEC, Math.max(MIN_TTL_SEC, affordableSec + TTL_BUFFER_SEC));
+      }
+      // ratePerMin === 0 (misconfig) → leave ttlSec at the ceiling; never cut a call.
+    }
+
+    const privilegeExpire = Math.floor(Timestamp.now().toMillis() / 1000) + ttlSec;
 
     const token = RtcTokenBuilder.buildTokenWithUid(
       AGORA_APP_ID.value(),
@@ -47,7 +75,7 @@ export const generateAgoraToken = onCall(
       c.agoraChannel,
       numericUid,
       RtcRole.PUBLISHER,
-      TOKEN_TTL_SEC,
+      ttlSec,
       privilegeExpire,
     );
 
@@ -56,7 +84,7 @@ export const generateAgoraToken = onCall(
       appId: AGORA_APP_ID.value(),
       channel: c.agoraChannel,
       uid: numericUid,
-      expiresInSec: TOKEN_TTL_SEC,
+      expiresInSec: ttlSec,
     };
   },
 );
