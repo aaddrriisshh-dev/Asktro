@@ -57,7 +57,14 @@ export const onCustomerSignup = onDocumentCreated('users/{uid}', async (event) =
   // `chatBonusBalance` (chat-only) so it cannot be spent on a voice/video call —
   // only on the first chat. `bonusBalance` stays the any-type bonus bucket.
   const config = await getGlobalConfig();
-  const welcomeBonus = (config.freeChatMinutes ?? 0) * config.consultationPricePerMinutePaise;
+  // The welcome gift is a DIRECT rupee amount when set on the Pricing page
+  // (welcomeCreditPaise); otherwise fall back to the legacy freeChatMinutes ×
+  // price. Server-capped so a portal typo can never mint a huge free credit.
+  const WELCOME_CREDIT_CEILING_PAISE = 50000; // ₹500 hard cap
+  const rawWelcome = config.welcomeCreditPaise != null
+    ? config.welcomeCreditPaise
+    : (config.freeChatMinutes ?? 0) * config.consultationPricePerMinutePaise;
+  const welcomeBonus = Math.max(0, Math.min(Math.round(rawWelcome), WELCOME_CREDIT_CEILING_PAISE));
   const priorBonus = (data.chatBonusBalance as number | undefined) ?? 0;
   if (!data.signupBonusGranted && welcomeBonus > 0) {
     patch.chatBonusBalance = priorBonus + welcomeBonus;

@@ -33,8 +33,15 @@ export interface GlobalConfig {
   sessionTimeoutSec: number;
   requestTimeoutSec: number;
   commissionPercent: number;
-  /** Free chat minutes granted to a new customer at signup (as bonus credit). */
+  /** Free chat minutes granted to a new customer at signup (as bonus credit).
+   *  Legacy: the welcome gift = freeChatMinutes × price. Superseded by
+   *  `welcomeCreditPaise` (a direct ₹ amount) when that is set. */
   freeChatMinutes: number;
+  /** One-time welcome gift for a new customer, as a DIRECT rupee amount (paise).
+   *  When set, it is used verbatim (buys free minutes at each astrologer's own
+   *  rate); when absent, the legacy freeChatMinutes × price applies. Portal-
+   *  editable on the Pricing page; server-capped in onUserCreate. */
+  welcomeCreditPaise?: number;
   /** One-time grace minutes added when a live session's balance is exhausted. */
   graceMinutes: number;
   /** Max simultaneous ACTIVE chats a human astrologer may hold, so a customer
