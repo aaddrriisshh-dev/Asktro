@@ -19,7 +19,7 @@ export default function AstrologerViewPage() {
   const [a, setA] = useState<Any | null>(null);
   const [missing, setMissing] = useState(false);
   const [cons, setCons] = useState<Any[]>([]);
-  const [tab, setTab] = useState<'voice' | 'video' | 'all'>('all');
+  const [tab, setTab] = useState<'chat' | 'voice' | 'video' | 'all'>('all');
   const [rsBusy, setRsBusy] = useState(false);
   const [delBusy, setDelBusy] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -75,9 +75,10 @@ export default function AstrologerViewPage() {
   if (missing) return <div><Link href="/astrologers" className="btn secondary sm">← Back</Link><p className="muted" style={{ marginTop: 20 }}>Astrologer not found.</p></div>;
   if (!a) return <p className="muted">Loading…</p>;
 
+  const chat = cons.filter((c) => c.type === 'chat');
   const voice = cons.filter((c) => c.type === 'voice');
   const video = cons.filter((c) => c.type === 'video');
-  const list = tab === 'voice' ? voice : tab === 'video' ? video : cons;
+  const list = tab === 'chat' ? chat : tab === 'voice' ? voice : tab === 'video' ? video : cons;
   const rating = (a.rating as number) ?? 0;
   const status = (a.accountStatus as string) ?? 'pending';
   const reviews = cons
@@ -166,6 +167,7 @@ export default function AstrologerViewPage() {
 
         <div>
           <div className="aview-stats">
+            <div className="aview-stat"><div className="k">💬 Chats</div><div className="v">{chat.length}</div></div>
             <div className="aview-stat"><div className="k">📞 Total Calls</div><div className="v">{voice.length}</div></div>
             <div className="aview-stat"><div className="k">🎥 Video Calls</div><div className="v">{video.length}</div></div>
             <div className="aview-stat"><div className="k">💰 Earnings</div><div className="v">{formatPaise((a.earnings as number) ?? 0)}</div></div>
@@ -173,13 +175,14 @@ export default function AstrologerViewPage() {
           </div>
 
           <div className="aview-tabs">
+            <button className={`aview-tab${tab === 'chat' ? ' on' : ''}`} onClick={() => setTab('chat')}>Chats</button>
             <button className={`aview-tab${tab === 'voice' ? ' on' : ''}`} onClick={() => setTab('voice')}>Audio Calls</button>
             <button className={`aview-tab${tab === 'video' ? ' on' : ''}`} onClick={() => setTab('video')}>Video Calls</button>
             <button className={`aview-tab${tab === 'all' ? ' on' : ''}`} onClick={() => setTab('all')}>All Sessions</button>
           </div>
 
           <div className="card">
-            <h3 className="celeste" style={{ marginTop: 0 }}>{tab === 'voice' ? '📞 Audio' : tab === 'video' ? '🎥 Video' : '🗂 All'} session history</h3>
+            <h3 className="celeste" style={{ marginTop: 0 }}>{tab === 'chat' ? '💬 Chat' : tab === 'voice' ? '📞 Audio' : tab === 'video' ? '🎥 Video' : '🗂 All'} session history</h3>
             {list.length === 0 ? (
               <p className="drawer-muted" style={{ textAlign: 'center', padding: '24px 0' }}>
                 No {tab === 'all' ? '' : tab + ' '}sessions yet.{(tab === 'voice' || tab === 'video') ? ' Call logs populate once voice/video calling is enabled.' : ''}
