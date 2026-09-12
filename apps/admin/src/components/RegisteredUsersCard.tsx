@@ -31,22 +31,37 @@ function useRegisteredUsers(range: Range): CardView<UsersData> {
     setError(null);
     (async () => {
       try {
-        // Registered/gender/email + the daily histogram come from the per-day
-        // signup rollup (bounded — one small doc per day). Lifetime states
-        // (paid, blocked) are server-side COUNT aggregations — no docs are
-        // downloaded, so the whole users collection never reaches the browser.
-        const [days, paidAgg, blockedAgg] = await Promise.all([
+        // Total, gender split, paid and blocked are server-side COUNT
+        // aggregations over the LIVE `users` collection — accurate and current,
+        // and no docs are downloaded to the browser. Gender is counted straight
+        // from each user's record (NOT the old per-day signup rollup, which only
+        // recorded gender at account-creation time — before the setup screen
+        // saved it — so male+female came out far below the real split). The
+        // daily histogram + withEmail still come from the rollup (a time-series,
+        // one small doc per day).
+        const usersCol = collection(db, 'users');
+        const [days, totalAgg, maleAgg, femaleAgg, paidAgg, blockedAgg] = await Promise.all([
           fetchDailyStats(range),
-          getCountFromServer(query(collection(db, 'users'), where('totalRecharge', '>', 0))),
-          getCountFromServer(query(collection(db, 'users'), where('accountStatus', '==', 'blocked'))),
+          getCountFromServer(usersCol),
+          getCountFromServer(query(usersCol, where('gender', '==', 'male'))),
+          getCountFromServer(query(usersCol, where('gender', '==', 'female'))),
+          getCountFromServer(query(usersCol, where('totalRecharge', '>', 0))),
+          getCountFromServer(query(usersCol, where('accountStatus', '==', 'blocked'))),
         ]);
-        let total = 0, male = 0, female = 0, withEmail = 0;
+        let withEmail = 0;
         const daily = days.map((s) => {
-          const n = s.signups?.total ?? 0;
-          total += n; male += s.signups?.male ?? 0; female += s.signups?.female ?? 0; withEmail += s.signups?.withEmail ?? 0;
-          return { day: shortDay(s.day), value: n };
+          withEmail += s.signups?.withEmail ?? 0;
+          return { day: shortDay(s.day), value: s.signups?.total ?? 0 };
         });
-        if (!cancelled) setData({ total, male, female, withEmail, blocked: blockedAgg.data().count, paid: paidAgg.data().count, daily });
+        if (!cancelled) setData({
+          total: totalAgg.data().count,
+          male: maleAgg.data().count,
+          female: femaleAgg.data().count,
+          withEmail,
+          blocked: blockedAgg.data().count,
+          paid: paidAgg.data().count,
+          daily,
+        });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
       } finally {
