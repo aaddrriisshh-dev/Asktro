@@ -257,12 +257,21 @@ tests around the money.
   `onCustomerSignup` still grants the welcome bonus when the doc is created. Removal
   also stops "ghost" Guest profiles for abandoned signups.
 
-### 5.2 Dependency updates
-- Flutter/Dart deps and Firebase SDKs — bump to current stable, one cluster at a
-  time, re-run analyze + device test. Watch the `ffi` override (kept at ^2.1.2 to
-  resolve the Agora vs share_plus conflict — keep it unless both sides move).
-- Functions deps (`firebase-admin`, `firebase-functions`, etc.) — update with the
-  Node bump.
+### 5.2 Dependency updates — DECISION: safe patches applied, majors HELD
+- **Done (v3):** safe in-range patch bumps on functions (agora-token 2.0.6,
+  razorpay 2.9.8, ts-jest 29.4.12). Lockfile-only, build clean, all tests pass.
+- **Held on purpose:** everything else that's "behind" is a MAJOR version jump
+  (firebase-functions 5→7, firebase-admin 12→14, eslint 8→10, typescript 5→7,
+  jest 29→30; portal: next 14→16, react 18→19, firebase 10→12, recharts 2→3).
+  None are security-critical, none are EOL in a way that touches users, and our
+  current versions run fine on Node 22. Major bumps = migration risk on a live
+  paid app + several need Mac/device verification. **Policy: upgrade a major only
+  when a feature we're building requires it, a real security advisory lands, or a
+  hard deadline forces it — never a blanket "chase latest" sweep.**
+- `eslint` 8 is technically end-of-life but is a dev-only linter (never ships in
+  the app), so zero user risk; the flat-config migration isn't worth the churn now.
+- Watch the `ffi` override (kept at ^2.1.2 to resolve the Agora vs share_plus
+  conflict — keep it unless both sides move).
 
 ### 5.3 App size (R8/ProGuard) — optional in v3, do carefully
 Enable `minifyEnabled` + `shrinkResources` in
