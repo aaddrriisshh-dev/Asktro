@@ -321,6 +321,26 @@ export const sendBroadcast = onCall(
         ...(bId ? {} : { createdAt: FieldValue.serverTimestamp() }),
       }, { merge: true });
 
+      // Lean PUBLIC copy for the in-app notification bell (scalable: ONE shared
+      // doc, not a per-user notification). Only customer-safe fields — no sender
+      // identity, no delivery counts. The app reads publicBroadcasts and merges
+      // 'all_users' items into the bell. (Segmented paid/unpaid sends already
+      // write per-user notification docs, so they're excluded here.)
+      const seg = d.segment ?? 'all_users';
+      if (seg === 'all_users' || seg === 'astrologers') {
+        await db.collection('publicBroadcasts').doc(broadcastRef.id).set({
+          title: d.title,
+          body: d.body,
+          segment: seg,
+          type: d.type ?? 'announcement',
+          deeplink: d.deeplink ?? null,
+          ctaDeeplink: d.ctaDeeplink ?? null,
+          image: d.image ?? null,
+          theme: d.theme ?? null,
+          sentAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+
       await db.collection(Collections.auditLogs).add({
         actorUid: actor, actorRole: 'admin', actorName,
         action: 'sendBroadcast', targetType: 'segment', targetId: d.segment ?? 'all_users',

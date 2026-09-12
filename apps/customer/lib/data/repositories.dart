@@ -411,6 +411,36 @@ class NotificationRepository {
             );
           }).toList(),);
 
+  /// "All Users" broadcasts (the topic-push segment) write ONE shared
+  /// `broadcasts` record instead of a per-user notification doc (that would be a
+  /// write per user at scale). So the bell reads that shared list directly and
+  /// merges it in — no per-user copies. Ordered by sentAt (auto-indexed single
+  /// field); the segment/status filter is client-side so no composite index is
+  /// needed. Shown as history (read: true) — the push already alerted the user,
+  /// and there is no per-user read state on a shared doc.
+  Stream<List<AppNotification>> watchBroadcasts({int limit = 20}) => _db
+      .collection('publicBroadcasts')
+      .orderBy('sentAt', descending: true)
+      .limit(40)
+      .snapshots()
+      .map((s) => s.docs
+          .where((d) => (d.data()['segment'] ?? 'all_users') == 'all_users')
+          .take(limit)
+          .map((d) {
+            final m = d.data();
+            final ts = m['sentAt'] ?? m['createdAt'];
+            return AppNotification(
+              id: 'bcast:${d.id}',
+              title: (m['title'] ?? '') as String,
+              body: (m['body'] ?? '') as String,
+              type: (m['type'] ?? 'announcement') as String,
+              deeplink: (m['deeplink'] as String?) ?? (m['ctaDeeplink'] as String?),
+              read: true,
+              createdAtMs: ts is Timestamp ? ts.millisecondsSinceEpoch : null,
+            );
+          })
+          .toList(),);
+
   Future<void> markRead(String id) =>
       _db.collection('notifications').doc(id).update({'read': true});
 

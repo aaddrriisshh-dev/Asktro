@@ -7,10 +7,31 @@ import '../../app/providers.dart';
 import '../consultation/chat_deeplink_screen.dart';
 import '../profile/suggested_remedies_screen.dart';
 
-final _notificationsProvider = StreamProvider.autoDispose<List<AppNotification>>((ref) {
+// Personal (per-user) notifications.
+final _personalNotificationsProvider = StreamProvider.autoDispose<List<AppNotification>>((ref) {
   final uid = ref.watch(currentUidProvider);
   if (uid == null) return const Stream.empty();
   return ref.watch(notificationRepositoryProvider).watch(uid);
+});
+
+// "All Users" broadcasts (shared list, no per-user copies) — see watchBroadcasts.
+final _broadcastNotificationsProvider = StreamProvider.autoDispose<List<AppNotification>>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return const Stream.empty();
+  return ref.watch(notificationRepositoryProvider).watchBroadcasts();
+});
+
+// The bell = personal notifications merged with the shared broadcasts, newest
+// first. Broadcast items carry a 'bcast:' id so the tap handler skips markRead.
+final _notificationsProvider = Provider.autoDispose<AsyncValue<List<AppNotification>>>((ref) {
+  final personal = ref.watch(_personalNotificationsProvider);
+  final broadcasts = ref.watch(_broadcastNotificationsProvider);
+  return personal.whenData((p) {
+    final b = broadcasts.valueOrNull ?? const <AppNotification>[];
+    final merged = [...p, ...b]
+      ..sort((a, c) => (c.createdAtMs ?? 0).compareTo(a.createdAtMs ?? 0));
+    return merged;
+  });
 });
 
 class NotificationsTab extends ConsumerWidget {
@@ -41,7 +62,11 @@ class NotificationsTab extends ConsumerWidget {
               return AppCard(
                 color: n.read ? AppColors.card : AppColors.accentLavender,
                 onTap: () {
-                  ref.read(notificationRepositoryProvider).markRead(n.id);
+                  // Broadcast items ('bcast:' id) are a shared doc with no
+                  // per-user 'read' field — don't try to mark them read.
+                  if (!n.id.startsWith('bcast:')) {
+                    ref.read(notificationRepositoryProvider).markRead(n.id);
+                  }
                   final rid = n.remedyId;
                   if (rid != null && rid.isNotEmpty) {
                     Navigator.of(context).push(

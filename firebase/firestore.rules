@@ -369,6 +369,14 @@ service cloud.firestore {
       allow write: if false; // written by the sendBroadcast function only
     }
 
+    // Lean, customer-safe copies of sent broadcasts (title/body/deeplink only)
+    // so the in-app notification bell can show announcements without a per-user
+    // copy. No sender identity or delivery data here. Function-written only.
+    match /publicBroadcasts/{id} {
+      allow read: if isSignedIn();
+      allow write: if false; // written by the sendBroadcast function only
+    }
+
     // ================= notifications =================
     match /notifications/{id} {
       allow read: if isAdmin() || isSelf(resource.data.userId);
