@@ -19,6 +19,7 @@ import { logger } from 'firebase-functions/v2';
 import { db, bucket, FieldValue } from '../common/admin';
 import { getGlobalConfig } from '../common/config';
 import { assertAuthed, badRequest } from '../common/errors';
+import { enforceRateLimit } from '../common/rateLimit';
 
 // ---- blocks ----------------------------------------------------------------
 
@@ -44,6 +45,7 @@ export async function assertNotBlocked(a: string, b: string): Promise<void> {
 
 export const blockUser = onCall(async (req) => {
   const uid = assertAuthed(req);
+  await enforceRateLimit('blockUser', uid);
   const { targetId } = (req.data ?? {}) as { targetId?: string };
   if (!targetId) badRequest('targetId is required.');
   if (targetId === uid) badRequest('You cannot block yourself.');
@@ -71,6 +73,7 @@ const REPORT_REASONS = ['abuse', 'harassment', 'nudity', 'spam', 'scam', 'fraud'
 
 export const reportContent = onCall(async (req) => {
   const reporterId = assertAuthed(req);
+  await enforceRateLimit('reportContent', reporterId);
   const { reportedId, consultationId, messageId, reason, detail } = (req.data ?? {}) as {
     reportedId?: string;
     consultationId?: string;

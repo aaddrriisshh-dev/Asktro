@@ -44,6 +44,11 @@ export const RATE_RULES: Record<string, RateRule> = {
   // A real user tries a handful; this throttles brute-force scanning. Paired with
   // a generic "invalid" response for non-existent/inactive/expired codes.
   validateCoupon: { limit: 20, windowSec: 3600, mode: 'block' }, // 20 / hour
+  // Reports create an admin alert doc each, so throttle to stop a user flooding
+  // the moderation queue. A genuine reporter files a handful, never dozens/hour.
+  reportContent: { limit: 20, windowSec: 3600, mode: 'block' }, // 20 / hour
+  // Blocking is benign but arrayUnion-writes a doc; cap so it can't be scripted.
+  blockUser: { limit: 40, windowSec: 3600, mode: 'block' }, // 40 / hour
 };
 
 const TTL_BUFFER_SEC = 120; // keep the doc a little past the window before TTL reclaim
