@@ -236,10 +236,10 @@ class UserRepository {
     final snap = await ref.get();
     final resolvedName = (name ?? profile?['name'] as String?)?.trim();
     if (snap.exists) {
-      // The doc already exists — e.g. the server-side onAuthUserCreate trigger
-      // won the race and created a bare {name:'Guest'} profile. We must NOT skip:
-      // that would silently lose the birth details the user just entered. Merge
-      // the onboarding fields into the existing doc instead. NEVER touch the
+      // The doc already exists — e.g. a re-login, or a previous attempt that
+      // created a bare {name:'Guest'} profile. We must NOT skip: that would
+      // silently lose the birth details the user just entered. Merge the
+      // onboarding fields into the existing doc instead. NEVER touch the
       // money/status/referral fields (function-owned; the client-update rule
       // rejects them and merging 0 could wipe a live balance), and never clobber
       // a real name with an empty one.

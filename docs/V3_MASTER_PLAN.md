@@ -250,8 +250,12 @@ tests around the money.
   break. Bump to Node 22, update `@types/node`, redeploy all functions, verify.
   Backend-only — NO app update. **Do this well before 30 Oct 2026** regardless of
   the v3 app timeline.
-- Bumping the runtime also unblocks the stuck **`onAuthUserCreate`** 1st-gen
-  deploy (deferred from the v2 session).
+- The stuck 1st-gen **`onAuthUserCreate`** trigger was **removed** as part of this
+  bump (1st-gen can't run Node 22, and Node 20 is being decommissioned). It was a
+  redundant server-side safety net — the customer app already holds every new user
+  at the profile-setup gate until the profile is saved and server-confirmed, and
+  `onCustomerSignup` still grants the welcome bonus when the doc is created. Removal
+  also stops "ghost" Guest profiles for abandoned signups.
 
 ### 5.2 Dependency updates
 - Flutter/Dart deps and Firebase SDKs — bump to current stable, one cluster at a

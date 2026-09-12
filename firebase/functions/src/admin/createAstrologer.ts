@@ -169,11 +169,10 @@ export const createAstrologer = onCall(async (req) => {
     { merge: true },
   );
 
-  // An astrologer is NOT a customer. The onAuthUserCreate trigger (fired by the
-  // createUser above) skips astrologers, but if it ran BEFORE the astrologers/
-  // {uid} doc existed it may have minted a customer profile. Delete it now that
-  // the astrologer doc is in place — closes that race so astrologers never
-  // appear in the customer `users` list or counts. Best-effort.
+  // An astrologer is NOT a customer. Defensively delete any customer `users`
+  // profile that may exist for this uid, so an astrologer never shows up in the
+  // customer `users` list or counts. Normally none exists (the astrologer app
+  // never creates one), so this is a best-effort no-op guard.
   await db.collection(Collections.users).doc(uid).delete().catch(() => { /* no customer profile — fine */ });
 
   await db.collection(Collections.auditLogs).add({

@@ -47,7 +47,6 @@ export { purchaseKundliMatch } from './astrology/kundliMatch';
 export { createStoreOrder, verifyStoreOrder, reconcileFailedStoreConfirms } from './store/store';
 
 // ---- Auth / account lifecycle ----
-export { onAuthUserCreate } from './auth/onAuthUserCreate';
 export { onCustomerSignup } from './auth/onUserCreate';
 export { setUserRole, deleteAccount, processAccountDeletion, deleteAstrologerAccount } from './auth/adminAndDeletion';
 export { recordConsent } from './auth/consent';
