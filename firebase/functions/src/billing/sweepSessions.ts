@@ -145,6 +145,12 @@ export async function expireOrphanActive(config: GlobalConfig, nowMs: number): P
   const active = await db
     .collection(Collections.consultations)
     .where('status', '==', 'active')
+    // Oldest-first (uses the existing (status, createdAt) index) so genuine
+    // orphans — old `active` docs whose first heartbeat never landed — surface
+    // deterministically instead of hiding beyond an arbitrary page of healthy
+    // live sessions once there are many concurrent chats. Every real creation
+    // path sets createdAt; a doc with none is legacy/test only.
+    .orderBy('createdAt', 'asc')
     .limit(SWEEP_LIMIT)
     .get();
 
