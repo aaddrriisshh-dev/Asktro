@@ -2,14 +2,27 @@
 
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useCollection } from '@/lib/hooks';
+import { useCollection, callFn } from '@/lib/hooks';
 import { formatDate } from '@/lib/format';
 
 export default function SupportPage() {
   const { rows, loading } = useCollection('supportTickets');
 
-  async function setStatus(id: string, status: string) {
-    await updateDoc(doc(db, 'supportTickets', id), { status, updatedAt: serverTimestamp() });
+  // Close MUST go through the callable (same as the dashboard card): it notifies
+  // the ticket owner AND writes an audit-log entry. A direct updateDoc here would
+  // silently close the ticket with no customer notification and no audit trail.
+  async function closeTicket(id: string) {
+    try {
+      await callFn('closeSupportTicket', { ticketId: id });
+    } catch (e) {
+      alert(`Could not close the ticket: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  // "Assign to me" is a low-stakes local status change (no owner notification
+  // needed), so a direct write is fine.
+  async function assign(id: string) {
+    await updateDoc(doc(db, 'supportTickets', id), { status: 'assigned', updatedAt: serverTimestamp() });
   }
 
   const badge = (s: string) => (s === 'closed' ? 'green' : s === 'assigned' ? 'amber' : 'red');
@@ -41,10 +54,10 @@ export default function SupportPage() {
                   <td data-label="Status"><span className={`badge ${badge(t.status)}`}>{t.status ?? 'open'}</span></td>
                   <td data-label="" style={{ display: 'flex', gap: 6 }}>
                     {t.status !== 'closed' && (
-                      <button className="btn sm" onClick={() => setStatus(t.id, 'closed')}>Close</button>
+                      <button className="btn sm" onClick={() => closeTicket(t.id)}>Close</button>
                     )}
                     {t.status === 'open' && (
-                      <button className="btn sm secondary" onClick={() => setStatus(t.id, 'assigned')}>Assign to me</button>
+                      <button className="btn sm secondary" onClick={() => assign(t.id)}>Assign to me</button>
                     )}
                   </td>
                 </tr>
