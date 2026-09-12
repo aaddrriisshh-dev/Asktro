@@ -16,6 +16,7 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions/v2';
+import { fetchWithTimeout } from '../common/httpTimeout';
 
 export const SLACK_ALERT_WEBHOOK = defineSecret('SLACK_ALERT_WEBHOOK');
 
@@ -56,11 +57,11 @@ export const deliverAlert = onDocumentCreated(
       `\n_Asktro · alert ${event.params.alertId}_`;
 
     try {
-      const res = await fetch(webhook, {
+      const res = await fetchWithTimeout(webhook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
-      });
+      }, 5_000);
       if (!res.ok) {
         const body = await res.text().catch(() => '');
         logger.error('deliverAlert: Slack post failed', {

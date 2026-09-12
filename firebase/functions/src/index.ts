@@ -55,7 +55,7 @@ export { recordConsent } from './auth/consent';
 export { rollupWalletTxn, rollupConsultation, rollupUserSignup, aggregateDailyStats } from './stats/dailyStats';
 
 // ---- Notifications ----
-export { onNotificationCreated, sendBroadcast } from './notifications/sender';
+export { onNotificationCreated, sendBroadcast, resumeStuckBroadcasts } from './notifications/sender';
 export { onChatMessageNudge } from './notifications/chatNudge';
 
 // ---- Alert delivery (Slack) ----

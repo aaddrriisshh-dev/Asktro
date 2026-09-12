@@ -19,6 +19,7 @@ import { db, FieldValue, Timestamp } from '../common/admin';
 import { assertAuthed, badRequest, failedPrecondition } from '../common/errors';
 import { enforceRateLimit } from '../common/rateLimit';
 import { DAY_MS, prokeralaCacheId, prokeralaCacheTtlMs } from './cacheKey';
+import { fetchWithTimeout } from '../common/httpTimeout';
 
 export const PROKERALA_CLIENT_ID = defineSecret('PROKERALA_CLIENT_ID');
 export const PROKERALA_CLIENT_SECRET = defineSecret('PROKERALA_CLIENT_SECRET');
@@ -60,7 +61,7 @@ async function getToken(clientId: string, clientSecret: string): Promise<string>
   const now = Date.now();
   if (cachedToken && cachedToken.expiresAtMs > now + 60_000) return cachedToken.value;
 
-  const res = await fetch(TOKEN_URL, {
+  const res = await fetchWithTimeout(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -68,7 +69,7 @@ async function getToken(clientId: string, clientSecret: string): Promise<string>
       client_id: clientId,
       client_secret: clientSecret,
     }),
-  });
+  }, 10_000);
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`ProKerala token error ${res.status}: ${text.slice(0, 200)}`);
@@ -98,7 +99,7 @@ export async function prokeralaGet(
   for (const [k, v] of Object.entries(params)) qs.set(k, String(v));
   const url = `${API_BASE}${path}${qs.toString() ? `?${qs.toString()}` : ''}`;
   const doFetch = async (token: string) =>
-    fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+    fetchWithTimeout(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } }, 10_000);
   try {
     let token = await getToken(clientId, clientSecret);
     let res = await doFetch(token);
@@ -180,7 +181,7 @@ export const prokeralaAstrology = onCall(
     const url = `${API_BASE}${path}${qs.toString() ? `?${qs.toString()}` : ''}`;
 
     const doFetch = async (token: string) =>
-      fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+      fetchWithTimeout(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } }, 10_000);
 
     // Store a SUCCESSFUL response for identical future requests (fail-open; a
     // failedPrecondition throws before we reach here, so errors are never cached).

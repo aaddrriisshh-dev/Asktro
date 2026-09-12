@@ -49,8 +49,17 @@ export async function getGlobalConfig(): Promise<GlobalConfig> {
   const now = Date.now();
   if (_cached && now - _cachedAtMs < CONFIG_TTL_MS) return _cached;
 
-  const snap = await db.doc(ConfigDoc.path).get();
-  const data = snap.exists ? (snap.data() as Partial<GlobalConfig> | undefined) : undefined;
+  let data: Partial<GlobalConfig> | undefined;
+  try {
+    const snap = await db.doc(ConfigDoc.path).get();
+    data = snap.exists ? (snap.data() as Partial<GlobalConfig> | undefined) : undefined;
+  } catch (err) {
+    // A transient config read failure must NOT fail the whole callable (billing,
+    // createConsultation, etc. all await this first). Fall back to the last good
+    // cached value, or the built-in defaults — never throw.
+    if (_cached) return _cached;
+    return { ...DEFAULT_CONFIG, featureFlags: { ...DEFAULT_CONFIG.featureFlags } };
+  }
   _cached = {
     ...DEFAULT_CONFIG,
     ...(data ?? {}),

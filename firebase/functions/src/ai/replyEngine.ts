@@ -93,6 +93,14 @@ export const onAiChatMessage = onDocumentCreated(
   {
     document: 'consultations/{consultationId}/messages/{messageId}',
     secrets: [GEMINI_API_KEY, PROKERALA_CLIENT_ID, PROKERALA_CLIENT_SECRET],
+    // The reply runs debounce + (up to 2) Gemini reads + human-paced typing
+    // bubbles, which can exceed the 60s default and get killed mid-reply. Give it
+    // room. Extra memory: a vision read can hold two ~5MB inline images plus the
+    // model buffers, and this trigger runs at high concurrency — 512MiB risked an
+    // OOM that would drop every in-flight session on the instance.
+    timeoutSeconds: 300,
+    memory: '1GiB',
+    concurrency: 40,
   },
   async (event) => {
     const snap = event.data;
@@ -644,7 +652,7 @@ async function generateGrounded(
 ) {
   for (let attempt = 0; attempt <= 1; attempt++) {
     const turns = attempt === 0 ? history : history; // history is stable across the single repair
-    const raw = await llmGenerate(
+    const gen = () => llmGenerate(
       // Vision reads keep the provider safety layer ON (disableSafety:false) so an
       // explicit photo is blocked → null → the engine stays silent, rather than
       // being described. Text-only calls stay BLOCK_NONE (persona owns boundaries).
@@ -653,6 +661,11 @@ async function generateGrounded(
       apiKey,
       configModels,
     );
+    // Auto-retry ONCE if the call itself failed or timed out (raw == null) — a
+    // transient Gemini hiccup then usually recovers on its own and the customer
+    // just sees the reply arrive a moment later, no error and nothing to do.
+    let raw = await gen();
+    if (raw == null) raw = await gen();
     const decision = guardReply(raw, briefing, attempt);
     if (decision.verdict === 'send' || decision.verdict === 'fallback') return decision.envelope!;
     // repair: fold the correction into the next user turn

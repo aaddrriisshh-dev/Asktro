@@ -132,16 +132,22 @@ export const onChatMessageCreated = onDocumentCreated(
     const text = (snap.data()?.text ?? '') as string;
     if (!text || !BANNED_RE.test(text)) return;
 
-    await snap.ref.set({ flagged: true, flaggedReason: 'auto_text', flaggedAt: FieldValue.serverTimestamp() }, { merge: true });
-    await db.collection('alerts').add({
-      kind: 'flagged_message',
-      severity: 'warning',
-      message: `Flagged message in consultation ${event.params.consultationId}.`,
-      refId: event.params.consultationId,
-      resolved: false,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-    logger.info('onChatMessageCreated: flagged message', { consultationId: event.params.consultationId, messageId: event.params.messageId });
+    // Safety net: a Firestore blip here must not silently lose a real abuse flag
+    // (or throw uncaught), so wrap + log — matching the rest of the codebase.
+    try {
+      await snap.ref.set({ flagged: true, flaggedReason: 'auto_text', flaggedAt: FieldValue.serverTimestamp() }, { merge: true });
+      await db.collection('alerts').add({
+        kind: 'flagged_message',
+        severity: 'warning',
+        message: `Flagged message in consultation ${event.params.consultationId}.`,
+        refId: event.params.consultationId,
+        resolved: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      logger.info('onChatMessageCreated: flagged message', { consultationId: event.params.consultationId, messageId: event.params.messageId });
+    } catch (err) {
+      logger.error('onChatMessageCreated: failed to record flag', { consultationId: event.params.consultationId, error: err instanceof Error ? err.message : String(err) });
+    }
   },
 );
 

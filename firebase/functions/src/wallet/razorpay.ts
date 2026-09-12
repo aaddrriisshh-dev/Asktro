@@ -47,11 +47,12 @@ export async function createOrder(
   notes: Record<string, string>,
 ): Promise<{ id: string; amount: number; currency: string }> {
   const instance = new Razorpay({ key_id: keyId, key_secret: keySecret });
-  const order = await instance.orders.create({
-    amount: amountPaise,
-    currency: 'INR',
-    receipt,
-    notes,
-  });
+  // Cap the SDK call so a slow Razorpay can't hang the paying user for the full
+  // function timeout — fail fast into the callable's error path instead (the
+  // customer just retries; no order/money is created on a timeout).
+  const order = await Promise.race([
+    instance.orders.create({ amount: amountPaise, currency: 'INR', receipt, notes }),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Razorpay order timed out')), 15_000)),
+  ]);
   return { id: order.id, amount: Number(order.amount), currency: order.currency };
 }

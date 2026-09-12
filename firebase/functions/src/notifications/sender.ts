@@ -10,7 +10,9 @@
  */
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onCall } from 'firebase-functions/v2/https';
-import { db, messaging, FieldValue } from '../common/admin';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { logger } from 'firebase-functions/v2';
+import { db, messaging, FieldValue, Timestamp } from '../common/admin';
 import { Collections } from '../common/collections';
 import { assertAdminTier, badRequest } from '../common/errors';
 import { adminName } from '../common/actor';
@@ -98,9 +100,13 @@ export const onNotificationCreated = onDocumentCreated('notifications/{id}', asy
     }
   });
   if (stale.length) {
+    // .catch: if the user/astrologer doc was deleted between the send and this
+    // prune, update() throws NOT_FOUND and would fail the push trigger. Swallow
+    // it — this is best-effort token cleanup. (Keep update(), not set-merge, so a
+    // deleted doc is NOT resurrected with a stray fcmTokens field.)
     await db.collection(tokenCollection).doc(userId).update({
       fcmTokens: FieldValue.arrayRemove(...stale),
-    });
+    }).catch(() => {});
   }
 });
 
@@ -253,7 +259,9 @@ export async function runBroadcast(
     sentCount += inBatch;
 
     cursor = page.docs[page.docs.length - 1];
-    await broadcastRef.set({ cursorId: cursor.id, sentCount, status: 'sending' }, { merge: true });
+    // Stamp updatedAt each checkpoint so the auto-resume sweeper can tell a truly
+    // STALLED send (no checkpoint for many minutes) from one still actively paging.
+    await broadcastRef.set({ cursorId: cursor.id, sentCount, status: 'sending', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
 
     if (page.size < pageSize) break; // last page
     if (now() - started > softDeadlineMs) { complete = false; break; }
@@ -280,8 +288,26 @@ export const sendBroadcast = onCall(
     if (bId) {
       try {
         await broadcastRef.create({
-          status: 'sending', title: d.title, body: d.body,
-          segment: d.segment ?? 'all_users', sentCount: 0, createdAt: FieldValue.serverTimestamp(),
+          status: 'sending', sentCount: 0,
+          // Store the FULL params up-front so the auto-resume sweeper can finish a
+          // stalled send with the exact same content/styling as the first half.
+          title: d.title, body: d.body,
+          segment: d.segment ?? 'all_users',
+          type: d.type ?? 'announcement',
+          theme: d.theme ?? null,
+          displayMode: d.displayMode ?? 'small',
+          image: d.image ?? null,
+          imageStyle: d.imageStyle ?? null,
+          deeplink: d.deeplink ?? null,
+          ctaDeeplink: d.ctaDeeplink ?? null,
+          portraitImage: d.portraitImage ?? null,
+          ctaText: d.ctaText ?? null,
+          landingTitle: d.landingTitle ?? null,
+          landingBody: d.landingBody ?? null,
+          bgColor: d.bgColor ?? null,
+          textColor: d.textColor ?? null,
+          ...(d.uids ? { uids: d.uids } : {}),
+          createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
         });
       } catch {
         const cur = (await broadcastRef.get()).data();
@@ -351,3 +377,30 @@ export const sendBroadcast = onCall(
     return { ok: true, delivered, channel, complete };
   },
 );
+
+// --- Auto-resume a stalled broadcast -----------------------------------------
+// A per-user (segmented) broadcast that exceeds its soft deadline — or whose
+// invocation dies — stays `status:'sending'` with a saved checkpoint, and today
+// only a manual re-send finishes it. This sweeper finishes it automatically, so
+// a big send never sits half-delivered. It only touches broadcasts whose last
+// checkpoint is old (a live run checkpoints every page), so it can't double-send
+// alongside an actively-running invocation.
+export const resumeStuckBroadcasts = onSchedule({ schedule: 'every 10 minutes', timeoutSeconds: 540 }, async () => {
+  const staleBefore = Date.now() - 15 * 60 * 1000; // 15 min with no checkpoint = truly stalled
+  const stuck = await db.collection('broadcasts').where('status', '==', 'sending').limit(5).get();
+  for (const doc of stuck.docs) {
+    const b = doc.data();
+    const updatedMs = (b.updatedAt as Timestamp | undefined)?.toMillis?.()
+      ?? (b.createdAt as Timestamp | undefined)?.toMillis?.() ?? 0;
+    if (updatedMs > staleBefore) continue; // still actively paging — leave it alone
+    try {
+      const { delivered, complete } = await runBroadcast(doc.ref, b as BroadcastParams);
+      if (complete) {
+        await doc.ref.set({ status: 'sent', delivered, sentAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        logger.info('resumeStuckBroadcasts: finished a stalled broadcast', { id: doc.id, delivered });
+      }
+    } catch (err) {
+      logger.error('resumeStuckBroadcasts failed', { id: doc.id, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+});

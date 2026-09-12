@@ -20,6 +20,7 @@
  * fabricates a reply on an outage).
  */
 import { logger } from 'firebase-functions/v2';
+import { fetchWithTimeout } from '../common/httpTimeout';
 
 export type LlmTier = 'router' | 'filler' | 'reading';
 
@@ -153,11 +154,14 @@ export async function llmGenerate(
   const url = `${GEMINI_BASE}/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   try {
-    const res = await fetch(url, {
+    // 30s ceiling: a normal reading returns well under this; a hung Gemini
+    // connection aborts here (→ null → the engine stays silent / retries) instead
+    // of holding the whole function invocation until the platform timeout.
+    const res = await fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    });
+    }, 30_000);
     // Read as text first so we can log the provider's exact error on failure.
     const raw = await res.text().catch(() => '');
     if (!res.ok) {
