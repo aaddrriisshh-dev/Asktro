@@ -32,6 +32,10 @@ Future<void> showPromoPopup(
   String? imageUrl,
   String imageStyle = 'banner',
   bool imageFill = false,
+  // Custom colours from the portal (used only when there's no preset theme — a
+  // themed popup already carries its own palette). Honoured by the centre card.
+  Color? bgOverride,
+  Color? textOverride,
 }) {
   final th = theme;
   // Image-first: a fully-designed image fills the takeover with just close + CTA.
@@ -44,7 +48,8 @@ Future<void> showPromoPopup(
   if (th != null && displayMode == 'half') {
     return _half(context, th, title, body, onAction, ctaLabel, code, imageUrl, imageStyle);
   }
-  return _center(context, th, title, body, onAction, ctaLabel, code, medal, showMaybeLater, imageUrl, imageStyle);
+  return _center(context, th, title, body, onAction, ctaLabel, code, medal, showMaybeLater, imageUrl, imageStyle,
+      bgOverride: bgOverride, textOverride: textOverride);
 }
 
 // ---- image-first takeover (fully-designed image fills the sheet) ------------
@@ -205,12 +210,13 @@ Widget _actionCta(BuildContext ctx, PromoTheme? th, String label, VoidCallback o
 
 Future<void> _center(BuildContext context, PromoTheme? th, String title, String body,
     VoidCallback onAction, String ctaLabel, String? code, String medal, bool showMaybeLater,
-    String? imageUrl, String imageStyle,) {
+    String? imageUrl, String imageStyle, {Color? bgOverride, Color? textOverride,}) {
   return showDialog(
     context: context,
     barrierDismissible: true,
     builder: (ctx) {
-      final fg = th?.tx ?? Ob.navy;
+      // No preset theme → honour the portal's custom text/bg colours if given.
+      final fg = th?.tx ?? textOverride ?? Ob.navy;
       final head = th != null ? promoHeadline(th) : fg;
       final hasImage = imageUrl != null && imageUrl.isNotEmpty;
       final content = Padding(
@@ -258,7 +264,7 @@ Future<void> _center(BuildContext context, PromoTheme? th, String title, String 
         ),
       );
       return Dialog(
-        backgroundColor: th == null ? Ob.bgColor : Colors.transparent,
+        backgroundColor: th == null ? (bgOverride ?? Ob.bgColor) : Colors.transparent,
         elevation: 0,
         insetPadding: const EdgeInsets.symmetric(horizontal: 30),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),

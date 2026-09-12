@@ -127,6 +127,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       return;
     }
     final theme = promoThemeById(data['theme'] as String?);
+    // Custom colours the admin set in the portal (used when no preset theme).
+    Color? hx(String? s) {
+      if (s == null || s.isEmpty) return null;
+      var h = s.replaceFirst('#', '').trim();
+      if (h.length == 6) h = 'FF$h';
+      if (h.length != 8) return null;
+      final v = int.tryParse(h, radix: 16);
+      return v == null ? null : Color(v);
+    }
+    final bgOverride = hx(data['bgColor'] as String?);
+    final textOverride = hx(data['textColor'] as String?);
     final mode = (data['displayMode'] as String?) ?? 'small';
     final imageStyle = (data['imageStyle'] as String?) ?? 'banner';
     // Prefer the portrait upload when the admin picked the portrait style.
@@ -139,7 +150,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     // Any themed or image-bearing push opens the shared popup — small renders a
     // centre card, half a bottom sheet, full a takeover. Only a plain push
     // (no theme, no image) falls straight through to its deeplink.
-    if (theme != null || hasImage) {
+    if (theme != null || hasImage || bgOverride != null || textOverride != null) {
       showPromoPopup(
         context,
         theme: theme,
@@ -151,6 +162,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         heroTagline: null,
         imageUrl: imageUrl,
         imageStyle: imageStyle,
+        bgOverride: bgOverride,
+        textOverride: textOverride,
         onAction: () => _followDeeplink(ctaDeeplink.isNotEmpty ? ctaDeeplink : deeplink),
       );
     } else if (deeplink.isNotEmpty) {
