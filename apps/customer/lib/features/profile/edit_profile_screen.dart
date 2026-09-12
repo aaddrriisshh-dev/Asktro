@@ -533,7 +533,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(_placeError!,
-                style: Ob.note.copyWith(color: const Color(0xFFD25360), fontSize: 12.5)),
+                style: Ob.note.copyWith(color: const Color(0xFFD25360), fontSize: 12.5),),
           )
         else if (_placeNoMatch)
           Padding(

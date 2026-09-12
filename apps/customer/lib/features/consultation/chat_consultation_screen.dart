@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -454,7 +453,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       'First, take a clear photo of your RIGHT (dominant) hand — palm facing the camera, fingers a little apart, in good light.',
       'Open camera',
       'Cancel',
-    )) return;
+    )) {
+      return;
+    }
     final right = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
     if (right == null) return;
     await _stageBytes(await right.readAsBytes());
@@ -1177,9 +1178,9 @@ class _TypingBubbleState extends State<_TypingBubble> with SingleTickerProviderS
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.card,
-        borderRadius: const BorderRadius.only(
+        borderRadius: BorderRadius.only(
           topLeft: Radius.circular(16),
           topRight: Radius.circular(16),
           bottomLeft: Radius.circular(4),
@@ -1290,15 +1291,15 @@ class _TarotDrawChip extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Stack(
+              child: const Stack(
                 alignment: Alignment.center,
                 children: [
-                  const Positioned.fill(child: CustomPaint(painter: _StarHazePainter())),
+                  Positioned.fill(child: CustomPaint(painter: _StarHazePainter())),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 15, 20, 13),
+                    padding: EdgeInsets.fromLTRB(20, 15, 20, 13),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
+                      children: [
                         _TarotFan(),
                         SizedBox(height: 9),
                         Text('Open my cards',

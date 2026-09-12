@@ -1,0 +1,51 @@
+{
+    "status": "ok",
+    "data": {
+        "nakshatra": {
+            "id": 22,
+            "name": "Dhanishta",
+            "lord": {
+                "id": 4,
+                "name": "Mars",
+                "vedic_name": "Kuja"
+            },
+            "pada": 4
+        },
+        "chandra_rasi": {
+            "id": 10,
+            "name": "Kumbha",
+            "lord": {
+                "id": 6,
+                "name": "Saturn",
+                "vedic_name": "Shani"
+            }
+        },
+        "soorya_rasi": {
+            "id": 5,
+            "name": "Kanya",
+            "lord": {
+                "id": 2,
+                "name": "Mercury",
+                "vedic_name": "Budha"
+            }
+        },
+        "zodiac": {
+            "id": 5,
+            "name": "Virgo"
+        },
+        "additional_info": {
+            "deity": "Vasus\/Vasu",
+            "ganam": "Asura",
+            "symbol": "Drum Or Flute",
+            "animal_sign": "Lion",
+            "nadi": "Pitta",
+            "color": "Silver Grey",
+            "best_direction": "East",
+            "syllables": "Ga, Gi, Gu, Ge",
+            "birth_stone": "Coral",
+            "gender": "Female",
+            "planet": "Kuja",
+            "enemy_yoni": "Elephant"
+        }
+    }
+}
