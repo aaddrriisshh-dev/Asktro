@@ -38,12 +38,11 @@ class _BatteryOptimizationPromptState extends ConsumerState<BatteryOptimizationP
     final enable = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Never miss a call'),
+        title: const Text('Stay reachable for consultations'),
         content: const Text(
-          'To receive call and chat requests even when your phone is locked, '
-          'allow Asktro to keep running in the background.\n\n'
-          'Without this, your phone can silence incoming consultations and you '
-          'may miss customers.',
+          'Allow Asktro to keep running in the background so call and chat '
+          'requests reach you reliably, even when your phone is locked.\n\n'
+          'It’s a quick one-time setting, and you can change it anytime.',
         ),
         actions: [
           TextButton(
