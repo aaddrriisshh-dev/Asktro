@@ -240,7 +240,7 @@ class _CustomerDetailsCardState extends State<CustomerDetailsCard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('Came for a $label',
-                    style: Sky.label.copyWith(fontSize: 12.5, fontWeight: FontWeight.w800, color: Sky.purple)),
+                    style: Sky.label.copyWith(fontSize: 12.5, fontWeight: FontWeight.w800, color: Sky.purple),),
                 if (hint.isNotEmpty) ...[
                   const SizedBox(height: 1),
                   Text(hint, style: Sky.label.copyWith(fontSize: 10.5, color: Sky.ink3)),
