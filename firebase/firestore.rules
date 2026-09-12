@@ -298,9 +298,11 @@ service cloud.firestore {
     }
     match /storeProducts/{productId} {
       allow read: if isSignedIn();
-      // Any admin may author catalog copy, but price & stock are money-sensitive:
-      // only a Super Admin may set/change them (mirrors coupons/commission).
+      // Any admin may author catalog copy. Price & stock are money-sensitive:
+      // only a Super Admin or the Ops (chief-administration) tier may set/change
+      // them; the astrology tier / any other admin may edit copy but NOT price/stock.
       allow write: if isSuperAdmin()
+        || (isAdmin() && claims().adminRole == 'ops')
         || (isAdmin() && notChanging(['pricePaise','stock']));
       // Product reviews — read for signed-in users; authored/moderated by admins
       // for now (customer submission with moderation comes later).
