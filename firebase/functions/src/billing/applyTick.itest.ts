@@ -35,7 +35,7 @@ async function seedSession(
   uid: string,
   agoMs: number,
   nowMs: number,
-  opts: { wallet?: number; anyBonus?: number; chatBonus?: number; eligible?: boolean; astroAgoMs?: number; type?: string; chatGraceUsed?: boolean } = {},
+  opts: { wallet?: number; anyBonus?: number; chatBonus?: number; eligible?: boolean; astroAgoMs?: number; type?: string; chatGraceUsed?: boolean; isAI?: boolean } = {},
 ) {
   await db.collection('users').doc(uid).set({
     walletBalance: opts.wallet ?? 0,
@@ -46,6 +46,7 @@ async function seedSession(
   const t = Timestamp.fromMillis(nowMs - agoMs);
   await db.collection('consultations').doc(cid).set({
     customerId: uid, astrologerId: 'a1', type: opts.type ?? 'chat', chatCreditEligible: opts.eligible ?? true,
+    isAI: opts.isAI ?? false,
     status: 'active', pricePerMinute: 900, billedSeconds: 0, totalCharged: 0,
     lastTickAt: t, customerLastTickAt: t,
     // Only set the astrologer presence when a test needs it (human session).
@@ -75,6 +76,26 @@ describe('applyTick (emulator)', () => {
 
     const c = (await db.collection('consultations').doc(cid).get()).data()!;
     expect(c.status).toBe('paused');
+    expect(c.totalCharged).toBe(150);
+  });
+
+  it('v3: an AI chat IS billed per-minute (the old isAI free short-circuit is gone)', async () => {
+    const uid = 'u_ai_1'; const cid = 'c_ai_1';
+    const T = Date.now();
+    // AI chat: isAI=true, 10s elapsed (within the single-tick settle window),
+    // ₹1000 wallet, no astrologer heartbeat (AI never ticks). Pre-v3 this returned
+    // chargedPaise:0 (free short-circuit); now it must bill on customer presence.
+    await seedSession(cid, uid, 10_000, T, { wallet: 100_000, isAI: true });
+
+    const out = await db.runTransaction((tx) => applyTick(tx, cid, CONFIG, T, undefined, 'customer'));
+    expect(out).not.toBeNull();
+    expect(out!.status).toBe('active');
+    expect(out!.billedSeconds).toBe(10);
+    expect(out!.chargedPaise).toBe(150); // 10s @ ₹9/min = 150 paise
+
+    const u = (await db.collection('users').doc(uid).get()).data()!;
+    expect(u.walletBalance).toBe(99_850); // 100000 − 150
+    const c = (await db.collection('consultations').doc(cid).get()).data()!;
     expect(c.totalCharged).toBe(150);
   });
 
