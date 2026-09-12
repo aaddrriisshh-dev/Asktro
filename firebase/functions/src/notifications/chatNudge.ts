@@ -28,6 +28,8 @@ const AWAY_MS = 25_000;
 const NUDGE_THROTTLE_MS = 60_000;
 // First nudge + one reminder, then stop until the chat is reopened.
 const MAX_NUDGES = 2;
+// The astrologer should re-engage a paid chat, so allow a couple more reminders.
+const ASTRO_MAX_NUDGES = 3;
 
 /** Short one-line preview for the home card + push body. */
 function previewOf(m: Record<string, unknown>): string {
@@ -40,6 +42,13 @@ function previewOf(m: Record<string, unknown>): string {
     return t.trim() ? t.slice(0, 90) : '📷 Photo';
   }
   return ((m.text as string) || '').replace(/\s+/g, ' ').trim().slice(0, 90);
+}
+
+/** Customer display name for the astrologer's nudge (read once, throttled). */
+async function customerName(customerId: string): Promise<string> {
+  const snap = await db.collection('users').doc(customerId).get().catch(() => null);
+  const n = (snap?.data()?.name as string | undefined)?.trim();
+  return n && n.toLowerCase() !== 'guest' ? n : 'Your customer';
 }
 
 /** Astrologer display name + photo, read once per nudge (throttled, so cheap). */
@@ -89,6 +98,41 @@ export const onChatMessageNudge = onDocumentCreated(
           { merge: true },
         )
         .catch(() => {});
+
+      // f3: nudge a HUMAN astrologer who has stepped away, so they don't miss the
+      // customer's messages mid-chat. AI needs no push (it replies on its own).
+      // Same away-gate + throttle + cap shape as the customer nudge above.
+      const astrologerId = c.astrologerId as string | undefined;
+      if (c.isAI !== true && astrologerId) {
+        const astroTick = (c.astrologerLastTickAt as Timestamp | null)?.toMillis?.() ?? 0;
+        const nowMs = Date.now();
+        const lastN = (c.lastAstrologerNudgeAt as Timestamp | null)?.toMillis?.() ?? 0;
+        const nCount = (c.astrologerNudgeCount as number | undefined) ?? 0;
+        if (nowMs - astroTick > AWAY_MS && nCount < ASTRO_MAX_NUDGES && nowMs - lastN >= NUDGE_THROTTLE_MS) {
+          const cname = await customerName(customerId);
+          // userId = astrologerId → onNotificationCreated falls back to the
+          // astrologers/{uid} FCM tokens and pushes (high-priority chat_message).
+          await db
+            .collection('notifications')
+            .add({
+              userId: astrologerId,
+              type: 'chat_message',
+              title: cname,
+              body: preview || `${cname} sent you a message`,
+              deeplink: `asktro://chat/${consultationId}`,
+              consultationId,
+              createdAt: FieldValue.serverTimestamp(),
+              read: false,
+            })
+            .catch(() => {});
+          await cRef
+            .set(
+              { lastAstrologerNudgeAt: FieldValue.serverTimestamp(), astrologerNudgeCount: FieldValue.increment(1) },
+              { merge: true },
+            )
+            .catch(() => {});
+        }
+      }
       return;
     }
 
@@ -103,6 +147,9 @@ export const onChatMessageNudge = onDocumentCreated(
           lastMessageAt: FieldValue.serverTimestamp(),
           lastMessageFromCustomer: false,
           customerUnread: FieldValue.increment(1),
+          // The astrologer (or AI) just replied → they're present; re-arm their
+          // nudges so a later away-period can notify them again.
+          astrologerNudgeCount: 0,
         },
         { merge: true },
       )
