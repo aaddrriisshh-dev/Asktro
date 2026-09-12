@@ -637,8 +637,6 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   Future<void> _handleWarn(ConsultationState s) async {
     // ... hidden in free v1 — no low-balance / recharge warnings when money is off
     if (!kMonetizationEnabled) return;
-    // AI chat is free — never show balance / recharge warnings on an AI session.
-    if (widget.astrologer.isAI) return;
     // Before billing has started (session still `waiting` for the first AI reply)
     // there is nothing to warn about — skip so the seeded warnLevel/remainingSec
     // never misfires the low-balance dialog during the free opening.
@@ -687,7 +685,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
               const SizedBox(height: AppSpacing.md),
               Text('Consultation Paused', style: AppTypography.subtitle, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.xs),
-              Text('Recharge now to continue exactly where you left off.',
+              Text("You've run out of balance. Recharge to continue exactly where you left off.",
                   style: AppTypography.caption, textAlign: TextAlign.center,),
               const SizedBox(height: AppSpacing.xl),
               PrimaryButton(
@@ -960,7 +958,6 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 // so a `waiting` session never shows a frozen 0:00.
                 // ... countdown hidden in free v1 (never shows when money is off)
                 showCountdown: kMonetizationEnabled &&
-                    !widget.astrologer.isAI &&
                     s.status == ConsultationStatus.active &&
                     (ref.watch(myProfileProvider).valueOrNull?.walletBalance ?? 0) <= 0,
               ),
