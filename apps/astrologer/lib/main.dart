@@ -18,7 +18,7 @@ Future<void> main() async {
     try {
       FirebaseCrashlytics.instance.recordError(e, st, reason: 'startup failed', fatal: true);
     } catch (_) {/* Firebase never came up — still show retry below */}
-    runApp(_StartupErrorApp(onRetry: main));
+    runApp(const _StartupErrorApp(onRetry: main));
   }
 }
 

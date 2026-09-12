@@ -49,7 +49,7 @@ Future<void> showPromoPopup(
     return _half(context, th, title, body, onAction, ctaLabel, code, imageUrl, imageStyle);
   }
   return _center(context, th, title, body, onAction, ctaLabel, code, medal, showMaybeLater, imageUrl, imageStyle,
-      bgOverride: bgOverride, textOverride: textOverride);
+      bgOverride: bgOverride, textOverride: textOverride,);
 }
 
 // ---- image-first takeover (fully-designed image fills the sheet) ------------
