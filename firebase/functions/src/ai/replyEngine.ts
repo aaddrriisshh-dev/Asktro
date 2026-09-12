@@ -34,7 +34,8 @@ import { enforceRateLimit } from '../common/rateLimit';
 
 const IST_MS = 5.5 * 3600 * 1000;
 const HISTORY_TURNS = 10;
-const CHART_CACHE = 'chart'; // consultations/{id}/ai/{CHART_CACHE}
+const CHART_BASE = 'chartBase';     // users/{uid}/ai/chartBase — fixed natal + kundli (birth-keyed)
+const CHART_GOCHAR = 'chartGochar'; // users/{uid}/ai/chartGochar — daily transits (day-keyed)
 
 // Pacing knobs (portal-tunable later). Kept human, never obviously padded.
 const DEBOUNCE_MS = 3500; // wait for the user's burst to settle before replying
@@ -207,7 +208,7 @@ export const onAiChatMessage = onDocumentCreated(
       } else if (tradition === 'tarot') {
         altBriefing = null; // the spread is drawn at step 3 from the question
       } else {
-        chart = await getOrBuildChart(consultationId, user);
+        chart = await getOrBuildChart(c.customerId as string, user);
         if (!chart) {
           logger.warn('onAiChatMessage: no chart (missing birth data?)', { consultationId });
           return; // Stage 1: silently skip; a "share your birth details" flow comes later
@@ -552,31 +553,67 @@ export const onAiConsultationCreated = onDocumentCreated(
 
 // ---- chart build + cache ------------------------------------------------
 
+// Cached PER USER (not per consultation) so a returning customer's chart is not
+// re-bought from ProKerala on every new session. The FIXED birth chart (natal +
+// kundli/advanced) is cached permanently keyed by a birthKey; the DAILY transits
+// (gochar) are cached per UTC day. So a same-day repeat session costs 0 ProKerala
+// calls and a new day costs just 1 (gochar) — vs 3 per session before. Editing
+// birth details changes the birthKey → the fixed chart rebuilds automatically.
 async function getOrBuildChart(
-  consultationId: string,
+  customerId: string,
   user: Record<string, unknown>,
 ): Promise<ChartData | null> {
-  const cacheRef = db.collection('consultations').doc(consultationId).collection('ai').doc(CHART_CACHE);
-  const cached = await cacheRef.get();
-  if (cached.exists && cached.data()?.chart) return cached.data()!.chart as ChartData;
-
   const lat = num(user.birthLat);
   const lng = num(user.birthLng);
   const birthMs = num(user.birthDateMs);
   if (lat == null || lng == null || birthMs == null) return null;
 
   const coordinates = `${lat},${lng}`;
-  const birthDatetime = birthIso(birthMs, str(user.birthTime), user.birthTimeKnown !== false);
-  const nowDatetime = nowIso();
+  const timeKnown = user.birthTimeKnown !== false;
+  const birthDatetime = birthIso(birthMs, str(user.birthTime), timeKnown);
+  const birthKey = `${birthMs}|${coordinates}|${str(user.birthTime)}|${timeKnown}`;
+  const today = new Date().toISOString().slice(0, 10); // UTC day
   const clientId = PROKERALA_CLIENT_ID.value();
   const clientSecret = PROKERALA_CLIENT_SECRET.value();
 
-  const [natal, gochar, advanced] = await Promise.all([
-    prokeralaGet('v2/astrology/planet-position', { ayanamsa: 1, coordinates, datetime: birthDatetime, la: 'en' }, clientId, clientSecret),
-    prokeralaGet('v2/astrology/planet-position', { ayanamsa: 1, coordinates, datetime: nowDatetime, la: 'en' }, clientId, clientSecret),
-    prokeralaGet('v2/astrology/kundli/advanced', { ayanamsa: 1, coordinates, datetime: birthDatetime, la: 'en' }, clientId, clientSecret),
-  ]);
-  if (!natal || !advanced) return null; // gochar optional; natal + advanced are essential
+  const aiCol = db.collection('users').doc(customerId).collection('ai');
+  const baseRef = aiCol.doc(CHART_BASE);
+  const gocharRef = aiCol.doc(CHART_GOCHAR);
+
+  // JSON round-trip strips undefined before any Firestore write (Firestore rejects
+  // undefined and throws SYNCHRONOUSLY, so a .catch can't rescue it).
+  const clean = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
+  // 1) FIXED birth chart (natal + kundli/advanced) — reuse permanently unless the
+  //    user's birth details changed (birthKey mismatch).
+  let natal: Record<string, unknown> | null | undefined;
+  let advanced: Record<string, unknown> | null | undefined;
+  const baseSnap = await baseRef.get();
+  if (baseSnap.exists && baseSnap.data()?.birthKey === birthKey) {
+    natal = baseSnap.data()!.natal as Record<string, unknown>;
+    advanced = baseSnap.data()!.advanced as Record<string, unknown>;
+  } else {
+    [natal, advanced] = await Promise.all([
+      prokeralaGet('v2/astrology/planet-position', { ayanamsa: 1, coordinates, datetime: birthDatetime, la: 'en' }, clientId, clientSecret),
+      prokeralaGet('v2/astrology/kundli/advanced', { ayanamsa: 1, coordinates, datetime: birthDatetime, la: 'en' }, clientId, clientSecret),
+    ]);
+    if (!natal || !advanced) return null; // essential — never cache a partial build
+    await baseRef.set({ birthKey, natal: clean(natal), advanced: clean(advanced), builtAt: FieldValue.serverTimestamp() }, { merge: true }).catch(() => {});
+  }
+
+  // 2) DAILY transits (gochar) — refresh once per UTC day (optional; the chart is
+  //    still valid without it). Keyed by birthKey too so a coordinates change
+  //    (inside birthKey) also refreshes it.
+  let gochar: Record<string, unknown> | null | undefined;
+  const gocharSnap = await gocharRef.get();
+  if (gocharSnap.exists && gocharSnap.data()?.day === today && gocharSnap.data()?.birthKey === birthKey) {
+    gochar = gocharSnap.data()!.gochar as Record<string, unknown>;
+  } else {
+    gochar = await prokeralaGet('v2/astrology/planet-position', { ayanamsa: 1, coordinates, datetime: nowIso(), la: 'en' }, clientId, clientSecret);
+    if (gochar) {
+      await gocharRef.set({ day: today, birthKey, gochar: clean(gochar), builtAt: FieldValue.serverTimestamp() }, { merge: true }).catch(() => {});
+    }
+  }
 
   const chart = extractChartData({
     name: firstName(user.name),
@@ -585,13 +622,7 @@ async function getOrBuildChart(
     advanced: advanced as Record<string, unknown>,
     nowMs: Date.now(),
   });
-
-  // Firestore rejects `undefined` (and throws SYNCHRONOUSLY, so .catch can't help).
-  // A JSON round-trip drops every undefined key (optional fields like vedicName,
-  // dignity, etc.) — safe because those are all optional and absent == undefined.
-  const clean = JSON.parse(JSON.stringify(chart)) as ChartData;
-  await cacheRef.set({ chart: clean, builtAt: FieldValue.serverTimestamp() }, { merge: true }).catch(() => {});
-  return clean;
+  return clean(chart) as ChartData;
 }
 
 // ---- LLM generate + grounding repair ------------------------------------

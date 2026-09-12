@@ -15,8 +15,10 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions/v2';
+import { db, FieldValue, Timestamp } from '../common/admin';
 import { assertAuthed, badRequest, failedPrecondition } from '../common/errors';
 import { enforceRateLimit } from '../common/rateLimit';
+import { DAY_MS, prokeralaCacheId, prokeralaCacheTtlMs } from './cacheKey';
 
 export const PROKERALA_CLIENT_ID = defineSecret('PROKERALA_CLIENT_ID');
 export const PROKERALA_CLIENT_SECRET = defineSecret('PROKERALA_CLIENT_SECRET');
@@ -41,6 +43,13 @@ const ALLOWED_PATHS = new Set<string>([
   'v2/astrology/inauspicious-period', // rahu kaal, gulika, yamaganda
   'v2/astrology/nakshatra-porutham',
 ]);
+
+// Result cache: identical astrology requests return identical data, so we cache
+// the upstream response in Firestore and serve repeats from there instead of
+// re-buying them from ProKerala. The key + TTL logic lives in ./cacheKey (pure,
+// unit-tested); every cache read/write here is fail-open — any error falls
+// straight through to a live fetch, so caching can never break a request.
+const PROKERALA_CACHE = 'prokeralaCache';
 
 // In-instance token cache. ProKerala tokens are short-lived; we refetch ~60s
 // before expiry. Each function instance keeps its own token (fine — ProKerala
@@ -147,12 +156,39 @@ export const prokeralaAstrology = onCall(
       effectiveParams.type = 'all';
     }
 
+    // Serve an identical, still-fresh request straight from the result cache.
+    const cacheId = prokeralaCacheId(path, effectiveParams);
+    const cacheRef = db.collection(PROKERALA_CACHE).doc(cacheId);
+    try {
+      const hit = (await cacheRef.get()).data();
+      if (hit && typeof hit.expiresAtMs === 'number' && hit.expiresAtMs > Date.now() && hit.payload) {
+        return hit.payload;
+      }
+    } catch {
+      /* fail-open — fall through to a live fetch */
+    }
+
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(effectiveParams)) qs.set(k, String(v));
     const url = `${API_BASE}${path}${qs.toString() ? `?${qs.toString()}` : ''}`;
 
     const doFetch = async (token: string) =>
       fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+
+    // Store a SUCCESSFUL response for identical future requests (fail-open; a
+    // failedPrecondition throws before we reach here, so errors are never cached).
+    const cachePayload = (payload: unknown) => {
+      const ttl = prokeralaCacheTtlMs(path);
+      cacheRef.set({
+        payload,
+        path,
+        expiresAtMs: Date.now() + ttl,
+        // A Firestore TTL policy on prokeralaCache.expireAt reaps stale entries
+        // (one-time console step, like rateLimits/dailyStats — see PRE_LAUNCH).
+        expireAt: Timestamp.fromMillis(Date.now() + ttl + DAY_MS),
+        cachedAt: FieldValue.serverTimestamp(),
+      }, { merge: true }).catch(() => {});
+    };
 
     try {
       let token = await getToken(clientId, clientSecret);
@@ -172,14 +208,18 @@ export const prokeralaAstrology = onCall(
           logger.error('prokeralaAstrology upstream error (chart)', { path, status: res.status, body: svg.slice(0, 200) });
           failedPrecondition('Astrology service is temporarily unavailable.');
         }
-        return { ok: true, contentType: 'image/svg+xml', data: { svg } };
+        const result = { ok: true, contentType: 'image/svg+xml', data: { svg } };
+        cachePayload(result);
+        return result;
       }
       const json = (await res.json().catch(() => null)) as { data?: unknown; errors?: unknown } | null;
       if (!res.ok) {
         logger.error('prokeralaAstrology upstream error', { path, status: res.status, errors: json?.errors });
         failedPrecondition('Astrology service is temporarily unavailable.');
       }
-      return { ok: true, data: json?.data ?? json };
+      const result = { ok: true, data: json?.data ?? json };
+      cachePayload(result);
+      return result;
     } catch (e) {
       logger.error('prokeralaAstrology failed', { path, error: e instanceof Error ? e.message : String(e) });
       failedPrecondition('Astrology service is temporarily unavailable.');
