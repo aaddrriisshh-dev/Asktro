@@ -11,7 +11,7 @@ import 'onboarding_style.dart';
 import 'onboarding_widgets.dart';
 
 /// Profile setup for a signed-in customer, in the celestial navy/gold ASKTRO
-/// design: a "Congratulations — free chat unlocked" hook, then a seven-step
+/// design: a "Congratulations — first 3 minutes free" hook, then a seven-step
 /// wizard (name → gender → birth date → birth time → place → relationship →
 /// languages). Setup runs AFTER login (v2), so the details are written DIRECTLY
 /// to `users/{uid}` — no pre-login buffer, no hand-off race. The write is
@@ -277,11 +277,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             text: TextSpan(
               style: Ob.subtitle.copyWith(fontSize: 16, color: Ob.navy),
               children: const [
-                TextSpan(text: "You've unlocked "),
+                TextSpan(text: "You've unlocked your "),
                 TextSpan(
-                    text: 'unlimited free chats',
+                    text: 'first 3 minutes free',
                     style: TextStyle(color: Ob.goldDeep, fontWeight: FontWeight.w600),),
-                TextSpan(text: ' with our new astrologers  ✦'),
+                TextSpan(text: ' with our New Astrologers  ✦'),
               ],
             ),
           ),
@@ -301,7 +301,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           GoldButton(
-            label: 'Start Free Chat',
+            label: 'Get Started',
             loading: _saving,
             onPressed: _saving ? null : () => setState(() => _step = 0),
           ),
@@ -354,7 +354,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       ),
       child: Row(
         children: [
-          _feature(Icons.chat_bubble_outline_rounded, 'Unlimited Free Chat', 'Answers in real-time.'),
+          _feature(Icons.chat_bubble_outline_rounded, '3 Free Minutes', 'With new astrologers.'),
           _feature(Icons.shield_outlined, '100% Private', 'Safe & confidential.'),
           _feature(Icons.workspace_premium_outlined, 'Verified Experts', 'Trusted astrologers.'),
           _feature(Icons.access_time_rounded, 'Quick & Easy', 'Guidance anytime.'),

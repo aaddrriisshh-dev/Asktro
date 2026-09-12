@@ -468,8 +468,8 @@ class _HomeBannersState extends ConsumerState<_HomeBanners> {
       _banner(
         gradient: _grad(const [Color(0xFF9E7BE0), Color(0xFF7E57C2), Color(0xFF5E3FBE)]),
         kicker: '✦ WELCOME GIFT',
-        title: 'Start Your Free\nSession',
-        subtitle: 'Your first chat is on us',
+        title: 'First 3 Minutes\nFree',
+        subtitle: 'Chat free with our New Astrologers',
         cta: 'Start Now',
         illustration: Image.asset(Ob.gift, height: 98),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
