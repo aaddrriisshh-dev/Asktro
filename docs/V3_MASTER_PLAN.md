@@ -368,40 +368,56 @@ harden BEFORE claiming 100k-ready. Work each, then **load-test** to prove it.
 - Node 22 runtime (§5.1) — required well before 30 Oct 2026 regardless.
 
 ### 8.2 Firestore hot documents & write amplification (the real 100k risk)
-- **Presence heartbeat.** Every live user writing a heartbeat to Firestore every
-  ~minute is the biggest write-amplification risk at scale (100k concurrent =
-  huge write QPS + cost). Move presence to **Realtime Database** (built for
-  presence/`onDisconnect`) or throttle hard. This is the #1 scalability item.
-- **`dailyStats` hot-doc.** A single counters doc updated on every event will hit
-  Firestore's ~1 write/sec/doc ceiling. **Shard it** (N sub-counters, summed on
-  read) — already flagged in the backlog; do it for v3.
-- **`config/global`** is read on many hot paths — cache it in-process in the
-  functions (and client) so it isn't re-fetched per request.
-- **`rateLimits`** doc(s) — ensure the rate-limit store shards per-user, not one
-  hot doc, and has a TTL policy.
-- Confirm **TTL policies** are enabled (`rateLimits`, `dailyStats`, ephemeral
-  docs) so collections don't grow unbounded.
+- **`dailyStats` hot-doc — DONE (v3).** Now sharded into 20 per-day shard docs
+  with a 2-min aggregator summing them into the doc the dashboard reads
+  (unchanged); backward-compatible via a `_base` capture. See `stats/dailyStats.ts`.
+- **`config/global` caching — DONE (already built).** 60s in-process TTL cache
+  in `common/config.ts`; the 10s billing heartbeat no longer re-reads the doc.
+- **`rateLimits` — per-user keyed (not a hot doc).** Correct sharding by
+  (action, uid, window). Needs its **TTL policy enabled** (below).
+- **Presence heartbeat — STILL OPEN (the last big item, #5).** Every live user
+  writing to Firestore (~90s app-presence + the 10s billing tick) is the top
+  remaining write-amplification risk. Options: move app-presence to **Realtime
+  Database** (built for presence/`onDisconnect`) and/or lengthen intervals; and
+  reduce the billing-tick write cost. Deliberately saved for last (touches live
+  billing) — handle with maximum care.
+- **TTL policies to enable AT RELEASE (one-time gcloud/console step each; the
+  `expireAt` fields are already written, harmless until the policy exists):**
+  ```
+  gcloud firestore fields ttls update expireAt --collection-group=rateLimits --enable-ttl --project=asktro-tech-provate-limited
+  gcloud firestore fields ttls update expireAt --collection-group=applied --enable-ttl --project=asktro-tech-provate-limited   # dailyStats dedupe markers
+  gcloud firestore fields ttls update expireAt --collection-group=prokeralaCache --enable-ttl --project=asktro-tech-provate-limited
+  ```
+- **Retention purges — BUILT, default OFF (#3).** `purgeOldChatData` (chat
+  transcript/media of ended chats, watermark-paced) + `purgeOldRecords` (old
+  notifications/alerts). Enable at release by setting `featureFlags.retention =
+  true`; windows: chat 90d / notifications 30d / alerts 60d (portal-tunable).
+  NEVER deletes `walletTransactions` or consultation records.
 
 ### 8.3 Query & index health
-- Every list/search query needs a composite index; audit `firestore.indexes.json`
-  against the queries the app actually runs at scale (home rails, search,
-  consultations, payouts).
+- **Index audit — DONE (v3).** Added the missing composite
+  `consultations(astrologerId, customerId, createdAt)` (astrologer's repeat-
+  customer history). Deploy indexes at release: `firebase deploy --only firestore:indexes`.
 - **Sweeper efficiency:** `sweepSessions` must scale — reap `active` consults with
-  no `lastTickAt` (needs a new index) so ghost sessions can't accumulate.
+  no `lastTickAt` (needs a new index) so ghost sessions can't accumulate. (Open.)
 - Home rails are live snapshots; at 100k, move ranking **server-side** (a
   precomputed rail doc) instead of many per-client queries (grow-into-it item).
 
 ### 8.4 Third-party ceilings (money + rate limits)
-- **ProKerala:** charts are cached per user (~1 call/user), which is the right
-  design. Confirm the Emerald plan (120 req/min, 350k credits) headroom vs
-  projected new-users/day; add the **chart-cache self-heal** + call-spacing
-  (§7) so a burst can't 429. Upgrade plan tier as users grow.
+- **ProKerala — caching DONE (v3).** AI chart build is now per-USER (fixed chart
+  permanent, daily transits per-day) instead of per-consultation; the proxy also
+  caches results (daily endpoints keyed by date → one call serves the day; birth-
+  fixed 30d). See `prokerala/prokerala.ts` + `ai/replyEngine.ts`. Confirm plan
+  headroom (120 req/min) and enable the `prokeralaCache` TTL (§8.2).
 - **Gemini (the whole COGS):** at 100k the AI bill is the main variable cost.
-  The four cost controls (§2.4) + tiered routing (Flash/Pro) + `aiEnabled`
-  kill-switch + `aiDailyMessageCap` are what keep it profitable. Monitor ₹/msg
-  live; the margin math (~83–87% on Gemini Pro) only holds WITH the controls on.
-- **Agora:** confirm concurrent-channel capacity + per-minute cost at scale;
-  Agora scales fine technically, but model the cost at 100k paid call-minutes.
+  Kept profitable by: the wallet gate (no balance = no AI), the one-time capped
+  welcome credit, tiered routing (Flash/Pro), the 15-msg/min per-user rate limit
+  (the real runaway-bug guard), and the `aiEnabled` kill-switch. DECISION (v3): a
+  per-user daily MESSAGE cap was deliberately NOT enabled — it would cut off the
+  heavy PAYING users we want (10-hr chatters = pure profit). Monitor ₹/msg live.
+- **Agora — customer token now capped to affordable balance + buffer (v3),** so a
+  stuck/hostile client can't bill call-minutes past ₹0. Confirm concurrent-channel
+  capacity + per-minute cost at scale; model the cost at 100k paid call-minutes.
 - **Razorpay:** webhook must be **signature-verified + idempotent** with a
   dead-letter + reconcile job (exists — verify it holds under load).
 - **FCM:** use topics for broadcasts (fan-out handled by Google); per-user pushes
