@@ -112,6 +112,10 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   final _input = TextEditingController();
   bool _lowBalanceShown = false;
   bool _graceShown = false;
+  // True once we've seen the first consultation state for this screen. Lets us
+  // tell "grace was granted just now" (celebrate) from "grace was already
+  // granted in a past session" (stay silent on reopen).
+  bool _graceInitialized = false;
   bool _leftForTerminal = false;
   bool _pausedShown = false;
 
@@ -655,6 +659,15 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     // there is nothing to warn about — skip so the seeded warnLevel/remainingSec
     // never misfires the low-balance dialog during the free opening.
     if (s.status == ConsultationStatus.waiting) return;
+
+    // On the FIRST state after opening the chat, if the grace minute was ALREADY
+    // granted in an earlier session, mark it as celebrated so the "On the house"
+    // popup does NOT re-fire every time the chat is reopened. The celebration is
+    // for the actual moment of granting only.
+    if (!_graceInitialized) {
+      _graceInitialized = true;
+      if (s.consultation.graceGranted) _graceShown = true;
+    }
 
     // Grace minute — a one-time gift when the balance ran out. Celebrate it and
     // suppress the low-balance nudge for this cycle so they don't stack.
