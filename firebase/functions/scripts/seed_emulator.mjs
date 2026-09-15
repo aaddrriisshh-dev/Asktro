@@ -58,6 +58,10 @@ async function seedConfig() {
     graceMinutes: 1,
     commissionPercent: 20,
     featureFlags: { voice: true, video: true, referrals: true, retention: false },
+    // Enables the "Simulate payment (test)" dummy gateway. Safe: the dev tools
+    // ALSO require the local emulator (FUNCTIONS_EMULATOR), so this flag does
+    // nothing in production even if it somehow appeared there.
+    devPaymentsEnabled: true,
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
   console.log('  ✓ config/global');
