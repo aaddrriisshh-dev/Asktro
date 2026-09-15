@@ -1,6 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,6 +33,21 @@ Future<void> main() async {
 Future<void> _startup() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // TEST-ONLY (safe): route every Firebase service to the LOCAL emulator suite
+  // when launched with --dart-define=USE_EMULATOR=true. Defaults OFF, so a
+  // normal/production build (which never passes this flag) is completely
+  // unaffected and always talks to live Firebase. EMULATOR_HOST defaults to
+  // 10.0.2.2 (the host machine as seen from an Android emulator); pass
+  // --dart-define=EMULATOR_HOST=<your-Mac-LAN-IP> to test on a physical phone.
+  const useEmulator = bool.fromEnvironment('USE_EMULATOR');
+  const emulatorHost = String.fromEnvironment('EMULATOR_HOST', defaultValue: '10.0.2.2');
+  if (useEmulator) {
+    FirebaseAuth.instance.useAuthEmulator(emulatorHost, 9099);
+    FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, 8080);
+    FirebaseFunctions.instanceFor(region: 'asia-south1').useFunctionsEmulator(emulatorHost, 5001);
+    await FirebaseStorage.instance.useStorageEmulator(emulatorHost, 9199);
+  }
+
   // App Check. Cloud Functions callables fetch an App Check token alongside the
   // auth token; without a registered provider that second task fails on Android
   // ("1 out of 2 underlying tasks failed"), taking every callable down. Debug
@@ -43,8 +62,10 @@ Future<void> _startup() async {
   // activation on release — fire-and-forget so a slow/failed provider can't block
   // launch. (App Check is not enforced server-side yet, so unactivated calls
   // still succeed; enforcement is a launch-time step once real clients ship.)
+  // Skip App Check entirely in emulator mode (no attestation against a local
+  // backend, and the emulator doesn't enforce it).
   const disableAppCheck = bool.fromEnvironment('DISABLE_APPCHECK');
-  if (!disableAppCheck) {
+  if (!disableAppCheck && !useEmulator) {
     final activation = FirebaseAppCheck.instance.activate(
       androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
       appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
