@@ -41,13 +41,24 @@ const AI_RATE_PAISE = 900; // ₹9/min
 // chart; numerology needs only the birth date; tarot & vastu need neither — so
 // tarot/vastu/numerology astrologers reply with just the Gemini key (handy for
 // local testing without ProKerala keys).
+// `spec` = specializations (the "guidance on" topic cards: love/marriage/career/
+// money/health/education/spirituality/remedies). `expertise` = skill tags (the
+// "Browse by skill" cards: Vedic/Palmistry/Numerology/Tarot). Both are what the
+// portal sets and what the discovery cards filter on — set here so the filtering
+// is visible in testing.
 const AI_ASTROLOGERS = [
-  { id: 'ai_astro_1', name: 'Pandit Arjun Sharma', male: true, expertise: ['Vedic', 'Career'], tradition: 'vedic' },
-  { id: 'ai_astro_2', name: 'Guru Meera Nair', male: false, expertise: ['Love', 'Marriage'], tradition: 'vedic' },
-  { id: 'ai_astro_3', name: 'Acharya Rohan Das', male: true, expertise: ['Numerology', 'Finance'], tradition: 'numerology' },
-  { id: 'ai_astro_4', name: 'Devi Ananya Iyer', male: false, expertise: ['Tarot', 'Health'], tradition: 'tarot' },
-  { id: 'ai_astro_5', name: 'Shastri Vikram Rao', male: true, expertise: ['Kundli', 'Remedies'], tradition: 'vedic' },
-  { id: 'ai_astro_6', name: 'Jyotish Kavya Menon', male: false, expertise: ['Vastu', 'Home'], tradition: 'vastu' },
+  { id: 'ai_astro_1', name: 'Pandit Arjun Sharma', male: true, tradition: 'vedic',
+    spec: ['career', 'money', 'marriage'], expertise: ['Vedic Astrology', 'KP System'] },
+  { id: 'ai_astro_2', name: 'Guru Meera Nair', male: false, tradition: 'vedic',
+    spec: ['love', 'marriage'], expertise: ['Vedic Astrology'] },
+  { id: 'ai_astro_3', name: 'Acharya Rohan Das', male: true, tradition: 'numerology',
+    spec: ['money', 'career'], expertise: ['Numerology'] },
+  { id: 'ai_astro_4', name: 'Devi Ananya Iyer', male: false, tradition: 'tarot',
+    spec: ['love', 'health', 'spirituality'], expertise: ['Tarot'] },
+  { id: 'ai_astro_5', name: 'Shastri Vikram Rao', male: true, tradition: 'vedic',
+    spec: ['remedies', 'spirituality', 'health'], expertise: ['Vedic Astrology', 'Lal Kitab', 'Palmistry'] },
+  { id: 'ai_astro_6', name: 'Jyotish Kavya Menon', male: false, tradition: 'vastu',
+    spec: ['health', 'education'], expertise: ['Vastu', 'Palmistry'] },
 ];
 
 async function seedConfig() {
@@ -82,7 +93,8 @@ async function seedAstrologers() {
       about: `${a.name.split(' ').slice(-1)[0]} is a trusted Asktro astrologer here to guide you.`,
       experience: 8 + i,
       languages: ['Hindi', 'English'],
-      expertise: a.expertise,
+      expertise: a.expertise,       // "Browse by skill" cards filter on this
+      specializations: a.spec,      // "What do you need guidance on?" cards filter on this
       // readFlavor() reads the tradition from a TOP-LEVEL field (or under
       // `persona`), so it must live here, not nested under `flavor`.
       tradition: a.tradition,
