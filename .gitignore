@@ -3,6 +3,8 @@
 .env.local
 .env.*.local
 apps/admin/.env.local
+# Firebase Functions emulator secrets (Gemini/Razorpay/etc. for local testing)
+**/.secret.local
 
 # Firebase native config (owner-supplied, never committed)
 **/google-services.json
