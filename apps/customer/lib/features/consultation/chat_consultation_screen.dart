@@ -335,6 +335,19 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   Future<void> _send() async {
     final uid = ref.read(currentUidProvider);
     if (uid == null) return;
+
+    // Out of balance → the session is PAUSED. The astrologer stays silent
+    // server-side on a paused chat, so sending into it would just vanish with no
+    // reply. Instead, the moment the customer tries to send, re-open the
+    // "Consultation Paused → Recharge" prompt so they always know they must top
+    // up to continue — never silence.
+    if (kMonetizationEnabled &&
+        ref.read(consultationControllerProvider(_id)).valueOrNull?.status ==
+            ConsultationStatus.paused) {
+      if (!_pausedShown) await _showPaused();
+      return;
+    }
+
     final text = _input.text.trim();
     final hasImages = _staged.isNotEmpty;
 

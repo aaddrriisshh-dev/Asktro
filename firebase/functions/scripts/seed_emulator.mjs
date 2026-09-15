@@ -62,6 +62,10 @@ async function seedConfig() {
     // ALSO require the local emulator (FUNCTIONS_EMULATOR), so this flag does
     // nothing in production even if it somehow appeared there.
     devPaymentsEnabled: true,
+    // TEST ONLY: force every AI tier to a Flash model so a FREE-tier Gemini key
+    // (which can't run gemini-pro) still produces real readings locally.
+    // Production uses the default (reading = gemini-pro-latest) for best quality.
+    aiModels: { router: 'gemini-flash-lite-latest', filler: 'gemini-flash-latest', reading: 'gemini-flash-latest' },
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
   console.log('  ✓ config/global');
