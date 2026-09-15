@@ -37,13 +37,17 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) {
 
 const AI_RATE_PAISE = 900; // ₹9/min
 
+// `tradition` sets the reading school. vedic/kp/etc. need a ProKerala birth
+// chart; numerology needs only the birth date; tarot & vastu need neither — so
+// tarot/vastu/numerology astrologers reply with just the Gemini key (handy for
+// local testing without ProKerala keys).
 const AI_ASTROLOGERS = [
-  { id: 'ai_astro_1', name: 'Pandit Arjun Sharma', male: true, expertise: ['Vedic', 'Career'] },
-  { id: 'ai_astro_2', name: 'Guru Meera Nair', male: false, expertise: ['Love', 'Marriage'] },
-  { id: 'ai_astro_3', name: 'Acharya Rohan Das', male: true, expertise: ['Numerology', 'Finance'] },
-  { id: 'ai_astro_4', name: 'Devi Ananya Iyer', male: false, expertise: ['Tarot', 'Health'] },
-  { id: 'ai_astro_5', name: 'Shastri Vikram Rao', male: true, expertise: ['Kundli', 'Remedies'] },
-  { id: 'ai_astro_6', name: 'Jyotish Kavya Menon', male: false, expertise: ['Palmistry', 'Career'] },
+  { id: 'ai_astro_1', name: 'Pandit Arjun Sharma', male: true, expertise: ['Vedic', 'Career'], tradition: 'vedic' },
+  { id: 'ai_astro_2', name: 'Guru Meera Nair', male: false, expertise: ['Love', 'Marriage'], tradition: 'vedic' },
+  { id: 'ai_astro_3', name: 'Acharya Rohan Das', male: true, expertise: ['Numerology', 'Finance'], tradition: 'numerology' },
+  { id: 'ai_astro_4', name: 'Devi Ananya Iyer', male: false, expertise: ['Tarot', 'Health'], tradition: 'tarot' },
+  { id: 'ai_astro_5', name: 'Shastri Vikram Rao', male: true, expertise: ['Kundli', 'Remedies'], tradition: 'vedic' },
+  { id: 'ai_astro_6', name: 'Jyotish Kavya Menon', male: false, expertise: ['Vastu', 'Home'], tradition: 'vastu' },
 ];
 
 async function seedConfig() {
@@ -71,6 +75,7 @@ async function seedAstrologers() {
       experience: 8 + i,
       languages: ['Hindi', 'English'],
       expertise: a.expertise,
+      flavor: { tradition: a.tradition },
       rating: 4.6 + (i % 4) * 0.1,
       totalReviews: 500 + i * 137,
       totalConsultations: 2000 + i * 411,
