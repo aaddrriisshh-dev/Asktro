@@ -4,4 +4,9 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- DEBUG-ONLY: allow cleartext (plain HTTP) so the app can reach the local
+         Firebase emulator suite (10.0.2.2) during local testing. This file lives
+         in src/debug and is NEVER included in a release build, so the shipped
+         app stays HTTPS-only. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>
