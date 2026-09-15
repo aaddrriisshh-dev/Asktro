@@ -75,7 +75,9 @@ async function seedAstrologers() {
       experience: 8 + i,
       languages: ['Hindi', 'English'],
       expertise: a.expertise,
-      flavor: { tradition: a.tradition },
+      // readFlavor() reads the tradition from a TOP-LEVEL field (or under
+      // `persona`), so it must live here, not nested under `flavor`.
+      tradition: a.tradition,
       rating: 4.6 + (i % 4) * 0.1,
       totalReviews: 500 + i * 137,
       totalConsultations: 2000 + i * 411,
