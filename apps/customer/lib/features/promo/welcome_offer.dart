@@ -60,7 +60,13 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
 
   void _decline() {
     Navigator.of(context).pop();
-    showWelcomeReward(context, chatCreditPaise: widget.chatCreditPaise);
+    // Only reveal the "₹X is still credited" reward when the user ACTUALLY still
+    // has free chat credit left. A returning user who has already spent their
+    // signup credit (balance 0) must NOT be told "₹27 is still credited" — that
+    // was the misleading re-show. In that case "No thanks" just closes quietly.
+    if (widget.chatCreditPaise > 0) {
+      showWelcomeReward(context, chatCreditPaise: widget.chatCreditPaise);
+    }
   }
 
   @override

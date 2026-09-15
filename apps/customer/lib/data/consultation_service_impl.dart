@@ -81,11 +81,17 @@ class ConsultationServiceImpl implements ConsultationService {
   }
 
   Future<Result<Consultation>> _fetch(String id, Map<String, dynamic> summary) async {
+    // endConsultation already succeeded server-side and returned an authoritative
+    // summary. This re-read only enriches the completion screen — so if it fails
+    // (a transient Firestore read error / rules edge), fall back to the summary
+    // and still finish cleanly. NEVER surface a raw platform exception here: the
+    // session HAS ended, and a scary error that also strands the user is worse
+    // than a slightly leaner summary.
     try {
       final doc = await _db.collection('consultations').doc(id).get();
       return Success(Consultation.fromMap(id, doc.data() ?? summary));
-    } catch (e) {
-      return ResultFailure(Failure.unknown(e));
+    } catch (_) {
+      return Success(Consultation.fromMap(id, summary));
     }
   }
 
