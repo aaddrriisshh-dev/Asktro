@@ -23,7 +23,23 @@ class ConsultationServiceImpl implements ConsultationService {
       return Success(parse(Map<String, dynamic>.from(res.data)));
     } on FirebaseFunctionsException catch (e) {
       if (e.message == 'INSUFFICIENT_BALANCE') return ResultFailure(Failure.insufficientBalance());
-      return ResultFailure(Failure(message: e.message ?? 'Request failed', code: e.code));
+      // Never surface raw platform noise to the user. A failed auth/App-Check
+      // token shows up as "java.util.concurrent.ExecutionException: 1 out of 2
+      // underlying tasks failed" — meaningless and scary. Show the server's own
+      // message only when it's a clean business message; otherwise a friendly
+      // fallback.
+      final raw = e.message ?? '';
+      final isInternal = e.code == 'internal' ||
+          e.code == 'unavailable' ||
+          e.code == 'unauthenticated' ||
+          e.code == 'deadline-exceeded' ||
+          raw.contains('ExecutionException') ||
+          raw.contains('underlying tasks') ||
+          raw.contains('PlatformException');
+      return ResultFailure(Failure(
+        message: (isInternal || raw.isEmpty) ? 'Something went wrong. Please try again.' : raw,
+        code: e.code,
+      ),);
     } catch (e) {
       // Transport/SDK failure (e.g. a token fetch timing out on a fresh
       // emulator) — surface a friendly message, not a raw platform exception.
