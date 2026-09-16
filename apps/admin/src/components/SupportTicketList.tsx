@@ -24,6 +24,9 @@ export interface TicketRow {
   priority: string;
   createdMs: number;
   thread: { by: string; text: string; atMs: number }[];
+  /** A customer reply is waiting for the admin (set by customerReplySupportTicket,
+   *  cleared when the admin replies/closes). Drives the "New reply" badge. */
+  portalUnread?: boolean;
 }
 
 const GROUPS = [
@@ -65,7 +68,7 @@ export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
     try {
       await callFn('replySupportTicket', { ticketId: t.id, text: draft.trim() });
       setRows((rs) => rs.map((r) => r.id === t.id
-        ? { ...r, status: 'open', thread: [...r.thread, { by: 'admin', text: draft.trim(), atMs: Date.now() }] }
+        ? { ...r, status: 'open', portalUnread: false, thread: [...r.thread, { by: 'admin', text: draft.trim(), atMs: Date.now() }] }
         : r));
       setDraft('');
     } catch (e) {
@@ -79,7 +82,7 @@ export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
     setBusy(t.id);
     try {
       await callFn(close ? 'closeSupportTicket' : 'reopenSupportTicket', { ticketId: t.id });
-      setRows((rs) => rs.map((r) => (r.id === t.id ? { ...r, status: close ? 'closed' : 'open' } : r)));
+      setRows((rs) => rs.map((r) => (r.id === t.id ? { ...r, status: close ? 'closed' : 'open', portalUnread: false } : r)));
     } catch (e) {
       alert('Could not update ticket: ' + (e as Error).message);
     } finally {
@@ -97,6 +100,9 @@ export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
             <span className="tkt-subject">{t.subject}</span>
           </div>
           <div className="tkt-head-meta">
+            {t.portalUnread && (
+              <span className="tkt-badge" style={{ background: '#e0564a', color: '#fff' }}>New reply</span>
+            )}
             <span className={`tkt-badge ${t.status}`}>{t.status}</span>
             <span className="tkt-caret">{isExpanded ? '▴' : '▾'}</span>
           </div>
@@ -142,7 +148,13 @@ export function SupportTicketList({ tickets }: { tickets: TicketRow[] }) {
 
   const activeGroup = GROUPS.find((g) => g.key === active);
   const activeRows = active
-    ? byRole(active).sort((a, b) => (a.status === b.status ? b.createdMs - a.createdMs : a.status === 'open' ? -1 : 1))
+    ? byRole(active).sort((a, b) => {
+        // Tickets with a waiting customer reply float to the top, then open
+        // before closed, then newest first.
+        if (!!b.portalUnread !== !!a.portalUnread) return a.portalUnread ? -1 : 1;
+        if (a.status !== b.status) return a.status === 'open' ? -1 : 1;
+        return b.createdMs - a.createdMs;
+      })
     : [];
 
   return (

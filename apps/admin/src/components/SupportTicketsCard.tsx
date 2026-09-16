@@ -23,6 +23,7 @@ interface TicketData {
 interface TicketDoc {
   status?: string; customerId?: string | null; astrologerId?: string | null; priority?: string;
   createdAt?: Timestamp; ticketNo?: string; subject?: string; message?: string; body?: string; userName?: string;
+  portalUnread?: boolean;
   thread?: { by?: string; text?: string; at?: Timestamp }[];
 }
 
@@ -54,6 +55,7 @@ function useTickets(range: Range): CardView<TicketData> {
             role,
             priority: t.priority ?? 'normal',
             createdMs: ms,
+            portalUnread: t.portalUnread === true,
             thread: (t.thread ?? []).map((m) => ({ by: m.by ?? 'admin', text: m.text ?? '', atMs: m.at?.toMillis?.() ?? ms })),
           };
         });

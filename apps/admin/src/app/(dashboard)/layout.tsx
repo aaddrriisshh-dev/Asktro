@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { canSee, canOpen, landingFor, ROLE_LABEL } from '@/lib/roles';
+import { AlertBell } from '@/components/AlertBell';
 
 const I = (p: ReactNode) => (
   <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -157,6 +158,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <main className={`main${isMall ? ' mall-theme' : ''}`}>{children}</main>
+      {/* Persistent alert bell — visible on every page so support tickets, new
+          customer replies, payouts and approvals never get skipped. */}
+      <AlertBell />
     </div>
   );
 }

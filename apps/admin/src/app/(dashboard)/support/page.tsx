@@ -30,6 +30,7 @@ export default function SupportPage() {
           role,
           priority: t.priority ?? 'normal',
           createdMs: ms,
+          portalUnread: t.portalUnread === true,
           thread: (t.thread ?? []).map((m: { by?: string; text?: string; at?: { toMillis?: () => number } }) => ({
             by: m.by ?? 'admin',
             text: m.text ?? '',
