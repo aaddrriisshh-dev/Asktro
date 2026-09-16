@@ -6,6 +6,7 @@ import 'package:shared_flutter/shared_flutter.dart';
 import '../../app/providers.dart';
 import '../consultation/chat_deeplink_screen.dart';
 import '../profile/suggested_remedies_screen.dart';
+import '../profile/support_screen.dart';
 
 // Personal (per-user) notifications.
 final _personalNotificationsProvider = StreamProvider.autoDispose<List<AppNotification>>((ref) {
@@ -32,6 +33,13 @@ final _notificationsProvider = Provider.autoDispose<AsyncValue<List<AppNotificat
       ..sort((a, c) => (c.createdAtMs ?? 0).compareTo(a.createdAtMs ?? 0));
     return merged;
   });
+});
+
+/// Count of UNREAD personal notifications — drives the home bell badge. Broadcast
+/// items are excluded (they're a shared doc with no per-user read state).
+final unreadNotificationCountProvider = Provider.autoDispose<int>((ref) {
+  final personal = ref.watch(_personalNotificationsProvider).valueOrNull ?? const <AppNotification>[];
+  return personal.where((n) => !n.read).length;
 });
 
 class NotificationsTab extends ConsumerWidget {
@@ -73,6 +81,15 @@ class NotificationsTab extends ConsumerWidget {
                       MaterialPageRoute<void>(
                         builder: (_) => RemedyDetailScreen(data: {'id': rid}),
                       ),
+                    );
+                    return;
+                  }
+                  // A support reply/close notification opens the customer's
+                  // Support screen (where the ticket thread lives) — otherwise the
+                  // tap only marks it read and appears to do nothing.
+                  if (n.type == 'support_update') {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(builder: (_) => const SupportScreen()),
                     );
                     return;
                   }

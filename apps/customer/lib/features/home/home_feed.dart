@@ -305,10 +305,9 @@ class HomeFeed extends ConsumerWidget {
           // ... hidden in free v1
           if (kMonetizationEnabled) _addCash(context),
           const SizedBox(width: 7),
-          // Notification bell → the Notifications screen (no longer a bottom tab).
-          _iconCircle(Icons.notifications_none_rounded,
-              () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const NotificationsTab()),),),
+          // Notification bell → the Notifications screen (no longer a bottom tab),
+          // with a live unread-count badge.
+          _bell(context, ref),
           const SizedBox(width: 5),
           // Support-agent avatar → customer support page.
           GestureDetector(
@@ -359,6 +358,46 @@ class HomeFeed extends ConsumerWidget {
           ),
         ),
       );
+
+  // The notification bell with a live unread-count badge (personal, unread).
+  Widget _bell(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadNotificationCountProvider);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _iconCircle(
+          Icons.notifications_none_rounded,
+          () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const NotificationsTab()),
+          ),
+        ),
+        if (unread > 0)
+          Positioned(
+            right: -3,
+            top: -3,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE0564A),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+              child: Text(
+                unread > 9 ? '9+' : '$unread',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
   Widget _iconCircle(IconData icon, VoidCallback onTap) => GestureDetector(
         onTap: onTap,

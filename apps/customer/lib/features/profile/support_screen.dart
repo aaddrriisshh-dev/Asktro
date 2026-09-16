@@ -130,54 +130,126 @@ class _TicketTile extends StatelessWidget {
     final subject = (data['subject'] as String?) ?? 'Support request';
     final status = (data['status'] as String?) ?? 'open';
     final closed = status == 'closed';
+    // The customer app writes the first message to `body`; support replies land in
+    // the `thread` array (by:'admin'/'customer'). Show the whole conversation so a
+    // reply from support is actually readable in the app.
+    final message = (data['body'] ?? data['message'] ?? '') as String;
+    final thread = (data['thread'] as List?) ?? const [];
+    final replies = thread.whereType<Map>().toList();
+    final hasReplies = replies.isNotEmpty;
+
+    Widget msgLine(String from, String text, {bool fromSupport = false}) => Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                from,
+                style: AppTypography.caption.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: fromSupport ? AppColors.primary : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(text.isEmpty ? '—' : text, style: AppTypography.caption),
+            ],
+          ),
+        );
+
+    final header = Row(
+      children: [
+        Expanded(
+          child: Text(
+            ticketNo ?? 'Assigning number…',
+            style: AppTypography.body.copyWith(
+              fontWeight: FontWeight.w700,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+        if (ticketNo != null)
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.copy_rounded, size: 18),
+            tooltip: 'Copy ticket number',
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: ticketNo));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Copied $ticketNo')),
+              );
+            },
+          ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: (closed ? Colors.green : AppColors.primary).withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            closed ? 'Closed' : 'Open',
+            style: AppTypography.caption.copyWith(
+              color: closed ? Colors.green.shade700 : AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: AppCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    ticketNo ?? 'Assigning number…',
-                    style: AppTypography.body.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()],
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: const EdgeInsets.only(top: AppSpacing.sm),
+            title: header,
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Row(
+                children: [
+                  Expanded(child: Text(subject, style: AppTypography.caption)),
+                  if (hasReplies)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${replies.length} repl${replies.length == 1 ? 'y' : 'ies'}',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 10.5,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                if (ticketNo != null)
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.copy_rounded, size: 18),
-                    tooltip: 'Copy ticket number',
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: ticketNo));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Copied $ticketNo')),
-                      );
-                    },
-                  ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: (closed ? Colors.green : AppColors.primary).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    closed ? 'Closed' : 'Open',
-                    style: AppTypography.caption.copyWith(
-                      color: closed ? Colors.green.shade700 : AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(subject, style: AppTypography.caption),
-          ],
+            children: [
+              const Divider(height: 1),
+              const SizedBox(height: AppSpacing.sm),
+              msgLine('You', message),
+              ...replies.map((m) {
+                final by = (m['by'] as String?) ?? 'admin';
+                final fromSupport = by != 'customer';
+                return msgLine(
+                  fromSupport ? 'Support' : 'You',
+                  (m['text'] as String?) ?? '',
+                  fromSupport: fromSupport,
+                );
+              }),
+              if (!hasReplies)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    "Our team will reply here. You'll get a notification.",
+                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

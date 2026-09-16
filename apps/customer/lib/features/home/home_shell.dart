@@ -19,6 +19,7 @@ import '../wallet/promo_popup.dart';
 import '../promo/welcome_offer.dart';
 import '../store/store_home_screen.dart';
 import '../notifications/notifications_tab.dart';
+import '../profile/support_screen.dart';
 import '../profile/profile_tab.dart';
 import 'presence_heartbeat.dart';
 
@@ -113,6 +114,15 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     // The CTA button has its OWN destination, separate from where a plain tap
     // goes. Falls back to the tap deeplink when the admin didn't set one.
     final ctaDeeplink = (data['ctaDeeplink'] as String?) ?? '';
+    // A support reply/close notification opens the customer's Support screen
+    // (the ticket thread) instead of falling through to the notifications list.
+    if ((data['type'] as String?) == 'support_update') {
+      ref.read(promoSuppressedProvider.notifier).state = true;
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const SupportScreen()),
+      );
+      return;
+    }
     // A chat-message notification opens the conversation DIRECTLY — never the
     // promo popup. (It carries the astrologer's photo as its image, which would
     // otherwise fall into the image/promo path below and show "View offer".)
