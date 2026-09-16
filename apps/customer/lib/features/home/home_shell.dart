@@ -68,6 +68,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   void initState() {
     super.initState();
+    // Always open on Home when the shell is freshly entered (after
+    // login/onboarding/splash). homeTabProvider is app-global and survives a
+    // sign-out/account-switch that doesn't restart the app, so without this a
+    // brand-new user could land on whatever tab a PREVIOUS session left active
+    // (e.g. Profile, if the avatar was tapped) instead of Home. Runs in
+    // initState (before first build) so there's no flash of the wrong tab. This
+    // only fires on a fresh mount — returning from a pushed screen keeps the
+    // shell alive, so the user's current tab is never yanked back to Home.
+    if (ref.read(homeTabProvider) != 0) {
+      ref.read(homeTabProvider.notifier).state = 0;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeShowWelcomeOrOffer();
       _setupPushTapHandlers();
