@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -111,7 +112,7 @@ class _MyTickets extends ConsumerWidget {
           children: [
             Text('Your tickets', style: AppTypography.subtitle),
             const SizedBox(height: AppSpacing.md),
-            ...sorted.map((d) => _TicketTile(data: d.data())),
+            ...sorted.map((d) => _TicketTile(key: ValueKey(d.id), id: d.id, data: d.data())),
             const SizedBox(height: AppSpacing.xxl),
           ],
         );
@@ -120,12 +121,54 @@ class _MyTickets extends ConsumerWidget {
   }
 }
 
-class _TicketTile extends StatelessWidget {
-  const _TicketTile({required this.data});
+class _TicketTile extends ConsumerStatefulWidget {
+  const _TicketTile({super.key, required this.id, required this.data});
+  final String id;
   final Map<String, dynamic> data;
 
   @override
+  ConsumerState<_TicketTile> createState() => _TicketTileState();
+}
+
+class _TicketTileState extends ConsumerState<_TicketTile> {
+  final _reply = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _reply.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final text = _reply.text.trim();
+    if (text.isEmpty || _sending) return;
+    setState(() => _sending = true);
+    try {
+      await ref.read(functionsProvider).httpsCallable('customerReplySupportTicket').call<Map<String, dynamic>>({
+        'ticketId': widget.id,
+        'text': text,
+      });
+      _reply.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reply sent.')));
+      }
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Could not send reply.')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not send reply.')));
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final data = widget.data;
     final ticketNo = data['ticketNo'] as String?;
     final subject = (data['subject'] as String?) ?? 'Support request';
     final status = (data['status'] as String?) ?? 'open';
@@ -242,12 +285,48 @@ class _TicketTile extends StatelessWidget {
               }),
               if (!hasReplies)
                 Padding(
-                  padding: const EdgeInsets.only(top: 2),
+                  padding: const EdgeInsets.only(top: 2, bottom: AppSpacing.sm),
                   child: Text(
                     "Our team will reply here. You'll get a notification.",
                     style: AppTypography.caption.copyWith(color: AppColors.textSecondary, fontStyle: FontStyle.italic),
                   ),
                 ),
+              // Reply box — a reply reopens the ticket if it was closed, and
+              // notifies the support team (portal alert).
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _reply,
+                        minLines: 1,
+                        maxLines: 4,
+                        textInputAction: TextInputAction.newline,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          hintText: closed ? 'Reply to reopen this ticket…' : 'Reply to support…',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    _sending
+                        ? const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: SizedBox(
+                              width: 18, height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                            ),
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.send_rounded, color: AppColors.primary),
+                            tooltip: 'Send reply',
+                            onPressed: _send,
+                          ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

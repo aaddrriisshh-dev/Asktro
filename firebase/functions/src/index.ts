@@ -96,7 +96,7 @@ export { purgeOldChatData, purgeOldRecords } from './ops/retention';
 export { createAstrologer, updateAstrologer, deleteAstrologer, setAstrologerPassword } from './admin/createAstrologer';
 
 // ---- Admin support-ticket actions ----
-export { replySupportTicket, closeSupportTicket, reopenSupportTicket } from './admin/support';
+export { replySupportTicket, closeSupportTicket, reopenSupportTicket, customerReplySupportTicket } from './admin/support';
 export { onSupportTicketCreated } from './admin/supportTrigger';
 
 // ---- Admin team management (roles & attribution) ----
