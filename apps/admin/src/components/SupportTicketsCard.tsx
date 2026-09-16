@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { useEffect, useMemo, useState } from 'react';
+import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
@@ -20,47 +20,34 @@ interface TicketData {
   tickets: TicketRow[];
 }
 
+interface TicketDoc {
+  status?: string; customerId?: string | null; astrologerId?: string | null; priority?: string;
+  createdAt?: Timestamp; ticketNo?: string; subject?: string; message?: string; body?: string; userName?: string;
+  thread?: { by?: string; text?: string; at?: Timestamp }[];
+}
+
 function useTickets(range: Range): CardView<TicketData> {
-  const [data, setData] = useState<TicketData | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Live subscription to ALL tickets (range-independent). The headline number
+  // for "Open Support Tickets" must reflect what is actually open RIGHT NOW —
+  // an actionable ops figure — not how many happened to be opened inside the
+  // selected date window (which made the tile read 0 when a ticket was open).
+  // The date filter still shapes the drawer's "tickets per day" chart.
+  const [all, setAll] = useState<TicketRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    (async () => {
-      try {
-        const snap = await getDocs(query(
-          collection(db, 'supportTickets'),
-          where('createdAt', '>=', Timestamp.fromMillis(range.start)),
-          where('createdAt', '<', Timestamp.fromMillis(range.end)),
-          orderBy('createdAt', 'asc'),
-        ));
-        let open = 0, closed = 0, fromCustomers = 0, fromAstrologers = 0, highPriority = 0;
-        const byDay = new Map<string, number>();
-        const tickets: TicketRow[] = [];
-        snap.forEach((doc) => {
-          const t = doc.data() as {
-            status?: string; customerId?: string | null; astrologerId?: string | null; priority?: string;
-            createdAt?: Timestamp; ticketNo?: string; subject?: string; message?: string; body?: string; userName?: string;
-            thread?: { by?: string; text?: string; at?: Timestamp }[];
-          };
-          if (t.status === 'open') open += 1;
-          else if (t.status === 'closed') closed += 1;
-          if (t.customerId) fromCustomers += 1;
-          if (t.astrologerId) fromAstrologers += 1;
-          if (t.priority === 'high') highPriority += 1;
-          const ms = t.createdAt?.toMillis?.() ?? range.start;
-          const key = new Date(ms).toISOString().slice(0, 10);
-          byDay.set(key, (byDay.get(key) ?? 0) + 1);
+    const unsub = onSnapshot(
+      query(collection(db, 'supportTickets'), orderBy('createdAt', 'desc')),
+      (snap) => {
+        const list: TicketRow[] = snap.docs.map((doc) => {
+          const t = doc.data() as TicketDoc;
+          const ms = t.createdAt?.toMillis?.() ?? Date.now();
           const role: 'customer' | 'astrologer' = t.astrologerId ? 'astrologer' : 'customer';
-          tickets.push({
+          return {
             id: doc.id,
             ticketNo: t.ticketNo ?? `#${doc.id.slice(0, 6).toUpperCase()}`,
             subject: t.subject ?? 'Support request',
-            // The customer app writes the body to `body`; the astrologer path / trigger
-            // mirror it to `message`. Read both so the ticket text is never blank.
+            // Customer app writes the body to `body`; astrologer path mirrors to `message`.
             message: t.message ?? t.body ?? '',
             status: t.status ?? 'open',
             who: t.userName ?? (t.customerId || t.astrologerId || 'Unknown').slice(0, 10),
@@ -68,21 +55,44 @@ function useTickets(range: Range): CardView<TicketData> {
             priority: t.priority ?? 'normal',
             createdMs: ms,
             thread: (t.thread ?? []).map((m) => ({ by: m.by ?? 'admin', text: m.text ?? '', atMs: m.at?.toMillis?.() ?? ms })),
-          });
+          };
         });
-        tickets.sort((a, b) => b.createdMs - a.createdMs);
-        const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
-        if (!cancelled) setData({ open, closed, total: snap.size, fromCustomers, fromAstrologers, highPriority, daily, tickets });
-      } catch (e) {
-        if (!cancelled) setError((e as Error).message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [range.start, range.end]);
+        setAll(list);
+        setError(null);
+      },
+      (e) => setError(e.message),
+    );
+    return () => unsub();
+  }, []);
 
-  return { loading, error, value: (data?.open ?? 0).toLocaleString('en-IN'), pill: data ? `${data.total} total` : undefined, data };
+  const data = useMemo<TicketData | null>(() => {
+    if (!all) return null;
+    let open = 0, closed = 0, fromCustomers = 0, fromAstrologers = 0, highPriority = 0;
+    const byDay = new Map<string, number>();
+    for (const t of all) {
+      if (t.status === 'open') open += 1;
+      else if (t.status === 'closed') closed += 1;
+      if (t.role === 'customer') fromCustomers += 1;
+      else fromAstrologers += 1;
+      if (t.priority === 'high') highPriority += 1;
+      // Only the per-day chart respects the selected date range.
+      if (t.createdMs >= range.start && t.createdMs < range.end) {
+        const key = new Date(t.createdMs).toISOString().slice(0, 10);
+        byDay.set(key, (byDay.get(key) ?? 0) + 1);
+      }
+    }
+    const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
+    const tickets = [...all].sort((a, b) => b.createdMs - a.createdMs);
+    return { open, closed, total: all.length, fromCustomers, fromAstrologers, highPriority, daily, tickets };
+  }, [all, range.start, range.end]);
+
+  return {
+    loading: all === null && !error,
+    error,
+    value: (data?.open ?? 0).toLocaleString('en-IN'),
+    pill: data ? `${data.total} total` : undefined,
+    data,
+  };
 }
 
 const ticketIcon = (
