@@ -1,3 +1,10 @@
+# Catch up first
+
+**Read `docs/PROJECT_STATUS.md` before doing anything else.** It is the single
+source of truth for where the project stands (current live version, what shipped,
+open items, decisions). Keep it updated as things change so any future session
+starts fully caught up.
+
 # Working agreement
 
 **ONE STEP AT A TIME.** Give the user a single action/command, then stop and
