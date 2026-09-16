@@ -16,19 +16,62 @@ const String _promoPlanId = 'promo_welcome';
 
 /// Opens the welcome-offer bottom sheet. [chatCreditPaise] is the user's real
 /// signup credit, shown truthfully in the "No thanks" popup.
-Future<void> showWelcomeOffer(BuildContext context, {required int chatCreditPaise}) {
+///
+/// The offer's copy and numbers are portal-editable (via the 'welcome_reward'
+/// home pop-up style). Every parameter defaults to the values that were once
+/// hardcoded here, so a call with only [chatCreditPaise] renders exactly as
+/// before. [offerGetPaise] is the "Get ₹X" headline; [rechargeBasePaise] is the
+/// pre-GST base of the recharge button (GST @18% is computed here); [planId] is
+/// the recharge plan the button opens; [imageUrl], when set, replaces the bundled
+/// character art with a network image.
+Future<void> showWelcomeOffer(
+  BuildContext context, {
+  required int chatCreditPaise,
+  int offerGetPaise = 7700,
+  int rechargeBasePaise = 2500,
+  String planId = _promoPlanId,
+  String? title,
+  String? body,
+  String? ctaLabel,
+  String? imageUrl,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.5),
-    builder: (_) => _WelcomeSheet(chatCreditPaise: chatCreditPaise),
+    builder: (_) => _WelcomeSheet(
+      chatCreditPaise: chatCreditPaise,
+      offerGetPaise: offerGetPaise,
+      rechargeBasePaise: rechargeBasePaise,
+      planId: planId,
+      title: title,
+      body: body,
+      ctaLabel: ctaLabel,
+      imageUrl: imageUrl,
+    ),
   );
 }
 
 class _WelcomeSheet extends StatefulWidget {
-  const _WelcomeSheet({required this.chatCreditPaise});
+  const _WelcomeSheet({
+    required this.chatCreditPaise,
+    this.offerGetPaise = 7700,
+    this.rechargeBasePaise = 2500,
+    this.planId = _promoPlanId,
+    this.title,
+    this.body,
+    this.ctaLabel,
+    this.imageUrl,
+  });
   final int chatCreditPaise;
+  final int offerGetPaise;
+  final int rechargeBasePaise;
+  final String planId;
+  final String? title;
+  final String? body;
+  final String? ctaLabel;
+  final String? imageUrl;
 
   @override
   State<_WelcomeSheet> createState() => _WelcomeSheetState();
@@ -53,9 +96,23 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
     super.dispose();
   }
 
+  // GST breakdown, computed from the (portal-editable) pre-GST base. Defaults
+  // (2500) reproduce the original ₹25.00 / ₹4.50 / ₹29.50 exactly.
+  int get _basePaise => widget.rechargeBasePaise;
+  int get _gstPaise => (widget.rechargeBasePaise * 0.18).round();
+  int get _totalPaise => _basePaise + _gstPaise;
+
+  // Compact total for the pay button, e.g. 2950 → "₹29.5" (trailing zeros
+  // trimmed) — matching the original hardcoded "₹29.5".
+  String get _totalShort {
+    var s = (_totalPaise / 100).toStringAsFixed(2);
+    s = s.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    return '₹$s';
+  }
+
   void _pay() {
     Navigator.of(context).pop();
-    context.push('/recharge?plan=$_promoPlanId');
+    context.push('/recharge?plan=${widget.planId}');
   }
 
   void _decline() {
@@ -126,6 +183,16 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
   }
 
   Widget _title() {
+    // Custom title (portal) → single-tone headline; default → the two-tone
+    // "Triple Dhamaka" exactly as before.
+    if (widget.title != null && widget.title!.isNotEmpty) {
+      return Text(
+        widget.title!,
+        textAlign: TextAlign.center,
+        style: GoogleFonts.cormorantGaramond(
+            fontSize: 27, fontWeight: FontWeight.w600, height: 1, color: Ob.navy),
+      );
+    }
     return RichText(
       text: TextSpan(
         style: GoogleFonts.cormorantGaramond(fontSize: 27, fontWeight: FontWeight.w600, height: 1),
@@ -141,10 +208,13 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
     return Text.rich(
       TextSpan(
         style: Ob.note.copyWith(fontSize: 14.5, color: const Color(0xFF6B6390), fontWeight: FontWeight.w600),
-        children: const [
-          TextSpan(text: 'Get '),
-          TextSpan(text: '₹77', style: TextStyle(color: Ob.goldDeep, fontWeight: FontWeight.w900)),
-          TextSpan(text: ' in your wallet'),
+        children: [
+          const TextSpan(text: 'Get '),
+          TextSpan(
+            text: Money.formatPaise(widget.offerGetPaise),
+            style: const TextStyle(color: Ob.goldDeep, fontWeight: FontWeight.w900),
+          ),
+          const TextSpan(text: ' in your wallet'),
         ],
       ),
     );
@@ -169,7 +239,7 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
                 children: [
-                  Image.asset(_welcomeImg, fit: BoxFit.contain),
+                  _characterImage(),
                   _handSpark(left: true),
                   _handSpark(left: false),
                 ],
@@ -179,6 +249,20 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
         );
       },
     );
+  }
+
+  Widget _characterImage() {
+    // Network art (portal) with a graceful fall back to the bundled asset; no
+    // URL → the original bundled asset, unchanged.
+    final url = widget.imageUrl;
+    if (url != null && url.isNotEmpty) {
+      return Image.network(
+        url,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Image.asset(_welcomeImg, fit: BoxFit.contain),
+      );
+    }
+    return Image.asset(_welcomeImg, fit: BoxFit.contain);
   }
 
   Widget _handSpark({required bool left}) {
@@ -202,7 +286,8 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
         const SizedBox(width: 6),
         const Icon(Icons.auto_awesome, size: 11, color: Color(0xFFC88617)),
         const SizedBox(width: 6),
-        Text('Grab this one-time offer',
+        Text(
+            (widget.body != null && widget.body!.isNotEmpty) ? widget.body! : 'Grab this one-time offer',
             style: Ob.note.copyWith(fontSize: 12.5, color: Ob.navy, fontWeight: FontWeight.w700),),
         const SizedBox(width: 6),
         const Icon(Icons.auto_awesome, size: 11, color: Color(0xFFC88617)),
@@ -236,7 +321,10 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
               children: [
                 const Icon(Icons.account_balance_wallet_outlined, size: 17, color: Colors.white),
                 const SizedBox(width: 7),
-                Text('₹29.5', style: Ob.option.copyWith(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17.5)),
+                Text(
+                  (widget.ctaLabel != null && widget.ctaLabel!.isNotEmpty) ? widget.ctaLabel! : _totalShort,
+                  style: Ob.option.copyWith(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17.5),
+                ),
               ],
             ),
           ),
@@ -307,10 +395,10 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
                 children: [
                   Text('Payment Details', style: Ob.option.copyWith(fontWeight: FontWeight.w800, fontSize: 14.5, color: const Color(0xFF1C1633))),
                   const SizedBox(height: 9),
-                  _brow('Total Amount', '₹25.00'),
-                  _brow('GST @ 18%', '₹4.50'),
+                  _brow('Total Amount', Money.formatPaisePrecise(_basePaise)),
+                  _brow('GST @ 18%', Money.formatPaisePrecise(_gstPaise)),
                   const Padding(padding: EdgeInsets.symmetric(vertical: 5), child: Divider(height: 1, color: Color(0xFFECE3F8))),
-                  _brow('Grand Total', '₹29.50', bold: true),
+                  _brow('Grand Total', Money.formatPaisePrecise(_totalPaise), bold: true),
                 ],
               ),
             ),

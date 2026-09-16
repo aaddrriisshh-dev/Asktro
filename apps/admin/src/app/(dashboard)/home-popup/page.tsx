@@ -25,6 +25,11 @@ interface PopupDoc {
   image: string;
   imageStyle: 'banner' | 'portrait';
   imageFill: boolean;
+  // Only used by the 'welcome_reward' theme (the designed ₹-gift banner). Stored
+  // in paise to match the app; empty/absent → the app's hardcoded defaults.
+  offerGetPaise: number; // "Get ₹X" headline number.
+  rechargeBasePaise: number; // pre-GST base of the recharge button (GST 18% added in-app).
+  rechargePlanId: string; // recharge plan the button opens (/recharge?plan=<id>).
 }
 
 const DEFAULTS: PopupDoc = {
@@ -40,6 +45,9 @@ const DEFAULTS: PopupDoc = {
   image: '',
   imageStyle: 'banner',
   imageFill: false,
+  offerGetPaise: 7700,
+  rechargeBasePaise: 2500,
+  rechargePlanId: 'promo_welcome',
 };
 
 /** The current ₹77 welcome offer expressed as a reusable pop-up preset, so it
@@ -56,6 +64,24 @@ const WELCOME_77_PRESET: Partial<PopupDoc> = {
   image: '',
   imageStyle: 'banner',
   imageFill: false,
+};
+
+/** The designed welcome-offer banner (stars / astrologer art / "No thanks" →
+ *  reveal) as an editable pop-up. Picking theme 'welcome_reward' makes the app
+ *  render that banner instead of the generic promo popup. */
+const WELCOME_REWARD_PRESET: Partial<PopupDoc> = {
+  theme: 'welcome_reward',
+  audience: 'unpaid',
+  displayMode: 'full',
+  // Title / message / button left BLANK on purpose → the banner renders its
+  // original designed copy ("Triple Dhamaka" two-tone headline, "Grab this
+  // one-time offer", computed price). Type your own in the fields to customize.
+  title: '',
+  body: '',
+  ctaLabel: '',
+  offerGetPaise: 7700,
+  rechargeBasePaise: 2500,
+  rechargePlanId: 'promo_welcome',
 };
 
 const AUD_LABEL: Record<Audience, string> = {
@@ -85,6 +111,9 @@ function rowToPopup(r: Row): PopupDoc {
     image: (r.image as string) ?? '',
     imageStyle: (r.imageStyle as 'banner' | 'portrait') ?? 'banner',
     imageFill: r.imageFill === true,
+    offerGetPaise: (r.offerGetPaise as number) ?? 7700,
+    rechargeBasePaise: (r.rechargeBasePaise as number) ?? 2500,
+    rechargePlanId: (r.rechargePlanId as string) ?? 'promo_welcome',
   };
 }
 
@@ -139,13 +168,18 @@ export default function HomePopupPage() {
           title: p.title.trim(), body: p.body.trim(), ctaLabel: p.ctaLabel.trim() || 'Grab this offer',
           deeplink: p.deeplink.trim(), code: p.code.trim(), image: p.image, imageStyle: p.imageStyle,
           imageFill: p.imageFill,
+          offerGetPaise: p.offerGetPaise, rechargeBasePaise: p.rechargeBasePaise,
+          rechargePlanId: p.rechargePlanId.trim() || 'promo_welcome',
         }
       : { ...DEFAULTS };
     await setDoc(doc(db, 'homeSections', 'popup'), { ...data, updatedAt: serverTimestamp() });
   }
 
   const save = async () => {
-    if (!form.title.trim() && !form.image.trim()) return alert('Add a title or an image first.');
+    // The 'welcome_reward' banner is self-designed (it has its own headline/art),
+    // so it can be saved with a blank title/image — it falls back to its original
+    // design. Every other style still needs a title or image.
+    if (form.theme !== 'welcome_reward' && !form.title.trim() && !form.image.trim()) return alert('Add a title or an image first.');
     setSaving(true);
     try {
       const data = {
@@ -153,6 +187,8 @@ export default function HomePopupPage() {
         title: form.title.trim(), body: form.body.trim(),
         ctaLabel: form.ctaLabel.trim() || 'Grab this offer', deeplink: form.deeplink.trim(),
         code: form.code.trim(), image: form.image, imageStyle: form.imageStyle, imageFill: form.imageFill,
+        offerGetPaise: form.offerGetPaise, rechargeBasePaise: form.rechargeBasePaise,
+        rechargePlanId: form.rechargePlanId.trim() || 'promo_welcome',
       };
       if (editingId) {
         const wasLive = rows.find((r) => r.id === editingId)?.active === true;
@@ -253,6 +289,7 @@ export default function HomePopupPage() {
               <Field label="Theme (colour look)">
                 <select className="input" value={form.theme} onChange={(e) => set('theme', e.target.value)}>
                   <option value="">Plain (no theme)</option>
+                  <option value="welcome_reward">Welcome Reward (₹ gift banner)</option>
                   {PROMO_THEMES.map((t) => (
                     <option key={t.id} value={t.id}>{t.medal} {t.name}</option>
                   ))}
@@ -263,6 +300,45 @@ export default function HomePopupPage() {
               <span className="muted" style={{ fontSize: 11.5, color: 'var(--error)' }}>
                 Half &amp; full styles need a theme — pick one, or the app falls back to the compact centre card.
               </span>
+            )}
+
+            {form.theme === 'welcome_reward' && (
+              <div className="card" style={{ padding: 12, display: 'grid', gap: 12, background: 'var(--surface-2, #faf8ff)' }}>
+                <p className="af-label" style={{ margin: 0, fontWeight: 700, fontSize: 13 }}>Welcome Reward amounts</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <Field label="Free-gift headline amount (₹)">
+                    <input
+                      className="input"
+                      type="number"
+                      min={0}
+                      value={form.offerGetPaise / 100}
+                      onChange={(e) => set('offerGetPaise', Math.round((parseFloat(e.target.value) || 0) * 100))}
+                    />
+                  </Field>
+                  <Field label="Recharge button base amount (₹, before GST)">
+                    <input
+                      className="input"
+                      type="number"
+                      min={0}
+                      value={form.rechargeBasePaise / 100}
+                      onChange={(e) => set('rechargeBasePaise', Math.round((parseFloat(e.target.value) || 0) * 100))}
+                    />
+                  </Field>
+                </div>
+                <Field label="Recharge plan ID">
+                  <input
+                    className="input"
+                    value={form.rechargePlanId}
+                    placeholder="promo_welcome"
+                    onChange={(e) => set('rechargePlanId', e.target.value)}
+                  />
+                </Field>
+                <span className="muted" style={{ fontSize: 11.5 }}>
+                  Button shows base + GST @18% (e.g. ₹25 → ₹29.50). Free chat credit shown to the user is set on
+                  the Pricing page (currently synced automatically). Leave Title &amp; Message blank to keep the
+                  original design, or type your own to customize — the layout &amp; art stay the same.
+                </span>
+              </div>
             )}
 
             <Field label="Title">
@@ -316,6 +392,9 @@ export default function HomePopupPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
             <button className="btn sm secondary" onClick={() => setForm((f) => ({ ...f, ...WELCOME_77_PRESET }))}>
               ⤵ Load the ₹77 Welcome preset
+            </button>
+            <button className="btn sm secondary" onClick={() => setForm((f) => ({ ...f, ...WELCOME_REWARD_PRESET }))}>
+              ⤵ Load the Welcome Reward preset
             </button>
             <span className="muted" style={{ fontSize: 12 }}>Fills the fields with the current ₹77 welcome offer — tweak &amp; save.</span>
           </div>

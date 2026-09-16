@@ -234,12 +234,37 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     if (!mounted || cfg == null || !cfg.active) return false;
     final hasRecharged = (profile?.hasRecharged as bool?) ?? false;
     if (!cfg.matches(hasRecharged: hasRecharged)) return false;
-    if (cfg.title.trim().isEmpty && cfg.body.trim().isEmpty && cfg.image.trim().isEmpty) return false;
+    // The 'welcome_reward' style is fully self-designed, so it can show with no
+    // title/body/image; every other style still needs some content.
+    if (cfg.theme != 'welcome_reward' &&
+        cfg.title.trim().isEmpty && cfg.body.trim().isEmpty && cfg.image.trim().isEmpty) {
+      return false;
+    }
 
     ref.read(homePopupShownProvider.notifier).state = true;
     // Let the user land first, like the other home popups.
     await Future<void>.delayed(const Duration(milliseconds: 4000));
     if (!mounted || !_homeIsFront()) return true;
+
+    // 'welcome_reward' renders the designed welcome-offer banner
+    // (welcome_offer.dart) filled with the portal-editable values, instead of
+    // the generic promo popup. Empty portal fields fall back to the banner's own
+    // hardcoded defaults, so it looks exactly like today's ₹77 offer by default.
+    if (cfg.theme == 'welcome_reward') {
+      final creditPaise = (profile?.chatBonusBalance as int?) ?? 0;
+      await showWelcomeOffer(
+        context,
+        chatCreditPaise: creditPaise,
+        offerGetPaise: cfg.offerGetPaise,
+        rechargeBasePaise: cfg.rechargeBasePaise,
+        planId: cfg.rechargePlanId,
+        title: cfg.title.isEmpty ? null : cfg.title,
+        body: cfg.body.isEmpty ? null : cfg.body,
+        ctaLabel: cfg.ctaLabel.isEmpty ? null : cfg.ctaLabel,
+        imageUrl: cfg.image.isEmpty ? null : cfg.image,
+      );
+      return true;
+    }
 
     final theme = promoThemeById(cfg.theme.isEmpty ? null : cfg.theme);
     // Half/full takeovers need a theme; without one, fall back to the card.

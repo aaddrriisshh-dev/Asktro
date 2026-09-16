@@ -20,12 +20,15 @@ class HomePopup {
     required this.image,
     required this.imageStyle,
     required this.imageFill,
+    this.offerGetPaise = 7700,
+    this.rechargeBasePaise = 2500,
+    this.rechargePlanId = 'promo_welcome',
   });
 
   final bool active;
   final String audience; // all | paid | unpaid
   final String displayMode; // small | half | full
-  final String theme; // '' = plain centre card
+  final String theme; // '' = plain centre card, 'welcome_reward' = designed ₹-gift banner
   final String title;
   final String body;
   final String ctaLabel;
@@ -34,6 +37,13 @@ class HomePopup {
   final String image;
   final String imageStyle; // banner | portrait
   final bool imageFill;
+
+  // Only used by the 'welcome_reward' style — the designed welcome-offer banner
+  // (welcome_offer.dart). Absent/empty → the app's existing hardcoded defaults,
+  // so nothing changes for any other pop-up.
+  final int offerGetPaise; // "Get ₹X in your wallet" headline number.
+  final int rechargeBasePaise; // pre-GST base of the recharge button (GST 18% added in UI).
+  final String rechargePlanId; // recharge plan the button opens (/recharge?plan=<id>).
 
   /// Does this pop-up target a user with the given paid state?
   bool matches({required bool hasRecharged}) {
@@ -60,11 +70,15 @@ class HomePopup {
         image: (m['image'] ?? '') as String,
         imageStyle: (m['imageStyle'] ?? 'banner') as String,
         imageFill: (m['imageFill'] ?? false) as bool,
+        offerGetPaise: (m['offerGetPaise'] as num?)?.toInt() ?? 7700,
+        rechargeBasePaise: (m['rechargeBasePaise'] as num?)?.toInt() ?? 2500,
+        rechargePlanId: (m['rechargePlanId'] ?? 'promo_welcome') as String,
       );
 
   static const empty = HomePopup(
     active: false, audience: 'all', displayMode: 'small', theme: '', title: '',
     body: '', ctaLabel: '', deeplink: '', code: '', image: '', imageStyle: 'banner', imageFill: false,
+    offerGetPaise: 7700, rechargeBasePaise: 2500, rechargePlanId: 'promo_welcome',
   );
 }
 
