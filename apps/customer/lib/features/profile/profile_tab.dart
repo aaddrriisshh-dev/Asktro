@@ -199,6 +199,18 @@ class ProfileTab extends ConsumerWidget {
                         style: Ob.note.copyWith(color: const Color(0xFFEAD79A), fontSize: 10, letterSpacing: 1),),
                     Text(Money.formatPaise(profile?.spendablePaise ?? 0),
                         style: Ob.title.copyWith(color: Colors.white, fontSize: 22),),
+                    // Surface the chat-only welcome credit so the user actually
+                    // sees the free ₹ they were granted (it isn't part of the
+                    // spendable wallet balance above). Hidden once used up.
+                    if ((profile?.chatBonusBalance ?? 0) > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(
+                          '+ ${Money.formatPaise(profile!.chatBonusBalance)} free chat credit',
+                          style: Ob.note.copyWith(
+                              color: const Color(0xFFEAD79A), fontSize: 11.5, fontWeight: FontWeight.w700),
+                        ),
+                      ),
                   ],
                 ),
                 const Spacer(),
