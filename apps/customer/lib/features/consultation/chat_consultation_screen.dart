@@ -154,11 +154,20 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (widget.readOnly) return;
-    // Only a fully-resumed app counts as "present in the chat". Anything else
-    // (backgrounded, app switcher, incoming call overlay) pauses the meter.
+    // The meter must keep running while the user is actually on the chat screen —
+    // including during a TRANSIENT interruption that leaves the chat visible: an
+    // active phone call (esp. on speaker), the notification shade, the app
+    // switcher peek, or a permission/OTP dialog. Android/iOS report all of these
+    // as `inactive` while the chat is still shown. ONLY a genuine background —
+    // `paused`, `hidden`, or `detached` (the app is no longer visible) — pauses
+    // billing. Previously we required `resumed`, so treating `inactive` as "away"
+    // let a user hold a phone call open and chat unbilled indefinitely — a real
+    // billing exploit. `inactive` now counts as present.
+    final present = state == AppLifecycleState.resumed ||
+        state == AppLifecycleState.inactive;
     ref
         .read(consultationControllerProvider(_id).notifier)
-        .setForeground(state == AppLifecycleState.resumed);
+        .setForeground(present);
   }
 
   // Read-only transcript for a finished consultation (opened from history).
