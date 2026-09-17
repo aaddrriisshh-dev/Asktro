@@ -83,6 +83,29 @@ is tiny (₹669/90 days). No spend cap was set.
 - [ ] Cost controls to set: trim free minutes if needed; set `aiDailyMessageCap`
       so a single user can't burn unlimited free chat.
 
+## 3c. Portal audit (2026-09-18) — findings + status
+
+Full read-only audit of all 41 portal screens vs what the live app/functions write.
+- **Data is real:** every count, live tile, per-user detail, and action button is
+  correctly wired to production. The **Reports page = true revenue source of truth.**
+- **✅ FIXED + DEPLOYED:** Customer Management dropped customers active after IST
+  midnight (bucketed by UTC day + per-event +5:30 shift). Now buckets by real
+  India days (`users/page.tsx` istDayStart/resolveIndiaRange). Verified live
+  (paid customer "Sinsing" reappeared).
+- **⏳ Blank trend charts** (Revenue trend, Consultation activity, Revenue card):
+  they read only from the `dailyStats` rollup, and `aggregateDailyStats` + the 3
+  rollup create-triggers are **not deployed in production**. Deploy them (verify
+  with `firebase functions:list`). Fills forward only — a past-days backfill is a
+  separate one-off script. Low risk (analytics-only).
+- **⏳ Timezone unification:** dashboard cards + Reports still bucket by **UTC**
+  (aligned with the rollup), so "today" starts 05:30 IST. Flip the rollup
+  `dayBucket` + `dateRange.ts` to IST together (medium risk — re-labels historical
+  buckets; do with a backfill).
+- **⏳ Scale liabilities (not urgent):** `users/page.tsx` streams the whole `users`
+  collection (OOM risk as it grows → needs server-side pagination like
+  UsersActivityTable); Conversion/Paid/Unpaid cards cap at 5000 users; Recharges
+  caps at 500 rows.
+
 ## 4. Founder decisions on the record
 
 - Welcome popup "fades on a stray tap" → founder **chose NOT to fix** (declined).
