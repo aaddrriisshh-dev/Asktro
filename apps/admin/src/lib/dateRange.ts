@@ -27,17 +27,30 @@ export interface Range {
 }
 
 const DAY = 86_400_000;
-// Day boundaries are computed in UTC so they align exactly with the backend's
-// UTC timestamps and the per-UTC-day dailyStats rollup markers. (A local-midnight
-// boundary in a non-UTC zone like IST straddles two UTC days and off-by-one'd the
-// rollup-backed cards.) "Today" therefore means the current UTC day.
-function startOfUtcDay(d: Date): number {
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+// Asktro is India-only, so the business "day" is the INDIA (IST, UTC+5:30) day,
+// not the UTC day. All boundaries below are the REAL UTC instants of IST
+// midnights (IST midnight = 18:30 UTC the previous day). The backend rollup keys
+// each day's marker (dayMs) by the same IST-midnight instant, and raw-doc filters
+// (live counts, Reports) compare these against real `createdAt` timestamps — so
+// everything agrees on the India day.
+const IST = 5.5 * 60 * 60 * 1000;
+
+/** Real UTC ms of the India (IST) midnight at or before `ms`. Exported so the
+ *  rollup reader floors range starts to the same India-day boundary. */
+export function startOfIstDay(ms: number): number {
+  const s = new Date(ms + IST);
+  return Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate()) - IST;
+}
+
+/** Start of the India month containing `ms` (offset 0 = this month, -1 = prev). */
+function startOfIstMonth(ms: number, offset: number): number {
+  const s = new Date(ms + IST);
+  return Date.UTC(s.getUTCFullYear(), s.getUTCMonth() + offset, 1) - IST;
 }
 
 export function resolveRange(preset: Preset, custom?: { start?: string; end?: string }): Range {
-  const now = new Date();
-  const t0 = startOfUtcDay(now);
+  const now = Date.now();
+  const t0 = startOfIstDay(now);
   switch (preset) {
     case 'today':
       return { start: t0, end: t0 + DAY, label: 'Today' };
@@ -47,21 +60,15 @@ export function resolveRange(preset: Preset, custom?: { start?: string; end?: st
       return { start: t0 - 6 * DAY, end: t0 + DAY, label: 'Last 7 Days' };
     case 'last30':
       return { start: t0 - 29 * DAY, end: t0 + DAY, label: 'Last 30 Days' };
-    case 'thisMonth': {
-      const s = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
-      const e = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
-      return { start: s, end: e, label: 'This Month' };
-    }
-    case 'prevMonth': {
-      const s = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1);
-      const e = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
-      return { start: s, end: e, label: 'Previous Month' };
-    }
+    case 'thisMonth':
+      return { start: startOfIstMonth(now, 0), end: startOfIstMonth(now, 1), label: 'This Month' };
+    case 'prevMonth':
+      return { start: startOfIstMonth(now, -1), end: startOfIstMonth(now, 0), label: 'Previous Month' };
     case 'allTime':
-      // everything from the epoch through the end of the current UTC day
+      // everything from the epoch through the end of the current India day
       return { start: 0, end: t0 + DAY, label: 'All Time' };
     case 'custom': {
-      // custom supports full date + time (datetime-local values).
+      // custom supports full date + time (datetime-local values, admin's local = IST).
       const s = custom?.start ? new Date(custom.start).getTime() : t0;
       const e = custom?.end ? new Date(custom.end).getTime() : t0 + DAY;
       return { start: s, end: e > s ? e : s + DAY, label: 'Custom' };

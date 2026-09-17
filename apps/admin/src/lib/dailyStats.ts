@@ -1,6 +1,6 @@
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Range } from '@/lib/dateRange';
+import { Range, startOfIstDay } from '@/lib/dateRange';
 
 /** One per-UTC-day analytics rollup doc (written by the backend triggers). */
 export interface DailyStat {
@@ -19,9 +19,9 @@ export interface DailyStat {
  * the high-volume walletTransactions / consultations collections directly.
  */
 export async function fetchDailyStats(range: Range): Promise<DailyStat[]> {
-  // Floor the range start to its UTC day so the day containing range.start is
-  // included (its dayMs marker is that day's midnight).
-  const startDayMs = Date.parse(`${new Date(range.start).toISOString().slice(0, 10)}T00:00:00.000Z`);
+  // Floor the range start to its India day so the day containing range.start is
+  // included (its dayMs marker is that India day's IST-midnight instant).
+  const startDayMs = startOfIstDay(range.start);
   const snap = await getDocs(query(
     collection(db, 'dailyStats'),
     where('dayMs', '>=', startDayMs),

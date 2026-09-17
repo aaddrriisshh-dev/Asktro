@@ -59,12 +59,19 @@ const SHARD_COUNT = 20;
 const TOTAL_KEYS = ['revenue', 'counts', 'consultations', 'signups'] as const;
 type Totals = Record<string, Record<string, number>>;
 
-/** UTC day key (YYYY-MM-DD) + midnight-ms for a Firestore Timestamp. Matches the
- *  dashboard's existing `new Date(ms).toISOString().slice(0,10)` day bucketing. */
+/** India (IST, UTC+5:30) business-day offset. Asktro is an India-only product,
+ *  so the dashboard's "day" is the India day, not the UTC day. */
+const IST_MS = 5.5 * 60 * 60 * 1000;
+
+/** India-day key (YYYY-MM-DD in IST) + the REAL UTC instant of that India day's
+ *  midnight (IST midnight = 18:30 UTC the previous day). The dashboard's shared
+ *  dateRange + the rollup reader use these same IST-midnight instants, so the
+ *  buckets line up exactly. */
 function dayBucket(ts: Timestamp | undefined): { day: string; dayMs: number } {
   const ms = ts?.toMillis?.() ?? Timestamp.now().toMillis();
-  const day = new Date(ms).toISOString().slice(0, 10);
-  const dayMs = Date.parse(`${day}T00:00:00.000Z`);
+  const shifted = new Date(ms + IST_MS);
+  const day = shifted.toISOString().slice(0, 10);
+  const dayMs = Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()) - IST_MS;
   return { day, dayMs };
 }
 
@@ -136,7 +143,7 @@ export async function aggregateDay(day: string): Promise<void> {
   addInto(merged, base as unknown as Record<string, unknown>);
   addInto(merged, shardTotals as unknown as Record<string, unknown>);
 
-  const dayMs = Date.parse(`${day}T00:00:00.000Z`);
+  const dayMs = Date.parse(`${day}T00:00:00.000Z`) - IST_MS; // real UTC instant of this India day's midnight
   await dayRef.set(
     {
       day,
@@ -232,10 +239,10 @@ export const rollupConsultation = onDocumentCreated('consultations/{id}', async 
 // Runs every 2 minutes over today + yesterday (UTC) so late-arriving events near
 // midnight are captured. Historical days are stable and never re-touched. -----
 export const aggregateDailyStats = onSchedule('every 2 minutes', async () => {
-  const now = Date.now();
+  const nowIst = Date.now() + IST_MS;
   const days = [
-    new Date(now - 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // yesterday (UTC)
-    new Date(now).toISOString().slice(0, 10), // today (UTC)
+    new Date(nowIst - 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // yesterday (IST)
+    new Date(nowIst).toISOString().slice(0, 10), // today (IST)
   ];
   for (const day of days) {
     try {
