@@ -168,6 +168,31 @@ tracked on the user, not re-granted on each new session.
 Note: unrelated to `reconcileFailedCredits` (that only completes already-PAID
 recharges; no free credit, no discretion — confirmed by code read).
 
+## 4c. RESOLVED (2026-09-17) — test/self money purged from dashboards
+
+The founder's own number **+91 9650589905** had **4 test accounts** (Google
+logins: "Adrish Mullick" ×2, "Adry", "Afhbn"). One held a **~₹90 lakh fake
+test recharge** in its ledger that was inflating Revenue and "Money held".
+(A teammate account **Vineet Jaiswal** — note spelling "vineet", not "vinit" —
+credited from the portal is a second pass, being cleaned separately. No Sanjay
+account found.)
+
+`scripts/cleanup_test_accounts.mjs --yes` deleted their **41 walletTransactions**,
+zeroed wallet/bonus/chatBonus balances, and tagged them `{ isTestAccount: true }`.
+Then `backfill_dailystats.mjs --from=2026-09-16 --yes` rebuilt the rollup so
+Revenue recomputed without the test money. "Money held & owed" (a live SUM of
+all `walletBalance + bonusBalance`) now excludes them because their balances are
+zero.
+
+**Note:** "Money held" is a live balance snapshot, NOT date-filterable like
+Revenue — the fix for its accuracy is clearing test accounts, not a cutoff.
+
+**Durable follow-up (NOT yet done):** future self-tests from these accounts will
+re-pollute (the live `rollupWalletTxn` trigger + the money-held SUM still count
+`isTestAccount` users). To make it permanent: skip `isTestAccount` users in the
+live rollup trigger (functions redeploy) and in the MoneyHeldOwed aggregation
+(portal). Low priority while the founder tests rarely.
+
 ## 5. Open / parked items (non-blocking)
 
 - **Astrologer app** (`in.asktro.astrologer`) Android developer verification:
