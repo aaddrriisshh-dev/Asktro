@@ -150,6 +150,24 @@ working). **Lesson for future deploys: keep `firebase-tools` current.**
 - Meta/Facebook: founder sent the single **production key hash** + app icon
   (key hash is public, not a secret; does not break login).
 
+## 4b. OPEN BUG (raised 2026-09-17) — free-minute farming exploit
+
+**Reported by founder:** customers are misusing the welcome free credits
+("36 minutes" of free chat). They **reopen the same astrologer repeatedly** and
+each reopen gives a fresh ~1-minute free chat, so they farm free time
+indefinitely. Seen with **10–15 customers already** — real money leaking.
+Founder will send a **screenshot** (deferred to next day). NOT yet investigated.
+
+**Hypothesis to verify (do NOT touch code until confirmed):** the free
+allowance is being granted **per astrologer-session / per reconnect** instead of
+**once per customer lifetime** (or once per astrologer, once). Trace how the free
+minute/`chatBonusBalance` is decremented/granted when a chat session opens, and
+what resets on reopen. Fix = make the free allowance a lifetime/one-time grant
+tracked on the user, not re-granted on each new session.
+
+Note: unrelated to `reconcileFailedCredits` (that only completes already-PAID
+recharges; no free credit, no discretion — confirmed by code read).
+
 ## 5. Open / parked items (non-blocking)
 
 - **Astrologer app** (`in.asktro.astrologer`) Android developer verification:
