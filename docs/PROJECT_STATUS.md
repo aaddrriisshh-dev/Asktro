@@ -49,6 +49,40 @@
   and shows the defaults. Old controls (amounts, plan, message, image) work live
   now.
 
+## 3b. INCIDENT (2026-09-18) — AI gave only the fallback line to every user
+
+**Symptom:** during the live Meta campaign (~60–100 downloads/day), every AI
+astrologer reading returned the guard fallback `REFUSAL_MESSAGE` ("Ek minute,
+aapki kundli thoda aur dhyaan se dekhta hoon.") — greetings worked, readings did not.
+
+**Two stacked root causes (confirmed via Cloud Logging `llmGenerate`):**
+1. **Gemini prepay credit went negative** → calls failed. Fixed by topping up
+   credits (₹2500) + should enable auto-reload.
+2. **The reading model was failing.** `provider.ts` DEFAULT_MODELS use `-latest`
+   aliases: `reading: gemini-pro-latest` resolved to **Gemini 3.1 Pro**, whose
+   **Tier-1 daily cap is only 25 requests/day** → 429 after 25 readings. Then
+   model swaps to `gemini-2.0-flash` / `gemini-2.5-flash` returned **404 – model
+   no longer available** (Google retired the 2.x line; error told us to use
+   `gemini-3.6-flash`).
+
+**Fix (live, no redeploy):** set `config/global.aiModels = {router, filler,
+reading: 'gemini-3.6-flash'}` via a firebase-admin script on the Mac. Confirmed
+readings work again. Gemini 3.6 Flash on Tier 1 = **10,000 RPD / 1,000 RPM / 2M
+TPM** (plenty), pricing $0.75in/$3.75out per 1M (promo, doubles Jan 2027). Spend
+is tiny (₹669/90 days). No spend cap was set.
+
+**Durable follow-ups (NOT yet done):**
+- [ ] **Update `provider.ts` DEFAULT_MODELS to `gemini-3.6-flash`** (all tiers)
+      and redeploy, so code + config agree and clearing the config can't re-break it.
+- [ ] Optionally route `router`/`filler` to a flash-lite for cost.
+- [ ] Enable Gemini **auto-reload** so credit can't hit zero mid-campaign.
+- [ ] Add a real reading FALLBACK MODEL (try a backup model before showing the
+      refusal line) so one model's outage can't blank every reading.
+- [ ] Pre-marketing checklist: verify model availability + Tier-1 RPD headroom
+      before any ad push (this is the "load/quota test" that was pending).
+- [ ] Cost controls to set: trim free minutes if needed; set `aiDailyMessageCap`
+      so a single user can't burn unlimited free chat.
+
 ## 4. Founder decisions on the record
 
 - Welcome popup "fades on a stray tap" → founder **chose NOT to fix** (declined).
