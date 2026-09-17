@@ -1,12 +1,33 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { formatPaise, shortDay } from '@/lib/format';
+import Link from 'next/link';
+import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { formatPaise, formatDate, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { fetchDailyStats } from '@/lib/dailyStats';
 import { DashCard, CardView } from './DashCard';
-import { Metric } from './Metric';
+import { DrillGrid, DrillColumn } from './DrillDown';
 import { DailyChart } from './DailyChart';
+
+/** One credited recharge (walletTransactions, kind == 'recharge'). */
+interface RRow {
+  id: string;
+  userId?: string;
+  amount?: number;
+  refId?: string;
+  createdAtMs?: number;
+}
+
+const RECHARGE_COLUMNS: DrillColumn<RRow>[] = [
+  { header: 'Customer', cell: (r) => r.userId
+    ? <Link href={`/users/${r.userId}`} className="ovl-nm" style={{ color: 'var(--primary)' }}>{r.userId.slice(0, 12)}</Link>
+    : <span className="muted">—</span> },
+  { header: 'Amount', align: 'right', cell: (r) => <strong>{formatPaise(r.amount)}</strong> },
+  { header: 'Payment ID', cell: (r) => <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12.5 }}>{r.refId || '—'}</span> },
+  { header: 'When', cell: (r) => formatDate(r.createdAtMs) },
+];
 
 interface RevData {
   gross: number;
@@ -17,6 +38,7 @@ interface RevData {
   refunds: number;
   count: number;
   daily: { day: string; value: number }[];
+  rechargeRows: RRow[];
 }
 
 /** Reads the wallet ledger for the range and derives all revenue figures. */
@@ -34,7 +56,17 @@ function useRevenue(range: Range): CardView<RevData> {
         // Read the per-day rollup (≤ one doc per day) instead of scanning the
         // walletTransactions firehose. Rollup stores SIGNED sums per kind, so
         // magnitudes (consultation billing, refunds) use Math.abs.
-        const days = await fetchDailyStats(range);
+        // Rollup drives the money totals; a bounded read of the actual recharge
+        // ledger backs the "Recharge Revenue" drill-down (capped so it can't OOM).
+        const REV_CAP = 500;
+        const [days, rechSnap] = await Promise.all([
+          fetchDailyStats(range),
+          getDocs(query(collection(db, 'walletTransactions'),
+            where('kind', '==', 'recharge'),
+            where('createdAt', '>=', Timestamp.fromMillis(range.start)),
+            where('createdAt', '<', Timestamp.fromMillis(range.end)),
+            orderBy('createdAt', 'desc'), limit(REV_CAP))),
+        ]);
         let recharge = 0, bonus = 0, consultation = 0, refunds = 0, count = 0;
         const daily: { day: string; value: number }[] = [];
         for (const s of days) {
@@ -46,9 +78,13 @@ function useRevenue(range: Range): CardView<RevData> {
           count += s.counts?.recharge ?? 0;
           daily.push({ day: shortDay(s.day), value: Math.round((rev.recharge ?? 0) / 100) });
         }
+        const rechargeRows: RRow[] = rechSnap.docs.map((doc) => {
+          const x = doc.data() as { userId?: string; amount?: number; refId?: string; createdAt?: { toMillis?: () => number } };
+          return { id: doc.id, userId: x.userId, amount: x.amount, refId: x.refId, createdAtMs: x.createdAt?.toMillis?.() };
+        });
         const gross = recharge;
         const net = gross - refunds;
-        if (!cancelled) setData({ gross, net, recharge, bonus, consultation, refunds, count, daily });
+        if (!cancelled) setData({ gross, net, recharge, bonus, consultation, refunds, count, daily, rechargeRows });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
       } finally {
@@ -78,22 +114,26 @@ export function RevenueCard() {
       title="Total Revenue"
       decor="decor-tr"
       useData={useRevenue}
-      renderDrawer={(d) => (
+      renderDrawer={(d, range) => {
+        const sub = `${range.label} · India time`;
+        return (
         <>
-          <div className="metricgrid">
-            <Metric color="c-purple" label="Gross Revenue" value={formatPaise(d.gross)} big />
-            <Metric color="c-blue" label="Net Revenue" value={formatPaise(d.net)} big />
-            <Metric color="c-green" label="Recharge Revenue" value={formatPaise(d.recharge)} href="/recharges" />
-            <Metric color="c-amber" label="Consultation billing" value={formatPaise(d.consultation)} />
-            <Metric color="c-rose" label="Refunds" value={formatPaise(d.refunds)} />
-            <Metric color="c-gold" label="Bonus (free credit)" value={formatPaise(d.bonus)} />
-          </div>
+          <DrillGrid<RRow> tiles={[
+            { color: 'c-purple', label: 'Gross Revenue', value: formatPaise(d.gross), big: true },
+            { color: 'c-blue', label: 'Net Revenue', value: formatPaise(d.net), big: true },
+            { color: 'c-green', label: `Recharge Revenue (${d.count})`, value: formatPaise(d.recharge),
+              drill: { title: 'Recharges', subtitle: sub, rows: d.rechargeRows, columns: RECHARGE_COLUMNS, emptyNote: 'No recharges in this period.' } },
+            { color: 'c-amber', label: 'Consultation billing', value: formatPaise(d.consultation) },
+            { color: 'c-rose', label: 'Refunds', value: formatPaise(d.refunds) },
+            { color: 'c-gold', label: 'Bonus (free credit)', value: formatPaise(d.bonus) },
+          ]} />
           <h3 style={{ margin: '4px 0 10px' }}>Daily breakdown</h3>
           <div className="drawer-chart">
             <DailyChart data={d.daily} color="#8b6fd6" name="Revenue" money />
           </div>
         </>
-      )}
+        );
+      }}
     />
   );
 }

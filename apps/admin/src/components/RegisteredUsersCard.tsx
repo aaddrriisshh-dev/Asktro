@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, getCountFromServer, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { fetchDailyStats } from '@/lib/dailyStats';
 import { DashCard, CardView } from './DashCard';
-import { Metric } from './Metric';
+import { DrillGrid } from './DrillDown';
+import { URow, USER_COLUMNS } from './PaidUnpaidCards';
 import { DailyChart } from './DailyChart';
 
 interface UsersData {
@@ -18,6 +19,12 @@ interface UsersData {
   blocked: number;
   paid: number;
   daily: { day: string; value: number }[];
+  rowsAll: URow[];
+  rowsPaid: URow[];
+  rowsMale: URow[];
+  rowsFemale: URow[];
+  rowsWithEmail: URow[];
+  rowsBlocked: URow[];
 }
 
 function useRegisteredUsers(range: Range): CardView<UsersData> {
@@ -40,18 +47,45 @@ function useRegisteredUsers(range: Range): CardView<UsersData> {
         // daily histogram + withEmail still come from the rollup (a time-series,
         // one small doc per day).
         const usersCol = collection(db, 'users');
-        const [days, totalAgg, maleAgg, femaleAgg, paidAgg, blockedAgg] = await Promise.all([
+        // The most recent users in range, capped so the browser can never OOM.
+        // Drives the drill-down lists (the headline numbers stay exact server
+        // COUNTs). Astrologers are excluded so a customer list is only customers.
+        const ROW_CAP = 5000;
+        const [days, totalAgg, maleAgg, femaleAgg, paidAgg, blockedAgg, rowsSnap] = await Promise.all([
           fetchDailyStats(range),
           getCountFromServer(usersCol),
           getCountFromServer(query(usersCol, where('gender', '==', 'male'))),
           getCountFromServer(query(usersCol, where('gender', '==', 'female'))),
           getCountFromServer(query(usersCol, where('totalRecharge', '>', 0))),
           getCountFromServer(query(usersCol, where('accountStatus', '==', 'blocked'))),
+          getDocs(query(usersCol,
+            where('createdAt', '>=', Timestamp.fromMillis(range.start)),
+            where('createdAt', '<', Timestamp.fromMillis(range.end)),
+            orderBy('createdAt', 'desc'), limit(ROW_CAP))),
         ]);
         let withEmail = 0;
         const daily = days.map((s) => {
           withEmail += s.signups?.withEmail ?? 0;
           return { day: shortDay(s.day), value: s.signups?.total ?? 0 };
+        });
+        const rowsAll: URow[] = [], rowsPaid: URow[] = [], rowsMale: URow[] = [], rowsFemale: URow[] = [];
+        const rowsWithEmail: URow[] = [], rowsBlocked: URow[] = [];
+        rowsSnap.forEach((doc) => {
+          const u = doc.data() as {
+            name?: string; phone?: string; email?: string; gender?: string; accountStatus?: string;
+            walletBalance?: number; totalRecharge?: number; createdAt?: Timestamp;
+          };
+          const row: URow = {
+            id: doc.id, name: u.name, phone: u.phone, email: u.email, gender: u.gender,
+            accountStatus: u.accountStatus, walletBalance: u.walletBalance, totalRecharge: u.totalRecharge,
+            createdAt: u.createdAt?.toMillis?.() ?? range.start,
+          };
+          rowsAll.push(row);
+          if ((u.totalRecharge ?? 0) > 0) rowsPaid.push(row);
+          if (u.gender === 'male') rowsMale.push(row);
+          else if (u.gender === 'female') rowsFemale.push(row);
+          if (u.email) rowsWithEmail.push(row);
+          if (u.accountStatus === 'blocked') rowsBlocked.push(row);
         });
         if (!cancelled) setData({
           total: totalAgg.data().count,
@@ -61,6 +95,7 @@ function useRegisteredUsers(range: Range): CardView<UsersData> {
           blocked: blockedAgg.data().count,
           paid: paidAgg.data().count,
           daily,
+          rowsAll, rowsPaid, rowsMale, rowsFemale, rowsWithEmail, rowsBlocked,
         });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
@@ -97,22 +132,31 @@ export function RegisteredUsersCard() {
       title="Registered Users"
       decor="decor-tl"
       useData={useRegisteredUsers}
-      renderDrawer={(d) => (
+      renderDrawer={(d, range) => {
+        const sub = `${range.label} · India time`;
+        return (
         <>
-          <div className="metricgrid">
-            <Metric color="c-blue" label="Registered" value={d.total.toLocaleString('en-IN')} big href="/users" />
-            <Metric color="c-green" label="Paid" value={d.paid.toLocaleString('en-IN')} big href="/users?filter=paid" />
-            <Metric color="c-purple" label="Male" value={d.male.toLocaleString('en-IN')} href="/users?gender=male" />
-            <Metric color="c-rose" label="Female" value={d.female.toLocaleString('en-IN')} href="/users?gender=female" />
-            <Metric color="c-amber" label="With email" value={d.withEmail.toLocaleString('en-IN')} />
-            <Metric color="c-red" label="Blocked" value={d.blocked.toLocaleString('en-IN')} href="/users?status=blocked" />
-          </div>
+          <DrillGrid<URow> tiles={[
+            { color: 'c-blue', label: 'Registered', value: d.total.toLocaleString('en-IN'), big: true,
+              drill: { title: 'All registered customers', subtitle: sub, rows: d.rowsAll, columns: USER_COLUMNS, emptyNote: 'None in this period.' } },
+            { color: 'c-green', label: 'Paid', value: d.paid.toLocaleString('en-IN'), big: true,
+              drill: { title: 'Paid customers', subtitle: sub, rows: d.rowsPaid, columns: USER_COLUMNS, emptyNote: 'No paid customers in this period.' } },
+            { color: 'c-purple', label: 'Male', value: d.male.toLocaleString('en-IN'),
+              drill: { title: 'Male customers', subtitle: sub, rows: d.rowsMale, columns: USER_COLUMNS, emptyNote: 'None here.' } },
+            { color: 'c-rose', label: 'Female', value: d.female.toLocaleString('en-IN'),
+              drill: { title: 'Female customers', subtitle: sub, rows: d.rowsFemale, columns: USER_COLUMNS, emptyNote: 'None here.' } },
+            { color: 'c-amber', label: 'With email', value: d.withEmail.toLocaleString('en-IN'),
+              drill: { title: 'Customers with an email', subtitle: sub, rows: d.rowsWithEmail, columns: USER_COLUMNS, emptyNote: 'None here.' } },
+            { color: 'c-red', label: 'Blocked', value: d.blocked.toLocaleString('en-IN'),
+              drill: { title: 'Blocked customers', subtitle: sub, rows: d.rowsBlocked, columns: USER_COLUMNS, emptyNote: 'None blocked.' } },
+          ]} />
           <h3 style={{ margin: '4px 0 10px' }}>Daily sign-ups</h3>
           <div className="drawer-chart">
             <DailyChart data={d.daily} color="#3b6fd4" name="Sign-ups" />
           </div>
         </>
-      )}
+        );
+      }}
     />
   );
 }

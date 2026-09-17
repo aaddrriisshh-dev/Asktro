@@ -6,7 +6,8 @@ import { db } from '@/lib/firebase';
 import { formatPaise, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
-import { Metric } from './Metric';
+import { DrillGrid } from './DrillDown';
+import { URow, USER_COLUMNS } from './PaidUnpaidCards';
 import { DailyChart } from './DailyChart';
 
 interface ConvData {
@@ -17,6 +18,10 @@ interface ConvData {
   sameDay: number;
   avgRecharge: number; // paise, across converted
   daily: { day: string; value: number }[];
+  rowsAll: URow[];
+  rowsConverted: URow[];
+  rowsUnpaid: URow[];
+  rowsSameDay: URow[];
 }
 
 const DAY = 86_400_000;
@@ -46,16 +51,28 @@ function useConversion(range: Range): CardView<ConvData> {
         ));
         let converted = 0, sameDay = 0, rechargeSum = 0;
         const byDay = new Map<string, number>();
+        const rowsAll: URow[] = [], rowsConverted: URow[] = [], rowsUnpaid: URow[] = [], rowsSameDay: URow[] = [];
         snap.forEach((doc) => {
-          const u = doc.data() as { createdAt?: Timestamp; firstRechargeAt?: Timestamp | null; totalRecharge?: number };
+          const u = doc.data() as {
+            name?: string; phone?: string; email?: string; gender?: string; accountStatus?: string;
+            walletBalance?: number; createdAt?: Timestamp; firstRechargeAt?: Timestamp | null; totalRecharge?: number;
+          };
+          const created = u.createdAt?.toMillis?.() ?? range.start;
+          const row: URow = {
+            id: doc.id, name: u.name, phone: u.phone, email: u.email, gender: u.gender,
+            accountStatus: u.accountStatus, walletBalance: u.walletBalance, totalRecharge: u.totalRecharge, createdAt: created,
+          };
+          rowsAll.push(row);
           const first = u.firstRechargeAt?.toMillis?.() ?? null;
           if (first) {
             converted += 1;
             rechargeSum += u.totalRecharge ?? 0;
-            const created = u.createdAt?.toMillis?.() ?? first;
-            if (first - created <= DAY) sameDay += 1;
+            rowsConverted.push(row);
+            if (first - created <= DAY) { sameDay += 1; rowsSameDay.push(row); }
             const key = new Date(first).toISOString().slice(0, 10);
             byDay.set(key, (byDay.get(key) ?? 0) + 1);
+          } else {
+            rowsUnpaid.push(row);
           }
         });
         const registered = snap.size;
@@ -64,6 +81,7 @@ function useConversion(range: Range): CardView<ConvData> {
         if (!cancelled) setData({
           registered, converted, rate, unpaid: registered - converted, sameDay,
           avgRecharge: converted ? Math.round(rechargeSum / converted) : 0, daily,
+          rowsAll, rowsConverted, rowsUnpaid, rowsSameDay,
         });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
@@ -94,22 +112,29 @@ export function ConversionCard() {
       title="First Recharge Conversion"
       decor="decor-bl"
       useData={useConversion}
-      renderDrawer={(d) => (
+      renderDrawer={(d, range) => {
+        const sub = `${range.label} · India time`;
+        return (
         <>
-          <div className="metricgrid">
-            <Metric color="c-amber" label="Conversion rate" value={`${d.rate}%`} big />
-            <Metric color="c-green" label="Converted" value={d.converted.toLocaleString('en-IN')} big href="/users?filter=paid" />
-            <Metric color="c-blue" label="Registered" value={d.registered.toLocaleString('en-IN')} href="/users" />
-            <Metric color="c-red" label="Still unpaid" value={d.unpaid.toLocaleString('en-IN')} href="/users?filter=unpaid" />
-            <Metric color="c-purple" label="Same-day converts" value={d.sameDay.toLocaleString('en-IN')} />
-            <Metric color="c-gold" label="Avg recharge / convert" value={formatPaise(d.avgRecharge)} />
-          </div>
+          <DrillGrid<URow> tiles={[
+            { color: 'c-amber', label: 'Conversion rate', value: `${d.rate}%`, big: true },
+            { color: 'c-green', label: 'Converted', value: d.converted.toLocaleString('en-IN'), big: true,
+              drill: { title: 'Converted customers (first recharge)', subtitle: sub, rows: d.rowsConverted, columns: USER_COLUMNS, emptyNote: 'None converted in this period.' } },
+            { color: 'c-blue', label: 'Registered', value: d.registered.toLocaleString('en-IN'),
+              drill: { title: 'All registered customers', subtitle: sub, rows: d.rowsAll, columns: USER_COLUMNS, emptyNote: 'None in this period.' } },
+            { color: 'c-red', label: 'Still unpaid', value: d.unpaid.toLocaleString('en-IN'),
+              drill: { title: 'Registered but never recharged', subtitle: sub, rows: d.rowsUnpaid, columns: USER_COLUMNS, emptyNote: 'None here.' } },
+            { color: 'c-purple', label: 'Same-day converts', value: d.sameDay.toLocaleString('en-IN'),
+              drill: { title: 'Converted within a day of signup', subtitle: sub, rows: d.rowsSameDay, columns: USER_COLUMNS, emptyNote: 'None here.' } },
+            { color: 'c-gold', label: 'Avg recharge / convert', value: formatPaise(d.avgRecharge) },
+          ]} />
           <h3 style={{ margin: '4px 0 10px' }}>First recharges per day</h3>
           <div className="drawer-chart">
             <DailyChart data={d.daily} color="#d98a1f" name="Conversions" />
           </div>
         </>
-      )}
+        );
+      }}
     />
   );
 }

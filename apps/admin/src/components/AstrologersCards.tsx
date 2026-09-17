@@ -1,12 +1,49 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { collection, getDocs, query, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
-import { Metric } from './Metric';
+import { DrillGrid, DrillColumn, DrillDef } from './DrillDown';
 import { BarBreakdown } from './BarBreakdown';
+
+/** One astrologer row backing the drill-down lists. */
+interface ARow {
+  id: string;
+  name?: string;
+  phone?: string;
+  onlineStatus?: boolean;
+  available?: boolean;
+  verified?: boolean;
+  featured?: boolean;
+  accountStatus?: string;
+  gender?: string;
+  rating?: number;
+}
+
+const dot = (label: string, color: string) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+    <span style={{ width: 8, height: 8, borderRadius: 999, background: color, display: 'inline-block' }} />{label}
+  </span>
+);
+
+const ASTRO_COLUMNS: DrillColumn<ARow>[] = [
+  { header: 'Astrologer', cell: (a) => (
+    <div style={{ minWidth: 0 }}>
+      <span className="ovl-nm">{a.name || 'Unnamed'}</span>
+      <span className="ovl-ph">{a.phone || a.id.slice(0, 12)}</span>
+    </div>
+  ) },
+  { header: 'Status', cell: (a) => a.onlineStatus ? dot('Online', '#2f9c63') : dot('Offline', '#c9c4e0') },
+  { header: 'Rating', align: 'right', cell: (a) => (a.rating ? `${a.rating} ★` : '—') },
+  { header: 'Verified', cell: (a) => a.verified ? '✓' : <span className="muted">—</span> },
+  { header: 'Account', cell: (a) => a.accountStatus === 'pending'
+    ? <span className="pay-pill free">Pending</span>
+    : <span className="pay-pill paid">Approved</span> },
+  { header: '', align: 'right', cell: (a) => <Link href={`/astrologers/${a.id}`} className="btn sm secondary">View</Link> },
+];
 
 interface AstroData {
   total: number;
@@ -21,6 +58,7 @@ interface AstroData {
   female: number;
   avgRating: number;
   newInPeriod: number;
+  rows: ARow[];
 }
 
 /** Shared roster fetch — both astrologer cards read the same snapshot. */
@@ -38,11 +76,17 @@ function useAstrologers(range: Range): CardView<AstroData> {
         const snap = await getDocs(query(collection(db, 'astrologers'), limit(500)));
         let online = 0, available = 0, verified = 0, featured = 0, approved = 0, pending = 0;
         let male = 0, female = 0, ratingSum = 0, ratingCount = 0, newInPeriod = 0;
+        const rows: ARow[] = [];
         snap.forEach((doc) => {
           const a = doc.data() as {
+            name?: string; phone?: string;
             onlineStatus?: boolean; available?: boolean; verified?: boolean; featured?: boolean;
             accountStatus?: string; gender?: string; rating?: number; createdAt?: { toMillis?: () => number };
           };
+          rows.push({
+            id: doc.id, name: a.name, phone: a.phone, onlineStatus: a.onlineStatus, available: a.available,
+            verified: a.verified, featured: a.featured, accountStatus: a.accountStatus, gender: a.gender, rating: a.rating,
+          });
           if (a.onlineStatus) online += 1;
           if (a.available) available += 1;
           if (a.verified) verified += 1;
@@ -58,7 +102,7 @@ function useAstrologers(range: Range): CardView<AstroData> {
         if (!cancelled) setData({
           total: snap.size, online, available, offline: snap.size - online, verified, featured,
           approved, pending, male, female,
-          avgRating: ratingCount ? Number((ratingSum / ratingCount).toFixed(2)) : 0, newInPeriod,
+          avgRating: ratingCount ? Number((ratingSum / ratingCount).toFixed(2)) : 0, newInPeriod, rows,
         });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
@@ -78,6 +122,10 @@ const starIcon = (
   </svg>
 );
 
+const inr = (n: number) => n.toLocaleString('en-IN');
+const astroDrill = (title: string, rows: ARow[]): DrillDef<ARow> =>
+  ({ title, rows, columns: ASTRO_COLUMNS, emptyNote: 'None here.' });
+
 // ---- Card 5: Active (online) astrologers ---------------------------------
 export function ActiveAstrologersCard() {
   return (
@@ -95,14 +143,14 @@ export function ActiveAstrologersCard() {
       }}
       renderDrawer={(d) => (
         <>
-          <div className="metricgrid">
-            <Metric color="c-teal" label="Online now" value={d.online.toLocaleString('en-IN')} big href="/astrologers?filter=online" />
-            <Metric color="c-green" label="Available" value={d.available.toLocaleString('en-IN')} big />
-            <Metric color="c-slate" label="Offline" value={d.offline.toLocaleString('en-IN')} />
-            <Metric color="c-blue" label="Verified" value={d.verified.toLocaleString('en-IN')} href="/astrologers?filter=verified" />
-            <Metric color="c-gold" label="Featured" value={d.featured.toLocaleString('en-IN')} href="/astrologers?filter=featured" />
-            <Metric color="c-amber" label="Avg rating" value={d.avgRating ? `${d.avgRating} ★` : '—'} />
-          </div>
+          <DrillGrid<ARow> tiles={[
+            { color: 'c-teal', label: 'Online now', value: inr(d.online), big: true, drill: astroDrill('Online astrologers', d.rows.filter((a) => a.onlineStatus)) },
+            { color: 'c-green', label: 'Available', value: inr(d.available), big: true, drill: astroDrill('Available astrologers', d.rows.filter((a) => a.available)) },
+            { color: 'c-slate', label: 'Offline', value: inr(d.offline), drill: astroDrill('Offline astrologers', d.rows.filter((a) => !a.onlineStatus)) },
+            { color: 'c-blue', label: 'Verified', value: inr(d.verified), drill: astroDrill('Verified astrologers', d.rows.filter((a) => a.verified)) },
+            { color: 'c-gold', label: 'Featured', value: inr(d.featured), drill: astroDrill('Featured astrologers', d.rows.filter((a) => a.featured)) },
+            { color: 'c-amber', label: 'Avg rating', value: d.avgRating ? `${d.avgRating} ★` : '—' },
+          ]} />
           <h3 style={{ margin: '4px 0 12px' }}>Availability</h3>
           <BarBreakdown segments={[
             { label: 'Online', value: d.online, color: '#12a594' },
@@ -131,14 +179,14 @@ export function TotalAstrologersCard() {
       }}
       renderDrawer={(d) => (
         <>
-          <div className="metricgrid">
-            <Metric color="c-indigo" label="Total" value={d.total.toLocaleString('en-IN')} big href="/astrologers" />
-            <Metric color="c-teal" label="Online" value={d.online.toLocaleString('en-IN')} big />
-            <Metric color="c-purple" label="Male" value={d.male.toLocaleString('en-IN')} />
-            <Metric color="c-rose" label="Female" value={d.female.toLocaleString('en-IN')} />
-            <Metric color="c-green" label="Approved" value={d.approved.toLocaleString('en-IN')} href="/astrologers" />
-            <Metric color="c-amber" label="Pending" value={d.pending.toLocaleString('en-IN')} href="/astrologers?filter=pending" />
-          </div>
+          <DrillGrid<ARow> tiles={[
+            { color: 'c-indigo', label: 'Total', value: inr(d.total), big: true, drill: astroDrill('All astrologers', d.rows) },
+            { color: 'c-teal', label: 'Online', value: inr(d.online), big: true, drill: astroDrill('Online astrologers', d.rows.filter((a) => a.onlineStatus)) },
+            { color: 'c-purple', label: 'Male', value: inr(d.male), drill: astroDrill('Male astrologers', d.rows.filter((a) => a.gender === 'male')) },
+            { color: 'c-rose', label: 'Female', value: inr(d.female), drill: astroDrill('Female astrologers', d.rows.filter((a) => a.gender === 'female')) },
+            { color: 'c-green', label: 'Approved', value: inr(d.approved), drill: astroDrill('Approved astrologers', d.rows.filter((a) => a.accountStatus !== 'pending')) },
+            { color: 'c-amber', label: 'Pending', value: inr(d.pending), drill: astroDrill('Astrologers awaiting approval', d.rows.filter((a) => a.accountStatus === 'pending')) },
+          ]} />
           <h3 style={{ margin: '4px 0 12px' }}>Gender split</h3>
           <BarBreakdown segments={[
             { label: 'Male', value: d.male, color: '#5b5bd6' },

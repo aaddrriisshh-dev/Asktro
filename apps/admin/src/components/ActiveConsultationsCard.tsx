@@ -1,17 +1,40 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   collection, query, where, getDocs, Timestamp,
   getCountFromServer, getAggregateFromServer, sum, QueryConstraint,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { formatPaise, shortDay } from '@/lib/format';
+import { formatPaise, formatDate, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
 import { fetchDailyStats } from '@/lib/dailyStats';
 import { DashCard, CardView } from './DashCard';
-import { Metric } from './Metric';
+import { DrillGrid, DrillColumn, DrillDef } from './DrillDown';
 import { DailyChart } from './DailyChart';
+
+/** One live consultation row. */
+interface SRow {
+  id: string;
+  customerId?: string;
+  astrologerId?: string;
+  type?: string;
+  totalCharged?: number;
+  billedSeconds?: number;
+  createdAtMs?: number;
+}
+
+const SESSION_COLUMNS: DrillColumn<SRow>[] = [
+  { header: 'Customer', cell: (s) => s.customerId
+    ? <Link href={`/users/${s.customerId}`} className="ovl-nm" style={{ color: 'var(--primary)' }}>{s.customerId.slice(0, 12)}</Link>
+    : <span className="muted">—</span> },
+  { header: 'Type', cell: (s) => <span style={{ textTransform: 'capitalize' }}>{s.type || '—'}</span> },
+  { header: 'Min', align: 'right', cell: (s) => Math.round(((s.billedSeconds ?? 0) / 60) * 10) / 10 },
+  { header: 'Astrologer', cell: (s) => s.astrologerId ? s.astrologerId.slice(0, 10) : '—' },
+  { header: 'Charged', align: 'right', cell: (s) => formatPaise(s.totalCharged) },
+  { header: 'Started', cell: (s) => formatDate(s.createdAtMs) },
+];
 
 interface ConsData {
   activeNow: number;
@@ -23,6 +46,7 @@ interface ConsData {
   totalInRange: number;
   billedInRange: number; // paise
   daily: { day: string; value: number }[];
+  activeRows: SRow[];
 }
 
 function useConsultations(range: Range): CardView<ConsData> {
@@ -40,11 +64,19 @@ function useConsultations(range: Range): CardView<ConsData> {
         // direct read is fine and gives the per-type split.
         const activeSnap = await getDocs(query(collection(db, 'consultations'), where('status', '==', 'active')));
         let activeChat = 0, activeVoice = 0, activeVideo = 0;
+        const activeRows: SRow[] = [];
         activeSnap.forEach((doc) => {
-          const t = (doc.data() as { type?: string }).type;
-          if (t === 'chat') activeChat += 1;
-          else if (t === 'voice') activeVoice += 1;
-          else if (t === 'video') activeVideo += 1;
+          const c = doc.data() as {
+            type?: string; customerId?: string; astrologerId?: string;
+            totalCharged?: number; billedSeconds?: number; createdAt?: { toMillis?: () => number };
+          };
+          activeRows.push({
+            id: doc.id, customerId: c.customerId, astrologerId: c.astrologerId, type: c.type,
+            totalCharged: c.totalCharged, billedSeconds: c.billedSeconds, createdAtMs: c.createdAt?.toMillis?.(),
+          });
+          if (c.type === 'chat') activeChat += 1;
+          else if (c.type === 'voice') activeVoice += 1;
+          else if (c.type === 'video') activeVideo += 1;
         });
 
         // History in the range WITHOUT downloading the consultations: counts and
@@ -69,7 +101,7 @@ function useConsultations(range: Range): CardView<ConsData> {
         if (!cancelled) setData({
           activeNow: activeSnap.size, activeChat, activeVoice, activeVideo,
           completed: completedC.data().count, cancelled: cancelledC.data().count,
-          totalInRange: totalC.data().count, billedInRange: billedAgg.data().billed ?? 0, daily,
+          totalInRange: totalC.data().count, billedInRange: billedAgg.data().billed ?? 0, daily, activeRows,
         });
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
@@ -100,22 +132,26 @@ export function ActiveConsultationsCard() {
       title="Active Consultations"
       decor="decor-br"
       useData={useConsultations}
-      renderDrawer={(d) => (
+      renderDrawer={(d) => {
+        const liveDrill = (title: string, rows: SRow[]): DrillDef<SRow> =>
+          ({ title, subtitle: 'Live right now', rows, columns: SESSION_COLUMNS, emptyNote: 'None active right now.' });
+        return (
         <>
-          <div className="metricgrid">
-            <Metric color="c-green" label="Active now" value={d.activeNow.toLocaleString('en-IN')} big />
-            <Metric color="c-blue" label="Billed (period)" value={formatPaise(d.billedInRange)} big />
-            <Metric color="c-purple" label="Chat active" value={d.activeChat.toLocaleString('en-IN')} href="/chat-sessions" />
-            <Metric color="c-amber" label="Voice active" value={d.activeVoice.toLocaleString('en-IN')} href="/phone-sessions" />
-            <Metric color="c-rose" label="Video active" value={d.activeVideo.toLocaleString('en-IN')} href="/video-sessions" />
-            <Metric color="c-gold" label="Completed (period)" value={d.completed.toLocaleString('en-IN')} href="/chat-sessions" />
-          </div>
+          <DrillGrid<SRow> tiles={[
+            { color: 'c-green', label: 'Active now', value: d.activeNow.toLocaleString('en-IN'), big: true, drill: liveDrill('Active consultations', d.activeRows) },
+            { color: 'c-blue', label: 'Billed (period)', value: formatPaise(d.billedInRange), big: true },
+            { color: 'c-purple', label: 'Chat active', value: d.activeChat.toLocaleString('en-IN'), drill: liveDrill('Active chat consultations', d.activeRows.filter((s) => s.type === 'chat')) },
+            { color: 'c-amber', label: 'Voice active', value: d.activeVoice.toLocaleString('en-IN'), drill: liveDrill('Active voice consultations', d.activeRows.filter((s) => s.type === 'voice')) },
+            { color: 'c-rose', label: 'Video active', value: d.activeVideo.toLocaleString('en-IN'), drill: liveDrill('Active video consultations', d.activeRows.filter((s) => s.type === 'video')) },
+            { color: 'c-gold', label: 'Completed (period)', value: d.completed.toLocaleString('en-IN'), href: '/chat-sessions' },
+          ]} />
           <h3 style={{ margin: '4px 0 10px' }}>Consultations started per day</h3>
           <div className="drawer-chart">
             <DailyChart data={d.daily} color="#2f9c63" name="Consultations" />
           </div>
         </>
-      )}
+        );
+      }}
     />
   );
 }

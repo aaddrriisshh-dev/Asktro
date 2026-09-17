@@ -49,7 +49,14 @@ function DetailOverlay<R>({ def, onClose }: { def: DrillDef<R>; onClose: () => v
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // Lock the page/panel behind so the wheel scrolls the LIST, not the
+    // background. Restored to whatever it was when the overlay closes.
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
   }, [onClose]);
 
   return createPortal(

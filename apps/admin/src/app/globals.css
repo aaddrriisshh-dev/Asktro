@@ -1104,7 +1104,7 @@ tbody tr:last-child td { border-bottom: none; }
 .ovl-sub { margin: 3px 0 0; color: var(--gold-deep); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
 .ovl-close { flex: none; background: #fff; border: 1px solid #ece4fb; border-radius: 9px; padding: 0 12px; height: 34px; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; transition: background .15s ease, color .15s ease; }
 .ovl-close:hover { background: #f6f2fe; color: var(--primary); }
-.ovl-body { padding: 4px 10px; overflow-y: auto; }
+.ovl-body { padding: 4px 10px; overflow-y: auto; overscroll-behavior: contain; }
 .ovl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ovl-table th { position: sticky; top: 0; background: #f7f3fd; text-align: left; padding: 10px 14px; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); font-weight: 700; border-bottom: 1px solid #ece4fb; }
 .ovl-table td { padding: 10px 14px; border-bottom: 1px solid #f2edfb; color: var(--text); vertical-align: middle; }
