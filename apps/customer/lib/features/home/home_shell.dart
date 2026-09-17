@@ -280,9 +280,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         rechargeBasePaise: cfg.rechargeBasePaise,
         planId: cfg.rechargePlanId,
         title: cfg.title.isEmpty ? null : cfg.title,
+        titleWord1: cfg.titleWord1.isEmpty ? null : cfg.titleWord1,
+        titleWord2: cfg.titleWord2.isEmpty ? null : cfg.titleWord2,
         body: cfg.body.isEmpty ? null : cfg.body,
         ctaLabel: cfg.ctaLabel.isEmpty ? null : cfg.ctaLabel,
         imageUrl: cfg.image.isEmpty ? null : cfg.image,
+        gstRatePct: cfg.gstRatePct,
+        showBreakup: cfg.showBreakup,
+        totalOverridePaise: cfg.totalOverridePaise,
+        breakupRows: cfg.breakupRows,
+        bgTheme: cfg.bgTheme,
+        particleStyle: cfg.particleStyle,
       );
       return true;
     }

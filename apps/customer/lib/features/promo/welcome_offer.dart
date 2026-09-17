@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_flutter/shared_flutter.dart';
 
 import '../profile_setup/onboarding_style.dart';
+import '../home/home_popup_config.dart';
 
 /// The first-recharge welcome offer ("Triple Dhamaka"). Shown on the home screen
 /// to users who haven't recharged yet. The ₹29.5 button opens the promo recharge
@@ -31,9 +32,17 @@ Future<void> showWelcomeOffer(
   int rechargeBasePaise = 2500,
   String planId = _promoPlanId,
   String? title,
+  String? titleWord1,
+  String? titleWord2,
   String? body,
   String? ctaLabel,
   String? imageUrl,
+  double gstRatePct = 18,
+  bool showBreakup = true,
+  int? totalOverridePaise,
+  List<PopupBreakupRow> breakupRows = const [],
+  String bgTheme = '',
+  String particleStyle = 'mixed',
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -46,9 +55,17 @@ Future<void> showWelcomeOffer(
       rechargeBasePaise: rechargeBasePaise,
       planId: planId,
       title: title,
+      titleWord1: titleWord1,
+      titleWord2: titleWord2,
       body: body,
       ctaLabel: ctaLabel,
       imageUrl: imageUrl,
+      gstRatePct: gstRatePct,
+      showBreakup: showBreakup,
+      totalOverridePaise: totalOverridePaise,
+      breakupRows: breakupRows,
+      bgTheme: bgTheme,
+      particleStyle: particleStyle,
     ),
   );
 }
@@ -60,18 +77,34 @@ class _WelcomeSheet extends StatefulWidget {
     this.rechargeBasePaise = 2500,
     this.planId = _promoPlanId,
     this.title,
+    this.titleWord1,
+    this.titleWord2,
     this.body,
     this.ctaLabel,
     this.imageUrl,
+    this.gstRatePct = 18,
+    this.showBreakup = true,
+    this.totalOverridePaise,
+    this.breakupRows = const [],
+    this.bgTheme = '',
+    this.particleStyle = 'mixed',
   });
   final int chatCreditPaise;
   final int offerGetPaise;
   final int rechargeBasePaise;
   final String planId;
   final String? title;
+  final String? titleWord1;
+  final String? titleWord2;
   final String? body;
   final String? ctaLabel;
   final String? imageUrl;
+  final double gstRatePct;
+  final bool showBreakup;
+  final int? totalOverridePaise;
+  final List<PopupBreakupRow> breakupRows;
+  final String bgTheme;
+  final String particleStyle;
 
   @override
   State<_WelcomeSheet> createState() => _WelcomeSheetState();
@@ -99,8 +132,35 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
   // GST breakdown, computed from the (portal-editable) pre-GST base. Defaults
   // (2500) reproduce the original ₹25.00 / ₹4.50 / ₹29.50 exactly.
   int get _basePaise => widget.rechargeBasePaise;
-  int get _gstPaise => (widget.rechargeBasePaise * 0.18).round();
-  int get _totalPaise => _basePaise + _gstPaise;
+  int get _gstPaise => (widget.rechargeBasePaise * (widget.gstRatePct / 100)).round();
+  int get _extrasPaise => widget.breakupRows.fold(0, (s, r) => s + r.amountPaise);
+  int get _totalPaise => widget.totalOverridePaise ?? (_basePaise + _gstPaise + _extrasPaise);
+
+  // GST label without a trailing ".0" for whole rates (18 → "18", 2.5 → "2.5").
+  String get _gstLabel {
+    final r = widget.gstRatePct;
+    return r == r.roundToDouble() ? r.toInt().toString() : r.toString();
+  }
+
+  // Background gradient for the sheet, chosen by the portal's bgTheme.
+  List<Color> get _bgColors {
+    switch (widget.bgTheme) {
+      case 'aurora':
+        return const [Color(0xFFFBE5B8), Color(0xFFF7EEDA), Color(0xFFFBF7EF), Color(0xFFFFFFFF)];
+      case 'nebula':
+        return const [Color(0xFFF0D5EC), Color(0xFFEED8F6), Color(0xFFF8EFFB), Color(0xFFFFFFFF)];
+      case 'midnight':
+        return const [Color(0xFF2A2060), Color(0xFF3A2F7A), Color(0xFFEDE7FB), Color(0xFFFFFFFF)];
+      case 'emerald':
+        return const [Color(0xFF13463A), Color(0xFF1E5E4B), Color(0xFFE4F3EC), Color(0xFFFFFFFF)];
+      case 'lavender':
+      default:
+        return const [Color(0xFFECE1FB), Color(0xFFF3ECFF), Color(0xFFFBF9FF), Color(0xFFFFFFFF)];
+    }
+  }
+
+  // Themes whose TOP is dark, so the headline/subtitle text must go light.
+  bool get _darkTop => widget.bgTheme == 'midnight' || widget.bgTheme == 'emerald';
 
   // Compact total for the pay button, e.g. 2950 → "₹29.5" (trailing zeros
   // trimmed) — matching the original hardcoded "₹29.5".
@@ -137,17 +197,17 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xFFECE1FB), Color(0xFFF3ECFF), Color(0xFFFBF9FF), Color(0xFFFFFFFF)],
-                  stops: [0, .38, .72, 1],
+                  colors: _bgColors,
+                  stops: const [0, .38, .72, 1],
                 ),
               ),
               child: Stack(
                 children: [
-                  Positioned.fill(child: _FallingParticles(controller: _fall)),
+                  Positioned.fill(child: _FallingParticles(controller: _fall, style: widget.particleStyle)),
                   SafeArea(
                     top: false,
                     child: Padding(
@@ -166,8 +226,10 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
                           _offerLine(),
                           const SizedBox(height: 12),
                           _buttons(),
-                          const SizedBox(height: 10),
-                          _totalPayment(),
+                          if (widget.showBreakup) ...[
+                            const SizedBox(height: 10),
+                            _totalPayment(),
+                          ],
                         ],
                       ),
                     ),
@@ -183,22 +245,41 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
   }
 
   Widget _title() {
-    // Custom title (portal) → single-tone headline; default → the two-tone
-    // "Triple Dhamaka" exactly as before.
+    // Dark-top themes need a light first-word so the headline stays readable.
+    final wordColor = _darkTop ? const Color(0xFFF3ECFF) : Ob.navy;
+    const gold = Color(0xFFC88617);
+    final w1 = widget.titleWord1?.trim() ?? '';
+    final w2 = widget.titleWord2?.trim() ?? '';
+
+    // Two-tone words from the portal → word1 (theme colour) + word2 (gold).
+    if (w1.isNotEmpty || w2.isNotEmpty) {
+      return RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+          style: GoogleFonts.cormorantGaramond(fontSize: 27, fontWeight: FontWeight.w600, height: 1),
+          children: [
+            if (w1.isNotEmpty) TextSpan(text: w2.isNotEmpty ? '$w1 ' : w1, style: TextStyle(color: wordColor)),
+            if (w2.isNotEmpty) TextSpan(text: w2, style: const TextStyle(color: gold)),
+          ],
+        ),
+      );
+    }
+    // A single custom title → single-tone headline.
     if (widget.title != null && widget.title!.isNotEmpty) {
       return Text(
         widget.title!,
         textAlign: TextAlign.center,
         style: GoogleFonts.cormorantGaramond(
-            fontSize: 27, fontWeight: FontWeight.w600, height: 1, color: Ob.navy),
+            fontSize: 27, fontWeight: FontWeight.w600, height: 1, color: wordColor),
       );
     }
+    // Default → the two-tone "Triple Dhamaka" exactly as before.
     return RichText(
       text: TextSpan(
         style: GoogleFonts.cormorantGaramond(fontSize: 27, fontWeight: FontWeight.w600, height: 1),
-        children: const [
-          TextSpan(text: 'Triple ', style: TextStyle(color: Ob.navy)),
-          TextSpan(text: 'Dhamaka', style: TextStyle(color: Color(0xFFC88617))),
+        children: [
+          TextSpan(text: 'Triple ', style: TextStyle(color: wordColor)),
+          const TextSpan(text: 'Dhamaka', style: TextStyle(color: gold)),
         ],
       ),
     );
@@ -207,7 +288,10 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
   Widget _walletLine() {
     return Text.rich(
       TextSpan(
-        style: Ob.note.copyWith(fontSize: 14.5, color: const Color(0xFF6B6390), fontWeight: FontWeight.w600),
+        style: Ob.note.copyWith(
+            fontSize: 14.5,
+            color: _darkTop ? const Color(0xFFE7DEF8) : const Color(0xFF6B6390),
+            fontWeight: FontWeight.w600,),
         children: [
           const TextSpan(text: 'Get '),
           TextSpan(
@@ -288,7 +372,10 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
         const SizedBox(width: 6),
         Text(
             (widget.body != null && widget.body!.isNotEmpty) ? widget.body! : 'Grab this one-time offer',
-            style: Ob.note.copyWith(fontSize: 12.5, color: Ob.navy, fontWeight: FontWeight.w700),),
+            style: Ob.note.copyWith(
+                fontSize: 12.5,
+                color: _darkTop ? const Color(0xFFF0EAFB) : Ob.navy,
+                fontWeight: FontWeight.w700,),),
         const SizedBox(width: 6),
         const Icon(Icons.auto_awesome, size: 11, color: Color(0xFFC88617)),
         const SizedBox(width: 6),
@@ -396,7 +483,12 @@ class _WelcomeSheetState extends State<_WelcomeSheet> with TickerProviderStateMi
                   Text('Payment Details', style: Ob.option.copyWith(fontWeight: FontWeight.w800, fontSize: 14.5, color: const Color(0xFF1C1633))),
                   const SizedBox(height: 9),
                   _brow('Total Amount', Money.formatPaisePrecise(_basePaise)),
-                  _brow('GST @ 18%', Money.formatPaisePrecise(_gstPaise)),
+                  _brow('GST @ $_gstLabel%', Money.formatPaisePrecise(_gstPaise)),
+                  for (final r in widget.breakupRows)
+                    _brow(
+                      r.label.isEmpty ? 'Extra' : r.label,
+                      (r.amountPaise < 0 ? '− ' : '') + Money.formatPaisePrecise(r.amountPaise.abs()),
+                    ),
                   const Padding(padding: EdgeInsets.symmetric(vertical: 5), child: Divider(height: 1, color: Color(0xFFECE3F8))),
                   _brow('Grand Total', Money.formatPaisePrecise(_totalPaise), bold: true),
                 ],
@@ -563,37 +655,53 @@ class _P {
 }
 
 class _FallingParticles extends StatelessWidget {
-  const _FallingParticles({required this.controller});
+  const _FallingParticles({required this.controller, this.style = 'mixed'});
   final AnimationController controller;
+  final String style; // mixed | stars | coins | none
 
   static final _rng = math.Random(7);
-  static final List<_P> _parts = _build();
+  // Built once per style and reused, so switching styles never re-seeds mid-run.
+  static final Map<String, List<_P>> _cache = {};
 
-  static List<_P> _build() {
+  static List<_P> _partsFor(String style) => _cache.putIfAbsent(style, () => _build(style));
+
+  static List<_P> _build(String style) {
+    if (style == 'none') return const [];
     const starGlyphs = ['✦', '✧', '⋆', '✦'];
     const starColors = [Color(0xFFE7B93C), Color(0xFFB79BE6), Color(0xFFEAD079), Color(0xFF8A63D2)];
+    final wantStars = style == 'mixed' || style == 'stars';
+    final wantCoins = style == 'mixed' || style == 'coins';
+    final wantDots = style == 'mixed';
     // speed MUST be a whole number of screen-traversals per controller cycle so
     // the one-way loop wraps seamlessly (base 1→0 leaves prog unchanged). 1 = a
     // slow fall, 2 = roughly twice as fast; phase staggers the vertical spread.
     final out = <_P>[];
-    for (var i = 0; i < 11; i++) {
-      final k = _rng.nextInt(4);
-      out.add(_P(_PType.star, _rng.nextDouble(), 10 + _rng.nextDouble() * 13, _rng.nextDouble(),
-          (1 + _rng.nextInt(2)).toDouble(), starGlyphs[k], starColors[k],),);
+    if (wantStars) {
+      for (var i = 0; i < (style == 'stars' ? 20 : 11); i++) {
+        final k = _rng.nextInt(4);
+        out.add(_P(_PType.star, _rng.nextDouble(), 10 + _rng.nextDouble() * 13, _rng.nextDouble(),
+            (1 + _rng.nextInt(2)).toDouble(), starGlyphs[k], starColors[k],),);
+      }
     }
-    for (var i = 0; i < 8; i++) {
-      out.add(_P(_PType.coin, _rng.nextDouble(), 13 + _rng.nextDouble() * 9, _rng.nextDouble(),
-          (1 + _rng.nextInt(2)).toDouble(), '', const Color(0xFFE9BE48),),);
+    if (wantCoins) {
+      for (var i = 0; i < (style == 'coins' ? 18 : 8); i++) {
+        out.add(_P(_PType.coin, _rng.nextDouble(), 13 + _rng.nextDouble() * 9, _rng.nextDouble(),
+            (1 + _rng.nextInt(2)).toDouble(), '', const Color(0xFFE9BE48),),);
+      }
     }
-    for (var i = 0; i < 9; i++) {
-      out.add(_P(_PType.dot, _rng.nextDouble(), 3 + _rng.nextDouble() * 4, _rng.nextDouble(),
-          (1 + _rng.nextInt(2)).toDouble(), '', _rng.nextBool() ? const Color(0xFFD4AF37) : const Color(0xFFB79BE6),),);
+    if (wantDots) {
+      for (var i = 0; i < 9; i++) {
+        out.add(_P(_PType.dot, _rng.nextDouble(), 3 + _rng.nextDouble() * 4, _rng.nextDouble(),
+            (1 + _rng.nextInt(2)).toDouble(), '', _rng.nextBool() ? const Color(0xFFD4AF37) : const Color(0xFFB79BE6),),);
+      }
     }
     return out;
   }
 
   @override
   Widget build(BuildContext context) {
+    final parts = _partsFor(style);
+    if (parts.isEmpty) return const SizedBox.shrink();
     return LayoutBuilder(builder: (context, box) {
       final h = box.maxHeight, w = box.maxWidth;
       return AnimatedBuilder(
@@ -602,7 +710,7 @@ class _FallingParticles extends StatelessWidget {
           final base = controller.value; // 0→1 one-way (repeat, no reverse): a steady downward fall
           return Stack(
             children: [
-              for (final p in _parts) _draw(p, w, h, base),
+              for (final p in parts) _draw(p, w, h, base),
             ],
           );
         },
