@@ -96,11 +96,11 @@ export function ActiveAstrologersCard() {
       renderDrawer={(d) => (
         <>
           <div className="metricgrid">
-            <Metric color="c-teal" label="Online now" value={d.online.toLocaleString('en-IN')} big />
+            <Metric color="c-teal" label="Online now" value={d.online.toLocaleString('en-IN')} big href="/astrologers?filter=online" />
             <Metric color="c-green" label="Available" value={d.available.toLocaleString('en-IN')} big />
             <Metric color="c-slate" label="Offline" value={d.offline.toLocaleString('en-IN')} />
-            <Metric color="c-blue" label="Verified" value={d.verified.toLocaleString('en-IN')} />
-            <Metric color="c-gold" label="Featured" value={d.featured.toLocaleString('en-IN')} />
+            <Metric color="c-blue" label="Verified" value={d.verified.toLocaleString('en-IN')} href="/astrologers?filter=verified" />
+            <Metric color="c-gold" label="Featured" value={d.featured.toLocaleString('en-IN')} href="/astrologers?filter=featured" />
             <Metric color="c-amber" label="Avg rating" value={d.avgRating ? `${d.avgRating} ★` : '—'} />
           </div>
           <h3 style={{ margin: '4px 0 12px' }}>Availability</h3>
@@ -132,12 +132,12 @@ export function TotalAstrologersCard() {
       renderDrawer={(d) => (
         <>
           <div className="metricgrid">
-            <Metric color="c-indigo" label="Total" value={d.total.toLocaleString('en-IN')} big />
+            <Metric color="c-indigo" label="Total" value={d.total.toLocaleString('en-IN')} big href="/astrologers" />
             <Metric color="c-teal" label="Online" value={d.online.toLocaleString('en-IN')} big />
             <Metric color="c-purple" label="Male" value={d.male.toLocaleString('en-IN')} />
             <Metric color="c-rose" label="Female" value={d.female.toLocaleString('en-IN')} />
-            <Metric color="c-green" label="Approved" value={d.approved.toLocaleString('en-IN')} />
-            <Metric color="c-amber" label="Pending" value={d.pending.toLocaleString('en-IN')} />
+            <Metric color="c-green" label="Approved" value={d.approved.toLocaleString('en-IN')} href="/astrologers" />
+            <Metric color="c-amber" label="Pending" value={d.pending.toLocaleString('en-IN')} href="/astrologers?filter=pending" />
           </div>
           <h3 style={{ margin: '4px 0 12px' }}>Gender split</h3>
           <BarBreakdown segments={[

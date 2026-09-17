@@ -312,7 +312,7 @@ function MoneyHeldOwed() {
 
 // ================================================================ 7. Top astrologers
 function TopAstrologers() {
-  const [rows, setRows] = useState<{ name: string; cons: number; rating: number; earnings: number }[] | null>(null);
+  const [rows, setRows] = useState<{ id: string; name: string; cons: number; rating: number; earnings: number }[] | null>(null);
   useEffect(() => {
     (async () => {
       const snap = await getDocs(query(collection(db, 'astrologers'), limit(500)));
@@ -321,7 +321,7 @@ function TopAstrologers() {
         const a = dref.data() as { name?: string; totalConsultations?: number; rating?: number };
         const finSnap = await getDoc(doc(db, 'astrologers', dref.id, 'private', 'financials'));
         const earnings = (finSnap.exists() ? (finSnap.data() as { earnings?: number }).earnings : 0) ?? 0;
-        return { name: a.name ?? '—', cons: a.totalConsultations ?? 0, rating: a.rating ?? 0, earnings };
+        return { id: dref.id, name: a.name ?? '—', cons: a.totalConsultations ?? 0, rating: a.rating ?? 0, earnings };
       }));
       list.sort((a, b) => b.earnings - a.earnings);
       setRows(list.slice(0, 8));
@@ -335,9 +335,9 @@ function TopAstrologers() {
         <thead><tr><th>#</th><th>Astrologer</th><th>Consultations</th><th>Rating</th><th>Earnings</th></tr></thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i}>
+            <tr key={r.id}>
               <td><span className={`ops-rank r${i + 1}`}>{i + 1}</span></td>
-              <td className="ops-name">{r.name}</td>
+              <td className="ops-name"><Link href={`/astrologers/${r.id}`} className="ops-name-link">{r.name}</Link></td>
               <td>{r.cons.toLocaleString('en-IN')}</td>
               <td>{r.rating ? `${r.rating} ★` : '—'}</td>
               <td className="ops-earn">{formatPaise(r.earnings)}</td>

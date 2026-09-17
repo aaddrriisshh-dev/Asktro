@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useCollection, callFn, Row } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 import { AstrologerFormModal } from '@/components/AstrologerFormModal';
@@ -44,11 +45,12 @@ function Avatar({ photo, name }: { photo?: unknown; name?: unknown }) {
 }
 
 function AstroBox({
-  title, icon, accent, list, isSuper, busy, actions, showLiveDot, onStatus, onEditRate,
+  title, icon, accent, list, isSuper, busy, actions, showLiveDot, onStatus, onEditRate, domId,
 }: {
   title: string; icon: string; accent: string; list: Row[];
   isSuper: boolean; busy: string | null; actions: BoxAction[]; showLiveDot?: boolean;
   onStatus: (id: string, status: string, name?: string) => void; onEditRate: (a: Row) => void;
+  domId?: string;
 }) {
   // `wide` = the "View all" full-page grid mode: the card breaks out to full
   // width and re-flows its list into a wrapping grid of compact cards.
@@ -63,7 +65,7 @@ function AstroBox({
     : list;
   const shown = wide ? filtered : filtered.slice(0, 10);
   return (
-    <div className={`card custcard${wide ? ' custcard--wide' : ''}`} style={{ borderTop: `3px solid ${accent}` }}>
+    <div id={domId} className={`card custcard${wide ? ' custcard--wide' : ''}`} style={{ borderTop: `3px solid ${accent}` }}>
       <div className="sess-col-head">
         <h3 className="celeste" style={{ margin: 0, fontSize: 16 }}>{icon} {title}</h3>
         <span className="udet-total">{list.length}</span>
@@ -141,13 +143,18 @@ function AstroBox({
   );
 }
 
-export default function AstrologersPage() {
+function AstrologersManagement() {
   const { rows, loading } = useCollection('astrologers');
   const { adminRole } = useAuth();
   const isSuper = adminRole === 'super';
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+
+  // Deep-link filter from the dashboard drawer sub-tiles:
+  // online | pending | verified | featured | all. No param = current behaviour.
+  const sp = useSearchParams();
+  const filterParam = sp.get('filter');
 
   async function setStatus(id: string, status: string) {
     setBusy(id);
@@ -158,6 +165,32 @@ export default function AstrologersPage() {
 
   const live = rows.filter((a: Row) => a.onlineStatus === true);
   const pending = rows.filter((a: Row) => (a.accountStatus ?? 'pending') === 'pending');
+
+  // The "All Astrologers" box narrows to verified / featured when drilled in.
+  const allList =
+    filterParam === 'verified' ? rows.filter((a: Row) => a.verified === true)
+    : filterParam === 'featured' ? rows.filter((a: Row) => a.featured === true)
+    : rows;
+  const allTitle =
+    filterParam === 'verified' ? 'Verified Astrologers'
+    : filterParam === 'featured' ? 'Featured Astrologers'
+    : 'All Astrologers';
+
+  // Which box the deep link targets: online → Live, pending → Pending,
+  // verified/featured/all → the All box.
+  const target =
+    filterParam === 'online' ? 'live'
+    : filterParam === 'pending' ? 'pending'
+    : (filterParam === 'verified' || filterParam === 'featured' || filterParam === 'all') ? 'all'
+    : null;
+
+  // Auto-open the matching collapsible box (mobile) and scroll to it.
+  useEffect(() => {
+    if (!target || loading) return;
+    const id = target === 'live' ? 'astro-box-live' : target === 'pending' ? 'astro-box-pending' : 'astro-box-all';
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [target, loading]);
 
   return (
     <div>
@@ -171,16 +204,16 @@ export default function AstrologersPage() {
 
       {loading ? <p className="muted" style={{ marginTop: 16 }}>Loading…</p> : (
         <div className="cust3">
-          <MobileSection title="Live Astrologers" defaultOpen={true}>
-            <AstroBox title="Live Astrologers" icon="🟢" accent="#3cb371" list={live} showLiveDot
+          <MobileSection title="Live Astrologers" defaultOpen={target ? target === 'live' : true}>
+            <AstroBox domId="astro-box-live" title="Live Astrologers" icon="🟢" accent="#3cb371" list={live} showLiveDot
               isSuper={isSuper} busy={busy} actions={['view', 'edit']} onStatus={setStatus} onEditRate={setEditing} />
           </MobileSection>
-          <MobileSection title="All Astrologers" defaultOpen={false}>
-            <AstroBox title="All Astrologers" icon="📋" accent="var(--primary)" list={rows}
+          <MobileSection title={allTitle} defaultOpen={target === 'all'}>
+            <AstroBox domId="astro-box-all" title={allTitle} icon="📋" accent="var(--primary)" list={allList}
               isSuper={isSuper} busy={busy} actions={['view', 'edit']} onStatus={setStatus} onEditRate={setEditing} />
           </MobileSection>
-          <MobileSection title="Pending Approvals" defaultOpen={false}>
-            <AstroBox title="Pending Approvals" icon="🕐" accent="var(--gold)" list={pending}
+          <MobileSection title="Pending Approvals" defaultOpen={target === 'pending'}>
+            <AstroBox domId="astro-box-pending" title="Pending Approvals" icon="🕐" accent="var(--gold)" list={pending}
               isSuper={isSuper} busy={busy} actions={['view', 'approve']} onStatus={setStatus} onEditRate={setEditing} />
           </MobileSection>
         </div>
@@ -189,5 +222,14 @@ export default function AstrologersPage() {
       {showAdd && <AstrologerFormModal mode="create" isSuper={isSuper} onClose={() => setShowAdd(false)} />}
       {editing && <AstrologerFormModal mode="edit" isSuper={isSuper} astrologer={editing} onClose={() => setEditing(null)} />}
     </div>
+  );
+}
+
+export default function AstrologersPage() {
+  // useSearchParams() requires a Suspense boundary in the Next.js app router.
+  return (
+    <Suspense fallback={<p className="muted" style={{ marginTop: 16 }}>Loading…</p>}>
+      <AstrologersManagement />
+    </Suspense>
   );
 }

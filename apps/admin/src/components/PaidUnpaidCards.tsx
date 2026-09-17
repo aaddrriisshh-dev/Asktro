@@ -116,12 +116,12 @@ export function PaidUsersCard() {
       renderDrawer={(d) => (
         <>
           <div className="metricgrid">
-            <Metric color="c-rose" label="Paid users" value={d.paid.toLocaleString('en-IN')} big />
+            <Metric color="c-rose" label="Paid users" value={d.paid.toLocaleString('en-IN')} big href="/users?filter=paid" />
             <Metric color="c-green" label="Total recharged" value={formatPaise(d.totalRecharge)} big />
             <Metric color="c-blue" label="% of registered" value={`${d.paidPct}%`} />
             <Metric color="c-gold" label="Avg / paid user" value={formatPaise(d.avgPerPaid)} />
-            <Metric color="c-purple" label="Male" value={d.paidMale.toLocaleString('en-IN')} />
-            <Metric color="c-amber" label="Female" value={d.paidFemale.toLocaleString('en-IN')} />
+            <Metric color="c-purple" label="Male" value={d.paidMale.toLocaleString('en-IN')} href="/users?filter=paid&gender=male" />
+            <Metric color="c-amber" label="Female" value={d.paidFemale.toLocaleString('en-IN')} href="/users?filter=paid&gender=female" />
           </div>
           <h3 style={{ margin: '4px 0 12px' }}>Paid vs unpaid</h3>
           <BarBreakdown segments={[
@@ -156,12 +156,12 @@ export function UnpaidUsersCard() {
       renderDrawer={(d) => (
         <>
           <div className="metricgrid">
-            <Metric color="c-slate" label="Unpaid users" value={d.unpaid.toLocaleString('en-IN')} big />
+            <Metric color="c-slate" label="Unpaid users" value={d.unpaid.toLocaleString('en-IN')} big href="/users?filter=unpaid" />
             <Metric color="c-rose" label="Paid users" value={d.paid.toLocaleString('en-IN')} big />
             <Metric color="c-blue" label="% of registered" value={`${d.unpaidPct}%`} />
             <Metric color="c-green" label="Reachable (email)" value={d.unpaidWithEmail.toLocaleString('en-IN')} />
-            <Metric color="c-red" label="Blocked" value={d.unpaidBlocked.toLocaleString('en-IN')} />
-            <Metric color="c-gold" label="Registered" value={d.total.toLocaleString('en-IN')} />
+            <Metric color="c-red" label="Blocked" value={d.unpaidBlocked.toLocaleString('en-IN')} href="/users?status=blocked" />
+            <Metric color="c-gold" label="Registered" value={d.total.toLocaleString('en-IN')} href="/users" />
           </div>
           <h3 style={{ margin: '4px 0 12px' }}>Unpaid vs paid</h3>
           <BarBreakdown segments={[

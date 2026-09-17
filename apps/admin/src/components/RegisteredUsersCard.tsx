@@ -100,12 +100,12 @@ export function RegisteredUsersCard() {
       renderDrawer={(d) => (
         <>
           <div className="metricgrid">
-            <Metric color="c-blue" label="Registered" value={d.total.toLocaleString('en-IN')} big />
-            <Metric color="c-green" label="Paid" value={d.paid.toLocaleString('en-IN')} big />
-            <Metric color="c-purple" label="Male" value={d.male.toLocaleString('en-IN')} />
-            <Metric color="c-rose" label="Female" value={d.female.toLocaleString('en-IN')} />
+            <Metric color="c-blue" label="Registered" value={d.total.toLocaleString('en-IN')} big href="/users" />
+            <Metric color="c-green" label="Paid" value={d.paid.toLocaleString('en-IN')} big href="/users?filter=paid" />
+            <Metric color="c-purple" label="Male" value={d.male.toLocaleString('en-IN')} href="/users?gender=male" />
+            <Metric color="c-rose" label="Female" value={d.female.toLocaleString('en-IN')} href="/users?gender=female" />
             <Metric color="c-amber" label="With email" value={d.withEmail.toLocaleString('en-IN')} />
-            <Metric color="c-red" label="Blocked" value={d.blocked.toLocaleString('en-IN')} />
+            <Metric color="c-red" label="Blocked" value={d.blocked.toLocaleString('en-IN')} href="/users?status=blocked" />
           </div>
           <h3 style={{ margin: '4px 0 10px' }}>Daily sign-ups</h3>
           <div className="drawer-chart">

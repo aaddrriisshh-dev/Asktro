@@ -83,7 +83,7 @@ export function RevenueCard() {
           <div className="metricgrid">
             <Metric color="c-purple" label="Gross Revenue" value={formatPaise(d.gross)} big />
             <Metric color="c-blue" label="Net Revenue" value={formatPaise(d.net)} big />
-            <Metric color="c-green" label="Recharge Revenue" value={formatPaise(d.recharge)} />
+            <Metric color="c-green" label="Recharge Revenue" value={formatPaise(d.recharge)} href="/recharges" />
             <Metric color="c-amber" label="Consultation billing" value={formatPaise(d.consultation)} />
             <Metric color="c-rose" label="Refunds" value={formatPaise(d.refunds)} />
             <Metric color="c-gold" label="Bonus (free credit)" value={formatPaise(d.bonus)} />

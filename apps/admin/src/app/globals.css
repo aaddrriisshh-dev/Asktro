@@ -1071,6 +1071,10 @@ tbody tr:last-child td { border-bottom: none; }
 .metricchip strong { font-family: var(--serif); font-size: 23px; color: var(--navy); line-height: 1; }
 .metricchip.big strong { font-size: 29px; color: color-mix(in srgb, var(--c) 58%, var(--navy)); }
 
+/* Drill-in variant: the chip is a link into the matching records. */
+.metricchip--link { cursor: pointer; text-decoration: none; color: inherit; transition: transform .12s ease, box-shadow .12s ease; }
+.metricchip--link:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(20, 16, 45, .10); }
+
 /* Chart container on the light drawer */
 .drawer-chart {
   height: 250px; border-radius: 16px; padding: 14px 10px 6px;
@@ -1307,6 +1311,8 @@ tbody tr:last-child td { border-bottom: none; }
 .ops-table td { padding: 11px 12px; border-bottom: 1px solid #f4f0fb; font-size: 13.5px; color: var(--text); }
 .ops-table tr:last-child td { border-bottom: none; }
 .ops-name { font-weight: 600; color: var(--navy); }
+.ops-name-link { color: inherit; text-decoration: none; }
+.ops-name-link:hover { color: var(--primary); text-decoration: underline; }
 .ops-earn { font-family: var(--serif); font-size: 15px; color: var(--navy); font-weight: 600; }
 .ops-rank { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; font-size: 12px; font-weight: 700; background: #efeafc; color: var(--primary); }
 .ops-rank.r1 { background: rgba(212, 175, 55, 0.22); color: var(--gold-deep); }

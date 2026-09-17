@@ -105,10 +105,10 @@ export function ActiveConsultationsCard() {
           <div className="metricgrid">
             <Metric color="c-green" label="Active now" value={d.activeNow.toLocaleString('en-IN')} big />
             <Metric color="c-blue" label="Billed (period)" value={formatPaise(d.billedInRange)} big />
-            <Metric color="c-purple" label="Chat active" value={d.activeChat.toLocaleString('en-IN')} />
-            <Metric color="c-amber" label="Voice active" value={d.activeVoice.toLocaleString('en-IN')} />
-            <Metric color="c-rose" label="Video active" value={d.activeVideo.toLocaleString('en-IN')} />
-            <Metric color="c-gold" label="Completed (period)" value={d.completed.toLocaleString('en-IN')} />
+            <Metric color="c-purple" label="Chat active" value={d.activeChat.toLocaleString('en-IN')} href="/chat-sessions" />
+            <Metric color="c-amber" label="Voice active" value={d.activeVoice.toLocaleString('en-IN')} href="/phone-sessions" />
+            <Metric color="c-rose" label="Video active" value={d.activeVideo.toLocaleString('en-IN')} href="/video-sessions" />
+            <Metric color="c-gold" label="Completed (period)" value={d.completed.toLocaleString('en-IN')} href="/chat-sessions" />
           </div>
           <h3 style={{ margin: '4px 0 10px' }}>Consultations started per day</h3>
           <div className="drawer-chart">

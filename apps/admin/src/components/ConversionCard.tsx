@@ -98,9 +98,9 @@ export function ConversionCard() {
         <>
           <div className="metricgrid">
             <Metric color="c-amber" label="Conversion rate" value={`${d.rate}%`} big />
-            <Metric color="c-green" label="Converted" value={d.converted.toLocaleString('en-IN')} big />
-            <Metric color="c-blue" label="Registered" value={d.registered.toLocaleString('en-IN')} />
-            <Metric color="c-red" label="Still unpaid" value={d.unpaid.toLocaleString('en-IN')} />
+            <Metric color="c-green" label="Converted" value={d.converted.toLocaleString('en-IN')} big href="/users?filter=paid" />
+            <Metric color="c-blue" label="Registered" value={d.registered.toLocaleString('en-IN')} href="/users" />
+            <Metric color="c-red" label="Still unpaid" value={d.unpaid.toLocaleString('en-IN')} href="/users?filter=unpaid" />
             <Metric color="c-purple" label="Same-day converts" value={d.sameDay.toLocaleString('en-IN')} />
             <Metric color="c-gold" label="Avg recharge / convert" value={formatPaise(d.avgRecharge)} />
           </div>

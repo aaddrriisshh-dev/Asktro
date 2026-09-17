@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useCollection, Row } from '@/lib/hooks';
 import { formatPaise } from '@/lib/format';
 import { MobileSection } from '@/components/MobileSection';
@@ -99,12 +100,22 @@ function CustomerBox({ title, icon, accent, list, liveSet }: { title: string; ic
   );
 }
 
-export default function CustomerManagementPage() {
+function CustomerManagement() {
   const { rows, loading } = useCollection('users');
   const { rows: presenceRows } = useCollection('presence');
   const { rows: astrologerRows } = useCollection('astrologers');
   const [search, setSearch] = useState('');
   const { preset, setPreset, custom, setCustom } = useCardFilter('customers', 'allTime');
+
+  // Deep-link filters from the dashboard drawer sub-tiles. When ANY of these is
+  // present we show the FULL matching set across ALL customers (bypassing the
+  // "active in selected period" scoping) so a drilled count matches the
+  // dashboard's exact counts.
+  const sp = useSearchParams();
+  const filterParam = sp.get('filter');   // 'paid' | 'unpaid'
+  const genderParam = sp.get('gender');   // 'male' | 'female'
+  const statusParam = sp.get('status');   // 'blocked'
+  const hasDeepLink = !!(filterParam || genderParam || statusParam);
   // Bucket by INDIA day (see resolveIndiaRange) so paid/unpaid never drop a
   // customer active just after IST midnight.
   const range = useMemo(() => resolveIndiaRange(preset, custom), [preset, custom]);
@@ -144,8 +155,33 @@ export default function CustomerManagementPage() {
   );
   // Paid / Unpaid are scoped to customers ACTIVE in the selected period.
   const activeInRange = useMemo(() => customers.filter((u) => inRange(lastActive(u))), [customers, range.start, range.end, presenceMs]);
-  const paid = useMemo(() => activeInRange.filter((u) => ((u.totalRecharge ?? 0) as number) > 0).sort((a, b) => lastActive(b) - lastActive(a)), [activeInRange]);
-  const unpaid = useMemo(() => activeInRange.filter((u) => ((u.totalRecharge ?? 0) as number) === 0).sort((a, b) => lastActive(b) - lastActive(a)), [activeInRange]);
+  const paidActive = useMemo(() => activeInRange.filter((u) => ((u.totalRecharge ?? 0) as number) > 0).sort((a, b) => lastActive(b) - lastActive(a)), [activeInRange]);
+  const unpaidActive = useMemo(() => activeInRange.filter((u) => ((u.totalRecharge ?? 0) as number) === 0).sort((a, b) => lastActive(b) - lastActive(a)), [activeInRange]);
+
+  // Deep-link paid/unpaid lists: FULL set across ALL customers, with the gender
+  // and blocked sub-filters applied, so a drilled count matches the dashboard.
+  const matchSub = (u: Row) =>
+    (!genderParam || u.gender === genderParam)
+    && (statusParam !== 'blocked' || u.accountStatus === 'blocked');
+  const paidDeep = useMemo(
+    () => customers.filter((u) => ((u.totalRecharge ?? 0) as number) > 0 && matchSub(u)).sort((a, b) => lastActive(b) - lastActive(a)),
+    [customers, genderParam, statusParam, presenceMs],
+  );
+  const unpaidDeep = useMemo(
+    () => customers.filter((u) => ((u.totalRecharge ?? 0) as number) === 0 && matchSub(u)).sort((a, b) => lastActive(b) - lastActive(a)),
+    [customers, genderParam, statusParam, presenceMs],
+  );
+
+  const paid = hasDeepLink ? paidDeep : paidActive;
+  const unpaid = hasDeepLink ? unpaidDeep : unpaidActive;
+
+  // Which sections auto-open. With no params, keep the current behaviour exactly
+  // (Live open, Paid/Unpaid collapsed on mobile). With a deep link, focus the
+  // relevant list(s); a gender/blocked-only link opens both paid and unpaid so
+  // the whole matching set is visible.
+  const liveOpen = !hasDeepLink;
+  const paidOpen = hasDeepLink && (filterParam === 'paid' || !filterParam);
+  const unpaidOpen = hasDeepLink && (filterParam === 'unpaid' || !filterParam);
 
   const liveSet = useMemo(() => new Set(live.map((u) => u.id)), [live]);
 
@@ -165,17 +201,26 @@ export default function CustomerManagementPage() {
 
       {loading ? <p className="muted" style={{ marginTop: 16 }}>Loading…</p> : (
         <div className="cust3">
-          <MobileSection title="Live Customers" defaultOpen={true}>
+          <MobileSection title="Live Customers" defaultOpen={liveOpen}>
             <CustomerBox title="Live Customers" icon="🟢" accent="#3cb371" list={live} liveSet={liveSet} />
           </MobileSection>
-          <MobileSection title="Paid Customers" defaultOpen={false}>
+          <MobileSection title="Paid Customers" defaultOpen={paidOpen}>
             <CustomerBox title="Paid Customers" icon="💚" accent="#2f9c63" list={paid} liveSet={liveSet} />
           </MobileSection>
-          <MobileSection title="Unpaid Customers" defaultOpen={false}>
+          <MobileSection title="Unpaid Customers" defaultOpen={unpaidOpen}>
             <CustomerBox title="Unpaid Customers" icon="🤍" accent="#c9a227" list={unpaid} liveSet={liveSet} />
           </MobileSection>
         </div>
       )}
     </div>
+  );
+}
+
+export default function CustomerManagementPage() {
+  // useSearchParams() requires a Suspense boundary in the Next.js app router.
+  return (
+    <Suspense fallback={<p className="muted" style={{ marginTop: 16 }}>Loading…</p>}>
+      <CustomerManagement />
+    </Suspense>
   );
 }
