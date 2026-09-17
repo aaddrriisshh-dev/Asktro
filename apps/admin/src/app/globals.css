@@ -1079,6 +1079,46 @@ tbody tr:last-child td { border-bottom: none; }
 .metricchip--link { cursor: pointer; text-decoration: none; color: inherit; transition: transform .12s ease, box-shadow .12s ease; }
 .metricchip--link:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(20, 16, 45, .10); }
 
+/* ===== In-place drill-down: a tile opens a detail overlay (no page jump) ===== */
+.metricchip--drill { font: inherit; text-align: left; cursor: pointer; width: 100%; -webkit-appearance: none; appearance: none; }
+.metricchip--drill .mc-go { font-size: 22px; font-weight: 800; line-height: 1; top: 11px; right: 14px; }
+.metricchip--drill:hover .mc-go { transform: translateX(2px); }
+
+/* Detail overlay: a centered window listing the exact records behind a number.
+   Portaled to <body>, above the panel (1100) and the bell (1000). */
+.ovl-backdrop {
+  position: fixed; inset: 0; z-index: 1300; display: grid; place-items: center; padding: 24px;
+  background: rgba(20, 16, 45, 0.5); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  animation: tktfade 0.16s ease;
+}
+.ovl {
+  --c: #7e57c2;
+  width: 880px; max-width: 92vw; max-height: 86vh; display: flex; flex-direction: column; overflow: hidden;
+  background: linear-gradient(180deg, #fdfbff 0%, #f5f1fc 100%);
+  border: 1px solid #e6dff5; border-radius: 20px; box-shadow: 0 30px 80px rgba(20, 16, 45, 0.4);
+  animation: tktpop 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ovl-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 24px 16px; border-bottom: 1px solid #ece4fb; }
+.ovl-titles { min-width: 0; }
+.ovl-title { margin: 0; font-family: var(--serif); font-size: 20px; color: var(--navy); font-weight: 600; }
+.ovl-sub { margin: 3px 0 0; color: var(--gold-deep); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+.ovl-close { flex: none; background: #fff; border: 1px solid #ece4fb; border-radius: 9px; padding: 0 12px; height: 34px; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; transition: background .15s ease, color .15s ease; }
+.ovl-close:hover { background: #f6f2fe; color: var(--primary); }
+.ovl-body { padding: 4px 10px; overflow-y: auto; }
+.ovl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ovl-table th { position: sticky; top: 0; background: #f7f3fd; text-align: left; padding: 10px 14px; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); font-weight: 700; border-bottom: 1px solid #ece4fb; }
+.ovl-table td { padding: 10px 14px; border-bottom: 1px solid #f2edfb; color: var(--text); vertical-align: middle; }
+.ovl-table tr:hover td { background: #faf8ff; }
+.ovl-nm { display: block; font-weight: 600; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+.ovl-ph { display: block; font-size: 12px; color: var(--muted); }
+.ovl-em { color: var(--text); word-break: break-all; }
+.ovl-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-top: 1px solid #ece4fb; }
+.ovl-foot select { margin-left: 8px; border: 1px solid #e7e1f5; border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 13px; }
+@media (max-width: 760px) {
+  .ovl { max-width: 96vw; max-height: 90vh; }
+  .ovl-table th:nth-child(2), .ovl-table td:nth-child(2) { display: none; } /* hide email column on phones */
+}
+
 /* Chart container on the light drawer */
 .drawer-chart {
   height: 250px; border-radius: 16px; padding: 14px 10px 6px;
