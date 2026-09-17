@@ -900,7 +900,9 @@ tbody tr:last-child td { border-bottom: none; }
 .dfilter-custom label { font-size: 11px; color: var(--muted); }
 .dfilter-custom input { padding: 6px 8px; border: 1px solid #e7e1f5; border-radius: 8px; font-size: 13px; }
 
-.drawer-root { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+/* Above the fixed AlertBell (z-index 1000) so the drawer's close button is never
+   hidden under the notification bell. */
+.drawer-root { position: fixed; inset: 0; z-index: 1100; pointer-events: none; }
 .drawer-scrim { position: absolute; inset: 0; background: rgba(20, 16, 45, 0); transition: background 0.25s ease; }
 /* Half-page 3D drawer — light, airy, colourful */
 .drawer-panel {
