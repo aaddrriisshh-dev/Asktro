@@ -7,6 +7,7 @@ import { formatPaise } from '@/lib/format';
 import { MobileSection } from '@/components/MobileSection';
 import { DrawerFilter } from '@/components/DrawerFilter';
 import { useCardFilter } from '@/lib/useCardFilter';
+import { Preset } from '@/lib/dateRange';
 
 const msOf = (t: { toMillis?: () => number } | undefined) => t?.toMillis?.() ?? 0;
 // "Live" = a real presence heartbeat within the last few minutes (the customer
@@ -16,6 +17,47 @@ const LIVE_WINDOW = 3 * 60 * 1000;
 // the shared range is UTC-day-based, so shift the event time by +5:30 before
 // comparing — that makes the comparison land on the correct India day.
 const IST = 5.5 * 60 * 60 * 1000;
+const DAY = 86_400_000;
+
+// The real UTC instant of the most recent India (IST) midnight at-or-before `ms`.
+// Bucketing customers by the INDIA day the founder actually lives in — not the
+// UTC day — so "Today" matches his calendar and a customer active just after IST
+// midnight is never dropped between buckets (the old code shifted events onto
+// UTC-day boundaries, which lost anyone active in the 00:00–05:30 IST window).
+function istDayStart(ms: number): number {
+  const d = new Date(ms + IST);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - IST;
+}
+
+// India-day date ranges in real UTC ms, compared directly against event ms (no
+// per-event shifting). Mirrors the shared presets but on India days.
+function resolveIndiaRange(preset: Preset, custom?: { start?: string; end?: string }): { start: number; end: number; label: string } {
+  const now = Date.now();
+  const t0 = istDayStart(now);
+  const dIst = new Date(now + IST);
+  switch (preset) {
+    case 'today': return { start: t0, end: t0 + DAY, label: 'Today' };
+    case 'yesterday': return { start: t0 - DAY, end: t0, label: 'Yesterday' };
+    case 'last7': return { start: t0 - 6 * DAY, end: t0 + DAY, label: 'Last 7 Days' };
+    case 'last30': return { start: t0 - 29 * DAY, end: t0 + DAY, label: 'Last 30 Days' };
+    case 'thisMonth': return {
+      start: Date.UTC(dIst.getUTCFullYear(), dIst.getUTCMonth(), 1) - IST,
+      end: Date.UTC(dIst.getUTCFullYear(), dIst.getUTCMonth() + 1, 1) - IST,
+      label: 'This Month',
+    };
+    case 'prevMonth': return {
+      start: Date.UTC(dIst.getUTCFullYear(), dIst.getUTCMonth() - 1, 1) - IST,
+      end: Date.UTC(dIst.getUTCFullYear(), dIst.getUTCMonth(), 1) - IST,
+      label: 'Previous Month',
+    };
+    case 'allTime': return { start: 0, end: t0 + DAY, label: 'All Time' };
+    case 'custom': {
+      const s = custom?.start ? new Date(custom.start).getTime() : t0;
+      const e = custom?.end ? new Date(custom.end).getTime() : t0 + DAY;
+      return { start: s, end: e > s ? e : s + DAY, label: 'Custom' };
+    }
+  }
+}
 
 const PAGE_OPTIONS = [10, 100, 500, 1000];
 
@@ -62,7 +104,10 @@ export default function CustomerManagementPage() {
   const { rows: presenceRows } = useCollection('presence');
   const { rows: astrologerRows } = useCollection('astrologers');
   const [search, setSearch] = useState('');
-  const { preset, setPreset, custom, setCustom, range } = useCardFilter('customers', 'allTime');
+  const { preset, setPreset, custom, setCustom } = useCardFilter('customers', 'allTime');
+  // Bucket by INDIA day (see resolveIndiaRange) so paid/unpaid never drop a
+  // customer active just after IST midnight.
+  const range = useMemo(() => resolveIndiaRange(preset, custom), [preset, custom]);
 
   // Real-time presence: uid -> last heartbeat ms.
   const presenceMs = useMemo(() => {
@@ -79,7 +124,7 @@ export default function CustomerManagementPage() {
   // heartbeat, any data write (recharge/consult/profile), or signup.
   const lastActive = (u: Row) => Math.max(presenceMs.get(u.id) ?? 0, msOf(u.updatedAt), msOf(u.createdAt));
   const isLiveNow = (u: Row) => (presenceMs.get(u.id) ?? 0) > Date.now() - LIVE_WINDOW;
-  const inRange = (ms: number) => ms > 0 && ms + IST >= range.start && ms + IST < range.end;
+  const inRange = (ms: number) => ms > 0 && ms >= range.start && ms < range.end;
 
   // Customers only: not deleted, not an astrologer, matching the search.
   const customers = useMemo(() => {
