@@ -4,7 +4,7 @@
 > founder returns after days/weeks/months, this doc tells you exactly where we
 > are. Keep it updated as things change — treat it as the running log of truth.
 >
-> _Last updated: 2026-09-16._
+> _Last updated: 2026-09-17._
 
 ---
 
@@ -92,11 +92,10 @@ Full read-only audit of all 41 portal screens vs what the live app/functions wri
   midnight (bucketed by UTC day + per-event +5:30 shift). Now buckets by real
   India days (`users/page.tsx` istDayStart/resolveIndiaRange). Verified live
   (paid customer "Sinsing" reappeared).
-- **⏳ Blank trend charts** (Revenue trend, Consultation activity, Revenue card):
-  they read only from the `dailyStats` rollup, and `aggregateDailyStats` + the 3
-  rollup create-triggers are **not deployed in production**. Deploy them (verify
-  with `firebase functions:list`). Fills forward only — a past-days backfill is a
-  separate one-off script. Low risk (analytics-only).
+- **✅ Blank trend charts — RESOLVED (2026-09-17).** They read from the
+  `dailyStats` rollup; `aggregateDailyStats` never fired because its Cloud
+  Scheduler job was missing (see 3d). History was backfilled by a one-off script;
+  now the job runs every 2 min and keeps them current.
 - **⏳ Timezone unification:** dashboard cards + Reports still bucket by **UTC**
   (aligned with the rollup), so "today" starts 05:30 IST. Flip the rollup
   `dayBucket` + `dateRange.ts` to IST together (medium risk — re-labels historical
@@ -105,6 +104,44 @@ Full read-only audit of all 41 portal screens vs what the live app/functions wri
   collection (OOM risk as it grows → needs server-side pagination like
   UsersActivityTable); Conversion/Paid/Unpaid cards cap at 5000 users; Recharges
   caps at 500 rows.
+
+## 3d. RESOLVED (2026-09-17) — Cloud Scheduler was completely empty; ALL timed jobs were dead
+
+**Symptom:** the "12 active consultations" tile showed ghost/orphaned sessions
+that never cleared; revenue charts never auto-updated. Investigation found
+**Cloud Scheduler had ZERO jobs** — meaning none of the timed background
+functions had ever fired.
+
+**Root cause (systemic):** every `firebase deploy` ended with HTTP **409
+"unable to queue the operation"** and aborted *before* the scheduler-job-creation
+step. So although the function code deployed, its Cloud Scheduler job (and, for
+brand-new functions, the function itself) was never created. This had been
+happening on **all ~70 functions** for a long time — the founder confirmed
+"it never ends with a clean success." The 409 was traced to an **outdated
+`firebase-tools` CLI** on the Mac (NOT a permissions problem — "requires
+authentication" is the CORRECT secure state for scheduled/event functions and
+they must NOT be made public).
+
+**Fix:** `npm install -g firebase-tools@latest` on the Mac. First redeploy after
+the upgrade completed **cleanly, no 409**, and the scheduler job appeared.
+
+**All 7 scheduled functions now have live Cloud Scheduler jobs** (deployed
+one-by-one via a `caffeinate` loop):
+| Function | Schedule | Purpose |
+|---|---|---|
+| sweepStaleSessions | every 1 min | clears ghost/orphaned "active" sessions |
+| reconcileFailedCredits | every 5 min | recovers a recharge if payment captured but wallet credit failed |
+| reconcileFailedStoreConfirms | every 5 min | same, for store purchases |
+| aggregateDailyStats | every 2 min | keeps revenue/charts auto-updating |
+| resumeStuckBroadcasts | every 10 min | restarts a stalled notification broadcast |
+| purgeOldChatData | every 6 hrs | retention cleanup (flag-gated OFF) |
+| purgeOldRecords | every 24 hrs | retention cleanup (flag-gated OFF) — was "**create**", i.e. never deployed before |
+
+**Consequences (auto, no further action):** ghost consultations get swept within
+~1 min; charts self-update; captured-but-uncredited payments auto-recover.
+**Only `onSchedule` functions were ever affected** — live-app functions (onCall,
+event triggers) use different infra and were always fine (proven by the app
+working). **Lesson for future deploys: keep `firebase-tools` current.**
 
 ## 4. Founder decisions on the record
 
@@ -123,9 +160,9 @@ Full read-only audit of all 41 portal screens vs what the live app/functions wri
   large-screen resizability. Bundle into a maintenance build.
 - **Post-launch backlog** (see `scratchpad`/tracker history): analytics-drawer
   "Manage →" deep-links; portal `welcome_reward` accurate preview; sidebar pages
-  line-by-line audit; 3 scheduled functions (aggregateDailyStats,
-  resumeStuckBroadcasts, purgeOldRecords); `onChatImageUploaded` IAM; earnings
-  backfill (only when astrologer app ships); welcome-bonus anti-farming; load test.
+  line-by-line audit; ~~3 scheduled functions~~ (DONE — all 7 timed jobs live, see 3d);
+  `onChatImageUploaded` IAM; earnings backfill (only when astrologer app ships);
+  welcome-bonus anti-farming; load test.
 
 ## 6. How we deploy (never forget)
 
