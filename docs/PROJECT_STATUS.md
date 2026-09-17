@@ -8,6 +8,40 @@
 
 ---
 
+## 0. NEXT SESSION — top priorities (queued 2026-09-17 EOD)
+
+Campaign is LIVE and working: **~70–80 new users/day** downloading directly from
+the Meta ads. That surfaced real issues to tackle tomorrow. In priority order:
+
+1. **AI reliability — DECISION + durable fix (the "AI crash").** During the
+   campaign the AI readings went down (retired model + Tier-1 quota + prepay
+   hitting zero — see 3b). It's patched live via config, but NOT hardened. Decide
+   & implement: bake `gemini-3.6-flash` into `provider.ts` DEFAULT_MODELS +
+   redeploy; add a **fallback model** so one model's outage can't blank every
+   reading; enable Gemini **auto-reload**; a pre-campaign quota/headroom check.
+   **Founder will bring screenshots of the loopholes.**
+
+2. **Money-misuse leaks — TWO of them (customers getting value without paying):**
+   - **(a) Free-minute farming** — reopening the same astrologer grants a fresh
+     ~1-min free chat each time; farmed by 10–15 users (see 4b).
+   - **(b) Replies WITHOUT billing** — founder has seen customers get 1–2
+     astrologer replies with **no charge at all**. A chat/first-message billing
+     gap (see 4d). Founder will try to send example sessions (hard to spot across
+     80 users). Investigate the chat billing / session-start logic.
+
+3. **Sahil ₹5 — remove from Revenue.** Founder confirmed Sahil is his own test,
+   not a customer. So the ONLY real customer is **Sinsing (₹20)**. Pending: pull
+   Sahil's ₹5 out of the dashboard math (Razorpay keeps the record for refund).
+
+4. **For the founder's records:** he test-recharged **₹535** of real money across
+   his own accounts (to reclaim from the company — cross-check Razorpay). Done.
+
+Carry-over hardening (below, lower urgency): durable test-account exclusion in
+the live rollup + money-held; portal scale caps; astrologer-app verification
+(deadline 30 Sep 2026).
+
+---
+
 ## 1. Where the product is RIGHT NOW
 
 - **v3 is LIVE.** Customer app `3.0.0 (versionCode 9)` is published on Google
@@ -209,6 +243,22 @@ count them). To make it permanent: in the live rollup trigger skip
 `isTestAccount` from the MoneyHeldOwed aggregation (portal). Cleanup scripts live
 in `firebase/functions/scripts/` (cleanup_test_accounts, audit_money_sources,
 scrub_fake_credits) — re-runnable anytime.
+
+## 4d. OPEN BUG (raised 2026-09-17) — astrologer replies delivered WITHOUT billing
+
+**Reported by founder:** he has seen several customers receive **1–2 replies from
+astrologers with no charge at all** (not the intended free-trial minute — actual
+un-billed back-and-forth). Real money leak / value given away. Seen in "a few"
+of the ~80 live customers; hard to hunt manually. Founder will try to send
+specific example sessions/consultations.
+
+**To investigate (do NOT change billing code until root cause is confirmed):**
+trace the chat billing path — how a chat session starts, when the first tick /
+charge is applied, and whether an astrologer's reply can be delivered before
+billing begins (e.g. a grace window, a race between message-send and
+session-activate, or `billedSeconds` never starting). Cross-check against
+`sweepStaleSessions` / `applyTick`. Likely related to, but distinct from, the
+free-minute farming in 4b. Confirm with the founder's examples first.
 
 ## 5. Open / parked items (non-blocking)
 
