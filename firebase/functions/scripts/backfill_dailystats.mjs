@@ -8,8 +8,12 @@
  * and users and writes each INDIA-day's summary doc directly, so the charts show
  * history immediately.
  *
- *   node scripts/backfill_dailystats.mjs         # dry run — prints per-day totals
- *   node scripts/backfill_dailystats.mjs --yes   # write the summary docs
+ *   node scripts/backfill_dailystats.mjs                      # dry run — all days
+ *   node scripts/backfill_dailystats.mjs --from=2026-09-16   # dry run from a date
+ *   node scripts/backfill_dailystats.mjs --from=2026-09-16 --yes   # write from a date
+ *
+ * Use --from=YYYY-MM-DD (India date) to skip old test data and only summarise the
+ * real launch period. Days before --from are ignored entirely.
  *
  * Run from firebase/functions with GOOGLE_APPLICATION_CREDENTIALS (the Google
  * JSON) exported, same as the deploy. Safe to re-run: it recomputes from the raw
@@ -35,6 +39,7 @@ try {
 initializeApp({ credential: cert(svc) });
 const db = getFirestore();
 const YES = process.argv.includes('--yes');
+const FROM = (process.argv.find((a) => a.startsWith('--from=')) || '').slice('--from='.length) || null;
 const IST = 5.5 * 60 * 60 * 1000;
 
 /** India-day bucket for a Firestore Timestamp — mirrors the live rollup. */
@@ -85,8 +90,8 @@ const run = async () => {
     if (u.email) inc(day.signups, 'withEmail', 1);
   }
 
-  const sorted = Object.keys(days).sort();
-  console.log(`\nComputed ${sorted.length} India-day(s) from ${wt.size} txns, ${cs.size} consults, ${us.size} users:\n`);
+  const sorted = Object.keys(days).sort().filter((d) => !FROM || d >= FROM);
+  console.log(`\nComputed ${sorted.length} India-day(s)${FROM ? ` from ${FROM}` : ''} (of ${Object.keys(days).length} total) — ${wt.size} txns, ${cs.size} consults, ${us.size} users:\n`);
   for (const day of sorted) {
     const t = days[day];
     const rev = Object.values(t.revenue).reduce((a, b) => a + b, 0);
