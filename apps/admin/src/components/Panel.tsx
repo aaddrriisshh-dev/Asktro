@@ -53,7 +53,7 @@ export function Panel({
         <div className="pnl-tools">
           <button className="pnl-move" onClick={() => move(id, 'left')} disabled={idx === 0} aria-label="Move panel left" title="Move left">‹</button>
           <button className="pnl-move" onClick={() => move(id, 'right')} disabled={idx === n - 1} aria-label="Move panel right" title="Move right">›</button>
-          <button className="pnl-close" onClick={() => closePanel(id)} aria-label="Close panel" title="Close">×</button>
+          <button className="pnl-close" onClick={() => closePanel(id)} aria-label="Close panel" title="Close">✕ Close</button>
         </div>
       </div>
       <div className="pnl-body">{children}</div>

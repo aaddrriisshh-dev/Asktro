@@ -974,7 +974,9 @@ tbody tr:last-child td { border-bottom: none; }
   position: fixed; top: 0; height: 100%;
   width: var(--colw);
   right: calc((var(--n) - 1 - var(--i)) * var(--colw));
-  z-index: 60;
+  /* Above the fixed AlertBell (z-index 1000) so the panel's Close button is
+     never hidden under the notification bell. */
+  z-index: 1100;
   background:
     radial-gradient(130% 55% at 100% 0%, color-mix(in srgb, var(--c) 9%, #fff) 0%, transparent 60%),
     linear-gradient(180deg, #fdfbff 0%, #f5f1fc 100%);
@@ -1015,6 +1017,8 @@ tbody tr:last-child td { border-bottom: none; }
   color: var(--muted); cursor: pointer; display: grid; place-items: center; font-size: 18px; line-height: 1;
   transition: background 0.15s ease, color 0.15s ease;
 }
+/* Close is a labelled pill (not a bare ×) so it's unmistakable and a big tap target. */
+.pnl-close { width: auto; padding: 0 12px; gap: 6px; font-size: 13px; font-weight: 700; }
 .pnl-move:hover:not(:disabled), .pnl-close:hover { background: #f6f2fe; color: var(--primary); }
 .pnl-move:disabled { opacity: 0.35; cursor: default; }
 .pnl-body { position: relative; z-index: 1; padding: 20px 22px 44px; overflow-y: auto; }
