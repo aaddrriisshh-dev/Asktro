@@ -187,11 +187,28 @@ zero.
 **Note:** "Money held" is a live balance snapshot, NOT date-filterable like
 Revenue — the fix for its accuracy is clearing test accounts, not a cutoff.
 
-**Durable follow-up (NOT yet done):** future self-tests from these accounts will
-re-pollute (the live `rollupWalletTxn` trigger + the money-held SUM still count
-`isTestAccount` users). To make it permanent: skip `isTestAccount` users in the
-live rollup trigger (functions redeploy) and in the MoneyHeldOwed aggregation
-(portal). Low priority while the founder tests rarely.
+**Round 2 (2026-09-17): scrubbed all portal/test credits.** `scripts/audit_money_sources.mjs`
+(read-only) surfaced every money-in event; `scripts/scrub_fake_credits.mjs --yes`
+then removed all FAKE credits by signature — every `adjustment` (manual portal
+credit) and every `bonus ≥ ₹1,000` (real welcome bonuses are all < ₹100). That
+cleared **9 accounts / 10 txns**: five ₹89,99,991 test bonuses (9953104273,
+Rahul, Deepak Kumar choudhary, Riya Nag, "Zodia Demo Astrologer") + adjustments
+(₹1,00,000 deleted-user, ₹10,000+₹10 Sanddip Manna, ₹500+₹500 Guest/John on
+8318259972). Zeroed **₹10,539.85** of comped balances and tagged them test.
+Backfill rebuilt.
+
+**Ground truth after cleanup — REAL paid recharges only:** Sinsing **₹20**
+(18 Sep) + Sahil Arora **₹5** (16 Sep) = **₹25 total**. Everything else was
+partners/test/portal credits. (Founder to confirm whether Sahil ₹5 is real or
+also a test.)
+
+**Durable follow-up (NOT yet done):** future portal adjustments / test bonuses
+will re-pollute (the live `rollupWalletTxn` trigger + the money-held SUM still
+count them). To make it permanent: in the live rollup trigger skip
+`isTestAccount` users and ignore `adjustment` / oversized `bonus` kinds; exclude
+`isTestAccount` from the MoneyHeldOwed aggregation (portal). Cleanup scripts live
+in `firebase/functions/scripts/` (cleanup_test_accounts, audit_money_sources,
+scrub_fake_credits) — re-runnable anytime.
 
 ## 5. Open / parked items (non-blocking)
 
