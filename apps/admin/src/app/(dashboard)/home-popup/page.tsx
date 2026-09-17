@@ -5,9 +5,6 @@ import { addDoc, collection, deleteDoc, doc, getDoc, serverTimestamp, setDoc, up
 import { db } from '@/lib/firebase';
 import { useCollection, Row } from '@/lib/hooks';
 import { ImageUpload } from '@/components/ImageUpload';
-import { PromoPreview } from '@/components/PromoPreview';
-import { DeepLinkSelect } from '@/components/DeepLinkSelect';
-import { PROMO_THEMES } from '@/lib/promoThemes';
 import { WelcomeSheetPreview } from '@/components/WelcomeSheetPreview';
 import {
   BG_THEMES,
@@ -60,9 +57,9 @@ interface PopupDoc {
 
 const DEFAULTS: PopupDoc = {
   active: false,
-  audience: 'all',
-  displayMode: 'small',
-  theme: '',
+  audience: 'unpaid',
+  displayMode: 'half',
+  theme: 'welcome_reward',
   title: '',
   body: '',
   ctaLabel: 'Grab this offer',
@@ -158,15 +155,16 @@ function rowToPopup(r: Row): PopupDoc {
 }
 
 /** The complete field set written to Firestore (both the saved doc and the live
- *  mirror). For welcome_reward the app renders the two-tone headline from
- *  titleWord1/titleWord2, so `title` is forced blank to keep that behaviour. */
+ *  mirror). This page only ever authors the welcome_reward pop-up, so `theme` is
+ *  forced to 'welcome_reward', `title` is forced blank (the app renders the
+ *  two-tone headline from titleWord1/titleWord2), and the style is half/full
+ *  only (welcome has no centre-card option). */
 function toDocData(f: PopupDoc) {
-  const isWelcome = f.theme === 'welcome_reward';
   return {
     audience: f.audience,
-    displayMode: f.displayMode,
-    theme: f.theme,
-    title: isWelcome ? '' : f.title.trim(),
+    displayMode: f.displayMode === 'full' ? 'full' : 'half',
+    theme: 'welcome_reward',
+    title: '',
     body: f.body.trim(),
     ctaLabel: f.ctaLabel.trim() || 'Grab this offer',
     deeplink: f.deeplink.trim(),
@@ -223,7 +221,6 @@ export default function HomePopupPage() {
   }, [loading, rows.length]);
 
   const set = <K extends keyof PopupDoc>(k: K, v: PopupDoc[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const isWelcome = form.theme === 'welcome_reward';
 
   function resetForm() {
     setEditingId(null);
@@ -232,7 +229,8 @@ export default function HomePopupPage() {
 
   function startEdit(p: Row) {
     setEditingId(p.id);
-    setForm(rowToPopup(p));
+    // This page only authors welcome_reward — coerce any legacy row's theme.
+    setForm({ ...rowToPopup(p), theme: 'welcome_reward' });
     setPvView('offer');
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -283,10 +281,8 @@ export default function HomePopupPage() {
   }
 
   const save = async () => {
-    // The 'welcome_reward' banner is self-designed (headline from titleWord1/2,
-    // its own art), so it can be saved with a blank title/image. Every other
-    // style still needs a title or an image.
-    if (!isWelcome && !form.title.trim() && !form.image.trim()) return alert('Add a title or an image first.');
+    // The welcome_reward banner is self-designed (headline from titleWord1/2,
+    // its own art), so it can always be saved with a blank title/image.
     setSaving(true);
     try {
       const data = toDocData(form);
@@ -334,12 +330,6 @@ export default function HomePopupPage() {
     finally { setSaving(false); }
   }
 
-  const audiences: [Audience, string][] = [
-    ['all', 'Everyone'],
-    ['unpaid', 'Only unpaid (never recharged)'],
-    ['paid', 'Only paid (has recharged)'],
-  ];
-
   const list = [...rows].sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
 
   // Live billing figures for the welcome studio strip / preview.
@@ -361,24 +351,8 @@ export default function HomePopupPage() {
         the app instantly — no rebuild.
       </p>
 
-      {/* Pop-up style picker — switches between the Welcome Reward Studio and the classic editor. */}
-      <div className="card" style={{ padding: 14, marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <span className="af-label" style={{ margin: 0 }}>Pop-up style</span>
-        <select className="input" style={{ maxWidth: 320 }} value={form.theme} onChange={(e) => set('theme', e.target.value)}>
-          <option value="">Plain (no theme)</option>
-          <option value="welcome_reward">✦ Welcome Reward — the ₹-gift Studio</option>
-          {PROMO_THEMES.map((t) => (
-            <option key={t.id} value={t.id}>{t.medal} {t.name}</option>
-          ))}
-        </select>
-        <span className="muted" style={{ fontSize: 12 }}>
-          {isWelcome ? 'The Studio below drives the app’s welcome-offer bottom sheet.' : 'Pick “Welcome Reward” to open the full Studio.'}
-        </span>
-      </div>
-
-      {isWelcome ? (
-        /* ============================ WELCOME REWARD STUDIO ============================ */
-        <div className="grid" style={{ gridTemplateColumns: 'minmax(0,300px) minmax(0,1fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
+      {/* ============================ WELCOME REWARD STUDIO ============================ */}
+      <div className="grid" style={{ gridTemplateColumns: 'minmax(0,300px) minmax(0,1fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
           {/* PREVIEW */}
           <div style={{ position: 'sticky', top: 16 }}>
             <div className="card" style={{ padding: 16 }}>
@@ -657,88 +631,8 @@ export default function HomePopupPage() {
               <span className="muted" style={{ fontSize: 12 }}>Saved pop-ups appear in the list below — set one Live to show it.</span>
             </div>
           </div>
-        </div>
-      ) : (
-        /* ============================ CLASSIC EDITOR (other styles) ============================ */
-        <div className="grid" style={{ gridTemplateColumns: 'minmax(0,0.82fr) minmax(0,1.18fr)', gap: 18, marginTop: 16, alignItems: 'start' }}>
-          <PromoPreview kind={form.code.trim() ? 'coupon' : 'push'} theme={form.theme}
-            title={form.title} body={form.body} image={form.image} imageStyle={form.imageStyle}
-            displayMode={form.displayMode} ctaText={form.ctaLabel} code={form.code} imageFill={form.imageFill} />
-
-          <div>
-            <div className="card" style={{ padding: 16, display: 'grid', gap: 14 }}>
-              <p className="af-label" style={{ margin: 0, fontWeight: 700 }}>
-                {editingId ? '✎ Editing pop-up' : 'Create a pop-up'}
-              </p>
-              <Field label="Who sees it">
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {audiences.map(([v, l]) => (
-                    <button key={v} type="button" className={`btn sm ${form.audience === v ? '' : 'secondary'}`} onClick={() => set('audience', v)}>{l}</button>
-                  ))}
-                </div>
-              </Field>
-
-              <Field label="Style">
-                <select className="input" value={form.displayMode} onChange={(e) => set('displayMode', e.target.value as DisplayMode)}>
-                  <option value="small">Centre card (compact)</option>
-                  <option value="half">Bottom sheet (half)</option>
-                  <option value="full">Full takeover</option>
-                </select>
-              </Field>
-              {form.displayMode !== 'small' && !form.theme && (
-                <span style={{ fontSize: 11.5, color: 'var(--error)' }}>
-                  Half &amp; full styles need a theme — pick one at the top, or the app falls back to the compact centre card.
-                </span>
-              )}
-
-              <Field label="Title">
-                <input className="input" value={form.title} placeholder="A gift for you" onChange={(e) => set('title', e.target.value)} />
-              </Field>
-              <Field label="Message">
-                <textarea className="input" style={{ minHeight: 60, resize: 'vertical' }} value={form.body}
-                  placeholder="Recharge today and get extra wallet credit." onChange={(e) => set('body', e.target.value)} />
-              </Field>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <Field label="Button label">
-                  <input className="input" value={form.ctaLabel} placeholder="Grab this offer" onChange={(e) => set('ctaLabel', e.target.value)} />
-                </Field>
-                <Field label="Coupon code pill (optional)">
-                  <input className="input" value={form.code} placeholder="WELCOME50" onChange={(e) => set('code', e.target.value)} />
-                </Field>
-              </div>
-
-              <Field label="Button opens — pick a destination">
-                <DeepLinkSelect value={form.deeplink} onChange={(v) => set('deeplink', v)} />
-              </Field>
-
-              <Field label="Image (optional)">
-                <ImageUpload folder="banner_images" value={form.image} onChange={(url) => set('image', url)}
-                  shape={form.imageStyle === 'portrait' ? 'portrait' : 'wide'} label="Upload image" />
-              </Field>
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                  <input type="radio" name="imgstyle" checked={form.imageStyle === 'banner'} onChange={() => set('imageStyle', 'banner')} /> Wide banner
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                  <input type="radio" name="imgstyle" checked={form.imageStyle === 'portrait'} onChange={() => set('imageStyle', 'portrait')} /> Tall portrait
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                  <input type="checkbox" checked={form.imageFill} onChange={(e) => set('imageFill', e.target.checked)} /> Image fills the whole pop-up
-                </label>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
-              <button className="btn" onClick={save} disabled={saving}>
-                {saving ? 'Saving…' : editingId ? '✓ Save changes' : '＋ Add pop-up'}
-              </button>
-              {editingId && <button className="btn secondary" onClick={resetForm} disabled={saving}>Cancel</button>}
-              <span className="muted" style={{ fontSize: 12 }}>Saved pop-ups appear in the list below — set one Live to show it.</span>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
+      {/* /studio grid */}
 
       {/* Saved pop-ups — view, edit, delete, go live */}
       <div className="card" style={{ marginTop: 22 }}>
@@ -777,20 +671,7 @@ export default function HomePopupPage() {
         <div className="pv-modal" onClick={() => setPreview(null)}>
           <button type="button" className="pv-modal__close" onClick={() => setPreview(null)}>×</button>
           <div className="pv-modal__inner" style={{ width: 'min(420px, 92vw)' }} onClick={(e) => e.stopPropagation()}>
-            {(preview.theme as string) === 'welcome_reward' ? (
-              <PreviewWelcome p={preview} view={pvView} onView={setPvView} />
-            ) : (
-              <PromoPreview kind={(preview.code as string)?.trim() ? 'coupon' : 'push'}
-                theme={(preview.theme as string) || ''}
-                title={(preview.title as string) || ''}
-                body={(preview.body as string) || ''}
-                image={(preview.image as string) || ''}
-                imageStyle={((preview.imageStyle as string) || 'banner') as 'banner' | 'portrait'}
-                displayMode={((preview.displayMode as string) || 'small') as 'small' | 'half' | 'full'}
-                ctaText={(preview.ctaLabel as string) || undefined}
-                code={(preview.code as string) || undefined}
-                imageFill={preview.imageFill === true} />
-            )}
+            <PreviewWelcome p={preview} view={pvView} onView={setPvView} />
           </div>
         </div>
       )}
