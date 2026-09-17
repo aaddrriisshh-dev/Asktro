@@ -32,14 +32,22 @@
 - Billing verified: per-second, server-authoritative; on-screen/phone-call
   interruptions keep billing correctly (not a leak).
 
-## 3. Uncommitted-to-a-release fix (waiting for the NEXT build)
+## 3. On the branch, waiting for the NEXT app build (v10)
 
-- **Home-tab reset on fresh mount** — committed to branch
-  `claude/asktro-session-handoff-o1ggo8` (`home_shell.dart`). Fixes a
-  testing-only quirk where switching Gmails without restarting the app left the
-  old bottom-tab position in memory, so a fresh login could land on Profile
-  instead of Home. **Real new users don't hit this.** It will ride along in the
-  next build (v10); nothing to do until then.
+- **Home-tab reset on fresh mount** — (`home_shell.dart`). Fixes a testing-only
+  quirk where switching Gmails without restarting the app left the old bottom-tab
+  position in memory, so a fresh login could land on Profile instead of Home.
+  **Real new users don't hit this.**
+- **Home Pop-up Studio (welcome_reward) fully portal-customizable** — app now
+  reads new fields from `homeSections/popup`: two-tone headline
+  (titleWord1/titleWord2), Total Payment breakdown (gstRatePct, breakupRows,
+  showBreakup, totalOverridePaise), background sky themes (bgTheme) and particle
+  styles (particleStyle). Portal side (`apps/admin` Home Pop-up Studio) is built
+  and pushed. **Portal deploy makes the studio usable immediately and does NOT
+  break the current live pop-up** (old fields still drive v9). BUT the NEW
+  controls only render to users after the v10 app build ships — v9 ignores them
+  and shows the defaults. Old controls (amounts, plan, message, image) work live
+  now.
 
 ## 4. Founder decisions on the record
 
