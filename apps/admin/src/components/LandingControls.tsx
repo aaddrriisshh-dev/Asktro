@@ -27,7 +27,7 @@ export interface LandingState {
  *  CTA — fully independent of the small strip. Shared by Push/Banner/Coupon. */
 export function LandingControls({
   mode, setMode, portrait, setPortrait, cta, setCta,
-  title, setTitle, body, setBody, bg, setBg, fg, setFg,
+  title, setTitle, body, setBody, bg, setBg, fg, setFg, hideCta = false,
 }: {
   mode: DisplayMode; setMode: (m: DisplayMode) => void;
   portrait: string; setPortrait: (v: string) => void;
@@ -36,6 +36,9 @@ export function LandingControls({
   body: string; setBody: (v: string) => void;
   bg: string; setBg: (v: string) => void;
   fg: string; setFg: (v: string) => void;
+  // When the CTA is managed elsewhere (Push moves it to an always-visible block
+  // so it works on the Small style too), hide the CTA field here to avoid a dup.
+  hideCta?: boolean;
 }) {
   return (
     <div style={{ marginTop: 16, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
@@ -62,8 +65,10 @@ export function LandingControls({
           <p className="af-label">Portrait image (9:16, fills the {mode === 'full' ? 'screen' : 'sheet'})</p>
           <ImageUpload folder="notification_images" value={portrait} onChange={setPortrait} shape="portrait" />
 
-          <label className="af" style={{ marginTop: 12 }}><span>Button text (CTA)</span>
-            <input className="input" placeholder="Recharge Now" value={cta} onChange={(e) => setCta(e.target.value)} /></label>
+          {!hideCta && (
+            <label className="af" style={{ marginTop: 12 }}><span>Button text (CTA)</span>
+              <input className="input" placeholder="Recharge Now" value={cta} onChange={(e) => setCta(e.target.value)} /></label>
+          )}
 
           <p className="af-label">Landing background &amp; text colour</p>
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>

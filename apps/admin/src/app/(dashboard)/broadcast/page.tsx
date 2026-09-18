@@ -73,8 +73,8 @@ export default function BroadcastPage() {
         bgColor: bg, textColor: fg,
         displayMode,
         portraitImage: displayMode !== 'small' ? (portraitImage.trim() || undefined) : undefined,
-        ctaText: displayMode !== 'small' ? (ctaText.trim() || undefined) : undefined,
-        ctaDeeplink: displayMode !== 'small' ? (ctaDeeplink.trim() || undefined) : undefined,
+        ctaText: ctaText.trim() || undefined,
+        ctaDeeplink: ctaDeeplink.trim() || undefined,
         landingTitle: displayMode !== 'small' ? (lTitle.trim() || undefined) : undefined,
         landingBody: displayMode !== 'small' ? (lBody.trim() || undefined) : undefined,
         landingBgColor: displayMode !== 'small' ? lBg : undefined,
@@ -119,6 +119,16 @@ export default function BroadcastPage() {
           <div className="af" style={{ marginTop: 12 }}><span>On tap — go to</span>
             <DeepLinkSelect value={f.deeplink} onChange={(v) => set('deeplink', v)} /></div>
 
+          {/* Pop-up button (CTA) — always available, so it works on the Small
+              center-card style too, not just Half/Full. Shows on the pop-up that
+              opens when a theme or image is set. */}
+          <p className="af-label">Pop-up button (CTA)</p>
+          <label className="af"><span>Button label</span>
+            <input className="input" placeholder="View offer" value={ctaText} onChange={(e) => setCtaText(e.target.value)} /></label>
+          <div className="af" style={{ marginTop: 12 }}><span>Button — go to</span>
+            <DeepLinkSelect value={ctaDeeplink} onChange={setCtaDeeplink} /></div>
+          <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>Shown on the pop-up (which opens when you set a theme or image). Empty label → “View offer”; empty link → same as “On tap”.</p>
+
           <p className="af-label">Theme (pick one — no design needed)</p>
           <ThemePicker value={theme} onSelect={applyTheme} />
 
@@ -141,12 +151,7 @@ export default function BroadcastPage() {
 
           <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
             cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
-            bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} />
-
-          {displayMode !== 'small' && (
-            <div className="af" style={{ marginTop: 12 }}><span>Button (CTA) — go to</span>
-              <DeepLinkSelect value={ctaDeeplink} onChange={setCtaDeeplink} /></div>
-          )}
+            bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} hideCta />
 
           <div style={{ marginTop: 18 }}>
             <button className="btn" disabled={busy} onClick={send}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button>
