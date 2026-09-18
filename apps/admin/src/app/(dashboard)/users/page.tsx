@@ -9,6 +9,7 @@ import { PanelProvider, usePanels } from '@/lib/panels';
 import { Panel } from '@/components/Panel';
 import { DrillGrid, DrillTile } from '@/components/DrillDown';
 import { URow, USER_COLUMNS } from '@/components/PaidUnpaidCards';
+import { isRealCustomer } from '@/lib/customer';
 
 // "Live" = a real presence heartbeat within the last few minutes (the customer
 // app writes presence/{uid}.lastSeen while foregrounded).
@@ -147,8 +148,11 @@ function CustomerManagement() {
       return name.length > 0 && name !== 'guest' && u.birthDateMs != null && u.birthLat != null && u.birthLng != null;
     };
 
-    const inPeriod = users.filter((u) => inRange(created(u))).sort((a, b) => created(b) - created(a));
-    const live = users.filter(isLive).sort((a, b) => (presenceMs.get(b.id) ?? 0) - (presenceMs.get(a.id) ?? 0));
+    // Real customers only (exclude deleted + tagged test accounts) — the same
+    // filter every dashboard card uses, so the numbers agree everywhere.
+    const real = users.filter(isRealCustomer);
+    const inPeriod = real.filter((u) => inRange(created(u))).sort((a, b) => created(b) - created(a));
+    const live = real.filter(isLive).sort((a, b) => (presenceMs.get(b.id) ?? 0) - (presenceMs.get(a.id) ?? 0));
 
     const R = (list: Row[]) => list.map(toRow);
     const paid = inPeriod.filter((u) => (u.totalRecharge ?? 0) > 0);

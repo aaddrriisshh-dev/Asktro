@@ -11,6 +11,7 @@ import { DrillGrid, DrillColumn } from './DrillDown';
 import { DailyChart } from './DailyChart';
 import { BarBreakdown } from './BarBreakdown';
 import { useAutoRefresh } from '@/lib/autoRefresh';
+import { isRealCustomer } from '@/lib/customer';
 
 /** One customer row backing the drill-down lists. */
 export interface URow {
@@ -101,8 +102,9 @@ function useUsersMonetisation(range: Range): CardView<PayData> {
         snap.forEach((doc) => {
           const u = doc.data() as {
             name?: string; phone?: string; gender?: string; email?: string; accountStatus?: string;
-            walletBalance?: number; totalRecharge?: number; createdAt?: Timestamp;
+            walletBalance?: number; totalRecharge?: number; createdAt?: Timestamp; isTestAccount?: boolean;
           };
+          if (!isRealCustomer(u)) return; // exclude deleted + test accounts
           const ms = u.createdAt?.toMillis?.() ?? range.start;
           const row: URow = {
             id: doc.id, name: u.name, phone: u.phone, email: u.email, gender: u.gender,

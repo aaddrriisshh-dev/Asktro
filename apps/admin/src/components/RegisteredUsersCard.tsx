@@ -11,6 +11,7 @@ import { DrillGrid } from './DrillDown';
 import { URow, USER_COLUMNS } from './PaidUnpaidCards';
 import { DailyChart } from './DailyChart';
 import { useAutoRefresh } from '@/lib/autoRefresh';
+import { isRealCustomer } from '@/lib/customer';
 
 interface UsersData {
   total: number;
@@ -63,8 +64,9 @@ function useRegisteredUsers(range: Range): CardView<UsersData> {
         rowsSnap.forEach((doc) => {
           const u = doc.data() as {
             name?: string; phone?: string; email?: string; gender?: string; accountStatus?: string;
-            walletBalance?: number; totalRecharge?: number; createdAt?: Timestamp;
+            walletBalance?: number; totalRecharge?: number; createdAt?: Timestamp; isTestAccount?: boolean;
           };
+          if (!isRealCustomer(u)) return; // exclude deleted + test accounts
           const row: URow = {
             id: doc.id, name: u.name, phone: u.phone, email: u.email, gender: u.gender,
             accountStatus: u.accountStatus, walletBalance: u.walletBalance, totalRecharge: u.totalRecharge,

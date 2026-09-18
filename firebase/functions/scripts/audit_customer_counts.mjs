@@ -53,28 +53,36 @@ const run = async () => {
   console.log(`\n=== CUSTOMER COUNT AUDIT (raw users collection: ${rows.length} docs) ===`);
   console.log(`India time now: ${new Date(now + IST).toISOString().replace('T', ' ').slice(0, 16)} IST\n`);
 
+  // A REAL customer = not deleted and not a tagged test account. This is what
+  // the portal now shows everywhere.
+  const isReal = (u) => u.accountStatus !== 'deleted' && u.isTestAccount !== true;
+  const real = rows.filter(isReal);
+
+  console.log(`REAL customers (excl. deleted + test): ${real.length} of ${rows.length} raw docs\n`);
+
   // Registered (by sign-up date) per range — compare to dashboard "Registered
-  // Users" and Customer Management "All Customers".
-  console.log('REGISTERED (by sign-up date) — compare to Registered Users / All Customers:');
+  // Users" and Customer Management "All Customers" (which now show REAL only).
+  console.log('REGISTERED (real, by sign-up date) — compare to Registered Users / All Customers:');
   for (const [label, r] of Object.entries(ranges)) {
-    const inP = rows.filter((u) => inRange(ms(u.createdAt), r));
+    const inP = real.filter((u) => inRange(ms(u.createdAt), r));
     const paid = inP.filter((u) => (u.totalRecharge ?? 0) > 0).length;
-    console.log(`  ${label.padEnd(13)} ${String(inP.length).padStart(4)}   (paid ${paid}, unpaid ${inP.length - paid})`);
+    const rawN = rows.filter((u) => inRange(ms(u.createdAt), r)).length;
+    console.log(`  ${label.padEnd(13)} ${String(inP.length).padStart(4)}   (paid ${paid}, unpaid ${inP.length - paid})   [raw incl junk: ${rawN}]`);
   }
 
-  // All-time breakdown — compare to the drawer sub-tiles (All Time).
-  const male = rows.filter((u) => u.gender === 'male').length;
-  const female = rows.filter((u) => u.gender === 'female').length;
-  const withEmail = rows.filter((u) => u.email).length;
-  const withPhone = rows.filter((u) => u.phone).length;
-  const blocked = rows.filter((u) => u.accountStatus === 'blocked').length;
-  const paidAll = rows.filter((u) => (u.totalRecharge ?? 0) > 0).length;
-  const incomplete = rows.filter((u) => !isComplete(u)).length;
-  const liveNow = rows.filter((u) => (presence.get(u.id) ?? 0) > now - LIVE_WINDOW).length;
-  console.log('\nALL-TIME BREAKDOWN — compare to the drawer sub-tiles:');
-  console.log(`  Registered   ${rows.length}`);
-  console.log(`  Paid         ${paidAll}      Unpaid ${rows.length - paidAll}`);
-  console.log(`  Male         ${male}      Female ${female}      (no gender ${rows.length - male - female})`);
+  // All-time breakdown of REAL customers — compare to the drawer sub-tiles.
+  const male = real.filter((u) => u.gender === 'male').length;
+  const female = real.filter((u) => u.gender === 'female').length;
+  const withEmail = real.filter((u) => u.email).length;
+  const withPhone = real.filter((u) => u.phone).length;
+  const blocked = real.filter((u) => u.accountStatus === 'blocked').length;
+  const paidAll = real.filter((u) => (u.totalRecharge ?? 0) > 0).length;
+  const incomplete = real.filter((u) => !isComplete(u)).length;
+  const liveNow = real.filter((u) => (presence.get(u.id) ?? 0) > now - LIVE_WINDOW).length;
+  console.log('\nALL-TIME BREAKDOWN (real customers) — compare to the drawer sub-tiles:');
+  console.log(`  Registered   ${real.length}`);
+  console.log(`  Paid         ${paidAll}      Unpaid ${real.length - paidAll}`);
+  console.log(`  Male         ${male}      Female ${female}      (no gender ${real.length - male - female})`);
   console.log(`  With email   ${withEmail}      With phone ${withPhone}`);
   console.log(`  Blocked      ${blocked}`);
   console.log(`  Incomplete   ${incomplete}  (abandoned setup — no real name / DOB / place)`);
@@ -82,11 +90,12 @@ const run = async () => {
 
   // A couple of integrity checks the portal relies on.
   console.log('\nINTEGRITY CHECKS:');
-  console.log(`  Paid + Unpaid == Registered ?  ${paidAll + (rows.length - paidAll) === rows.length ? 'YES ✓' : 'NO ✗'}`);
+  console.log(`  Paid + Unpaid == Registered ?  ${paidAll + (real.length - paidAll) === real.length ? 'YES ✓' : 'NO ✗'}`);
   const deleted = rows.filter((u) => u.accountStatus === 'deleted').length;
-  console.log(`  Accounts flagged deleted:      ${deleted}  (portal 'raw' counts include these; say if you want them excluded)`);
   const isTest = rows.filter((u) => u.isTestAccount === true).length;
-  console.log(`  Accounts tagged isTestAccount: ${isTest}  (still counted until we exclude them)`);
+  console.log(`  Excluded — deleted:            ${deleted}`);
+  console.log(`  Excluded — test accounts:      ${isTest}`);
+  console.log(`  Raw ${rows.length}  −  excluded  =  ${real.length} real`);
   console.log('');
   process.exit(0);
 };

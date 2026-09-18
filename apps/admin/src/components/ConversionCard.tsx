@@ -10,6 +10,7 @@ import { DrillGrid } from './DrillDown';
 import { URow, USER_COLUMNS } from './PaidUnpaidCards';
 import { DailyChart } from './DailyChart';
 import { useAutoRefresh } from '@/lib/autoRefresh';
+import { isRealCustomer } from '@/lib/customer';
 
 interface ConvData {
   registered: number;
@@ -57,8 +58,9 @@ function useConversion(range: Range): CardView<ConvData> {
         snap.forEach((doc) => {
           const u = doc.data() as {
             name?: string; phone?: string; email?: string; gender?: string; accountStatus?: string;
-            walletBalance?: number; createdAt?: Timestamp; firstRechargeAt?: Timestamp | null; totalRecharge?: number;
+            walletBalance?: number; createdAt?: Timestamp; firstRechargeAt?: Timestamp | null; totalRecharge?: number; isTestAccount?: boolean;
           };
+          if (!isRealCustomer(u)) return; // exclude deleted + test accounts
           const created = u.createdAt?.toMillis?.() ?? range.start;
           const row: URow = {
             id: doc.id, name: u.name, phone: u.phone, email: u.email, gender: u.gender,
