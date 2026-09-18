@@ -13,6 +13,7 @@ import { fetchDailyStats } from '@/lib/dailyStats';
 import { DashCard, CardView } from './DashCard';
 import { DrillGrid, DrillColumn, DrillDef } from './DrillDown';
 import { DailyChart } from './DailyChart';
+import { useAutoRefresh } from '@/lib/autoRefresh';
 
 /** One live consultation row. */
 interface SRow {
@@ -53,6 +54,7 @@ function useConsultations(range: Range): CardView<ConsData> {
   const [data, setData] = useState<ConsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const tick = useAutoRefresh();
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +112,7 @@ function useConsultations(range: Range): CardView<ConsData> {
       }
     })();
     return () => { cancelled = true; };
-  }, [range.start, range.end]);
+  }, [range.start, range.end, tick]);
 
   return { loading, error, value: (data?.activeNow ?? 0).toLocaleString('en-IN'), pill: 'live now', data };
 }

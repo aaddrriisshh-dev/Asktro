@@ -10,6 +10,7 @@ import { fetchDailyStats } from '@/lib/dailyStats';
 import { DashCard, CardView } from './DashCard';
 import { DrillGrid, DrillColumn } from './DrillDown';
 import { DailyChart } from './DailyChart';
+import { useAutoRefresh } from '@/lib/autoRefresh';
 
 /** One credited recharge (walletTransactions, kind == 'recharge'). */
 interface RRow {
@@ -46,6 +47,7 @@ function useRevenue(range: Range): CardView<RevData> {
   const [data, setData] = useState<RevData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const tick = useAutoRefresh();
 
   useEffect(() => {
     let cancelled = false;
@@ -92,7 +94,7 @@ function useRevenue(range: Range): CardView<RevData> {
       }
     })();
     return () => { cancelled = true; };
-  }, [range.start, range.end]);
+  }, [range.start, range.end, tick]);
 
   return { loading, error, value: formatPaise(data?.gross ?? 0), pill: `${data?.count ?? 0} recharges`, data };
 }

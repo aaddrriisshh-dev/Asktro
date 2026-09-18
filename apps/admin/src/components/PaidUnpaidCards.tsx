@@ -10,6 +10,7 @@ import { DashCard, CardView } from './DashCard';
 import { DrillGrid, DrillColumn } from './DrillDown';
 import { DailyChart } from './DailyChart';
 import { BarBreakdown } from './BarBreakdown';
+import { useAutoRefresh } from '@/lib/autoRefresh';
 
 /** One customer row backing the drill-down lists. */
 export interface URow {
@@ -71,6 +72,7 @@ function useUsersMonetisation(range: Range): CardView<PayData> {
   const [data, setData] = useState<PayData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const tick = useAutoRefresh();
 
   useEffect(() => {
     let cancelled = false;
@@ -146,7 +148,7 @@ function useUsersMonetisation(range: Range): CardView<PayData> {
       }
     })();
     return () => { cancelled = true; };
-  }, [range.start, range.end]);
+  }, [range.start, range.end, tick]);
 
   return { loading, error, value: '', data };
 }

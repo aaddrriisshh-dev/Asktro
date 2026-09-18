@@ -114,8 +114,20 @@ function CustomerManagement() {
     const lastActive = (u: Row) => Math.max(presenceMs.get(u.id) ?? 0, msOf(u.updatedAt), msOf(u.createdAt));
     const isLive = (u: Row) => (presenceMs.get(u.id) ?? 0) > Date.now() - LIVE_WINDOW;
     const inRange = (ms: number) => ms > 0 && ms >= range.start && ms < range.end;
+    // A COMPLETE customer has the same essentials the app gate requires: a real
+    // name (not "Guest"), a date of birth, and a birth place with coordinates.
+    // Incomplete = signed in but abandoned setup — kept OUT of the real-customer
+    // buckets so counts aren't polluted, and shown in their own "Incomplete" list.
+    const isComplete = (u: Row) => {
+      const name = String(u.name ?? '').trim().toLowerCase();
+      return name.length > 0 && name !== 'guest' && u.birthDateMs != null && u.birthLat != null && u.birthLng != null;
+    };
 
-    const customers = users.filter((u) => u.accountStatus !== 'deleted' && !astroIds.has(u.id));
+    const everyone = users.filter((u) => u.accountStatus !== 'deleted' && !astroIds.has(u.id));
+    const customers = everyone.filter(isComplete);
+    const incompleteActive = everyone
+      .filter((u) => !isComplete(u) && inRange(lastActive(u)))
+      .sort((a, b) => lastActive(b) - lastActive(a));
     const active = customers
       .filter((u) => inRange(lastActive(u)))
       .sort((a, b) => lastActive(b) - lastActive(a));
@@ -134,6 +146,7 @@ function CustomerManagement() {
       male: R(active.filter((u) => u.gender === 'male')), female: R(active.filter((u) => u.gender === 'female')),
       withEmail: R(active.filter((u) => u.email)), withPhone: R(active.filter((u) => u.phone)),
       blocked: R(active.filter((u) => u.accountStatus === 'blocked')),
+      incomplete: R(incompleteActive),
     };
   }, [users, astroIds, presenceMs, range.start, range.end]);
 
@@ -169,6 +182,7 @@ function CustomerManagement() {
               { color: 'c-amber', label: 'With email', value: inr(slices.withEmail.length), drill: def('Customers with an email', slices.withEmail, 'None here.') },
               { color: 'c-gold', label: 'With phone', value: inr(slices.withPhone.length), drill: def('Customers with a phone', slices.withPhone, 'None here.') },
               { color: 'c-red', label: 'Blocked', value: inr(slices.blocked.length), drill: def('Blocked customers', slices.blocked, 'None blocked.') },
+              { color: 'c-slate', label: 'Incomplete signups', value: inr(slices.incomplete.length), drill: def('Incomplete signups (abandoned setup)', slices.incomplete, 'No incomplete signups.') },
             ]} />
           </TileCard>
 

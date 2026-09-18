@@ -9,6 +9,7 @@ import { DashCard, CardView } from './DashCard';
 import { DrillGrid } from './DrillDown';
 import { URow, USER_COLUMNS } from './PaidUnpaidCards';
 import { DailyChart } from './DailyChart';
+import { useAutoRefresh } from '@/lib/autoRefresh';
 
 interface ConvData {
   registered: number;
@@ -30,6 +31,7 @@ function useConversion(range: Range): CardView<ConvData> {
   const [data, setData] = useState<ConvData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const tick = useAutoRefresh();
 
   useEffect(() => {
     let cancelled = false;
@@ -90,7 +92,7 @@ function useConversion(range: Range): CardView<ConvData> {
       }
     })();
     return () => { cancelled = true; };
-  }, [range.start, range.end]);
+  }, [range.start, range.end, tick]);
 
   return { loading, error, value: `${data?.rate ?? 0}%`, pill: data ? `${data.converted}/${data.registered}` : undefined, data };
 }

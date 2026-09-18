@@ -8,6 +8,7 @@ import { Range } from '@/lib/dateRange';
 import { DashCard, CardView } from './DashCard';
 import { DrillGrid, DrillColumn, DrillDef } from './DrillDown';
 import { BarBreakdown } from './BarBreakdown';
+import { useAutoRefresh } from '@/lib/autoRefresh';
 
 /** One astrologer row backing the drill-down lists. */
 interface ARow {
@@ -66,6 +67,7 @@ function useAstrologers(range: Range): CardView<AstroData> {
   const [data, setData] = useState<AstroData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const tick = useAutoRefresh();
 
   useEffect(() => {
     let cancelled = false;
@@ -111,7 +113,7 @@ function useAstrologers(range: Range): CardView<AstroData> {
       }
     })();
     return () => { cancelled = true; };
-  }, [range.start, range.end]);
+  }, [range.start, range.end, tick]);
 
   return { loading, error, value: '', data };
 }

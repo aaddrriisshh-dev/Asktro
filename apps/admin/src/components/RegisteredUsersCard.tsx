@@ -10,6 +10,7 @@ import { DashCard, CardView } from './DashCard';
 import { DrillGrid } from './DrillDown';
 import { URow, USER_COLUMNS } from './PaidUnpaidCards';
 import { DailyChart } from './DailyChart';
+import { useAutoRefresh } from '@/lib/autoRefresh';
 
 interface UsersData {
   total: number;
@@ -31,6 +32,7 @@ function useRegisteredUsers(range: Range): CardView<UsersData> {
   const [data, setData] = useState<UsersData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const tick = useAutoRefresh();
 
   useEffect(() => {
     let cancelled = false;
@@ -92,7 +94,7 @@ function useRegisteredUsers(range: Range): CardView<UsersData> {
       }
     })();
     return () => { cancelled = true; };
-  }, [range.start, range.end]);
+  }, [range.start, range.end, tick]);
 
   return {
     loading,

@@ -11,6 +11,7 @@ import { PayoutCard } from '@/components/PayoutCard';
 import { OperationsSection } from '@/components/OperationsSection';
 import { UsersActivityTable } from '@/components/UsersActivityTable';
 import { PanelProvider } from '@/lib/panels';
+import { RefreshBadge } from '@/components/RefreshBadge';
 import { useAuth } from '@/lib/auth-context';
 import { canSeeMoney } from '@/lib/roles';
 
@@ -30,6 +31,7 @@ export default function DashboardPage() {
             Your celestial marketplace at a glance — astrologers, consultations and wallets, in real time.
           </p>
         </div>
+        <div className="hero__refresh"><RefreshBadge /></div>
       </div>
 
       <div className="grid dashgrid">
