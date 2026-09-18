@@ -36,9 +36,27 @@ the Meta ads. That surfaced real issues to tackle tomorrow. In priority order:
 4. **For the founder's records:** he test-recharged **₹535** of real money across
    his own accounts (to reclaim from the company — cross-check Razorpay). Done.
 
-Carry-over hardening (below, lower urgency): durable test-account exclusion in
-the live rollup + money-held; portal scale caps; astrologer-app verification
-(deadline 30 Sep 2026).
+5. **Unit economics — check yesterday's (Sep 17) Gemini cost.** ~50–70 real
+   users came yesterday; only 1 paid (₹20), the rest used the free welcome credit
+   (~28 free min each). Pull the exact Sep 17 Gemini ₹ (AI Studio → Billing →
+   "Billing Account Cost for Gemini API", hover Sep 17) and compute cost-per-free-
+   user vs revenue. NOTE: Sep 17 is inflated — the expensive Gemini 3 Pro model +
+   failed retries ran during the outage before the switch to 3.6-flash, so it's a
+   worst-case day, not steady state.
+
+6. **Portal dashboard tiles: fix "Today = Yesterday" + not live.** The big card
+   numbers (e.g. Registered Users) show the ALL-TIME total via `getCountFromServer`
+   with no date filter, so they don't move when the Today/Yesterday preset changes
+   (per-day figures only live in the chart). Cards also read once on open (not a
+   live snapshot listener), so new signups don't appear until refresh. FIX: make
+   the headline reflect new-signups-in-selected-period (from the rollup), and/or
+   switch to a live listener. Confirm with founder which exact tile before editing.
+
+Carry-over hardening (below, lower urgency): AI code-side (bake gemini-3.6-flash
+into provider.ts + backup model); durable test-account exclusion in the live
+rollup + money-held; portal scale caps; astrologer-app verification (deadline
+30 Sep 2026). Gemini AI auto-reload: founder chose to keep OFF and manage
+manually (has ₹1,813 credit buffer).
 
 ---
 
