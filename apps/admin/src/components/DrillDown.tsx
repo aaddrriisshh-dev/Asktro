@@ -26,6 +26,8 @@ export interface DrillDef<R> {
   rows: R[];
   columns: DrillColumn<R>[];
   emptyNote?: string;
+  /** when set, a search box appears and filters rows by this predicate */
+  search?: (r: R, q: string) => boolean;
 }
 
 export interface DrillTile<R> {
@@ -43,8 +45,10 @@ const ROW_OPTIONS = [10, 50, 100];
 
 function DetailOverlay<R>({ def, onClose }: { def: DrillDef<R>; onClose: () => void }) {
   const [limit, setLimit] = useState(10);
-  const all = def.rows.length;
-  const shown = def.rows.slice(0, limit);
+  const [q, setQ] = useState('');
+  const rows = def.search && q.trim() ? def.rows.filter((r) => def.search!(r, q.trim().toLowerCase())) : def.rows;
+  const all = rows.length;
+  const shown = rows.slice(0, limit);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
@@ -67,7 +71,17 @@ function DetailOverlay<R>({ def, onClose }: { def: DrillDef<R>; onClose: () => v
             <h2 className="ovl-title">{def.title}</h2>
             {def.subtitle && <p className="ovl-sub">{def.subtitle}</p>}
           </div>
-          <button className="ovl-close" onClick={onClose} aria-label="Close">✕ Close</button>
+          <div className="ovl-head-right">
+            {def.search && (
+              <input
+                className="input ovl-search"
+                placeholder="Search name / phone / email…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            )}
+            <button className="ovl-close" onClick={onClose} aria-label="Close">✕ Close</button>
+          </div>
         </header>
         <div className="ovl-body">
           {all === 0 ? (

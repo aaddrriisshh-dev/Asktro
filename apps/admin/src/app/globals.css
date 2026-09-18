@@ -1079,6 +1079,23 @@ tbody tr:last-child td { border-bottom: none; }
 .metricchip--link { cursor: pointer; text-decoration: none; color: inherit; transition: transform .12s ease, box-shadow .12s ease; }
 .metricchip--link:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(20, 16, 45, .10); }
 
+/* ===== Customer Management: big All-Customers tile + square tiles ===== */
+.custtiles { display: grid; grid-template-columns: 2fr 3fr; gap: 16px; align-items: stretch; }
+.custtiles__squares { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-content: start; }
+.custtiles .stat { height: 100%; }
+.custtile--big { min-height: 220px; }
+.custtile--big .stat__value { font-size: 46px; }
+@media (max-width: 900px) {
+  .custtiles { grid-template-columns: 1fr; }
+  .custtiles__squares { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) { .custtiles__squares { grid-template-columns: 1fr; } }
+
+/* Search box in a detail overlay header */
+.ovl-head-right { display: flex; align-items: center; gap: 10px; flex: none; }
+.ovl-search { height: 34px; padding: 0 12px; font-size: 13px; min-width: 220px; }
+@media (max-width: 560px) { .ovl-search { min-width: 0; width: 130px; } }
+
 /* ===== In-place drill-down: a tile opens a detail overlay (no page jump) ===== */
 .metricchip--drill { font: inherit; text-align: left; cursor: pointer; width: 100%; -webkit-appearance: none; appearance: none; }
 .metricchip--drill .mc-go { font-size: 22px; font-weight: 800; line-height: 1; top: 11px; right: 14px; }
