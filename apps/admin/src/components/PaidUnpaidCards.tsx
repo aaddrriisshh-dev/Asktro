@@ -127,7 +127,10 @@ function useUsersMonetisation(range: Range): CardView<PayData> {
             byDayUnpaid.set(key, (byDayUnpaid.get(key) ?? 0) + 1);
           }
         });
-        const total = snap.size;
+        // rowsAll holds only REAL customers (deleted + test skipped above); use
+        // its length, NOT snap.size (raw), so paid + unpaid == total == the
+        // Registered Users card for the same range.
+        const total = rowsAll.length;
         const paid = rowsPaid.length;
         const unpaid = total - paid;
         const toDaily = (m: Map<string, number>) => [...m.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));

@@ -79,7 +79,10 @@ function useConversion(range: Range): CardView<ConvData> {
             rowsUnpaid.push(row);
           }
         });
-        const registered = snap.size;
+        // rowsAll holds only REAL customers (deleted + test skipped above); use
+        // its length, not snap.size (raw), so the conversion base matches the
+        // Registered Users card.
+        const registered = rowsAll.length;
         const rate = registered ? Math.round((converted / registered) * 100) : 0;
         const daily = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day: shortDay(day), value }));
         if (!cancelled) setData({
