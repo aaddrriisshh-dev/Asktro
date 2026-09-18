@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, limit, getDocs, getCountFromServer, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
@@ -38,36 +38,24 @@ function useRegisteredUsers(range: Range): CardView<UsersData> {
     setError(null);
     (async () => {
       try {
-        // Total, gender split, paid and blocked are server-side COUNT
-        // aggregations over the LIVE `users` collection — accurate and current,
-        // and no docs are downloaded to the browser. Gender is counted straight
-        // from each user's record (NOT the old per-day signup rollup, which only
-        // recorded gender at account-creation time — before the setup screen
-        // saved it — so male+female came out far below the real split). The
-        // daily histogram + withEmail still come from the rollup (a time-series,
-        // one small doc per day).
+        // Every headline/drawer number is scoped to the SELECTED PERIOD (users
+        // whose createdAt falls in range), so Today / Yesterday / Last 7 Days each
+        // show their own real figure instead of the same all-time total. "All
+        // Time" (range.start = 0) naturally becomes the grand total. Counts are
+        // derived from the same capped fetch that backs the drill-down lists, so
+        // the headline and the drilled list always agree. Capped so the browser
+        // can never OOM; beyond the cap it samples the most recent (a rollup-backed
+        // exact count is the 10k→50k refinement). Astrologers aren't in `users`.
         const usersCol = collection(db, 'users');
-        // The most recent users in range, capped so the browser can never OOM.
-        // Drives the drill-down lists (the headline numbers stay exact server
-        // COUNTs). Astrologers are excluded so a customer list is only customers.
         const ROW_CAP = 5000;
-        const [days, totalAgg, maleAgg, femaleAgg, paidAgg, blockedAgg, rowsSnap] = await Promise.all([
+        const [days, rowsSnap] = await Promise.all([
           fetchDailyStats(range),
-          getCountFromServer(usersCol),
-          getCountFromServer(query(usersCol, where('gender', '==', 'male'))),
-          getCountFromServer(query(usersCol, where('gender', '==', 'female'))),
-          getCountFromServer(query(usersCol, where('totalRecharge', '>', 0))),
-          getCountFromServer(query(usersCol, where('accountStatus', '==', 'blocked'))),
           getDocs(query(usersCol,
             where('createdAt', '>=', Timestamp.fromMillis(range.start)),
             where('createdAt', '<', Timestamp.fromMillis(range.end)),
             orderBy('createdAt', 'desc'), limit(ROW_CAP))),
         ]);
-        let withEmail = 0;
-        const daily = days.map((s) => {
-          withEmail += s.signups?.withEmail ?? 0;
-          return { day: shortDay(s.day), value: s.signups?.total ?? 0 };
-        });
+        const daily = days.map((s) => ({ day: shortDay(s.day), value: s.signups?.total ?? 0 }));
         const rowsAll: URow[] = [], rowsPaid: URow[] = [], rowsMale: URow[] = [], rowsFemale: URow[] = [];
         const rowsWithEmail: URow[] = [], rowsBlocked: URow[] = [];
         rowsSnap.forEach((doc) => {
@@ -88,12 +76,12 @@ function useRegisteredUsers(range: Range): CardView<UsersData> {
           if (u.accountStatus === 'blocked') rowsBlocked.push(row);
         });
         if (!cancelled) setData({
-          total: totalAgg.data().count,
-          male: maleAgg.data().count,
-          female: femaleAgg.data().count,
-          withEmail,
-          blocked: blockedAgg.data().count,
-          paid: paidAgg.data().count,
+          total: rowsAll.length,
+          male: rowsMale.length,
+          female: rowsFemale.length,
+          withEmail: rowsWithEmail.length,
+          blocked: rowsBlocked.length,
+          paid: rowsPaid.length,
           daily,
           rowsAll, rowsPaid, rowsMale, rowsFemale, rowsWithEmail, rowsBlocked,
         });
