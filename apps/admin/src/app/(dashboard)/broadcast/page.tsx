@@ -35,7 +35,7 @@ export default function BroadcastPage() {
   const [imageStyle, setImageStyle] = useState<'banner' | 'portrait'>('banner');
   const [bg, setBg] = useState('#2e2b5f');
   const [fg, setFg] = useState('#ffffff');
-  const [displayMode, setDisplayMode] = useState<DisplayMode>('small');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('half');
   const [portraitImage, setPortraitImage] = useState('');
   const [ctaText, setCtaText] = useState('');
   const [ctaDeeplink, setCtaDeeplink] = useState('');
@@ -87,7 +87,7 @@ export default function BroadcastPage() {
       setBroadcastId(crypto.randomUUID()); // fresh key for the next message
       setF({ title: '', body: '', deeplink: '', image: '' });
       setTheme('');
-      setPortraitImage(''); setCtaText(''); setCtaDeeplink(''); setDisplayMode('small');
+      setPortraitImage(''); setCtaText(''); setCtaDeeplink(''); setDisplayMode('half');
       setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
     } catch (e) { alert('Failed: ' + (e as Error).message); }
     finally { setBusy(false); }
@@ -151,7 +151,7 @@ export default function BroadcastPage() {
 
           <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
             cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
-            bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} hideCta />
+            bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} hideCta modes={['half', 'full']} />
 
           <div style={{ marginTop: 18 }}>
             <button className="btn" disabled={busy} onClick={send}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button>

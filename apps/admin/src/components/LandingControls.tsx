@@ -27,7 +27,7 @@ export interface LandingState {
  *  CTA — fully independent of the small strip. Shared by Push/Banner/Coupon. */
 export function LandingControls({
   mode, setMode, portrait, setPortrait, cta, setCta,
-  title, setTitle, body, setBody, bg, setBg, fg, setFg, hideCta = false,
+  title, setTitle, body, setBody, bg, setBg, fg, setFg, hideCta = false, modes,
 }: {
   mode: DisplayMode; setMode: (m: DisplayMode) => void;
   portrait: string; setPortrait: (v: string) => void;
@@ -39,12 +39,16 @@ export function LandingControls({
   // When the CTA is managed elsewhere (Push moves it to an always-visible block
   // so it works on the Small style too), hide the CTA field here to avoid a dup.
   hideCta?: boolean;
+  // Restrict which display styles are offered. Push passes ['half','full'] to
+  // retire the Small center-card style; Banner/Coupon keep all three.
+  modes?: DisplayMode[];
 }) {
+  const shown = modes ? MODES.filter((m) => modes.includes(m.key)) : MODES;
   return (
     <div style={{ marginTop: 16, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
       <p className="af-label" style={{ marginTop: 0 }}>Landing view (on tap)</p>
       <div className="pickrow">
-        {MODES.map((m) => (
+        {shown.map((m) => (
           <button key={m.key} type="button" title={m.hint}
             className={`pickchip${mode === m.key ? ' on' : ''}`} onClick={() => setMode(m.key)}>{m.label}</button>
         ))}
