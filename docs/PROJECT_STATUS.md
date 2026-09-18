@@ -233,6 +233,28 @@ live until that build ships to Play. Portal-side pieces are already live.
   add a fallback model (see 3b). (Functions redeploy, not strictly an app build,
   but part of the same reliability push.)
 
+## 3g. RESOLVED (2026-09-18) — portal customer numbers reconciled & verified
+
+Long push to make every customer number real and consistent. Now LIVE:
+- **One definition everywhere** (`lib/customer.ts` `isRealCustomer`): a customer
+  is NOT deleted and NOT `isTestAccount`. Applied to Registered Users, Paid/
+  Unpaid, First-Recharge Conversion, and Customer Management. Incomplete/abandoned
+  signups are KEPT (real sign-ups) and shown as a subset, not removed.
+- **Same period metric everywhere**: by SIGN-UP date (`createdAt` in range), so
+  the home Registered Users card and Customer Management "All Customers" always
+  agree (Today == Today).
+- **Fixed the over-count**: Paid/Unpaid + Conversion used `snap.size` (raw) for
+  `total` while paid/converted were filtered → unpaid = raw − real dumped the
+  18 deleted + 14 test accounts into "unpaid" (Unpaid 132 > Registered 118). Now
+  `total = rowsAll.length` (filtered). **Founder verified Paid + Unpaid ==
+  Registered on every filter.**
+- Verify anytime: `scripts/audit_customer_counts.mjs` (read-only) prints the same
+  REAL numbers straight from Firestore; `scripts/list_signups_by_day.mjs` lists a
+  day's sign-ups with flags.
+- Dashboard cards also gained a **live auto-refresh** (60s + on focus) with a
+  visible "Refreshed Xs ago" badge; Customer Management is real-time (Firestore
+  listeners).
+
 ## 4. Founder decisions on the record
 
 - Welcome popup "fades on a stray tap" → founder **chose NOT to fix** (declined).
