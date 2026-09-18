@@ -232,6 +232,20 @@ live until that build ships to Play. Portal-side pieces are already live.
 - **AI hardening** — bake `gemini-3.6-flash` into `provider.ts` DEFAULT_MODELS +
   add a fallback model (see 3b). (Functions redeploy, not strictly an app build,
   but part of the same reliability push.)
+- **Free-AI-reply gate (fixes 4b + 4d)** — root cause CONFIRMED (see 4b/4d):
+  the AI reply engine answers the first message of every new AI chat *before any
+  balance check*, so a user with ₹0 left gets one free reading per new chat they
+  open (farmed across astrologers). Fix: in `ai/replyEngine.ts` (`onAiChatMessage`),
+  before the chart/LLM work, compute spendable **exactly** as `createConsultation`
+  does — `walletBalance + bonusBalance + (chatCreditEligible ? chatBonusBalance : 0)`
+  using the session's stamped `c.chatCreditEligible` — and if spendable ≤ 0 **and**
+  the one-time grace is already used (`user.chatGraceUsed === true`, or
+  `config.graceMinutes` = 0), post a "recharge to continue" line via `writeAstro`
+  and return instead of generating. Must still answer while welcome credit or the
+  unused grace minute remain, so no legit new user is silenced. **Backend-only**
+  (Cloud Function redeploy, no app build needed) — grouped into V4 at founder's
+  request (2026-09-18). Touches AI chat replies only; human/voice/video, wallet,
+  recharge, refund and the billing meter are untouched.
 
 ## 3g. RESOLVED (2026-09-18) — portal customer numbers reconciled & verified
 
@@ -262,20 +276,33 @@ Long push to make every customer number real and consistent. Now LIVE:
 - Meta/Facebook: founder sent the single **production key hash** + app icon
   (key hash is public, not a secret; does not break login).
 
-## 4b. OPEN BUG (raised 2026-09-17) — free-minute farming exploit
+## 4b. ROOT CAUSE CONFIRMED (2026-09-18) — free-AI-reply farming — fix queued to V4
 
-**Reported by founder:** customers are misusing the welcome free credits
-("36 minutes" of free chat). They **reopen the same astrologer repeatedly** and
-each reopen gives a fresh ~1-minute free chat, so they farm free time
-indefinitely. Seen with **10–15 customers already** — real money leaking.
-Founder will send a **screenshot** (deferred to next day). NOT yet investigated.
+**Reported by founder:** customers are misusing the welcome free credits. They
+**open new AI chats repeatedly** and each new chat hands out a free reply, so
+they farm free readings after their real free credit is gone. Seen with **10–15
+customers**; founder sent screenshots of user *Kajal nainani* (Welcome +₹27,
+Grace +₹9, one Consultation −₹36 that ate all 4 free minutes, then **4 more chats
+at "0 min · ₹0" where the AI still answered**).
 
-**Hypothesis to verify (do NOT touch code until confirmed):** the free
-allowance is being granted **per astrologer-session / per reconnect** instead of
-**once per customer lifetime** (or once per astrologer, once). Trace how the free
-minute/`chatBonusBalance` is decremented/granted when a chat session opens, and
-what resets on reopen. Fix = make the free allowance a lifetime/one-time grant
-tracked on the user, not re-granted on each new session.
+**NOT a per-session re-grant.** The welcome credit (`chatBonusBalance`) is a true
+once-per-user grant (`signupBonusGranted` in `onUserCreate.ts`) and grace is
+once per user (`chatGraceUsed`). Those are fine.
+
+**The real cause (confirmed by code read):** AI chats are **not balance-gated**.
+- `createConsultation.ts` deliberately skips the wallet check for AI
+  (`if (!isAI && !canStartConsultation(...))`), so a broke user can always open a
+  new AI session (created `status:'waiting'`, `billedSeconds:0`).
+- `ai/replyEngine.ts` (`onAiChatMessage`) then generates and delivers the reply
+  gated only on session status — it **never checks the balance**. So the *first*
+  message of every fresh chat gets a full free reply (1–2 bubbles ± a remedy);
+  billing (`tickConsultation` → `applyTick`) only starts *after* she has replied,
+  finds ₹0, and pauses. User just opens another new chat → another free reply.
+  This is the same leak reported separately as 4d.
+
+**Fix (queued to V4, backend-only):** balance-gate the AI reply — see the
+"Free-AI-reply gate" bullet in §3f for the exact change. Founder chose
+2026-09-18 to **ship it with the V4 batch**, not hotfix now.
 
 Note: unrelated to `reconcileFailedCredits` (that only completes already-PAID
 recharges; no free credit, no discretion — confirmed by code read).
@@ -322,21 +349,18 @@ count them). To make it permanent: in the live rollup trigger skip
 in `firebase/functions/scripts/` (cleanup_test_accounts, audit_money_sources,
 scrub_fake_credits) — re-runnable anytime.
 
-## 4d. OPEN BUG (raised 2026-09-17) — astrologer replies delivered WITHOUT billing
+## 4d. ROOT CAUSE CONFIRMED (2026-09-18) — AI replies delivered WITHOUT billing — same cause as 4b
 
-**Reported by founder:** he has seen several customers receive **1–2 replies from
-astrologers with no charge at all** (not the intended free-trial minute — actual
-un-billed back-and-forth). Real money leak / value given away. Seen in "a few"
-of the ~80 live customers; hard to hunt manually. Founder will try to send
-specific example sessions/consultations.
+**Reported by founder:** customers receive **1–2 AI replies with no charge**
+(beyond the intended free trial). Confirmed to be the **same root cause as 4b**:
+`ai/replyEngine.ts` generates and delivers the AI reply before any balance check,
+and billing (`tickConsultation` → `applyTick`) only starts *after* the reply and
+only accrues while the client heartbeats — so the first reply of any fresh AI
+chat is free and the session can show "0 min · ₹0". Not a race in `applyTick`
+itself; the meter never gets the chance to charge because the value is given away
+before it runs.
 
-**To investigate (do NOT change billing code until root cause is confirmed):**
-trace the chat billing path — how a chat session starts, when the first tick /
-charge is applied, and whether an astrologer's reply can be delivered before
-billing begins (e.g. a grace window, a race between message-send and
-session-activate, or `billedSeconds` never starting). Cross-check against
-`sweepStaleSessions` / `applyTick`. Likely related to, but distinct from, the
-free-minute farming in 4b. Confirm with the founder's examples first.
+**Fix:** same as 4b — the "Free-AI-reply gate" in §3f. Queued to V4 (2026-09-18).
 
 ## 5. Open / parked items (non-blocking)
 
