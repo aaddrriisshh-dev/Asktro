@@ -195,6 +195,22 @@ one-by-one via a `caffeinate` loop):
 event triggers) use different infra and were always fine (proven by the app
 working). **Lesson for future deploys: keep `firebase-tools` current.**
 
+## 3e. Push-notification pop-up CTA + astrologer-list deep links (2026-09-18)
+
+- **Pop-up button (CTA) now editable on EVERY push style (portal, LIVE after
+  deploy).** The CTA label + deep-link were hidden for the Small center-card
+  style, so a small pop-up was locked to the default "View offer" → main link.
+  Moved into an always-visible "Pop-up button (CTA)" block in the broadcast
+  composer; always sent. No app update needed — the app already reads
+  `ctaText`/`ctaDeeplink` for any style (`home_shell.dart`). Pop-up only appears
+  when a theme or image is set (a plain push just follows the link).
+- **New deep-link targets: "New Astrologers (AI)" + "Verified Astrologers
+  (real)".** Portal dropdown updated (live after deploy) BUT the app routes ship
+  in **v10**: added `GoRoute /astrologers/verified` (SearchScreen humansOnly) and
+  `/astrologers/new` (SearchScreen aiOnly) in `router.dart`. Until v10 is built,
+  tapping those targets on the live app does nothing. All other deep-link targets
+  (Home/Recharge/Offers/Mall/specific astrologer) already work live.
+
 ## 4. Founder decisions on the record
 
 - Welcome popup "fades on a stray tap" → founder **chose NOT to fix** (declined).
