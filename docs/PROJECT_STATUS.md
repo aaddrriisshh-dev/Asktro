@@ -211,6 +211,28 @@ working). **Lesson for future deploys: keep `firebase-tools` current.**
   tapping those targets on the live app does nothing. All other deep-link targets
   (Home/Recharge/Offers/Mall/specific astrologer) already work live.
 
+## 3f. V4 app build — consolidated pending list (next Flutter build)
+
+Everything below needs a **new app build (V4 / next versionCode)**; none of it is
+live until that build ships to Play. Portal-side pieces are already live.
+
+- **Remove the Small (center-card) push pop-up style** (requested 2026-09-18).
+  In the app, drop the `'small'` center-card render from `promo_popup.dart` /
+  `home_shell.dart` so every push pop-up is Half or Full only. In the portal,
+  remove the "Small only" option from `LandingControls` (DisplayMode). Do these
+  together so no in-flight broadcast targets a removed mode.
+- **Astrologer-list deep-link routes** — `/astrologers/verified` + `/astrologers/new`
+  added to `router.dart` (see 3e); light up in V4.
+- **Home-tab reset on fresh mount** + **Home Pop-up Studio new fields** (see §3).
+- **Profile-setup data quality** — force the user to actually set a real DOB (the
+  step defaults to 15 Jun 1995 and can be skipped) and validate the name field
+  (see onboarding audit, 2026-09-17).
+- **Delete the dormant "Explore More" onboarding code** (`onboarding_widgets.dart`)
+  so it can never be re-enabled (already disabled; belt-and-suspenders).
+- **AI hardening** — bake `gemini-3.6-flash` into `provider.ts` DEFAULT_MODELS +
+  add a fallback model (see 3b). (Functions redeploy, not strictly an app build,
+  but part of the same reliability push.)
+
 ## 4. Founder decisions on the record
 
 - Welcome popup "fades on a stray tap" → founder **chose NOT to fix** (declined).
