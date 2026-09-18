@@ -10,11 +10,13 @@ const DESTS = [
   { key: '/store', label: 'Asktro Mall' },
   { key: '/offers', label: 'Offers & Coupons' },
   { key: '/home', label: 'Home' },
+  { key: '/astrologers/verified', label: 'Verified Astrologers (real)' },
+  { key: '/astrologers/new', label: 'New Astrologers (AI)' },
   { key: 'astro', label: 'A specific astrologer…' },
   { key: 'custom', label: 'Custom route (advanced)' },
 ] as const;
 
-const DIRECT = ['/recharge', '/store', '/offers', '/home'];
+const DIRECT = ['/recharge', '/store', '/offers', '/home', '/astrologers/verified', '/astrologers/new'];
 
 function selectionFor(value: string): string {
   if (value === '') return '';

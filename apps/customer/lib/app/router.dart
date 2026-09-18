@@ -11,6 +11,7 @@ import '../features/auth/otp_screen.dart';
 import '../features/home/home_shell.dart';
 import '../features/profile_setup/profile_setup_screen.dart';
 import '../features/astrologer/astrologer_profile_screen.dart';
+import '../features/search/search_screen.dart';
 import '../features/wallet/offers_screen.dart';
 import '../features/wallet/recharge_screen.dart';
 import '../features/store/store_models.dart';
@@ -150,6 +151,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),
+
+      // Deep-linkable astrologer lists (used by push-notification CTAs):
+      //  /astrologers/verified → real (human) astrologers
+      //  /astrologers/new      → AI personas ("New Astrologers")
+      GoRoute(path: '/astrologers/verified', builder: (_, __) =>
+          const SearchScreen(title: 'Verified Astrologers', humansOnly: true)),
+      GoRoute(path: '/astrologers/new', builder: (_, __) =>
+          const SearchScreen(title: 'New Astrologers', aiOnly: true)),
 
       // ---- Asktro Mall (store) ----
       GoRoute(path: '/store', builder: (_, __) => const StoreHomeScreen()),
