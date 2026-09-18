@@ -69,9 +69,9 @@ const peopleIcon = (
 );
 
 /** A dashboard-style stat tile that opens a Panel with drill-down sub-tiles. */
-function TileCard({ id, title, accent, accentClass, big, value, pill, children }: {
+function TileCard({ id, title, accent, accentClass, big, value, pill, tileBody, children }: {
   id: string; title: string; accent: string; accentClass: string; big?: boolean;
-  value: string; pill?: string; children: ReactNode;
+  value: string; pill?: string; tileBody?: ReactNode; children: ReactNode;
 }) {
   const { openPanel } = usePanels();
   return (
@@ -80,6 +80,7 @@ function TileCard({ id, title, accent, accentClass, big, value, pill, children }
         <button className="dashcard__expand" onClick={(e) => { e.stopPropagation(); openPanel(id); }} aria-label={`Open ${title}`}>{expandIcon}</button>
         <div className="stat__label"><span className="stat__icon">{peopleIcon}</span>{title}</div>
         <div className="stat__value">{value}</div>
+        {tileBody}
         <div className="stat__foot">{pill && <span className="stat__pill">{pill}</span>}</div>
       </div>
       <Panel id={id} title={title} accent={accent}>{children}</Panel>
@@ -87,10 +88,34 @@ function TileCard({ id, title, accent, accentClass, big, value, pill, children }
   );
 }
 
+/** Small inline "X paid · Y unpaid …" breakdown shown inside a tile. */
+function Breakdown({ items }: { items: { label: string; value: number }[] }) {
+  return (
+    <div className="tile-breakdown">
+      {items.map((it, i) => <span key={i}><b>{it.value.toLocaleString('en-IN')}</b> {it.label}</span>)}
+    </div>
+  );
+}
+
+/** A compact preview of the most recent customers, inside the big tile. */
+function Preview({ rows }: { rows: URow[] }) {
+  if (rows.length === 0) return <p className="tile-preview-empty">No customers in this period.</p>;
+  return (
+    <div className="tile-preview">
+      <div className="tile-preview-head">Most recent</div>
+      {rows.slice(0, 6).map((u) => (
+        <div key={u.id} className="tile-preview-row">
+          <span className="nm">{u.name || 'Unnamed'}</span>
+          <span className="ph">{u.phone || u.id.slice(0, 10)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function CustomerManagement() {
   const { rows: users, loading } = useCollection('users');
   const { rows: presenceRows } = useCollection('presence');
-  const { rows: astrologerRows } = useCollection('astrologers');
   const { preset, setPreset, custom, setCustom } = useCardFilter('customers', 'allTime');
   const range = useMemo(() => resolveIndiaRange(preset, custom), [preset, custom]);
 
@@ -99,7 +124,6 @@ function CustomerManagement() {
     for (const p of presenceRows) m.set(p.id, msOf(p.lastSeen));
     return m;
   }, [presenceRows]);
-  const astroIds = useMemo(() => new Set(astrologerRows.map((a) => a.id)), [astrologerRows]);
 
   const toRow = (u: Row): URow => ({
     id: u.id, name: u.name, phone: u.phone, email: u.email, gender: u.gender,
@@ -107,48 +131,41 @@ function CustomerManagement() {
     createdAt: msOf(u.createdAt), // real signup date for the "Joined" column
   });
 
-  // Everything below is computed from the LIVE users collection, scoped to the
-  // selected India-day range. "In period" = last active in range (heartbeat, any
-  // write, or signup) — so Today/Yesterday/custom each show real, correct sets.
+  // Scoped to the selected India-day range by SIGN-UP date (createdAt) — the
+  // IDENTICAL definition the home "Registered Users" card uses, so the two pages
+  // ALWAYS agree (Today here == Today there). "All Time" is the grand total.
+  // Live is a now-metric (presence heartbeat) regardless of the date filter.
   const slices = useMemo(() => {
-    const lastActive = (u: Row) => Math.max(presenceMs.get(u.id) ?? 0, msOf(u.updatedAt), msOf(u.createdAt));
+    const created = (u: Row) => msOf(u.createdAt);
     const isLive = (u: Row) => (presenceMs.get(u.id) ?? 0) > Date.now() - LIVE_WINDOW;
     const inRange = (ms: number) => ms > 0 && ms >= range.start && ms < range.end;
-    // A COMPLETE customer has the same essentials the app gate requires: a real
-    // name (not "Guest"), a date of birth, and a birth place with coordinates.
-    // Incomplete = signed in but abandoned setup — kept OUT of the real-customer
-    // buckets so counts aren't polluted, and shown in their own "Incomplete" list.
+    // Incomplete = signed in but abandoned setup (no real name / DOB / birth
+    // place). Shown as its own list; NOT removed from the totals, so All
+    // Customers still matches the dashboard's Registered exactly.
     const isComplete = (u: Row) => {
       const name = String(u.name ?? '').trim().toLowerCase();
       return name.length > 0 && name !== 'guest' && u.birthDateMs != null && u.birthLat != null && u.birthLng != null;
     };
 
-    const everyone = users.filter((u) => u.accountStatus !== 'deleted' && !astroIds.has(u.id));
-    const customers = everyone.filter(isComplete);
-    const incompleteActive = everyone
-      .filter((u) => !isComplete(u) && inRange(lastActive(u)))
-      .sort((a, b) => lastActive(b) - lastActive(a));
-    const active = customers
-      .filter((u) => inRange(lastActive(u)))
-      .sort((a, b) => lastActive(b) - lastActive(a));
-    const live = customers.filter(isLive).sort((a, b) => (presenceMs.get(b.id) ?? 0) - (presenceMs.get(a.id) ?? 0));
+    const inPeriod = users.filter((u) => inRange(created(u))).sort((a, b) => created(b) - created(a));
+    const live = users.filter(isLive).sort((a, b) => (presenceMs.get(b.id) ?? 0) - (presenceMs.get(a.id) ?? 0));
 
     const R = (list: Row[]) => list.map(toRow);
-    const paid = active.filter((u) => (u.totalRecharge ?? 0) > 0);
-    const unpaid = active.filter((u) => (u.totalRecharge ?? 0) === 0);
+    const paid = inPeriod.filter((u) => (u.totalRecharge ?? 0) > 0);
+    const unpaid = inPeriod.filter((u) => (u.totalRecharge ?? 0) === 0);
     return {
-      all: R(active),
+      all: R(inPeriod),
       live: R(live), livePaid: R(live.filter((u) => (u.totalRecharge ?? 0) > 0)), liveUnpaid: R(live.filter((u) => (u.totalRecharge ?? 0) === 0)),
       paid: R(paid), paidEmail: R(paid.filter((u) => u.email)), paidPhone: R(paid.filter((u) => u.phone)),
       paidMale: R(paid.filter((u) => u.gender === 'male')), paidFemale: R(paid.filter((u) => u.gender === 'female')),
       unpaid: R(unpaid), unpaidEmail: R(unpaid.filter((u) => u.email)), unpaidPhone: R(unpaid.filter((u) => u.phone)),
       unpaidBlocked: R(unpaid.filter((u) => u.accountStatus === 'blocked')),
-      male: R(active.filter((u) => u.gender === 'male')), female: R(active.filter((u) => u.gender === 'female')),
-      withEmail: R(active.filter((u) => u.email)), withPhone: R(active.filter((u) => u.phone)),
-      blocked: R(active.filter((u) => u.accountStatus === 'blocked')),
-      incomplete: R(incompleteActive),
+      male: R(inPeriod.filter((u) => u.gender === 'male')), female: R(inPeriod.filter((u) => u.gender === 'female')),
+      withEmail: R(inPeriod.filter((u) => u.email)), withPhone: R(inPeriod.filter((u) => u.phone)),
+      blocked: R(inPeriod.filter((u) => u.accountStatus === 'blocked')),
+      incomplete: R(inPeriod.filter((u) => !isComplete(u))),
     };
-  }, [users, astroIds, presenceMs, range.start, range.end]);
+  }, [users, presenceMs, range.start, range.end]);
 
   const sub = `${range.label} · India time`;
   const def = (title: string, rows: URow[], emptyNote: string) => ({ title, subtitle: sub, rows, columns: USER_COLUMNS, emptyNote, search: searchURow });
@@ -171,9 +188,18 @@ function CustomerManagement() {
       {loading ? <p className="muted" style={{ marginTop: 16 }}>Loading…</p> : (
         <div className="custtiles">
           <TileCard id="cust_all" title="All Customers" accent="#3b6fd4" accentClass="c-blue" big
-            value={inr(slices.all.length)} pill={`${slices.live.length} live now`}>
+            value={inr(slices.all.length)} pill={`${slices.live.length} live now`}
+            tileBody={<>
+              <Breakdown items={[
+                { label: 'paid', value: slices.paid.length },
+                { label: 'unpaid', value: slices.unpaid.length },
+                { label: 'live', value: slices.live.length },
+                { label: 'incomplete', value: slices.incomplete.length },
+              ]} />
+              <Preview rows={slices.all} />
+            </>}>
             <DrillGrid<URow> tiles={[
-              { color: 'c-blue', label: 'All customers', value: inr(slices.all.length), big: true, drill: def('All customers', slices.all, 'None active in this period.') },
+              { color: 'c-blue', label: 'All customers', value: inr(slices.all.length), big: true, drill: def('All customers', slices.all, 'None signed up in this period.') },
               { color: 'c-green', label: 'Paid', value: inr(slices.paid.length), big: true, drill: def('Paid customers', slices.paid, 'No paid customers in this period.') },
               { color: 'c-slate', label: 'Unpaid', value: inr(slices.unpaid.length), drill: def('Unpaid customers', slices.unpaid, 'No unpaid customers in this period.') },
               { color: 'c-teal', label: 'Live now', value: inr(slices.live.length), drill: def('Live customers', slices.live, 'Nobody live right now.') },
@@ -188,7 +214,8 @@ function CustomerManagement() {
 
           <div className="custtiles__squares">
             <TileCard id="cust_live" title="Live Customers" accent="#3cb371" accentClass="c-green"
-              value={inr(slices.live.length)} pill="live now">
+              value={inr(slices.live.length)} pill="live now"
+              tileBody={<Breakdown items={[{ label: 'paid', value: slices.livePaid.length }, { label: 'unpaid', value: slices.liveUnpaid.length }]} />}>
               <DrillGrid<URow> tiles={[
                 { color: 'c-teal', label: 'Live now', value: inr(slices.live.length), big: true, drill: def('Live customers', slices.live, 'Nobody live right now.') },
                 { color: 'c-green', label: 'Live · paid', value: inr(slices.livePaid.length), drill: def('Live paid customers', slices.livePaid, 'None.') },
@@ -197,7 +224,8 @@ function CustomerManagement() {
             </TileCard>
 
             <TileCard id="cust_paid" title="Paid Customers" accent="#2f9c63" accentClass="c-green"
-              value={inr(slices.paid.length)} pill={`${slices.all.length ? Math.round((slices.paid.length / slices.all.length) * 100) : 0}% of active`}>
+              value={inr(slices.paid.length)} pill={`${slices.all.length ? Math.round((slices.paid.length / slices.all.length) * 100) : 0}% of registered`}
+              tileBody={<Breakdown items={[{ label: 'by email', value: slices.paidEmail.length }, { label: 'by phone', value: slices.paidPhone.length }]} />}>
               <DrillGrid<URow> tiles={[
                 { color: 'c-green', label: 'Paid customers', value: inr(slices.paid.length), big: true, drill: def('Paid customers', slices.paid, 'No paid customers in this period.') },
                 { color: 'c-amber', label: 'Reachable (email)', value: inr(slices.paidEmail.length), drill: def('Paid · reachable by email', slices.paidEmail, 'None.') },
@@ -208,7 +236,8 @@ function CustomerManagement() {
             </TileCard>
 
             <TileCard id="cust_unpaid" title="Unpaid Customers" accent="#64748b" accentClass="c-slate"
-              value={inr(slices.unpaid.length)} pill={`${slices.all.length ? Math.round((slices.unpaid.length / slices.all.length) * 100) : 0}% of active`}>
+              value={inr(slices.unpaid.length)} pill={`${slices.all.length ? Math.round((slices.unpaid.length / slices.all.length) * 100) : 0}% of registered`}
+              tileBody={<Breakdown items={[{ label: 'by email', value: slices.unpaidEmail.length }, { label: 'by phone', value: slices.unpaidPhone.length }, { label: 'blocked', value: slices.unpaidBlocked.length }]} />}>
               <DrillGrid<URow> tiles={[
                 { color: 'c-slate', label: 'Unpaid customers', value: inr(slices.unpaid.length), big: true, drill: def('Unpaid customers', slices.unpaid, 'No unpaid customers in this period.') },
                 { color: 'c-green', label: 'Reachable (email)', value: inr(slices.unpaidEmail.length), drill: def('Unpaid · reachable by email', slices.unpaidEmail, 'None.') },

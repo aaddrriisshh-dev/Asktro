@@ -1101,6 +1101,17 @@ tbody tr:last-child td { border-bottom: none; }
 .custtiles .stat { height: 100%; }
 .custtile--big { min-height: 220px; }
 .custtile--big .stat__value { font-size: 46px; }
+
+/* Inline breakdown + recent-customer preview inside a customer tile */
+.tile-breakdown { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 2px; font-size: 12.5px; color: var(--muted); }
+.tile-breakdown b { color: var(--navy); font-weight: 700; }
+.tile-preview { margin-top: 14px; border-top: 1px solid #efeafc; padding-top: 4px; }
+.tile-preview-head { font-size: 10.5px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; margin: 6px 0 2px; }
+.tile-preview-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f6f2fd; }
+.tile-preview-row:last-child { border-bottom: none; }
+.tile-preview-row .nm { font-size: 13px; font-weight: 600; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-preview-row .ph { font-size: 12px; color: var(--muted); flex: none; }
+.tile-preview-empty { color: var(--muted); font-size: 13px; margin: 14px 0 2px; }
 @media (max-width: 900px) {
   .custtiles { grid-template-columns: 1fr; }
   .custtiles__squares { grid-template-columns: 1fr 1fr; }
