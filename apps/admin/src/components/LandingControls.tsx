@@ -5,7 +5,7 @@ import { ImageUpload } from '@/components/ImageUpload';
 export type DisplayMode = 'small' | 'half' | 'full';
 
 const MODES: { key: DisplayMode; label: string; hint: string }[] = [
-  { key: 'small', label: 'Small only', hint: 'Just the notification / strip' },
+  { key: 'small', label: 'Center card', hint: 'A centered pop-up card with your title, text and CTA' },
   { key: 'half', label: 'Half-screen', hint: 'Opens a bottom sheet on tap' },
   { key: 'full', label: 'Full-screen', hint: '9:16 portrait fills the phone' },
 ];

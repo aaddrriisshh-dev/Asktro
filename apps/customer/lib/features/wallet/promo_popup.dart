@@ -219,7 +219,11 @@ Future<void> _center(BuildContext context, PromoTheme? th, String title, String 
       final fg = th?.tx ?? textOverride ?? Ob.navy;
       final head = th != null ? promoHeadline(th) : fg;
       final hasImage = imageUrl != null && imageUrl.isNotEmpty;
-      final content = Padding(
+      final content = ConstrainedBox(
+        // Cap height + scroll so a long (2-line) title + 2-line body + image +
+        // CTA never overflows the centre card on a small phone.
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.82),
+        child: SingleChildScrollView(child: Padding(
         padding: const EdgeInsets.fromLTRB(22, 24, 22, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -262,7 +266,7 @@ Future<void> _center(BuildContext context, PromoTheme? th, String title, String 
               ),
           ],
         ),
-      );
+      )));
       return Dialog(
         backgroundColor: th == null ? (bgOverride ?? Ob.bgColor) : Colors.transparent,
         elevation: 0,

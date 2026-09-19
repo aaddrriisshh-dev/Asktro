@@ -583,7 +583,19 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
           border: Border.all(color: sel ? Ob.selectedBorder : Ob.border, width: sel ? 1.6 : 1),
           boxShadow: sel ? null : Ob.softShadow,
         ),
-        child: Text(Money.formatPaise(plan.amount), style: Ob.title.copyWith(fontSize: 20)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(Money.formatPaise(plan.amount), style: Ob.title.copyWith(fontSize: 20)),
+            // Describe the offer, not just the price: a plan with a bonus shows
+            // the extra credit so "recharge ₹100, get ₹100" is clear right here.
+            if (plan.bonus > 0) ...[
+              const SizedBox(height: 4),
+              Text('+${Money.formatPaise(plan.bonus)} extra',
+                  style: const TextStyle(color: Color(0xFF2E9E5B), fontWeight: FontWeight.w700, fontSize: 11.5)),
+            ],
+          ],
+        ),
       ),
     );
   }

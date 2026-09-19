@@ -151,7 +151,7 @@ export default function BroadcastPage() {
 
           <LandingControls mode={displayMode} setMode={setDisplayMode} portrait={portraitImage} setPortrait={setPortraitImage}
             cta={ctaText} setCta={setCtaText} title={lTitle} setTitle={setLTitle} body={lBody} setBody={setLBody}
-            bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} hideCta modes={['half', 'full']} />
+            bg={lBg} setBg={setLBg} fg={lFg} setFg={setLFg} hideCta modes={['small', 'half', 'full']} />
 
           <div style={{ marginTop: 18 }}>
             <button className="btn" disabled={busy} onClick={send}>{busy ? 'Pushing…' : '⚡ Commit & Push'}</button>

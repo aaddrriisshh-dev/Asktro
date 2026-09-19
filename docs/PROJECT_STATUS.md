@@ -320,12 +320,31 @@ loophole. Optional tightening (discuss): don't default the name to 'Guest' / don
 create the base doc until setup completes, so the DB stops accumulating 'Guest'
 rows.
 
-**3.0.1 queue (to discuss, then batch with the crash fixes):** remove the +1
-grace minute ("on the house"); push small-card removal + why its CTAs failed +
-verify the half/centered card fits title+body+CTA; Facebook SDK install (App ID
-1332308082114721; events: registration, purchase w/ value, add-payment-info);
-astrologer-list deep-link routes; small-card render removal; profile-setup data
-quality; plus anything else the founder names.
+**3.0.1 queue:**
+- ✅ Grace minute removed (portal graceMinutes 0, live).
+- ✅ **Push small/center card re-added** (2026-09-19). It was never an app bug —
+  the app renders a CTA + deep link on ALL three cards (small/half/full) and
+  fires the same `ctaDeeplink`; the portal had just hidden the CTA for the small
+  style and we then removed the option. Now: portal composer offers small again
+  (`LandingControls` modes `['small','half','full']`, label "Center card"), and
+  the app centre card is height-capped + scrollable so a 2-line title + 2-line
+  body + CTA never overflows (`promo_popup.dart _center`). Deep links are uniform
+  across all card types. **Portal change deploys via Vercel (pull + vercel --prod);
+  app centre-card-fit rides the 3.0.1 build.** Offers deep link (`/offers`) already
+  works — founder configures the offer as an Offer Plan / coupon in Recharge Plans.
+- ✅ **Data-driven CTA picker** (2026-09-19). `DeepLinkSelect` (shared by Push &
+  Banner composers) now pulls the REAL live `rechargePlans` + `coupons` from
+  Firestore. Picking "a specific offer / plan" or "a specific coupon" shows the
+  actual offers to choose from (label "₹X → +₹Y bonus" / coupon code + title),
+  no more hand-typing blank ids. Builds `/recharge?plan=<id>` / `?coupon=<CODE>`.
+  **Deploys via Vercel (portal).**
+- ✅ **Recharge screen shows the bonus** (2026-09-19). Tapping an offer (e.g.
+  "recharge ₹100 get ₹100") now shows a green "+₹X extra" line under the amount
+  on the recharge tile, so the payment screen describes the offer, not just the
+  price (`recharge_screen.dart _tile`). **Rides the 3.0.1 build.**
+- ⏳ Facebook SDK install (App ID 1332308082114721; events: registration,
+  purchase w/ value, add-payment-info); astrologer-list deep-link routes go live
+  in 3.0.1; profile-setup data quality; plus anything else the founder names.
 
 ## 4. Founder decisions on the record
 
