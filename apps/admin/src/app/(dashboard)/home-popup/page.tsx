@@ -13,7 +13,6 @@ import {
   PARTICLE_OPTIONS,
   ParticleStyle,
   PLAN_CREDIT,
-  PLAN_OPTIONS,
   bgTheme,
   computeWelcomeTotals,
   inputToPaise,
@@ -196,6 +195,9 @@ function toDocData(f: PopupDoc) {
  *  preview + billing-wired editor); every other style keeps the classic editor. */
 export default function HomePopupPage() {
   const { rows, loading } = useCollection('popups');
+  // Live welcome offers (created in the "Welcome Offers" page) — the button can
+  // only open a real plan, so the picker is driven by what actually exists.
+  const { rows: planRows } = useCollection('rechargePlans');
   const [form, setForm] = useState<PopupDoc>(DEFAULTS);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -339,7 +341,20 @@ export default function HomePopupPage() {
     breakupRows: form.breakupRows,
     totalOverridePaise: form.totalOverridePaise,
   });
-  const planCredit = PLAN_CREDIT[form.rechargePlanId];
+  // Data-driven welcome-offer picker: real plans (planType 'welcome') the button
+  // can open, each labelled with what it truly charges/credits.
+  const welcomePlanOpts = planRows
+    .filter((p) => (p.planType as string) === 'welcome' && p.active !== false)
+    .map((p) => {
+      const credit = ((p.walletCredit as number) ?? (p.amount as number) ?? 0) + ((p.bonus as number) ?? 0);
+      return { id: p.id, label: `${(p.title as string) || p.id} — pay ${rupees((p.amount as number) ?? 0)} → ${rupees(credit)} in wallet`, credit };
+    });
+  // Real wallet credit for the selected plan (from the plan doc); fall back to the
+  // legacy hardcoded map, then null ("set by the plan") for an unknown id.
+  const selectedPlan = planRows.find((p) => p.id === form.rechargePlanId);
+  const planCredit = selectedPlan
+    ? ((selectedPlan.walletCredit as number) ?? (selectedPlan.amount as number) ?? 0) + ((selectedPlan.bonus as number) ?? 0)
+    : (PLAN_CREDIT[form.rechargePlanId] ?? null);
   const editingRowLive = editingId ? rows.find((r) => r.id === editingId)?.active === true : false;
 
   return (
@@ -456,14 +471,18 @@ export default function HomePopupPage() {
                   </Field>
                 </div>
                 <Field label="Recharge plan the button opens">
-                  <select className="input" value={PLAN_OPTIONS.some((o) => o.id === form.rechargePlanId) ? form.rechargePlanId : 'custom'}
+                  <select className="input"
+                    value={welcomePlanOpts.some((o) => o.id === form.rechargePlanId) ? form.rechargePlanId : 'custom'}
                     onChange={(e) => set('rechargePlanId', e.target.value === 'custom' ? '' : e.target.value)}>
-                    {PLAN_OPTIONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                    {welcomePlanOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                    <option value="custom">
+                      {welcomePlanOpts.length === 0 ? 'No welcome offers yet — create one in “Welcome Offers”' : 'Custom plan ID…'}
+                    </option>
                   </select>
                 </Field>
-                {!PLAN_OPTIONS.some((o) => o.id === form.rechargePlanId && o.id !== 'custom') && (
+                {!welcomePlanOpts.some((o) => o.id === form.rechargePlanId) && (
                   <Field label="Custom plan ID">
-                    <input className="input" value={form.rechargePlanId} placeholder="e.g. promo_diwali"
+                    <input className="input" value={form.rechargePlanId} placeholder="Paste a plan ID from “Welcome Offers”"
                       onChange={(e) => set('rechargePlanId', e.target.value)} />
                   </Field>
                 )}

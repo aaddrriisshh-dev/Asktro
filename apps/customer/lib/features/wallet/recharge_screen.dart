@@ -316,12 +316,13 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
               }
               // When opened from a Recharge banner, lock the screen to that one
               // plan so the user pays exactly the promoted amount (no switching).
-              // Otherwise show only Regular plans — Offer plans are banner-only.
+              // Otherwise show only Regular plans — Offer plans are banner-only
+              // and Welcome plans are reachable ONLY from the welcome pop-up.
               final wanted = widget.preselectPlanId;
               final offerMode = wanted != null && wanted.isNotEmpty && list.any((p) => p.id == wanted);
               final shown = offerMode
                   ? list.where((p) => p.id == wanted).toList()
-                  : list.where((p) => !p.isOffer).toList();
+                  : list.where((p) => !p.isOffer && !p.isWelcome).toList();
               // Promo amount-lock: a coupon/banner/push says “recharge exactly ₹X”.
               // Every tile is shown, but only the tile matching that amount stays
               // tappable — the rest are frozen. Offers are never self-serve.

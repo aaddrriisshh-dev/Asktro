@@ -342,6 +342,22 @@ rows.
   "recharge ₹100 get ₹100") now shows a green "+₹X extra" line under the amount
   on the recharge tile, so the payment screen describes the offer, not just the
   price (`recharge_screen.dart _tile`). **Rides the 3.0.1 build.**
+- ✅ **Welcome Offers space** (2026-09-19). A dedicated portal page
+  (`/welcome-offers`) to create first-recharge welcome offers (name, Pay ₹,
+  Bonus ₹, first-recharge-only toggle, active). They are stored in
+  `rechargePlans` with `planType: 'welcome'`, so the SERVER credits them like any
+  plan (charge = Amount, wallet = Amount + Bonus) and enforces `firstRechargeOnly`
+  — **no backend change needed**. The app hides `welcome` plans from BOTH the
+  recharge grid (`recharge_screen` filter now `!isOffer && !isWelcome`) and the
+  offers screen (already `isOffer`-only); they surface ONLY via the welcome pop-up
+  deep link (`/recharge?plan=<id>`, offerMode shows just that plan). The Home
+  Pop-up Studio's "Recharge plan the button opens" dropdown is now **data-driven**
+  — it lists the real welcome offers (labelled "pay ₹X → ₹Y in wallet") and the
+  billing strip reads the true credit from the plan doc, not the old hardcoded
+  map. `RechargePlan.isWelcome` added; welcome plans excluded from the Recharge
+  Plans page too. **Portal parts deploy via Vercel; the app hide-filter rides the
+  3.0.1 build** — so don't publish a new welcome offer as *live* until 3.0.1 ships,
+  or it would leak into the recharge grid on the current app.
 - ⏳ Facebook SDK install (App ID 1332308082114721; events: registration,
   purchase w/ value, add-payment-info); astrologer-list deep-link routes go live
   in 3.0.1; profile-setup data quality; plus anything else the founder names.

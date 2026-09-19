@@ -36,7 +36,9 @@ export default function PlansPage() {
   }
 
   const isOffer = (p: Row) => ((p.planType as string) ?? 'regular') === 'offer';
-  const regular = rows.filter((p) => !isOffer(p));
+  const isWelcome = (p: Row) => ((p.planType as string) ?? '') === 'welcome';
+  // Welcome offers have their own page ("Welcome Offers") — keep them out here.
+  const regular = rows.filter((p) => !isOffer(p) && !isWelcome(p));
   const offers = rows.filter((p) => isOffer(p));
 
   function table(list: typeof rows) {

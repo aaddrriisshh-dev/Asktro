@@ -23,11 +23,14 @@ class RechargePlan extends Equatable {
   final bool recommended;
   final int displayOrder;
   final bool active;
-  // 'regular' shows on the recharge screen; 'offer' is banner-only.
+  // 'regular' shows on the recharge screen; 'offer' is banner-only; 'welcome'
+  // is a first-recharge welcome offer, reachable ONLY from the welcome pop-up
+  // (hidden from the recharge grid AND the offers screen).
   final String planType;
 
   int get totalCredit => walletCredit + bonus;
   bool get isOffer => planType == 'offer';
+  bool get isWelcome => planType == 'welcome';
 
   factory RechargePlan.fromMap(String id, Map<String, dynamic> m) => RechargePlan(
         id: id,
