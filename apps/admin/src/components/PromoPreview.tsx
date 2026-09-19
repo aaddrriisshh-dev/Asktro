@@ -100,9 +100,9 @@ export function PromoPreview({
       )}
 
       {/* Center card — the pop-up that opens on tap for the Small/Center style.
-          Mirrors the app's _center: a rounded card, centred title + body + CTA,
-          with an image (or a gold medal circle when no image is set). */}
-      {displayMode === 'small' && (
+          Push-only: a Banner's "small" is just the home strip (no pop-up), so
+          this preview must never render there. Mirrors the app's _center. */}
+      {kind === 'push' && displayMode === 'small' && (
         <>
           <span className="promo-kind" style={{ marginTop: 16 }}>📱 Center card on tap</span>
           <div className="promo-phone">

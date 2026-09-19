@@ -5,7 +5,7 @@ import { ImageUpload } from '@/components/ImageUpload';
 export type DisplayMode = 'small' | 'half' | 'full';
 
 const MODES: { key: DisplayMode; label: string; hint: string }[] = [
-  { key: 'small', label: 'Center card', hint: 'A centered pop-up card with your title, text and CTA' },
+  { key: 'small', label: 'Small only', hint: 'Just the notification / strip' },
   { key: 'half', label: 'Half-screen', hint: 'Opens a bottom sheet on tap' },
   { key: 'full', label: 'Full-screen', hint: '9:16 portrait fills the phone' },
 ];
@@ -28,6 +28,7 @@ export interface LandingState {
 export function LandingControls({
   mode, setMode, portrait, setPortrait, cta, setCta,
   title, setTitle, body, setBody, bg, setBg, fg, setFg, hideCta = false, modes,
+  smallLabel, smallHint,
 }: {
   mode: DisplayMode; setMode: (m: DisplayMode) => void;
   portrait: string; setPortrait: (v: string) => void;
@@ -42,8 +43,15 @@ export function LandingControls({
   // Restrict which display styles are offered. Push passes ['half','full'] to
   // retire the Small center-card style; Banner/Coupon keep all three.
   modes?: DisplayMode[];
+  // Push relabels the "small" style as its center-card pop-up; Banner/Coupon keep
+  // the default "Small only / strip" wording so their editor is unchanged.
+  smallLabel?: string;
+  smallHint?: string;
 }) {
-  const shown = modes ? MODES.filter((m) => modes.includes(m.key)) : MODES;
+  const modeList = MODES.map((m) => m.key === 'small'
+    ? { ...m, label: smallLabel ?? m.label, hint: smallHint ?? m.hint }
+    : m);
+  const shown = modes ? modeList.filter((m) => modes.includes(m.key)) : modeList;
   return (
     <div style={{ marginTop: 16, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
       <p className="af-label" style={{ marginTop: 0 }}>Landing view (on tap)</p>
@@ -53,7 +61,7 @@ export function LandingControls({
             className={`pickchip${mode === m.key ? ' on' : ''}`} onClick={() => setMode(m.key)}>{m.label}</button>
         ))}
       </div>
-      <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>{MODES.find((m) => m.key === mode)?.hint}</p>
+      <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>{modeList.find((m) => m.key === mode)?.hint}</p>
 
       {mode !== 'small' && (
         <div style={{ marginTop: 12, background: 'rgba(107,75,192,.04)', border: '1px solid var(--line)', borderRadius: 12, padding: 14 }}>
