@@ -99,6 +99,40 @@ export function PromoPreview({
         </div>
       )}
 
+      {/* Center card — the pop-up that opens on tap for the Small/Center style.
+          Mirrors the app's _center: a rounded card, centred title + body + CTA,
+          with an image (or a gold medal circle when no image is set). */}
+      {displayMode === 'small' && (
+        <>
+          <span className="promo-kind" style={{ marginTop: 16 }}>📱 Center card on tap</span>
+          <div className="promo-phone">
+            <div className="promo-notch" />
+            <div className="promo-screen promo-screen-dim" style={{ alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ ...cardBg, color: txCard, width: '82%', borderRadius: 22, padding: '22px 20px 16px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                position: 'relative', overflow: 'hidden', boxShadow: '0 14px 34px rgba(0,0,0,.38)' }}>
+                {th && <ThemeSkin th={th} hideArt={!!image} />}
+                {image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={image} alt="" style={{ position: 'relative', zIndex: 4,
+                    width: imageStyle === 'portrait' ? 118 : '100%',
+                    height: imageStyle === 'portrait' ? 156 : 104,
+                    objectFit: 'cover', borderRadius: 14, marginBottom: 12 }} />
+                ) : (
+                  <div style={{ position: 'relative', zIndex: 4, width: 58, height: 58, borderRadius: '50%',
+                    display: 'grid', placeItems: 'center', marginBottom: 12, fontSize: 28,
+                    background: 'linear-gradient(135deg,#f5c542,#e0a422)' }}>✨</div>
+                )}
+                <strong style={{ position: 'relative', zIndex: 4, color: th ? head : txCard, fontSize: 18, lineHeight: 1.2 }}>{title || 'Your title appears here'}</strong>
+                <p style={{ position: 'relative', zIndex: 4, color: txCard, opacity: 0.9, fontSize: 12.5, margin: '7px 0 0', lineHeight: 1.35 }}>{body || 'Your message / description appears here.'}</p>
+                {code && <span className="promo-code" style={{ position: 'relative', zIndex: 4, marginTop: 12, color: txCard, borderColor: th ? th.edge : undefined }}>{code}</span>}
+                <span className="promo-cta" style={{ position: 'relative', zIndex: 4, marginTop: 16, alignSelf: 'stretch', textAlign: 'center' }}>{cta || 'View offer'}</span>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Landing view — phone-frame mockup of what opens on tap */}
       {landing && (
         <>
