@@ -334,8 +334,15 @@ class CatalogRepository {
       .limit(50)
       .snapshots()
       .map((s) {
+        // Order by the portal's displayOrder when set, but fall back to amount
+        // ascending (smallest → largest) when displayOrder is unset/equal — the
+        // portal doesn't expose displayOrder, so without this fallback newly
+        // created plans render in a random order.
         final list = s.docs.map((d) => RechargePlan.fromMap(d.id, d.data())).toList()
-          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+          ..sort((a, b) {
+            final byOrder = a.displayOrder.compareTo(b.displayOrder);
+            return byOrder != 0 ? byOrder : a.amount.compareTo(b.amount);
+          });
         return list;
       });
 
