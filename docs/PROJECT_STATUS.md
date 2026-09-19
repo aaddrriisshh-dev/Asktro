@@ -370,8 +370,16 @@ rows.
   in BOTH strings.xml and Info.plist with the real client token (Meta → Settings →
   Advanced → Client Token); (2) `flutter pub get` to resolve facebook_app_events
   (bump the version if it doesn't resolve). Rides the 3.0.1 build.
-- ⏳ Astrologer-list deep-link routes go live in 3.0.1; profile-setup data
-  quality; plus anything else the founder names.
+- ✅ **Profile-setup data quality** (2026-09-19). No more silent fake defaults:
+  the **name** must be ≥2 chars incl. a letter (Latin or Devanagari) — "1"/"."
+  rejected; the **birth date** is not accepted until the user actually scrolls
+  the wheel (kills the silent 15 Jun 1995 default); the **birth time** stays
+  optional but must be a conscious choice — set a time OR tick "I don't know."
+  Continue stays disabled with a visible hint until each is done
+  (`profile_setup_screen.dart`: `_dateTouched`/`_timeTouched`, `_isValidName`,
+  `_canProceed` cases 0/2/3). Onboarding-only; existing users unaffected. Rides 3.0.1.
+- ⏳ Astrologer-list deep-link routes go live in 3.0.1; plus anything else the
+  founder names.
 
 ## 4. Founder decisions on the record
 

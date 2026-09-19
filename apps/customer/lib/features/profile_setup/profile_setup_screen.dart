@@ -38,6 +38,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final TextEditingController _referral = TextEditingController();
   String? _gender;
   DateTime _birthDate = DateTime(1995, 6, 15);
+  // Data quality: the wheels show a default position, but we don't accept the
+  // birth date / time until the user actually SETS it (scrolls a wheel) or, for
+  // time, ticks "I don't know". Prevents a silent 15 Jun 1995 / 10:30 PM default
+  // from being saved as real birth data.
+  bool _dateTouched = false;
+  bool _timeTouched = false;
   int _hour = 10;
   int _minute = 30;
   bool _pm = true;
@@ -69,12 +75,36 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     }
   }
 
+  /// A real name: at least 2 characters after trimming AND contains a letter,
+  /// so "12", "..", or blank spaces are rejected — but real names (incl. short
+  /// single names / initials) still pass.
+  static bool _isValidName(String raw) {
+    final n = raw.trim();
+    // Latin OR Devanagari letter (non-raw string so the \u escapes resolve).
+    return n.length >= 2 && RegExp('[A-Za-zऀ-ॿ]').hasMatch(n);
+  }
+
+  void _markDateTouched() {
+    if (!_dateTouched) setState(() => _dateTouched = true);
+  }
+
+  void _markTimeTouched() {
+    if (!_timeTouched) setState(() => _timeTouched = true);
+  }
+
   bool get _canProceed {
     switch (_step) {
       case 0:
-        return _name.text.trim().isNotEmpty;
+        return _isValidName(_name.text);
       case 1:
         return _gender != null;
+      case 2:
+        // Must actually set a birth date (no silent 15 Jun 1995 default).
+        return _dateTouched;
+      case 3:
+        // Birth time is optional, but must be a conscious choice: either set a
+        // time, or tick "I don't know my exact time of birth".
+        return _timeTouched || _timeUnknown;
       case 4:
         // Require a PICKED place with coordinates (not free-typed text): the
         // chart needs lat/lng, and the router gate treats coordinates as an
@@ -529,6 +559,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               _WheelSpec(count: 2010 - 1920 + 1, initial: _birthDate.year - 1920, label: (i) => '${1920 + i}', onChanged: (i) => _syncDate(year: 1920 + i)),
             ],
           ),
+          if (!_dateTouched) ...[
+            const SizedBox(height: 14),
+            Text('Scroll the wheels to set your birth date.',
+                style: Ob.note.copyWith(color: Ob.purple)),
+          ],
         ],
       ),
       footer: _footer('Next'),
@@ -541,6 +576,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final d = day ?? _birthDate.day;
     final lastDay = DateTime(y, m + 1, 0).day;
     _birthDate = DateTime(y, m, d > lastDay ? lastDay : d);
+    _markDateTouched();
   }
 
   // ----------------------------------------------------------- step: time --
@@ -564,15 +600,20 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 headerLabel: 'Enter your birth time',
                 bottomLabels: const ['Hour', 'Minute', 'AM / PM'],
                 columns: [
-                  _WheelSpec(count: 12, initial: _hour - 1, label: (i) => (i + 1).toString().padLeft(2, '0'), onChanged: (i) => _hour = i + 1),
-                  _WheelSpec(count: 60, initial: _minute, label: (i) => i.toString().padLeft(2, '0'), onChanged: (i) => _minute = i),
-                  _WheelSpec(count: 2, initial: _pm ? 1 : 0, label: (i) => i == 0 ? 'AM' : 'PM', onChanged: (i) => _pm = i == 1),
+                  _WheelSpec(count: 12, initial: _hour - 1, label: (i) => (i + 1).toString().padLeft(2, '0'), onChanged: (i) { _hour = i + 1; _markTimeTouched(); }),
+                  _WheelSpec(count: 60, initial: _minute, label: (i) => i.toString().padLeft(2, '0'), onChanged: (i) { _minute = i; _markTimeTouched(); }),
+                  _WheelSpec(count: 2, initial: _pm ? 1 : 0, label: (i) => i == 0 ? 'AM' : 'PM', onChanged: (i) { _pm = i == 1; _markTimeTouched(); }),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 18),
           _unknownTimeCard(),
+          if (!_timeTouched && !_timeUnknown) ...[
+            const SizedBox(height: 12),
+            Text('Set your birth time above, or tick the box if you don\'t know it.',
+                style: Ob.note.copyWith(color: Ob.purple)),
+          ],
         ],
       ),
       footer: _footer('Next'),
