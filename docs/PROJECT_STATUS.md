@@ -334,7 +334,21 @@ quality; plus anything else the founder names.
 - Meta/Facebook: founder sent the single **production key hash** + app icon
   (key hash is public, not a secret; does not break login).
 
-## 4b. ROOT CAUSE CONFIRMED (2026-09-18) — free-AI-reply farming — fix queued to V4
+## 4b. FIX WRITTEN (2026-09-19), pending deploy — free-AI-reply farming
+
+**UPDATE 2026-09-19:** the balance gate is now written in `ai/replyEngine.ts`
+(`onAiChatMessage`) and pushed to the branch — before any chart/LLM work it
+computes spendable (wallet + bonus + eligible chatBonus, exactly like
+`createConsultation`) and, if ≤ 0 and no grace left, posts a "recharge to
+continue" line instead of generating a free reply. New users still get answered
+(welcome credit keeps spendable > 0). This is the WALL that makes any free-window
+tuning actually work. **Deploy:** one function —
+`firebase deploy --only functions:onAiChatMessage` from the Mac (see §6). Founder
+also chose to turn OFF the +1 grace minute now (portal Pricing → "Grace minutes
+(at zero balance)" → 0); the ₹27 welcome-credit decision is deferred a couple of
+days. Original diagnosis below.
+
+
 
 **Reported by founder:** customers are misusing the welcome free credits. They
 **open new AI chats repeatedly** and each new chat hands out a free reply, so

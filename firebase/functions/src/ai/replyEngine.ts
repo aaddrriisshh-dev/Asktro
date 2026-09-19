@@ -163,6 +163,27 @@ export const onAiChatMessage = onDocumentCreated(
           'Our AI astrologer is taking a short rest right now 🙏 Please try again a little later, or consult one of our expert astrologers.');
         return;
       }
+      // 1b) PAID GATE — AI too. Previously AI replies were generated with NO
+      //    balance check, so a user who had spent their free credit could keep
+      //    getting free readings by opening new chats. Gate the reply on real
+      //    spendable balance, computed EXACTLY like createConsultation
+      //    (wallet + any-type bonus + chat-only welcome credit on an eligible
+      //    chat). Once that (and the one-time grace, IF still enabled in config)
+      //    is gone, ask them to recharge instead of answering. New users are
+      //    unaffected: their welcome credit keeps spendable > 0.
+      const walletPaise = Number(user.walletBalance ?? 0);
+      const anyBonusPaise = Number(user.bonusBalance ?? 0);
+      const chatCreditEligible = c.chatCreditEligible === true;
+      const chatBonusPaise = chatCreditEligible ? Number(user.chatBonusBalance ?? 0) : 0;
+      const spendablePaise = walletPaise + anyBonusPaise + chatBonusPaise;
+      const graceMinutesCfg = Number(cfgAny.graceMinutes ?? 0) || 0;
+      const graceStillAvailable =
+        chatCreditEligible && graceMinutesCfg > 0 && user.chatGraceUsed !== true;
+      if (spendablePaise <= 0 && !graceStillAvailable) {
+        await writeAstro(consultationId, c.astrologerId as string,
+          'To continue your reading, please recharge your wallet 🙏 Add a little balance and we can pick up right where we left off.');
+        return;
+      }
       // 2) Per-user daily free-message cap (`aiDailyMessageCap`; 0 or absent =
       //    unlimited). Guards against a runaway bill at scale.
       const dailyCap = Number(cfgAny.aiDailyMessageCap ?? 0) || 0;
