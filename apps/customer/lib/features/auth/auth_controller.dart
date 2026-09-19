@@ -28,10 +28,22 @@ class AuthController {
     await _auth.verifyPhoneNumber(
       phoneNumber: e164Phone,
       forceResendingToken: resendToken,
+      // Android auto-retrieves the SMS code and fires this a split-second after
+      // sign-in. Everything here can fail on a real device (invalid auto code,
+      // token not yet propagated → Firestore permission-denied, transient
+      // "unavailable"); without this guard those became fatal crashes on the
+      // signup path. Route any failure to onError so the user just sees a
+      // message and can retry, exactly like the manual code path.
       verificationCompleted: (cred) async {
-        final userCred = await _auth.signInWithCredential(cred);
-        await _ensureProfile(userCred, phone: e164Phone);
-        onAutoVerified(userCred);
+        try {
+          final userCred = await _auth.signInWithCredential(cred);
+          await _ensureProfile(userCred, phone: e164Phone);
+          onAutoVerified(userCred);
+        } on FirebaseAuthException catch (e) {
+          onError(Failure(message: e.message ?? 'Verification failed', code: e.code));
+        } catch (e) {
+          onError(Failure.unknown(e));
+        }
       },
       verificationFailed: (e) =>
           onError(Failure(message: e.message ?? 'Verification failed', code: e.code)),
@@ -108,6 +120,13 @@ class AuthController {
   Future<void> _ensureProfile(UserCredential cred, {required String phone, String? name, String? email}) async {
     final uid = cred.user?.uid;
     if (uid == null) return;
+    // Make sure the freshly-minted auth token is available to the Firestore
+    // client before the first profile write (ensureProfile also retries). On the
+    // fast auto-verify path the write could otherwise fire before the token
+    // propagated and be rejected as permission-denied. Best-effort.
+    try {
+      await cred.user?.getIdToken();
+    } catch (_) {/* non-fatal; the write retry covers a slow token */}
     // Guarantee a base account doc exists (money fields zeroed; onCustomerSignup
     // backfills the referral code + welcome bonus). The astrology DETAILS are no
     // longer collected before login — profile setup runs AFTER sign-in and writes

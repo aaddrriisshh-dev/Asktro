@@ -482,9 +482,22 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     )) {
       return;
     }
-    final right = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
-    if (right == null) return;
-    await _stageBytes(await right.readAsBytes());
+    // Opening the camera can throw on a real device (permission denied, no camera,
+    // OEM camera app error). Catch it so the palm flow never crashes; guide the
+    // user instead.
+    // Opening the camera AND reading the photo bytes can both throw on a real
+    // device (permission denied, no camera, OEM error, file read failure). Keep
+    // both inside the guard so the palm flow never crashes; guide the user.
+    Uint8List? rightBytes;
+    try {
+      final right = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
+      if (right == null) return;
+      rightBytes = await right.readAsBytes();
+    } catch (_) {
+      if (mounted) _toast('Camera unavailable — please allow camera access to scan your palm.');
+      return;
+    }
+    await _stageBytes(rightBytes);
     if (!mounted) return;
 
     if (await _palmPrompt(
@@ -493,8 +506,12 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
       'Take left hand',
       'Send with right only',
     )) {
-      final left = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
-      if (left != null) await _stageBytes(await left.readAsBytes());
+      try {
+        final left = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
+        if (left != null) await _stageBytes(await left.readAsBytes());
+      } catch (_) {
+        if (mounted) _toast('Camera unavailable — sending your right-hand reading.');
+      }
     }
   }
 
@@ -702,13 +719,14 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   }
 
   Future<void> _showPaused() async {
+    if (!mounted) return; // screen already gone — nothing to show, never crash
     _pausedShown = true;
     // A CENTERED dialog (not a bottom sheet) so the buttons never fall into the
     // phone's bottom gesture-bar / safe area and become un-tappable.
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => Dialog(
+      builder: (dialogCtx) => Dialog(
         insetPadding: const EdgeInsets.all(AppSpacing.xl),
         backgroundColor: AppColors.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.dialog)),
@@ -727,7 +745,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
               PrimaryButton(
                 label: 'Recharge',
                 onPressed: () {
-                  Navigator.pop(context);
+                  Navigator.pop(dialogCtx); // close via the dialog's own context
                   _goRecharge();
                 },
               ),
@@ -735,7 +753,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
               SecondaryButton(
                 label: 'End Consultation',
                 onPressed: () {
-                  Navigator.pop(context);
+                  Navigator.pop(dialogCtx);
                   _end();
                 },
               ),

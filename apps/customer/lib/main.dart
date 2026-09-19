@@ -81,15 +81,27 @@ Future<void> _startup() async {
     }
   }
 
-  // Route Flutter + async errors to Crashlytics (Part 7). A RenderFlex/render
-  // overflow is a layout warning, not a crash — record it NON-fatal so a stray
-  // few-pixel overflow never counts against crash-free users; else fatal.
+  // Route Flutter + async errors to Crashlytics (Part 7). Some conditions are
+  // recoverable on real devices and must NOT count as crashes against crash-free
+  // users (the app keeps running through them). We still record them so trends
+  // stay visible, just non-fatal:
+  //  - a RenderFlex/render overflow (a layout warning, not a crash);
+  //  - a Google-Fonts runtime fetch that failed on a weak network — the app
+  //    falls back to the system font and carries on (bundle the fonts to remove
+  //    this entirely, see docs);
+  //  - a cached-image file the OS reclaimed from the cache dir — the image just
+  //    doesn't render.
+  bool isNonFatal(String msg) =>
+      msg.contains('overflowed') ||
+      msg.contains('Failed to load font') ||
+      (msg.contains('PathNotFoundException') &&
+          (msg.contains('CachedImageData') || msg.contains('libCachedImageData')));
   FlutterError.onError = (FlutterErrorDetails details) {
-    final isOverflow = details.exception.toString().contains('overflowed');
-    FirebaseCrashlytics.instance.recordFlutterError(details, fatal: !isOverflow);
+    FirebaseCrashlytics.instance
+        .recordFlutterError(details, fatal: !isNonFatal(details.exception.toString()));
   };
   PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: !isNonFatal(error.toString()));
     return true;
   };
 

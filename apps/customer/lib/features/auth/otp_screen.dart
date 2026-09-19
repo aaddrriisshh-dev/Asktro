@@ -115,23 +115,28 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
       _error = null;
       _code.clear();
     });
-    await ref.read(authControllerProvider).startPhoneVerification(
-      e164Phone: widget.args.phone,
-      resendToken: _resendToken,
-      codeSent: (id, token) {
-        setState(() {
-          _verificationId = id;
-          _resendToken = token;
-        });
-        _startCountdown();
-        _focus.requestFocus();
-      },
-      // Android may instant-verify without a visible code — treat it as success.
-      onAutoVerified: (_) {
-        if (mounted) context.go('/home');
-      },
-      onError: (f) => setState(() => _error = f.message),
-    );
+    try {
+      await ref.read(authControllerProvider).startPhoneVerification(
+        e164Phone: widget.args.phone,
+        resendToken: _resendToken,
+        codeSent: (id, token) {
+          setState(() {
+            _verificationId = id;
+            _resendToken = token;
+          });
+          _startCountdown();
+          _focus.requestFocus();
+        },
+        // Android may instant-verify without a visible code — treat it as success.
+        onAutoVerified: (_) {
+          if (mounted) context.go('/home');
+        },
+        onError: (f) => setState(() => _error = f.message),
+      );
+    } catch (_) {
+      // A raw SDK/transport throw from verifyPhoneNumber must not crash resend.
+      if (mounted) setState(() => _error = 'Could not resend the code. Please try again.');
+    }
   }
 
   @override

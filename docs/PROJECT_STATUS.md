@@ -269,6 +269,64 @@ Long push to make every customer number real and consistent. Now LIVE:
   visible "Refreshed Xs ago" badge; Customer Management is real-time (Firestore
   listeners).
 
+## 3h. 3.0.1 crash-hardening (2026-09-19) — DONE ON BRANCH, needs app build
+
+Live v3.0.0 crash-free was ~81% (small cold sample: ~35 brand-new Meta-ad
+installs on Sept 18, cheap Androids on weak networks). Root theme of ALL
+crashes: the app did something that can fail (network, login, file, permission,
+cached file) with no safety net, so a failure became a fatal crash. 8 distinct
+issues → fixed as 5 changes on `claude/asktro-session-handoff-o1ggo8` (app code;
+takes effect only when 3.0.1 is built):
+
+- **Fonts + cached-image (crashes 1, 6, 8)** — `main.dart`: reclassify Google-Fonts
+  runtime-fetch failures and reclaimed-cache-file `PathNotFoundException` as
+  NON-fatal (the app already survives them; they were mis-counted as crashes).
+  Proper follow-up: bundle the 3 fonts (Cormorant Garamond, Noto Serif, Poppins)
+  to remove the fetch entirely — needs the .ttf files added.
+- **Signup auto-verify (crashes 2, 4, 5 — the critical one, 17+ users)** — the
+  Android instant-verify path (`auth_controller.dart verificationCompleted`) had
+  no try/catch, so permission-denied / invalid-code / unavailable became fatal on
+  the SIGNUP funnel. Now wrapped → routes to onError. Plus the underlying race
+  fix: `getIdToken()` before the first profile write + `repositories.dart`
+  `ensureProfile` retries once on `permission-denied`/`unavailable`.
+- **Paused-chat dialog (crash 3)** — `chat_consultation_screen.dart _showPaused`:
+  close via the dialog's own context + `mounted` guard (was `Navigator.pop` on a
+  disposed State context).
+- **Camera-denied on palm scan (crash 7)** — `_scanPalm`: pickImage + readAsBytes
+  wrapped so a denied camera can't crash a live chat.
+- **Extra from audit:** `router.dart` `/otp` hard cast `s.extra as OtpArgs` →
+  null-safe (crashed on deep-link/process-death; also the notification-tap risk);
+  `otp_screen.dart _resend` startPhoneVerification wrapped.
+
+**Audit result (whole customer app, 2026-09-19):** payment cancel/fail is ALREADY
+handled gracefully (no crash), notification-taps are safe, DB reads use `?? default`
+(missing-field safe), nav uses `if (!mounted)` consistently. Left untouched on
+purpose: kundali `_isoOf` unwraps (guarded by caller, not in crash data — avoid
+touching a working paid flow); recharge `_onSuccess` silent-return when
+order/plan null is a money-correctness note (no webhook backstop), NOT a crash —
+flag for discussion.
+
+**Versioning decision (founder, 2026-09-19):** two piles. Backend/portal = no
+version, deploy anytime. App builds = version bump; small changes ship as a patch
+(3.0.1), not one giant "V4". Version numbers are free; each Play submission is the
+real cost, so batch ready app changes into a patch.
+
+**Guest question (answered 2026-09-19):** there is NO anonymous/guest login
+(`signInAnonymously` does not exist). "Guest" is the DEFAULT NAME written by
+`ensureProfile` when a phone is verified but profile setup isn't finished. The
+router hard-gates incomplete users at `/setup` (they can't reach the app). So the
+"4-5 guests" are abandoned signups (verified number, bailed at setup), not a
+loophole. Optional tightening (discuss): don't default the name to 'Guest' / don't
+create the base doc until setup completes, so the DB stops accumulating 'Guest'
+rows.
+
+**3.0.1 queue (to discuss, then batch with the crash fixes):** remove the +1
+grace minute ("on the house"); push small-card removal + why its CTAs failed +
+verify the half/centered card fits title+body+CTA; Facebook SDK install (App ID
+1332308082114721; events: registration, purchase w/ value, add-payment-info);
+astrologer-list deep-link routes; small-card render removal; profile-setup data
+quality; plus anything else the founder names.
+
 ## 4. Founder decisions on the record
 
 - Welcome popup "fades on a stray tap" → founder **chose NOT to fix** (declined).

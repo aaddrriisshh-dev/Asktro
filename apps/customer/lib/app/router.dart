@@ -125,7 +125,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/otp',
         builder: (_, s) {
-          final args = s.extra as OtpArgs;
+          // `extra` is null if /otp is reached without phone context (a deep
+          // link, or a route restored after process death). A hard cast crashed
+          // there; fall back to login instead.
+          final args = s.extra as OtpArgs?;
+          if (args == null) return const LoginScreen();
           return OtpScreen(args: args);
         },
       ),

@@ -219,13 +219,38 @@ class UserRepository {
         (d) => d.exists ? UserProfile.fromMap(d.id, d.data() ?? const {}) : null,
       );
 
+  /// Public entry: create/merge the profile, retrying once on the two transient
+  /// failures that hit the very first write on a real device — the freshly
+  /// minted auth token not yet propagated to the Firestore client (the rules
+  /// correctly reject that as `permission-denied`, worst on the fast Android
+  /// auto-verify path) and a network-blip `unavailable`. Without this, those
+  /// surfaced as fatal crashes / stuck signups (Crashlytics 3.0.0).
+  Future<void> ensureProfile(
+    String uid, {
+    required String phone,
+    String? name,
+    String? email,
+    Map<String, dynamic>? profile,
+  }) async {
+    try {
+      await _ensureProfileOnce(uid, phone: phone, name: name, email: email, profile: profile);
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied' || e.code == 'unavailable') {
+        await Future<void>.delayed(const Duration(milliseconds: 700));
+        await _ensureProfileOnce(uid, phone: phone, name: name, email: email, profile: profile);
+      } else {
+        rethrow;
+      }
+    }
+  }
+
   /// Create the profile doc exactly once, in a SINGLE write that also includes
   /// the onboarding details collected before login ([profile]: name, gender,
   /// birth details, languages). Doing it in one create avoids the old race where
   /// a separate "flush" write competed with this one and could wipe the name to
   /// 'Guest' or be denied by the create rule. Money fields MUST start at zero
   /// (enforced by security rules); onCustomerSignup backfills the referral code.
-  Future<void> ensureProfile(
+  Future<void> _ensureProfileOnce(
     String uid, {
     required String phone,
     String? name,
