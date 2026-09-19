@@ -358,9 +358,20 @@ rows.
   Plans page too. **Portal parts deploy via Vercel; the app hide-filter rides the
   3.0.1 build** — so don't publish a new welcome offer as *live* until 3.0.1 ships,
   or it would leak into the recharge grid on the current app.
-- ⏳ Facebook SDK install (App ID 1332308082114721; events: registration,
-  purchase w/ value, add-payment-info); astrologer-list deep-link routes go live
-  in 3.0.1; profile-setup data quality; plus anything else the founder names.
+- ✅ **Facebook (Meta) SDK / App Events wired** (2026-09-19). Added
+  `facebook_app_events` + a `FacebookEvents` service (`data/facebook_events.dart`,
+  `facebookEventsProvider`). Three standard events fire: **Complete registration**
+  (profile-setup done), **Add payment info** (Razorpay checkout opens),
+  **Purchase** with ₹ value (server-verified recharge success). Native config:
+  Android `res/values/strings.xml` (facebook_app_id 1332308082114721 +
+  client-token placeholder) + AndroidManifest meta-data; iOS Info.plist
+  (FacebookAppID/ClientToken/DisplayName + URL scheme fb1332308082114721).
+  **BLOCKERS before the 3.0.1 build:** (1) replace `PASTE_FACEBOOK_CLIENT_TOKEN_HERE`
+  in BOTH strings.xml and Info.plist with the real client token (Meta → Settings →
+  Advanced → Client Token); (2) `flutter pub get` to resolve facebook_app_events
+  (bump the version if it doesn't resolve). Rides the 3.0.1 build.
+- ⏳ Astrologer-list deep-link routes go live in 3.0.1; profile-setup data
+  quality; plus anything else the founder names.
 
 ## 4. Founder decisions on the record
 

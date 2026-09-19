@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/consultation_service_impl.dart';
 import '../data/wallet_service_impl.dart';
 import '../data/rtc_token_service_impl.dart';
+import '../data/facebook_events.dart';
 import '../data/repositories.dart';
 import '../data/messaging_service.dart';
 import '../data/prokerala_service.dart';
@@ -91,6 +92,8 @@ final analyticsProvider = Provider<AnalyticsService>(
 final messagingServiceProvider = Provider<MessagingService>(
   (ref) => MessagingService(FirebaseMessaging.instance, ref.watch(userRepositoryProvider)),
 );
+// Meta (Facebook) app events — ad measurement (registration/purchase/add-payment).
+final facebookEventsProvider = Provider<FacebookEvents>((_) => FacebookEvents());
 
 // ---- Current user's profile (realtime) ----
 final myProfileProvider = StreamProvider<UserProfile?>((ref) {

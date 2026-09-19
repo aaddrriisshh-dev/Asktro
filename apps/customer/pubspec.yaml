@@ -29,6 +29,10 @@ dependencies:
   cloud_functions: ^5.1.3
   firebase_analytics: ^11.3.3
   firebase_crashlytics: ^4.1.3
+  # Meta (Facebook) app events — ad measurement (registration, purchase,
+  # add-payment-info). Native config (App ID + client token) lives in
+  # AndroidManifest.xml and iOS Info.plist.
+  facebook_app_events: ^0.19.2
 
   # Auth providers
   google_sign_in: ^6.2.1

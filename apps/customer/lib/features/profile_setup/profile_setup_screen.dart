@@ -135,6 +135,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     if (!mounted) return;
     if (ok) {
       ref.read(analyticsProvider).logEvent('profile_setup_complete');
+      // Meta ad event: registration completed (profile setup done).
+      ref.read(facebookEventsProvider).logCompleteRegistration();
       context.go('/home');
     } else {
       setState(() {

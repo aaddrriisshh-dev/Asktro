@@ -74,5 +74,29 @@
 	<string>Asktro needs camera access so you can take and share a photo with your astrologer in chat, and for video calls.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Asktro needs microphone access for voice and video calls with your astrologer.</string>
+	<!-- Meta (Facebook) App Events. The App ID is public; the client token is
+	     required for the SDK. Get the client token from Meta App Dashboard →
+	     Settings → Advanced → Client Token, and REPLACE the placeholder below
+	     before building 3.0.1 for iOS. -->
+	<key>FacebookAppID</key>
+	<string>1332308082114721</string>
+	<key>FacebookClientToken</key>
+	<string>PASTE_FACEBOOK_CLIENT_TOKEN_HERE</string>
+	<key>FacebookDisplayName</key>
+	<string>Asktro</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb1332308082114721</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
+	</array>
 </dict>
 </plist>

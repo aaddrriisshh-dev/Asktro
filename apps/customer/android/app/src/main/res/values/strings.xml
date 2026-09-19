@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Meta (Facebook) App Events config. The App ID is public; the client token
+         is required for the SDK to log events. Get the client token from:
+         Meta App Dashboard → Settings → Advanced → Client Token.
+         REPLACE the placeholder below before building 3.0.1. -->
+    <string name="facebook_app_id">1332308082114721</string>
+    <string name="facebook_client_token">PASTE_FACEBOOK_CLIENT_TOKEN_HERE</string>
+    <string name="fb_login_protocol_scheme">fb1332308082114721</string>
+</resources>

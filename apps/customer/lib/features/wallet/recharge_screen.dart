@@ -134,6 +134,8 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
     res.when(
       success: (order) {
         _order = order;
+        // Meta ad event: the user has reached the payment step.
+        ref.read(facebookEventsProvider).logAddPaymentInfo();
         _razorpay.open({
           'key': order.keyId,
           'order_id': order.orderId,
@@ -171,6 +173,8 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
           'planId': plan.id,
           'amount': plan.amount,
         },);
+        // Meta ad event: a real, server-verified purchase (value in rupees).
+        ref.read(facebookEventsProvider).logPurchase(amount: plan.amount / 100.0);
         _showSuccess(plan);
       },
       failure: (f) => _snack(f.message),
