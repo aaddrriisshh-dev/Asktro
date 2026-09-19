@@ -334,7 +334,13 @@ quality; plus anything else the founder names.
 - Meta/Facebook: founder sent the single **production key hash** + app icon
   (key hash is public, not a secret; does not break login).
 
-## 4b. FIX WRITTEN (2026-09-19), pending deploy — free-AI-reply farming
+## 4b. FIXED & LIVE (deployed 2026-09-19) — free-AI-reply farming
+
+**DEPLOYED 2026-09-19:** `onAiChatMessage(asia-south1)` redeployed from the Mac —
+the balance gate is now LIVE. A user with no balance/grace gets a "recharge to
+continue" line instead of a free reply; new users unaffected (welcome credit).
+Grace also turned OFF (portal → graceMinutes 0) and welcome kept at ₹27. Free
+window is now 3 min then the recharge wall. Details below.
 
 **UPDATE 2026-09-19:** the balance gate is now written in `ai/replyEngine.ts`
 (`onAiChatMessage`) and pushed to the branch — before any chart/LLM work it
