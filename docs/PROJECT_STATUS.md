@@ -60,9 +60,24 @@ manually (has ₹1,813 credit buffer).
 
 ---
 
-## 0a. SESSION SNAPSHOT — 2026-09-20 (founder away ~2 days; resume here)
+## 0a. SESSION SNAPSHOT — 2026-09-20 (founder away 24–48h; resume here)
 
 Branch: `claude/asktro-session-handoff-o1ggo8` (all work committed + pushed).
+
+### ▶ WHEN THE FOUNDER RETURNS (do these, in order)
+1. **Facebook Client Token** — founder brings it. Paste it in place of
+   `PASTE_FACEBOOK_CLIENT_TOKEN_HERE` in BOTH
+   `apps/customer/android/app/src/main/res/values/strings.xml` and
+   `apps/customer/ios/Runner/Info.plist`. Commit + push.
+2. **Confirm deploys landed** while away: portal (Vercel), the 5 functions
+   (deleteAccount, processAccountDeletion, reportContent, onChatMessageCreated,
+   onAiChatMessage). Ask founder / check.
+3. **Quick revision** of the whole batch with the founder.
+4. **Build & submit 3.0.1** (Flutter, versionCode 10): `flutter pub get` (pulls
+   facebook_app_events — bump version if it won't resolve), build appbundle,
+   submit to Play. Everything app-side rides this one build.
+5. After 3.0.1 is live: founder turns the **Welcome Offer** Active again + wires
+   it in Home Pop-up; decide on the **₹27 welcome credit**.
 
 ### Deploy state (the batch — 3 surfaces)
 1. **Portal (Vercel)** — founder was mid-redeploy. Latest commits add more portal
