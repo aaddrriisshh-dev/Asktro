@@ -69,8 +69,10 @@ Branch: `claude/asktro-session-handoff-o1ggo8` (all work committed + pushed).
    work, so a final `git pull` + `cd apps/admin && vercel --prod` is needed to
    ship everything below. Portal-only, no app build.
 2. **Cloud Functions (Mac)** — NOT deployed yet. Redeploy (existing fns, no new
-   invoker grant): `deleteAccount`, `processAccountDeletion`, `reportContent`.
-   (`onChatMessageCreated` also changed — deploy it too.) **Safety-checked:
+   invoker grant): `deleteAccount`, `processAccountDeletion`, `reportContent`,
+   `onChatMessageCreated`, and the AI chat trigger (`onAiChatMessage` in
+   `replyEngine.ts` — new bilingual out-of-balance prompt + recharge CTA + dedupe).
+   **Safety-checked:
    backward-compatible, the LIVE 3.0.0 app keeps working** (reason is optional;
    report API unchanged; the rest are background triggers). Deploy one at a time.
 3. **App 3.0.1 build (Flutter)** — everything app-side rides this. Needs the
@@ -90,6 +92,14 @@ Branch: `claude/asktro-session-handoff-o1ggo8` (all work committed + pushed).
   conscious choice).
 - Account-deletion "reason for leaving" prompt.
 - Reporting an astrologer now REQUIRES a reason note.
+- **Out-of-balance chat prompt fix** (root cause of the abuse report): when a
+  user runs out of balance mid-chat, the prompt now shows **"View offers" +
+  "Recharge now"** buttons (was a dead-end message → user got frustrated →
+  reported the astrologer). New bilingual message, sent once. New portal
+  **"In-chat Offers"** page (planType 'inchat') feeds the "View offers" list
+  ("Pay ₹50 → +₹100 extra → ₹150"); if none active it opens normal recharge.
+  Backend = replyEngine; app = chat CTA + /recharge?offers=inchat (rides 3.0.1);
+  portal = In-chat Offers manager (deploys via Vercel).
 
 ### Portal — full audit of every left-menu page (2026-09-20)
 Result: **everything is wired to real Firestore/callables — no stubs.** Fixed this
