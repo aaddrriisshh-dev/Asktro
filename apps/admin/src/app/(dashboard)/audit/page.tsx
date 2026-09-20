@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { orderBy, limit } from 'firebase/firestore';
 import { useCollection, useNamesByIds, callFn, Row } from '@/lib/hooks';
+import { DateFilter } from '@/components/DateFilter';
+import { Preset, resolveRange } from '@/lib/dateRange';
 import { formatDate } from '@/lib/format';
 import { downloadCSV } from '@/lib/csv';
 
@@ -86,12 +88,6 @@ function dayKey(m: number): string {
   return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-const RANGES = [
-  { key: 'today', label: 'Today', ms: 24 * 3600e3 },
-  { key: '7d', label: '7 days', ms: 7 * 24 * 3600e3 },
-  { key: '30d', label: '30 days', ms: 30 * 24 * 3600e3 },
-  { key: 'all', label: 'All time', ms: Infinity },
-] as const;
 
 function Stat({ color, icon, label, value, foot, onClick, active }: { color: string; icon: string; label: string; value: string; foot?: string; onClick?: () => void; active?: boolean }) {
   return (
@@ -202,25 +198,28 @@ export default function AuditPage() {
   };
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<'all' | Cat>('all');
-  const [rangeKey, setRangeKey] = useState<(typeof RANGES)[number]['key']>('7d');
+  const [preset, setPreset] = useState<Preset>('last7');
+  const [custom, setCustom] = useState<{ start?: string; end?: string }>({});
   const [actor, setActor] = useState('all');
-  const [sensOnly, setSensOnly] = useState(false);
+  const [special, setSpecial] = useState<'none' | 'sensitive' | 'payout'>('none');
+  const isPayout = (action: string) => /payout/i.test(action);
 
   const admins = useMemo(() => Array.from(new Set(rows.map((r) => (r.actorName as string) || 'Admin'))).sort(), [rows]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    const win = RANGES.find((r) => r.key === rangeKey)!.ms;
-    const now = Date.now();
+    const range = resolveRange(preset, custom);
     return rows.filter((r) => {
-      if (win !== Infinity && now - ms(r.createdAt) > win) return false;
+      const t = ms(r.createdAt);
+      if (t < range.start || t >= range.end) return false;
       if (cat !== 'all' && classify(String(r.action ?? '')).cat !== cat) return false;
       if (actor !== 'all' && ((r.actorName as string) || 'Admin') !== actor) return false;
-      if (sensOnly && !SENSITIVE.has(String(r.action ?? ''))) return false;
+      if (special === 'sensitive' && !SENSITIVE.has(String(r.action ?? ''))) return false;
+      if (special === 'payout' && !isPayout(String(r.action ?? ''))) return false;
       if (s && ![r.action, r.actorName, r.actorUid, r.targetType, r.targetId].some((v) => String(v ?? '').toLowerCase().includes(s))) return false;
       return true;
     });
-  }, [rows, q, cat, rangeKey, actor, sensOnly]);
+  }, [rows, q, cat, preset, custom, actor, special]);
 
   const kpis = useMemo(() => {
     const now = Date.now();
@@ -228,11 +227,16 @@ export default function AuditPage() {
     const week = rows.filter((r) => now - ms(r.createdAt) < 7 * 24 * 3600e3);
     const sensitive = week.filter((r) => SENSITIVE.has(String(r.action ?? '')));
     const money = week.filter((r) => classify(String(r.action ?? '')).cat === 'money');
+    const payout = rows.filter((r) => isPayout(String(r.action ?? ''))); // all-time; payouts are rare
     const byAdmin = new Map<string, number>();
     week.forEach((r) => { const n = (r.actorName as string) || 'Admin'; byAdmin.set(n, (byAdmin.get(n) ?? 0) + 1); });
     const top = [...byAdmin.entries()].sort((a, b) => b[1] - a[1])[0];
-    return { today: today.length, week: week.length, sensitive: sensitive.length, money: money.length, top };
+    return { today: today.length, week: week.length, sensitive: sensitive.length, money: money.length, payout: payout.length, top };
   }, [rows]);
+
+  // Is a card-driven filter active? (used to show a clear "showing X" banner)
+  const cardActive = special !== 'none' || cat !== 'all' || actor !== 'all';
+  const clearCard = () => { setSpecial('none'); setCat('all'); setActor('all'); };
 
   const groups = useMemo(() => {
     const map = new Map<string, Row[]>();
@@ -271,18 +275,20 @@ export default function AuditPage() {
         </div>
       </div>
 
-      {/* KPI panel */}
+      {/* KPI panel — tap a card to see those exact records below */}
       <div className="grid dashgrid" style={{ marginTop: 16 }}>
-        <Stat color="gold" icon="⚡" label="Actions today" value={String(kpis.today)} foot="last 24h"
-          onClick={() => { setRangeKey('today'); setCat('all'); setSensOnly(false); setActor('all'); }} active={rangeKey === 'today'} />
-        <Stat color="purple" icon="🗓" label="Actions this week" value={String(kpis.week)} foot="last 7 days"
-          onClick={() => { setRangeKey('7d'); setCat('all'); setSensOnly(false); setActor('all'); }} active={rangeKey === '7d' && cat === 'all' && !sensOnly && actor === 'all'} />
-        <Stat color="rose" icon="🛡" label="Sensitive actions" value={String(kpis.sensitive)} foot="approvals · roles · payouts · deletes"
-          onClick={() => { setSensOnly(true); setRangeKey('7d'); setCat('all'); }} active={sensOnly} />
-        <Stat color="green" icon="₹" label="Money actions" value={String(kpis.money)} foot="credits · debits · payouts"
-          onClick={() => { setCat('money'); setRangeKey('7d'); setSensOnly(false); }} active={cat === 'money'} />
-        <Stat color="blue" icon="👑" label="Most active admin" value={kpis.top ? kpis.top[0] : '—'} foot={kpis.top ? `${kpis.top[1]} actions` : 'this week'}
-          onClick={() => { if (kpis.top) { setActor(kpis.top[0]); setRangeKey('7d'); } }} active={!!kpis.top && actor === kpis.top[0]} />
+        <Stat color="gold" icon="⚡" label="Actions today" value={String(kpis.today)} foot="last 24h · tap to view"
+          onClick={() => { setPreset('today'); setCat('all'); setSpecial('none'); setActor('all'); }} active={preset === 'today' && !cardActive} />
+        <Stat color="purple" icon="🗓" label="Actions this week" value={String(kpis.week)} foot="last 7 days · tap to view"
+          onClick={() => { setPreset('last7'); setCat('all'); setSpecial('none'); setActor('all'); }} active={preset === 'last7' && !cardActive} />
+        <Stat color="rose" icon="🛡" label="Sensitive actions" value={String(kpis.sensitive)} foot="roles · deletes · payouts · tap to view"
+          onClick={() => { setSpecial('sensitive'); setPreset('last7'); setCat('all'); setActor('all'); }} active={special === 'sensitive'} />
+        <Stat color="green" icon="₹" label="Money actions" value={String(kpis.money)} foot="credits · debits · refunds · tap to view"
+          onClick={() => { setCat('money'); setPreset('last7'); setSpecial('none'); setActor('all'); }} active={cat === 'money' && special === 'none'} />
+        <Stat color="amber" icon="💸" label="Payouts" value={String(kpis.payout)} foot="all time · tap to view"
+          onClick={() => { setSpecial('payout'); setPreset('allTime'); setCat('all'); setActor('all'); }} active={special === 'payout'} />
+        <Stat color="blue" icon="👑" label="Most active admin" value={kpis.top ? kpis.top[0] : '—'} foot={kpis.top ? `${kpis.top[1]} actions · tap to view` : 'this week'}
+          onClick={() => { if (kpis.top) { setActor(kpis.top[0]); setPreset('last7'); setSpecial('none'); setCat('all'); } }} active={!!kpis.top && actor === kpis.top[0]} />
       </div>
 
       {/* Filters */}
@@ -300,9 +306,7 @@ export default function AuditPage() {
               <option value="all">All admins</option>
               {admins.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
-            <div className="pickrow">
-              {RANGES.map((r) => <button key={r.key} type="button" className={`pickchip${rangeKey === r.key ? ' on' : ''}`} onClick={() => setRangeKey(r.key)}>{r.label}</button>)}
-            </div>
+            <DateFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} />
           </div>
         </div>
       </div>
@@ -313,6 +317,15 @@ export default function AuditPage() {
           <h3 className="celeste" style={{ margin: 0 }}>🕘 Activity</h3>
           <span className="udet-total">{filtered.length} shown</span>
         </div>
+        {cardActive && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', flexWrap: 'wrap' }}>
+            <span className="badge purple" style={{ fontSize: 11 }}>
+              Showing: {special === 'sensitive' ? 'Sensitive actions' : special === 'payout' ? 'Payouts' : cat !== 'all' ? `${CAT_LABEL[cat as Cat]} actions` : actor !== 'all' ? `${actor}'s actions` : 'filtered'}
+              {' '}· {filtered.length} record{filtered.length === 1 ? '' : 's'}
+            </span>
+            <button className="btn sm secondary" onClick={clearCard}>Clear</button>
+          </div>
+        )}
         {loading ? <p className="muted" style={{ padding: 12 }}>Loading…</p> : groups.length === 0 ? (
           <p className="muted" style={{ padding: 12 }}>No actions match these filters.</p>
         ) : (
