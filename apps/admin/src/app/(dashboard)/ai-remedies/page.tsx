@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { where, limit, orderBy } from 'firebase/firestore';
-import { useCollection, callFn, Row } from '@/lib/hooks';
+import { useCollection, useNamesByIds, callFn, Row } from '@/lib/hooks';
 
 const fmt = (t: unknown) => {
   const ms = (t as { toMillis?: () => number })?.toMillis?.();
@@ -69,6 +69,8 @@ function RemedyThread({ r, collapsible = false }: { r: Row; collapsible?: boolea
   const [open, setOpen] = useState(!collapsible);
 
   const { rows: thread } = useCollection(`remedies/${r.id}/thread`, useMemo(() => [orderBy('createdAt', 'asc'), limit(100)], []));
+  const custId = String(r.customerId ?? '');
+  const custName = useNamesByIds('users', [custId]).get(custId);
 
   const [text, setText] = useState('');
   const [hook, setHook] = useState<Hook | null>(null);
@@ -104,7 +106,7 @@ function RemedyThread({ r, collapsible = false }: { r: Row; collapsible?: boolea
           {collapsible && <span className="muted" style={{ fontSize: 12, width: 12, flex: 'none' }}>{open ? '▾' : '▸'}</span>}
           <span className="badge purple" style={{ fontSize: 10 }}>AI</span>
           <strong style={{ fontSize: 14 }}>{astro}</strong>
-          <span className="muted" style={{ fontSize: 12 }}>· 🪔 {title} · <Link href={`/users/${r.customerId}`} onClick={(e) => e.stopPropagation()}>{(r.customerId as string)?.slice(0, 10) ?? '—'}</Link></span>
+          <span className="muted" style={{ fontSize: 12 }}>· 🪔 {title} · <Link href={`/users/${r.customerId}`} onClick={(e) => e.stopPropagation()}>{custName || custId.slice(0, 10) || '—'}</Link></span>
         </div>
         {r.threadUnreadForPortal ? <span className="badge amber" style={{ fontSize: 10 }}>customer replied</span>
           : r.pendingPortal ? <span className="badge amber" style={{ fontSize: 10 }}>awaiting reply</span> : null}

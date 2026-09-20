@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { orderBy, limit } from 'firebase/firestore';
-import { useCollection } from '@/lib/hooks';
+import { useCollection, useNamesByIds } from '@/lib/hooks';
 import { formatPaise, formatDate } from '@/lib/format';
 import { DateFilter } from '@/components/DateFilter';
 import { Preset, resolveRange } from '@/lib/dateRange';
@@ -27,6 +27,7 @@ export default function RechargeOrdersPage() {
     const ms = r.createdAt?.toMillis?.() ?? 0;
     return ms >= range.start && ms < range.end;
   });
+  const userNames = useNamesByIds('users', inRange.map((r) => String(r.userId ?? '')));
   const credited = inRange.filter((r) => !!r.creditedPaymentId);
   const rate = inRange.length ? Math.round((credited.length / inRange.length) * 100) : 0;
 
@@ -62,7 +63,7 @@ export default function RechargeOrdersPage() {
                   const done = !!r.creditedPaymentId;
                   return (
                     <tr key={r.id}>
-                      <td data-label="User" style={{ fontFamily: 'monospace', fontSize: 12 }}>{(r.userId as string)?.slice(0, 10) ?? '—'}</td>
+                      <td data-label="User">{userNames.get(String(r.userId ?? '')) || (String(r.userId ?? '').slice(0, 10) || '—')}</td>
                       <td data-label="Amount" className="uat-amount">{formatPaise((r.amountPaise as number) ?? 0)}</td>
                       <td data-label="Plan" className="muted">{(r.planId as string) ?? '—'}</td>
                       <td data-label="Status"><span className={`badge ${done ? 'green' : 'amber'}`}>{done ? 'Credited' : 'Pending'}</span></td>

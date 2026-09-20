@@ -1,7 +1,7 @@
 'use client';
 
 import { orderBy, limit } from 'firebase/firestore';
-import { useCollection } from '@/lib/hooks';
+import { useCollection, useNamesByIds } from '@/lib/hooks';
 import { formatPaise, formatDate } from '@/lib/format';
 
 /**
@@ -11,6 +11,11 @@ import { formatPaise, formatDate } from '@/lib/format';
  */
 export default function ReferralsPage() {
   const { rows, loading } = useCollection('referrals', [orderBy('createdAt', 'desc'), limit(300)]);
+  const names = useNamesByIds('users', rows.flatMap((r) => [String(r.referrerId ?? ''), String(r.referredId ?? '')]));
+  const nm = (id: unknown) => {
+    const s = String(id ?? '');
+    return names.get(s) || (s ? s.slice(0, 10) : '—');
+  };
 
   const rewardsPaid = rows.reduce(
     (s, r) => s + ((r.referrerReward as number) || 0) + ((r.referredReward as number) || 0),
@@ -38,8 +43,8 @@ export default function ReferralsPage() {
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id}>
-                    <td data-label="Referrer" style={{ fontFamily: 'monospace', fontSize: 12 }}>{(r.referrerId as string)?.slice(0, 10) ?? '—'}</td>
-                    <td data-label="Referred" style={{ fontFamily: 'monospace', fontSize: 12 }}>{(r.referredId as string)?.slice(0, 10) ?? '—'}</td>
+                    <td data-label="Referrer">{nm(r.referrerId)}</td>
+                    <td data-label="Referred">{nm(r.referredId)}</td>
                     <td data-label="Referrer reward" className="uat-amount">{formatPaise((r.referrerReward as number) ?? 0)}</td>
                     <td data-label="Referred reward" className="uat-amount">{formatPaise((r.referredReward as number) ?? 0)}</td>
                     <td data-label="Status"><span className="badge green">{(r.status as string) ?? 'credited'}</span></td>
