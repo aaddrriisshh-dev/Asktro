@@ -466,6 +466,7 @@ class ProfileTab extends ConsumerWidget {
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final confirmCtrl = TextEditingController();
     final passwordCtrl = TextEditingController();
+    final reasonCtrl = TextEditingController();
     final user = FirebaseAuth.instance.currentUser;
     // Only email/password accounts can (and must) re-enter a password. Phone and
     // Google/Apple accounts have no password — for them typing DELETE is the gate.
@@ -486,6 +487,18 @@ class ProfileTab extends ConsumerWidget {
                 const Text(
                     'This permanently erases your profile, chats, photos and personal data. Payment records are kept in anonymised form as required by law. Active consultations must be finished first.',),
                 const SizedBox(height: 16),
+                const Text('Why are you leaving? (optional)',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: reasonCtrl,
+                  minLines: 1,
+                  maxLines: 3,
+                  maxLength: 300,
+                  decoration: const InputDecoration(
+                      hintText: 'Your feedback helps us improve', isDense: true, border: OutlineInputBorder(), counterText: ''),
+                ),
+                const SizedBox(height: 12),
                 const Text('Type DELETE to confirm',
                     style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),),
                 const SizedBox(height: 6),
@@ -529,7 +542,9 @@ class ProfileTab extends ConsumerWidget {
         final cred = EmailAuthProvider.credential(email: user!.email!, password: passwordCtrl.text);
         await user.reauthenticateWithCredential(cred);
       }
-      await ref.read(functionsProvider).httpsCallable('deleteAccount').call();
+      await ref.read(functionsProvider).httpsCallable('deleteAccount').call({
+        'reason': reasonCtrl.text.trim(),
+      });
       await ref.read(authControllerProvider).signOut();
     } catch (e) {
       if (context.mounted) {

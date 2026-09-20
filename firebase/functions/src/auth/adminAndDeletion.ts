@@ -113,6 +113,18 @@ export const deleteAccount = onCall(async (req) => {
     .get();
   if (!open.empty) failedPrecondition('Finish your active consultation before deleting your account.');
 
+  // 0) Capture WHO is leaving (and, optionally, WHY) BEFORE we strip the PII —
+  //    otherwise the audit trail only has an anonymous UID and we can never tell
+  //    which real customer left or analyse churn. Name/phone/reason are stored on
+  //    the audit entry + the deletion job (not on the anonymised user doc).
+  const preSnap = await db.collection(Collections.users).doc(uid).get();
+  const pre = preSnap.data() ?? {};
+  const deletedName = (pre.name as string)?.trim() || 'Unknown';
+  const deletedPhone = (pre.phone as string)?.trim() || '';
+  const reason = typeof req.data?.reason === 'string'
+      ? (req.data.reason as string).slice(0, 500).trim()
+      : '';
+
   // 1) Kill the session immediately: revoke refresh tokens and disable the Auth
   //    login. The account is unusable from this instant, even though the heavy
   //    content erasure (Phase 2) runs asynchronously afterwards. The Auth user
@@ -158,14 +170,23 @@ export const deleteAccount = onCall(async (req) => {
     uid,
     status: 'pending',
     requestedAt: FieldValue.serverTimestamp(),
+    // Who left + why (captured before erasure) so the portal can show it.
+    name: deletedName,
+    phone: deletedPhone,
+    reason: reason || null,
   });
 
   await db.collection(Collections.auditLogs).add({
     actorUid: uid,
+    actorName: deletedName,
     actorRole: 'customer',
     action: 'deleteAccountRequested',
     targetType: 'user',
     targetId: uid,
+    // Identity + reason captured pre-erasure so the audit trail shows WHO/WHY.
+    targetName: deletedName,
+    targetPhone: deletedPhone,
+    reason: reason || null,
     after: { erased: ['authSession', 'profilePII', 'referralIds', 'customerProfile'], enqueued: 'bulkErasure' },
     createdAt: FieldValue.serverTimestamp(),
   });
@@ -195,6 +216,10 @@ export const processAccountDeletion = onDocumentCreated(
  * partial failure simply finishes the job.
  */
 export async function runAccountErasure(uid: string): Promise<void> {
+    // Name captured pre-erasure (on the deletion job doc) so the completion audit
+    // also shows WHO, not just an anonymous UID.
+    const jobSnap = await db.collection('accountDeletions').doc(uid).get().catch(() => null);
+    const deletedName = (jobSnap?.data()?.name as string) || 'Unknown';
     // For every consultation this customer had: erase the chat transcript, the
     // typing docs, and all chat media in Storage. The consultation doc itself is
     // a billing record and is RETAINED (now pointing at an anonymized user).
@@ -274,10 +299,12 @@ export async function runAccountErasure(uid: string): Promise<void> {
 
     await db.collection(Collections.auditLogs).add({
       actorUid: uid,
+      actorName: deletedName,
       actorRole: 'customer',
       action: 'deleteAccount',
       targetType: 'user',
       targetId: uid,
+      targetName: deletedName,
       after: {
         erased: [
           'messages', 'chatMedia', 'remedies', 'supportTickets', 'notifications',

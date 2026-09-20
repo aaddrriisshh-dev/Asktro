@@ -74,12 +74,16 @@ export default function AccountDeletionsPage() {
             <div style={{ overflowX: 'auto' }}>
               <table className="cardify">
                 <thead>
-                  <tr><th>User ID</th><th>Status</th><th>Requested</th><th>Completed</th></tr>
+                  <tr><th>Customer</th><th>Reason</th><th>Status</th><th>Requested</th><th>Completed</th></tr>
                 </thead>
                 <tbody>
                   {sorted.map((r) => (
                     <tr key={r.id}>
-                      <td data-label="User ID" style={{ fontFamily: 'monospace', fontSize: 12 }}>{r.uid ?? r.id}</td>
+                      <td data-label="Customer">
+                        <b>{(r.name as string) || 'Unknown'}</b>
+                        <span className="muted" style={{ display: 'block', fontSize: 11 }}>{(r.phone as string) || (r.uid ?? r.id)}</span>
+                      </td>
+                      <td data-label="Reason" className="muted" style={{ fontSize: 13 }}>{(r.reason as string) || '—'}</td>
                       <td data-label="Status">
                         <span className={`badge ${r.status === 'done' ? 'green' : isStuck(r) ? 'red' : 'amber'}`}>
                           {isStuck(r) ? 'stuck' : (r.status ?? 'pending')}

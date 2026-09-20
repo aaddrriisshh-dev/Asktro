@@ -378,8 +378,22 @@ rows.
   Continue stays disabled with a visible hint until each is done
   (`profile_setup_screen.dart`: `_dateTouched`/`_timeTouched`, `_isValidName`,
   `_canProceed` cases 0/2/3). Onboarding-only; existing users unaffected. Rides 3.0.1.
-- ⏳ Astrologer-list deep-link routes go live in 3.0.1; plus anything else the
-  founder names.
+- ✅ **Account-deletion identity + reason** (2026-09-20). Past audit "deleted
+  account" rows were anonymous (name erased by design) — you couldn't tell WHO
+  left. Now `deleteAccount` captures the customer **name + phone (and optional
+  reason)** BEFORE erasure and stores them on the audit entries
+  (`targetName`/`actorName`/`reason`) and the `accountDeletions` job doc; the
+  Phase-2 completion audit pulls the name from the job doc too. Portal:
+  **Audit Log** shows the name (falls back to UID for old rows) + reason;
+  **Account Deletions** page shows Customer (name/phone) + Reason columns.
+  App: the delete dialog now has an optional **"Why are you leaving?"** field.
+  NOTE: names appear only for deletions AFTER the functions redeploy; past ones
+  stay anonymous. **Deploy:** redeploy functions `deleteAccount` +
+  `processAccountDeletion` (existing → no invoker grant); portal via Vercel; the
+  reason prompt rides 3.0.1.
+- ⏳ Astrologer-list deep-link routes go live in 3.0.1; resolve astrologer/
+  customer UIDs → names across Audit + Earnings Ledger (display); plus anything
+  else the founder names.
 
 ## 4. Founder decisions on the record
 

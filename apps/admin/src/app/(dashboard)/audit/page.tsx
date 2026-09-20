@@ -112,6 +112,10 @@ function AuditRow({ r }: { r: Row }) {
   const role = (r.actorRole as string) || '';
   const href = targetHref(String(r.targetType ?? ''), String(r.targetId ?? ''));
   const tId = String(r.targetId ?? '');
+  // Prefer a captured name (e.g. account deletions store who left) over the raw UID.
+  const tName = String(r.targetName ?? '').trim();
+  const tLabel = tName || tId.slice(0, 14);
+  const reason = String(r.reason ?? '').trim();
   const detail = (r.after ?? r.before) as Record<string, unknown> | undefined;
   return (
     <div className={`auditrow${open ? ' open' : ''}`} onClick={() => setOpen((v) => !v)}>
@@ -119,13 +123,14 @@ function AuditRow({ r }: { r: Row }) {
       <div style={{ minWidth: 0, flex: 1 }}>
         <div className="audit-line">
           <b>{actor}</b> {meta.verb}
-          {href ? <Link href={href} className="audit-target" onClick={(e) => e.stopPropagation()}>{tId.slice(0, 14) || 'view'}</Link>
-            : tId ? <span className="audit-target plain">{tId.slice(0, 14)}</span> : null}
+          {href ? <Link href={href} className="audit-target" onClick={(e) => e.stopPropagation()}>{tLabel || 'view'}</Link>
+            : tLabel ? <span className="audit-target plain">{tLabel}</span> : null}
           {SENSITIVE.has(action) && <span className="badge red" style={{ fontSize: 10, marginLeft: 6 }}>sensitive</span>}
         </div>
         <div className="audit-sub">
           {role && <span className="badge purple" style={{ fontSize: 10 }}>{role}</span>}
           <span className="muted" style={{ fontSize: 11.5 }}>{formatDate(when)}</span>
+          {reason && <span className="muted" style={{ fontSize: 11.5 }}>· reason: “{reason}”</span>}
         </div>
         {open && detail && (
           <pre className="audit-json" onClick={(e) => e.stopPropagation()}>{JSON.stringify(detail, null, 2)}</pre>
