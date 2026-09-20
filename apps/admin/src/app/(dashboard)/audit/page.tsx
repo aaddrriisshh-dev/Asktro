@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { orderBy, limit } from 'firebase/firestore';
-import { useCollection, useNamesByIds, Row } from '@/lib/hooks';
+import { useCollection, useNamesByIds, callFn, Row } from '@/lib/hooks';
 import { formatDate } from '@/lib/format';
 import { downloadCSV } from '@/lib/csv';
 
@@ -93,9 +93,14 @@ const RANGES = [
   { key: 'all', label: 'All time', ms: Infinity },
 ] as const;
 
-function Stat({ color, icon, label, value, foot }: { color: string; icon: string; label: string; value: string; foot?: string }) {
+function Stat({ color, icon, label, value, foot, onClick, active }: { color: string; icon: string; label: string; value: string; foot?: string; onClick?: () => void; active?: boolean }) {
   return (
-    <div className={`stat c-${color}`}>
+    <div
+      className={`stat c-${color}`}
+      onClick={onClick}
+      style={onClick ? { cursor: 'pointer', outline: active ? '2px solid var(--primary)' : undefined, outlineOffset: 2 } : undefined}
+      title={onClick ? 'Click to filter the activity below' : undefined}
+    >
       <div className="stat__label"><span className="stat__icon" style={{ fontSize: 15 }}>{icon}</span>{label}</div>
       <div className="stat__value">{value}</div>
       {foot && <div className="stat__foot"><span className="stat__pill">{foot}</span></div>}
@@ -103,18 +108,18 @@ function Stat({ color, icon, label, value, foot }: { color: string; icon: string
   );
 }
 
-function AuditRow({ r, nameFor }: { r: Row; nameFor?: (type: string, id: string) => string | undefined }) {
+function AuditRow({ r, resolve }: { r: Row; resolve?: (id: unknown) => string }) {
   const [open, setOpen] = useState(false);
   const action = String(r.action ?? '');
   const meta = classify(action);
   const when = ms(r.createdAt);
-  const actor = (r.actorName as string) || 'Admin';
+  // WHO did it: stored name → resolved actor name (admin/astrologer/customer) → 'Admin'.
+  const actor = (r.actorName as string)?.trim() || resolve?.(r.actorUid) || 'Admin';
   const role = (r.actorRole as string) || '';
   const href = targetHref(String(r.targetType ?? ''), String(r.targetId ?? ''));
   const tId = String(r.targetId ?? '');
-  // Prefer a captured name (deletions store who left), then a resolved name
-  // (astrologer/customer UID → name), then the raw UID.
-  const tName = String(r.targetName ?? '').trim() || (nameFor?.(String(r.targetType ?? ''), tId) ?? '');
+  // TO WHOM: captured name (deletions) → resolved name → raw UID.
+  const tName = String(r.targetName ?? '').trim() || (resolve?.(tId) ?? '') || '';
   const tLabel = tName || tId.slice(0, 14);
   const reason = String(r.reason ?? '').trim();
   const detail = (r.after ?? r.before) as Record<string, unknown> | undefined;
@@ -151,15 +156,31 @@ function AuditRow({ r, nameFor }: { r: Row; nameFor?: (type: string, id: string)
 
 export default function AuditPage() {
   const { rows, loading } = useCollection('auditLogs', [orderBy('createdAt', 'desc'), limit(500)]);
-  // Resolve target UIDs → names (only the ones shown), so astrologers/customers
-  // read as names, not codes. Falls back to the UID when no name is found.
-  const astroNames = useNamesByIds('astrologers', rows.filter((r) => r.targetType === 'astrologer').map((r) => String(r.targetId ?? '')));
-  const userNames = useNamesByIds('users', rows.filter((r) => r.targetType === 'user').map((r) => String(r.targetId ?? '')));
-  const nameFor = (type: string, id: string) => (type === 'astrologer' ? astroNames.get(id) : type === 'user' ? userNames.get(id) : undefined);
+  // Resolve every UID shown (actors AND targets) → real names, so the log reads
+  // "Adrish processed payout → Lakshmi Iyer" instead of codes. We check admins,
+  // astrologers and customers; whichever matches wins.
+  const allIds = rows.flatMap((r) => [
+    String(r.actorUid ?? ''),
+    r.targetType === 'user' || r.targetType === 'astrologer' ? String(r.targetId ?? '') : '',
+  ]);
+  const userNames = useNamesByIds('users', allIds);
+  const astroNames = useNamesByIds('astrologers', allIds);
+  const [adminMap, setAdminMap] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    callFn<{ admins?: { uid: string; name?: string; email?: string }[] }>('listAdmins', {})
+      .then((res) => setAdminMap(new Map((res.admins ?? []).map((a) => [a.uid, (a.name || a.email || '').trim()]))))
+      .catch(() => { /* non-super-admins can't list; fall back to UID/'Admin' */ });
+  }, []);
+  const resolve = (id: unknown) => {
+    const s = String(id ?? '');
+    if (!s) return '';
+    return adminMap.get(s) || astroNames.get(s) || userNames.get(s) || '';
+  };
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<'all' | Cat>('all');
   const [rangeKey, setRangeKey] = useState<(typeof RANGES)[number]['key']>('7d');
   const [actor, setActor] = useState('all');
+  const [sensOnly, setSensOnly] = useState(false);
 
   const admins = useMemo(() => Array.from(new Set(rows.map((r) => (r.actorName as string) || 'Admin'))).sort(), [rows]);
 
@@ -171,10 +192,11 @@ export default function AuditPage() {
       if (win !== Infinity && now - ms(r.createdAt) > win) return false;
       if (cat !== 'all' && classify(String(r.action ?? '')).cat !== cat) return false;
       if (actor !== 'all' && ((r.actorName as string) || 'Admin') !== actor) return false;
+      if (sensOnly && !SENSITIVE.has(String(r.action ?? ''))) return false;
       if (s && ![r.action, r.actorName, r.actorUid, r.targetType, r.targetId].some((v) => String(v ?? '').toLowerCase().includes(s))) return false;
       return true;
     });
-  }, [rows, q, cat, rangeKey, actor]);
+  }, [rows, q, cat, rangeKey, actor, sensOnly]);
 
   const kpis = useMemo(() => {
     const now = Date.now();
@@ -227,11 +249,16 @@ export default function AuditPage() {
 
       {/* KPI panel */}
       <div className="grid dashgrid" style={{ marginTop: 16 }}>
-        <Stat color="gold" icon="⚡" label="Actions today" value={String(kpis.today)} foot="last 24h" />
-        <Stat color="purple" icon="🗓" label="Actions this week" value={String(kpis.week)} foot="last 7 days" />
-        <Stat color="rose" icon="🛡" label="Sensitive actions" value={String(kpis.sensitive)} foot="approvals · roles · payouts · deletes" />
-        <Stat color="green" icon="₹" label="Money actions" value={String(kpis.money)} foot="credits · debits · payouts" />
-        <Stat color="blue" icon="👑" label="Most active admin" value={kpis.top ? kpis.top[0] : '—'} foot={kpis.top ? `${kpis.top[1]} actions` : 'this week'} />
+        <Stat color="gold" icon="⚡" label="Actions today" value={String(kpis.today)} foot="last 24h"
+          onClick={() => { setRangeKey('today'); setCat('all'); setSensOnly(false); setActor('all'); }} active={rangeKey === 'today'} />
+        <Stat color="purple" icon="🗓" label="Actions this week" value={String(kpis.week)} foot="last 7 days"
+          onClick={() => { setRangeKey('7d'); setCat('all'); setSensOnly(false); setActor('all'); }} active={rangeKey === '7d' && cat === 'all' && !sensOnly && actor === 'all'} />
+        <Stat color="rose" icon="🛡" label="Sensitive actions" value={String(kpis.sensitive)} foot="approvals · roles · payouts · deletes"
+          onClick={() => { setSensOnly(true); setRangeKey('7d'); setCat('all'); }} active={sensOnly} />
+        <Stat color="green" icon="₹" label="Money actions" value={String(kpis.money)} foot="credits · debits · payouts"
+          onClick={() => { setCat('money'); setRangeKey('7d'); setSensOnly(false); }} active={cat === 'money'} />
+        <Stat color="blue" icon="👑" label="Most active admin" value={kpis.top ? kpis.top[0] : '—'} foot={kpis.top ? `${kpis.top[1]} actions` : 'this week'}
+          onClick={() => { if (kpis.top) { setActor(kpis.top[0]); setRangeKey('7d'); } }} active={!!kpis.top && actor === kpis.top[0]} />
       </div>
 
       {/* Filters */}
@@ -269,7 +296,7 @@ export default function AuditPage() {
             {groups.map(([day, list]) => (
               <div key={day}>
                 <div className="audit-day">{day}<span className="muted"> · {list.length}</span></div>
-                {list.map((r) => <AuditRow key={r.id} r={r} nameFor={nameFor} />)}
+                {list.map((r) => <AuditRow key={r.id} r={r} resolve={resolve} />)}
               </div>
             ))}
           </div>
