@@ -143,8 +143,21 @@ export const onChatMessageCreated = onDocumentCreated(
   async (event) => {
     const snap = event.data;
     if (!snap) return;
-    const text = (snap.data()?.text ?? '') as string;
+    const m = snap.data() ?? {};
+    const text = (m.text ?? '') as string;
     if (!text || !BANNED_RE.test(text)) return;
+
+    // What triggered it + who sent it, so the admin sees the actual content
+    // (not just a consultation id). Sender name resolved best-effort.
+    const matched = text.match(BANNED_RE)?.[0] ?? '';
+    const senderId = (m.senderId as string) ?? '';
+    const senderRole = (m.senderRole as string) ?? '';
+    let senderName = senderId;
+    if (senderId) {
+      const coll = senderRole === 'astrologer' ? 'astrologers' : 'users';
+      const s = await db.collection(coll).doc(senderId).get().catch(() => null);
+      senderName = (s?.data()?.name as string)?.trim() || senderId;
+    }
 
     // Safety net: a Firestore blip here must not silently lose a real abuse flag
     // (or throw uncaught), so wrap + log — matching the rest of the codebase.
@@ -153,7 +166,14 @@ export const onChatMessageCreated = onDocumentCreated(
       await db.collection('alerts').add({
         kind: 'flagged_message',
         severity: 'warning',
-        message: `Flagged message in consultation ${event.params.consultationId}.`,
+        message: `Flagged message from ${senderName}${senderRole ? ` (${senderRole})` : ''}: “${text.slice(0, 200)}”`,
+        messageText: text.slice(0, 500),
+        matched,
+        senderId,
+        senderRole,
+        senderName,
+        consultationId: event.params.consultationId,
+        messageId: event.params.messageId,
         refId: event.params.consultationId,
         resolved: false,
         createdAt: FieldValue.serverTimestamp(),

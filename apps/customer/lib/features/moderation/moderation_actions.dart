@@ -63,13 +63,21 @@ class ModerationMenu extends ConsumerWidget {
               TextField(
                 controller: detail,
                 maxLines: 3,
-                decoration: const InputDecoration(hintText: 'Add details (optional)'),
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: 'Why are you reporting? (required)',
+                  helperText: 'Please add a short reason so our team can review it.',
+                ),
               ),
             ],
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Submit')),
+            TextButton(
+              // Require a short reason so no blank report reaches the console.
+              onPressed: detail.text.trim().length >= 5 ? () => Navigator.pop(ctx, true) : null,
+              child: const Text('Submit'),
+            ),
           ],
         ),
       ),
