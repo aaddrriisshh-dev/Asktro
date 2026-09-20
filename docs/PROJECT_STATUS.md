@@ -83,11 +83,9 @@ Branch: `claude/asktro-session-handoff-o1ggo8` (all work committed + pushed).
 1. **Portal (Vercel)** — founder was mid-redeploy. Latest commits add more portal
    work, so a final `git pull` + `cd apps/admin && vercel --prod` is needed to
    ship everything below. Portal-only, no app build.
-2. **Cloud Functions (Mac)** — NOT deployed yet. Redeploy (existing fns, no new
-   invoker grant): `deleteAccount`, `processAccountDeletion`, `reportContent`,
-   `onChatMessageCreated`, and the AI chat trigger (`onAiChatMessage` in
-   `replyEngine.ts` — new bilingual out-of-balance prompt + recharge CTA + dedupe).
-   **Safety-checked:
+2. **Cloud Functions (Mac)** — ✅ DEPLOYED 2026-09-20 (all 5 "Successful update":
+   `deleteAccount`, `processAccountDeletion`, `reportContent`,
+   `onChatMessageCreated`, `onAiChatMessage`). Live now. **Safety-checked:
    backward-compatible, the LIVE 3.0.0 app keeps working** (reason is optional;
    report API unchanged; the rest are background triggers). Deploy one at a time.
 3. **App 3.0.1 build (Flutter)** — everything app-side rides this. Needs the
