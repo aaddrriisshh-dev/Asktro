@@ -180,8 +180,13 @@ export const onAiChatMessage = onDocumentCreated(
       const graceStillAvailable =
         chatCreditEligible && graceMinutesCfg > 0 && user.chatGraceUsed !== true;
       if (spendablePaise <= 0 && !graceStillAvailable) {
-        await writeAstro(consultationId, c.astrologerId as string,
-          'To continue your reading, please recharge your wallet 🙏 Add a little balance and we can pick up right where we left off.');
+        // Send the recharge prompt WITH a CTA (app renders Recharge / View offers),
+        // but only once — don't repeat it on every further message.
+        if (!(await lastMsgIsRechargePrompt(consultationId))) {
+          await writeAstro(consultationId, c.astrologerId as string,
+            'आपका वॉलेट बैलेंस समाप्त हो गया है — Please recharge to continue 🙏',
+            { cta: 'recharge' });
+        }
         return;
       }
       // 2) Per-user daily free-message cap (`aiDailyMessageCap`; 0 or absent =
@@ -1259,16 +1264,28 @@ async function writeRemedy(
 }
 
 /** Write one astrologer text bubble to a consultation. */
-async function writeAstro(consultationId: string, astrologerId: string, text: string): Promise<void> {
+async function writeAstro(consultationId: string, astrologerId: string, text: string,
+    opts?: { cta?: string }): Promise<void> {
   await db.collection('consultations').doc(consultationId).collection('messages').add({
     senderId: astrologerId,
     type: 'text',
     text,
+    // Optional CTA the app renders as buttons under this bubble (e.g. 'recharge'
+    // → "Recharge now" + "View offers"). Absent on normal messages.
+    ...(opts?.cta ? { cta: opts.cta } : {}),
     timestamp: FieldValue.serverTimestamp(),
     delivered: true,
     seen: false,
     aiGenerated: true,
   });
+}
+
+/** True if the most recent message in the thread is already a recharge prompt —
+ *  so we don't spam the same wall message on every further user turn. */
+async function lastMsgIsRechargePrompt(consultationId: string): Promise<boolean> {
+  const snap = await db.collection('consultations').doc(consultationId)
+    .collection('messages').orderBy('timestamp', 'desc').limit(1).get();
+  return !snap.empty && snap.docs[0].data()?.cta === 'recharge';
 }
 /** Birth ISO in IST from an epoch-ms date + optional HH:mm. Matches the app. */
 function birthIso(birthMs: number, birthTime: string | undefined, timeKnown: boolean): string {

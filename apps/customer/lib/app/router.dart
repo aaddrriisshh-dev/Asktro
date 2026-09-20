@@ -152,6 +152,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           preselectPlanId: s.uri.queryParameters['plan'],
           preselectCoupon: s.uri.queryParameters['coupon'],
           lockAmountPaise: int.tryParse(s.uri.queryParameters['lock'] ?? ''),
+          // ?offers=inchat → show the portal's in-chat offers (from the chat
+          // "out of balance" prompt's "View offers" button).
+          offers: s.uri.queryParameters['offers'],
         ),
       ),
       GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),

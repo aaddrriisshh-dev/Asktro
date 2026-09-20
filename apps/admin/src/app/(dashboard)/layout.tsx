@@ -47,6 +47,7 @@ const NAV = [
   { href: '/banners', label: 'Banners Management', icon: I(<><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></>) },
   { href: '/home-popup', label: 'Home Pop-up', icon: I(<><rect x="4" y="4" width="16" height="16" rx="2" /><rect x="8" y="8" width="8" height="7" rx="1" /><path d="M8 4v2" /></>) },
   { href: '/welcome-offers', label: 'Welcome Offers', icon: I(<><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" /><path d="M12 8S10.5 3 8 3a2.5 2.5 0 0 0 0 5M12 8s1.5-5 4-5a2.5 2.5 0 0 1 0 5" /></>) },
+  { href: '/inchat-offers', label: 'In-chat Offers', icon: I(<><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /><path d="M8 10h8M8 13h5" /></>) },
   { href: '/blogs', label: 'Blogs', icon: I(<><path d="M4 4h11a2 2 0 0 1 2 2v14l-4-2-4 2V6a2 2 0 0 0-2-2H4z" /><path d="M8 8h5M8 12h5" /></>) },
   { href: '/coupons', label: 'Coupons Management', icon: I(<path d="M20 12a2 2 0 0 1 2-2V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v3a2 2 0 0 1 0 4v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3a2 2 0 0 1-2-2z" />) },
   { href: '/broadcast', label: 'Push Notifications', icon: I(<><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></>) },

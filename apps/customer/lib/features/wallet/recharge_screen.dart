@@ -16,7 +16,11 @@ final _plansProvider = StreamProvider.autoDispose<List<RechargePlan>>(
 /// "Add Cash" — pick an amount, then pay via Razorpay. The wallet is credited
 /// server-side (Cloud Function) on payment verification.
 class RechargeScreen extends ConsumerStatefulWidget {
-  const RechargeScreen({super.key, this.preselectPlanId, this.preselectCoupon, this.lockAmountPaise});
+  const RechargeScreen({super.key, this.preselectPlanId, this.preselectCoupon, this.lockAmountPaise, this.offers});
+
+  /// When opened from the chat "out of balance" prompt (/recharge?offers=inchat),
+  /// the screen shows the portal-managed in-chat offers instead of the normal grid.
+  final String? offers;
 
   /// When opened from a Recharge banner (/recharge?plan=<id>), the matching
   /// plan is pre-selected so the user can pay in one tap.
@@ -324,9 +328,16 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
               // and Welcome plans are reachable ONLY from the welcome pop-up.
               final wanted = widget.preselectPlanId;
               final offerMode = wanted != null && wanted.isNotEmpty && list.any((p) => p.id == wanted);
+              // In-chat offers mode: opened from the "out of balance" chat prompt.
+              // Show the portal's in-chat offers; if none exist, fall back to the
+              // normal grid so the user can still recharge.
+              final inchatPlans = list.where((p) => p.isInchat).toList();
+              final inchatMode = widget.offers == 'inchat' && inchatPlans.isNotEmpty;
               final shown = offerMode
                   ? list.where((p) => p.id == wanted).toList()
-                  : list.where((p) => !p.isOffer && !p.isWelcome).toList();
+                  : inchatMode
+                      ? inchatPlans
+                      : list.where((p) => !p.isOffer && !p.isWelcome && !p.isInchat).toList();
               // Promo amount-lock: a coupon/banner/push says “recharge exactly ₹X”.
               // Every tile is shown, but only the tile matching that amount stays
               // tappable — the rest are frozen. Offers are never self-serve.
@@ -349,7 +360,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                       children: [
                         _walletBalanceCard(balance),
                         const SizedBox(height: 18),
-                        if (!offerMode && !lockMode) ...[
+                        if (!offerMode && !lockMode && !inchatMode) ...[
                           _offersBanner(),
                           const SizedBox(height: 20),
                         ],
@@ -357,7 +368,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                           children: [
                             const Icon(Icons.auto_awesome, color: Ob.gold, size: 16),
                             const SizedBox(width: 6),
-                            Text((offerMode || lockMode) ? 'Your exclusive offer' : 'Choose an amount to add', style: Ob.sectionLabel),
+                            Text(inchatMode ? 'Special recharge offers' : (offerMode || lockMode) ? 'Your exclusive offer' : 'Choose an amount to add', style: Ob.sectionLabel),
                           ],
                         ),
                         if (lockMode) ...[

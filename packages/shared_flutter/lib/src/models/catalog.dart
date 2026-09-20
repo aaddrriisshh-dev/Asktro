@@ -31,6 +31,9 @@ class RechargePlan extends Equatable {
   int get totalCredit => walletCredit + bonus;
   bool get isOffer => planType == 'offer';
   bool get isWelcome => planType == 'welcome';
+  // In-chat offers: shown ONLY from the "out of balance" chat prompt's
+  // "View offers" CTA — hidden from the normal recharge grid and offers screen.
+  bool get isInchat => planType == 'inchat';
 
   factory RechargePlan.fromMap(String id, Map<String, dynamic> m) => RechargePlan(
         id: id,

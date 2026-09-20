@@ -1053,7 +1053,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                               }
                               final mine = m['senderId'] == uid;
                               final isRemedy = m['type'] == 'remedy';
-                              return _Bubble(
+                              final bubble = _Bubble(
                                 text: (m['text'] ?? '') as String,
                                 imageUrl: m['image'] as String?,
                                 mine: mine,
@@ -1061,6 +1061,15 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                                 remedyTitle: isRemedy ? (m['title'] ?? 'Remedy') as String : null,
                                 remedyNote: isRemedy ? (m['note'] ?? '') as String : null,
                               );
+                              // "Out of balance" prompt carries cta:'recharge' → show
+                              // Recharge / View offers buttons right under the bubble.
+                              if (m['cta'] == 'recharge' && !mine && !widget.readOnly) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [bubble, const _RechargeCtaRow()],
+                                );
+                              }
+                              return bubble;
                             },
                           ),
                   ),
@@ -1706,4 +1715,35 @@ class _StagedImage {
   final Uint8List bytes;
   String? url;
   bool uploading = true;
+}
+
+/// Recharge call-to-action shown under the AI's "out of balance" prompt so the
+/// user can act immediately: "View offers" opens the portal-managed in-chat
+/// offers; "Recharge now" opens the normal recharge screen.
+class _RechargeCtaRow extends StatelessWidget {
+  const _RechargeCtaRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(left: AppSpacing.sm, top: 6, bottom: AppSpacing.sm),
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 8,
+        children: [
+          FilledButton.icon(
+            onPressed: () => context.push('/recharge?offers=inchat'),
+            icon: const Icon(Icons.local_offer_outlined, size: 18),
+            label: const Text('View offers'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => context.push('/recharge'),
+            icon: Icon(Icons.account_balance_wallet_outlined, size: 18, color: scheme.primary),
+            label: const Text('Recharge now'),
+          ),
+        ],
+      ),
+    );
+  }
 }
