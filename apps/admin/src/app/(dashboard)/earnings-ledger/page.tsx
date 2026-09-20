@@ -1,7 +1,7 @@
 'use client';
 
 import { orderBy, limit } from 'firebase/firestore';
-import { useCollection } from '@/lib/hooks';
+import { useCollection, useNamesByIds } from '@/lib/hooks';
 import { formatPaise, formatDate } from '@/lib/format';
 
 /**
@@ -13,6 +13,7 @@ import { formatPaise, formatDate } from '@/lib/format';
  */
 export default function EarningsLedgerPage() {
   const { rows, loading } = useCollection('astrologerLedger', [orderBy('createdAt', 'desc'), limit(300)]);
+  const astroNames = useNamesByIds('astrologers', rows.map((r) => String(r.astrologerId ?? '')));
 
   return (
     <div>
@@ -34,9 +35,15 @@ export default function EarningsLedgerPage() {
               <tbody>
                 {rows.map((r) => {
                   const amt = (r.amount as number) ?? 0;
+                  const aid = String(r.astrologerId ?? '');
+                  const aname = astroNames.get(aid);
                   return (
                     <tr key={r.id}>
-                      <td data-label="Astrologer" style={{ fontFamily: 'monospace', fontSize: 12 }}>{(r.astrologerId as string)?.slice(0, 10) ?? '—'}</td>
+                      <td data-label="Astrologer">
+                        {aname
+                          ? <b>{aname}</b>
+                          : <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{aid.slice(0, 10) || '—'}</span>}
+                      </td>
                       <td data-label="Kind"><span className="badge">{(r.kind as string) ?? '—'}</span></td>
                       <td data-label="Amount" className="uat-amount" style={{ color: amt < 0 ? 'var(--danger, #c0392b)' : 'var(--good, #2f9c63)' }}>
                         {amt < 0 ? '−' : '+'}{formatPaise(Math.abs(amt))}

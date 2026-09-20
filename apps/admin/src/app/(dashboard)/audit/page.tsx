@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { orderBy, limit } from 'firebase/firestore';
-import { useCollection, Row } from '@/lib/hooks';
+import { useCollection, useNamesByIds, Row } from '@/lib/hooks';
 import { formatDate } from '@/lib/format';
 import { downloadCSV } from '@/lib/csv';
 
@@ -103,7 +103,7 @@ function Stat({ color, icon, label, value, foot }: { color: string; icon: string
   );
 }
 
-function AuditRow({ r }: { r: Row }) {
+function AuditRow({ r, nameFor }: { r: Row; nameFor?: (type: string, id: string) => string | undefined }) {
   const [open, setOpen] = useState(false);
   const action = String(r.action ?? '');
   const meta = classify(action);
@@ -112,8 +112,9 @@ function AuditRow({ r }: { r: Row }) {
   const role = (r.actorRole as string) || '';
   const href = targetHref(String(r.targetType ?? ''), String(r.targetId ?? ''));
   const tId = String(r.targetId ?? '');
-  // Prefer a captured name (e.g. account deletions store who left) over the raw UID.
-  const tName = String(r.targetName ?? '').trim();
+  // Prefer a captured name (deletions store who left), then a resolved name
+  // (astrologer/customer UID → name), then the raw UID.
+  const tName = String(r.targetName ?? '').trim() || (nameFor?.(String(r.targetType ?? ''), tId) ?? '');
   const tLabel = tName || tId.slice(0, 14);
   const reason = String(r.reason ?? '').trim();
   const detail = (r.after ?? r.before) as Record<string, unknown> | undefined;
@@ -150,6 +151,11 @@ function AuditRow({ r }: { r: Row }) {
 
 export default function AuditPage() {
   const { rows, loading } = useCollection('auditLogs', [orderBy('createdAt', 'desc'), limit(500)]);
+  // Resolve target UIDs → names (only the ones shown), so astrologers/customers
+  // read as names, not codes. Falls back to the UID when no name is found.
+  const astroNames = useNamesByIds('astrologers', rows.filter((r) => r.targetType === 'astrologer').map((r) => String(r.targetId ?? '')));
+  const userNames = useNamesByIds('users', rows.filter((r) => r.targetType === 'user').map((r) => String(r.targetId ?? '')));
+  const nameFor = (type: string, id: string) => (type === 'astrologer' ? astroNames.get(id) : type === 'user' ? userNames.get(id) : undefined);
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<'all' | Cat>('all');
   const [rangeKey, setRangeKey] = useState<(typeof RANGES)[number]['key']>('7d');
@@ -263,7 +269,7 @@ export default function AuditPage() {
             {groups.map(([day, list]) => (
               <div key={day}>
                 <div className="audit-day">{day}<span className="muted"> · {list.length}</span></div>
-                {list.map((r) => <AuditRow key={r.id} r={r} />)}
+                {list.map((r) => <AuditRow key={r.id} r={r} nameFor={nameFor} />)}
               </div>
             ))}
           </div>
