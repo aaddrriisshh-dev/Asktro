@@ -60,6 +60,68 @@ manually (has ₹1,813 credit buffer).
 
 ---
 
+## 0a. SESSION SNAPSHOT — 2026-09-20 (founder away ~2 days; resume here)
+
+Branch: `claude/asktro-session-handoff-o1ggo8` (all work committed + pushed).
+
+### Deploy state (the batch — 3 surfaces)
+1. **Portal (Vercel)** — founder was mid-redeploy. Latest commits add more portal
+   work, so a final `git pull` + `cd apps/admin && vercel --prod` is needed to
+   ship everything below. Portal-only, no app build.
+2. **Cloud Functions (Mac)** — NOT deployed yet. Redeploy (existing fns, no new
+   invoker grant): `deleteAccount`, `processAccountDeletion`, `reportContent`.
+   (`onChatMessageCreated` also changed — deploy it too.) **Safety-checked:
+   backward-compatible, the LIVE 3.0.0 app keeps working** (reason is optional;
+   report API unchanged; the rest are background triggers). Deploy one at a time.
+3. **App 3.0.1 build (Flutter)** — everything app-side rides this. Needs the
+   Facebook **Client Token** pasted into `android/app/src/main/res/values/strings.xml`
+   + `ios/Runner/Info.plist` (placeholder `PASTE_FACEBOOK_CLIENT_TOKEN_HERE`) and
+   `flutter pub get` (resolves `facebook_app_events`; bump version if it fails).
+
+### 3.0.1 app build — DONE ON BRANCH (rides v10; apart from FB token paste)
+- Balance-gate exploit fix (app side of the wall) + grace removed.
+- 8 Crashlytics crashes + defensive hardening (router/otp/camera/fonts/etc.).
+- Welcome-offer hide filter (welcome plans hidden from recharge grid + offers).
+- Recharge tile shows "+₹X extra" bonus.
+- Centre push-card fit (height-cap + scroll).
+- Facebook SDK / Meta App Events wired (registration, add-payment-info, purchase)
+  — needs the client token before build.
+- Profile-setup data quality (real name + real DOB required; birth time a
+  conscious choice).
+- Account-deletion "reason for leaving" prompt.
+- Reporting an astrologer now REQUIRES a reason note.
+
+### Portal — full audit of every left-menu page (2026-09-20)
+Result: **everything is wired to real Firestore/callables — no stubs.** Fixed this
+session: names-not-codes across Audit Log, Trust & Safety, Earnings Ledger,
+Recharge Orders, Referrals, AI Remedies, Sessions (chat/phone/video), Revenue
+drill, Active-Consultations card; expandable Trust & Safety with reasons +
+"show resolved" + image thumbnails/why; readable Audit Log (who→whom, nested
+IDs, Payouts card, card drill-downs); date filters added to Recharge Orders,
+Account Deletions, Earnings Ledger, Kundali Downloads, Trust & Safety, Audit Log.
+Referral status badge now colours by real status.
+
+**Known minor / by-design (NOT blocking — candidates for later):**
+- Scaling caps (documented): users 5000, reports 10000, astrologers 500 (several
+  places), mall orders 1000, ledgers 300–500. Silently undercount past the cap —
+  needs server-side aggregation/rollups at scale.
+- `payouts` page: unbounded query, no orderBy/limit, no pending-count KPI.
+- `recharge-orders`/`earnings-ledger`: date filter is client-side over the
+  fetched window (useCollection re-keys on constraint count, not value).
+- `blogs` views count is manually typed (vanity, not analytics).
+- `coupons` has no in-place edit (create/delete only).
+- `home-popup` "View" modal reward uses the legacy hardcoded PLAN_CREDIT map
+  (editor uses the live plan) — preview can be stale.
+- `astrologers/[id]` stat tiles are static (no drill).
+- OperationsSection PaidVsFree filter is decorative (query ignores range).
+- Inline toggle/delete on banners/coupons/blogs lack try/catch + author stamping.
+- `pricing` getDoc has no catch (a failed read spins forever).
+
+### Pending founder decisions
+- Keep or drop the ₹27 welcome credit (deferred).
+- After 3.0.1: wire the Triple Dhamaka welcome offer in Home Pop-up + turn it
+  Active again (kept Off so it doesn't leak into the live recharge grid pre-3.0.1).
+
 ## 1. Where the product is RIGHT NOW
 
 - **v3 is LIVE.** Customer app `3.0.0 (versionCode 9)` is published on Google
