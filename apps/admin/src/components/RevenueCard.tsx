@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, documentId, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatPaise, formatDate, shortDay } from '@/lib/format';
 import { Range } from '@/lib/dateRange';
@@ -16,6 +16,7 @@ import { useAutoRefresh } from '@/lib/autoRefresh';
 interface RRow {
   id: string;
   userId?: string;
+  userName?: string;
   amount?: number;
   refId?: string;
   createdAtMs?: number;
@@ -23,7 +24,7 @@ interface RRow {
 
 const RECHARGE_COLUMNS: DrillColumn<RRow>[] = [
   { header: 'Customer', cell: (r) => r.userId
-    ? <Link href={`/users/${r.userId}`} className="ovl-nm" style={{ color: 'var(--primary)' }}>{r.userId.slice(0, 12)}</Link>
+    ? <Link href={`/users/${r.userId}`} className="ovl-nm" style={{ color: 'var(--primary)' }}>{r.userName || r.userId.slice(0, 12)}</Link>
     : <span className="muted">—</span> },
   { header: 'Amount', align: 'right', cell: (r) => <strong>{formatPaise(r.amount)}</strong> },
   { header: 'Payment ID', cell: (r) => <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12.5 }}>{r.refId || '—'}</span> },
@@ -84,6 +85,17 @@ function useRevenue(range: Range): CardView<RevData> {
           const x = doc.data() as { userId?: string; amount?: number; refId?: string; createdAt?: { toMillis?: () => number } };
           return { id: doc.id, userId: x.userId, amount: x.amount, refId: x.refId, createdAtMs: x.createdAt?.toMillis?.() };
         });
+        // Resolve customer names for the drill-down (only the shown UIDs).
+        const uids = Array.from(new Set(rechargeRows.map((r) => r.userId).filter(Boolean))) as string[];
+        const nameMap = new Map<string, string>();
+        for (let i = 0; i < uids.length; i += 30) {
+          const chunk = uids.slice(i, i + 30);
+          try {
+            const nSnap = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', chunk)));
+            nSnap.forEach((d) => { const n = (d.data().name as string | undefined)?.trim(); if (n) nameMap.set(d.id, n); });
+          } catch { /* best-effort — fall back to the UID */ }
+        }
+        rechargeRows.forEach((r) => { if (r.userId) r.userName = nameMap.get(r.userId); });
         const gross = recharge;
         const net = gross - refunds;
         if (!cancelled) setData({ gross, net, recharge, bonus, consultation, refunds, count, daily, rechargeRows });

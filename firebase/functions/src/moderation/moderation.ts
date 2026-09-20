@@ -87,9 +87,23 @@ export const reportContent = onCall(async (req) => {
   const reported = String(reportedId).slice(0, 128);
   const r = REPORT_REASONS.includes(reason ?? '') ? reason! : 'other';
 
+  // Resolve names so the admin console reads "Priya reported Lakshmi Iyer",
+  // not raw UIDs. Reported can be an astrologer/persona OR a customer.
+  const [repSnap, rptAstroSnap, rptUserSnap] = await Promise.all([
+    db.collection('users').doc(reporterId).get(),
+    db.collection('astrologers').doc(reported).get(),
+    db.collection('users').doc(reported).get(),
+  ]);
+  const reporterName = (repSnap.data()?.name as string)?.trim() || reporterId;
+  const reportedName = (rptAstroSnap.data()?.name as string)?.trim()
+    || (rptUserSnap.data()?.name as string)?.trim()
+    || reported;
+
   await db.collection('reports').add({
     reporterId,
+    reporterName,
     reportedId: reported,
+    reportedName,
     consultationId: consultationId ?? null,
     messageId: messageId ?? null,
     reason: r,
@@ -98,11 +112,11 @@ export const reportContent = onCall(async (req) => {
     createdAt: FieldValue.serverTimestamp(),
   });
 
-  // Surface to admins.
+  // Surface to admins (names, not UIDs).
   await db.collection('alerts').add({
     kind: 'user_report',
     severity: 'warning',
-    message: `User ${reporterId} reported ${reported} (${r}).`,
+    message: `${reporterName} reported ${reportedName} (${r}).`,
     refId: reported,
     resolved: false,
     createdAt: FieldValue.serverTimestamp(),
