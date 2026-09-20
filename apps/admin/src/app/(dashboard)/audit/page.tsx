@@ -139,13 +139,27 @@ function AuditRow({ r, resolve }: { r: Row; resolve?: (id: unknown) => string })
           {reason && <span className="muted" style={{ fontSize: 11.5 }}>· reason: “{reason}”</span>}
         </div>
         {open && detail && (
-          <pre className="audit-json" onClick={(e) => e.stopPropagation()}>{JSON.stringify(detail, null, 2)}</pre>
+          <div className="audit-json" onClick={(e) => e.stopPropagation()} style={{ display: 'grid', gap: 4 }}>
+            {Object.entries(detail).map(([k, v]) => {
+              const isId = /id$/i.test(k) && typeof v === 'string';
+              const nm = isId ? (resolve?.(v) ?? '') : '';
+              const display = Array.isArray(v) ? v.join(', ')
+                : v && typeof v === 'object' ? JSON.stringify(v)
+                  : String(v);
+              return (
+                <div key={k} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 10 }}>
+                  <span className="muted">{k}</span>
+                  <span style={{ wordBreak: 'break-word' }}>{nm ? `${nm} (${String(v).slice(0, 8)}…)` : display}</span>
+                </div>
+              );
+            })}
+          </div>
         )}
         {open && (
           <div className="audit-meta">
             <span className="muted">action</span><code>{action}</code>
             <span className="muted">actor uid</span><code>{String(r.actorUid ?? '—')}</code>
-            <span className="muted">target</span><code>{String(r.targetType ?? '—')} · {tId || '—'}</code>
+            <span className="muted">target</span><code>{String(r.targetType ?? '—')} · {tName ? `${tName} (${tId.slice(0, 8)}…)` : (tId || '—')}</code>
           </div>
         )}
       </div>
@@ -159,9 +173,19 @@ export default function AuditPage() {
   // Resolve every UID shown (actors AND targets) → real names, so the log reads
   // "Adrish processed payout → Lakshmi Iyer" instead of codes. We check admins,
   // astrologers and customers; whichever matches wins.
+  // Every UID we might show: actor, user/astrologer targets, AND id-like fields
+  // nested in the detail (e.g. a payout's astrologerId) so those resolve too.
+  const nestedIds = (r: Row): string[] => {
+    const d = (r.after ?? r.before) as Record<string, unknown> | undefined;
+    if (!d || typeof d !== 'object') return [];
+    return Object.entries(d)
+      .filter(([k, v]) => /id$/i.test(k) && typeof v === 'string')
+      .map(([, v]) => String(v));
+  };
   const allIds = rows.flatMap((r) => [
     String(r.actorUid ?? ''),
     r.targetType === 'user' || r.targetType === 'astrologer' ? String(r.targetId ?? '') : '',
+    ...nestedIds(r),
   ]);
   const userNames = useNamesByIds('users', allIds);
   const astroNames = useNamesByIds('astrologers', allIds);
