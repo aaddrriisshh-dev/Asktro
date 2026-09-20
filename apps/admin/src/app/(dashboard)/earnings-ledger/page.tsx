@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { orderBy, limit } from 'firebase/firestore';
 import { useCollection, useNamesByIds } from '@/lib/hooks';
 import { formatPaise, formatDate } from '@/lib/format';
+import { DateFilter } from '@/components/DateFilter';
+import { Preset, resolveRange } from '@/lib/dateRange';
 
 /**
  * Astrologer earnings ledger — the immutable double-entry trail (astrologerLedger
@@ -12,20 +15,32 @@ import { formatPaise, formatDate } from '@/lib/format';
  * latest 300. `amount` is signed paise.
  */
 export default function EarningsLedgerPage() {
-  const { rows, loading } = useCollection('astrologerLedger', [orderBy('createdAt', 'desc'), limit(300)]);
+  const [preset, setPreset] = useState<Preset>('allTime');
+  const [custom, setCustom] = useState<{ start?: string; end?: string }>({});
+  const range = resolveRange(preset, custom);
+  const { rows: allRows, loading } = useCollection('astrologerLedger', [orderBy('createdAt', 'desc'), limit(500)]);
+  const rows = allRows.filter((r) => {
+    const ms = r.createdAt?.toMillis?.() ?? 0;
+    return ms >= range.start && ms < range.end;
+  });
   const astroNames = useNamesByIds('astrologers', rows.map((r) => String(r.astrologerId ?? '')));
 
   return (
     <div>
-      <h1>Earnings Ledger</h1>
-      <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>
-        Every astrologer earning, commission and reversal — the line-by-line trail behind each astrologer’s total earnings. Latest 300.
-      </p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ marginBottom: 2 }}>Earnings Ledger</h1>
+          <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>
+            Every astrologer earning, commission and reversal — the line-by-line trail behind each astrologer’s total earnings. Latest 500.
+          </p>
+        </div>
+        <DateFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} />
+      </div>
       <div className="card">
         {loading ? (
           <p className="muted">Loading…</p>
         ) : rows.length === 0 ? (
-          <p className="muted">No ledger entries yet.</p>
+          <p className="muted">No ledger entries in {range.label.toLowerCase()}.</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table className="cardify">

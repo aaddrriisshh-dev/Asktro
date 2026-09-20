@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  collection, query, where, getDocs, Timestamp,
+  collection, query, where, getDocs, documentId, Timestamp,
   getCountFromServer, getAggregateFromServer, sum, QueryConstraint,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -20,19 +20,35 @@ interface SRow {
   id: string;
   customerId?: string;
   astrologerId?: string;
+  customerName?: string;
+  astrologerName?: string;
   type?: string;
   totalCharged?: number;
   billedSeconds?: number;
   createdAtMs?: number;
 }
 
+/** Resolve a set of UIDs in a collection to their `name` (batched, 30 at a time). */
+async function resolveNames(path: string, ids: string[]): Promise<Map<string, string>> {
+  const m = new Map<string, string>();
+  const unique = Array.from(new Set(ids.filter(Boolean)));
+  for (let i = 0; i < unique.length; i += 30) {
+    const chunk = unique.slice(i, i + 30);
+    try {
+      const snap = await getDocs(query(collection(db, path), where(documentId(), 'in', chunk)));
+      snap.forEach((d) => { const n = (d.data().name as string | undefined)?.trim(); if (n) m.set(d.id, n); });
+    } catch { /* best-effort */ }
+  }
+  return m;
+}
+
 const SESSION_COLUMNS: DrillColumn<SRow>[] = [
   { header: 'Customer', cell: (s) => s.customerId
-    ? <Link href={`/users/${s.customerId}`} className="ovl-nm" style={{ color: 'var(--primary)' }}>{s.customerId.slice(0, 12)}</Link>
+    ? <Link href={`/users/${s.customerId}`} className="ovl-nm" style={{ color: 'var(--primary)' }}>{s.customerName || s.customerId.slice(0, 12)}</Link>
     : <span className="muted">—</span> },
   { header: 'Type', cell: (s) => <span style={{ textTransform: 'capitalize' }}>{s.type || '—'}</span> },
   { header: 'Min', align: 'right', cell: (s) => Math.round(((s.billedSeconds ?? 0) / 60) * 10) / 10 },
-  { header: 'Astrologer', cell: (s) => s.astrologerId ? s.astrologerId.slice(0, 10) : '—' },
+  { header: 'Astrologer', cell: (s) => s.astrologerName || (s.astrologerId ? s.astrologerId.slice(0, 10) : '—') },
   { header: 'Charged', align: 'right', cell: (s) => formatPaise(s.totalCharged) },
   { header: 'Started', cell: (s) => formatDate(s.createdAtMs) },
 ];
@@ -79,6 +95,15 @@ function useConsultations(range: Range): CardView<ConsData> {
           if (c.type === 'chat') activeChat += 1;
           else if (c.type === 'voice') activeVoice += 1;
           else if (c.type === 'video') activeVideo += 1;
+        });
+        // Resolve customer + astrologer names for the live-session drill list.
+        const [custNames, astroNames] = await Promise.all([
+          resolveNames('users', activeRows.map((r) => r.customerId ?? '')),
+          resolveNames('astrologers', activeRows.map((r) => r.astrologerId ?? '')),
+        ]);
+        activeRows.forEach((r) => {
+          if (r.customerId) r.customerName = custNames.get(r.customerId);
+          if (r.astrologerId) r.astrologerName = astroNames.get(r.astrologerId);
         });
 
         // History in the range WITHOUT downloading the consultations: counts and

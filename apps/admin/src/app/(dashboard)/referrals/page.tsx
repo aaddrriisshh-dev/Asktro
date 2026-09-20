@@ -47,7 +47,11 @@ export default function ReferralsPage() {
                     <td data-label="Referred">{nm(r.referredId)}</td>
                     <td data-label="Referrer reward" className="uat-amount">{formatPaise((r.referrerReward as number) ?? 0)}</td>
                     <td data-label="Referred reward" className="uat-amount">{formatPaise((r.referredReward as number) ?? 0)}</td>
-                    <td data-label="Status"><span className="badge green">{(r.status as string) ?? 'credited'}</span></td>
+                    <td data-label="Status">{(() => {
+                      const st = (r.status as string) ?? 'credited';
+                      const cls = st === 'credited' || st === 'paid' ? 'green' : st === 'pending' ? 'amber' : 'red';
+                      return <span className={`badge ${cls}`}>{st}</span>;
+                    })()}</td>
                     <td data-label="When" className="muted">{formatDate(r.createdAt?.toMillis?.())}</td>
                   </tr>
                 ))}

@@ -6,6 +6,7 @@ import { collection, query, where, orderBy, limit, getDocs, onSnapshot, Timestam
 import { db } from '@/lib/firebase';
 import { formatPaise } from '@/lib/format';
 import { useCardFilter } from '@/lib/useCardFilter';
+import { useNamesByIds } from '@/lib/hooks';
 import { DrawerFilter } from './DrawerFilter';
 import { MobileSection } from '@/components/MobileSection';
 
@@ -71,6 +72,9 @@ export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video'
     return () => { cancelled = true; };
   }, [type, range.start, range.end]);
 
+  // Resolve customer UIDs → names (the astrologer column already uses names).
+  const custNames = useNamesByIds('users', [...(live ?? []), ...(done ?? [])].map((c) => String(c.customerId ?? '')));
+
   const rows = (list: Any[], dateLabel: string) => (
     <div style={{ overflowX: 'auto' }}>
       <table className="cardify">
@@ -78,7 +82,7 @@ export function SessionsConsole({ type, title, icon }: { type: 'voice' | 'video'
         <tbody>
           {list.map((c) => (
             <tr key={c.id as string}>
-              <td data-label="User"><Link href={`/users/${c.customerId}`} style={{ fontWeight: 600 }}>{(c.customerId as string)?.slice(0, 10) ?? '—'}</Link></td>
+              <td data-label="User"><Link href={`/users/${c.customerId}`} style={{ fontWeight: 600 }}>{custNames.get(String(c.customerId ?? '')) || (c.customerId as string)?.slice(0, 10) || '—'}</Link></td>
               <td data-label="Min"><b>{mins(c)}</b></td>
               <td data-label="Astrologer">{names[c.astrologerId as string] ?? '—'}</td>
               <td data-label="Payment">{(c.totalCharged as number) > 0 ? <span className="pay-pill paid">Paid</span> : <span className="pay-pill free">Free</span>}</td>

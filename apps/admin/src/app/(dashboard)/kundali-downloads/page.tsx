@@ -1,21 +1,36 @@
 'use client';
 
+import { useState } from 'react';
 import { orderBy, limit } from 'firebase/firestore';
 import { useCollection } from '@/lib/hooks';
 import { formatPaise, formatDate } from '@/lib/format';
+import { DateFilter } from '@/components/DateFilter';
+import { Preset, resolveRange } from '@/lib/dateRange';
 
 /** Sales log of paid Kundali Match (Ashtakoota) reports — ₹49 each. Reads the
  *  admin-readable `kundliMatches` records written by purchaseKundliMatch. */
 export default function KundaliDownloadsPage() {
-  const { rows, loading } = useCollection('kundliMatches', [orderBy('purchasedAt', 'desc'), limit(200)]);
+  const [preset, setPreset] = useState<Preset>('allTime');
+  const [custom, setCustom] = useState<{ start?: string; end?: string }>({});
+  const range = resolveRange(preset, custom);
+  const { rows: allRows, loading } = useCollection('kundliMatches', [orderBy('purchasedAt', 'desc'), limit(500)]);
+  const rows = allRows.filter((r) => {
+    const ms = r.purchasedAt?.toMillis?.() ?? 0;
+    return ms >= range.start && ms < range.end;
+  });
   const revenue = rows.reduce((n, r) => n + ((r.pricePaise as number) ?? 0), 0);
 
   return (
     <div>
-      <h1>Kundali Downloads</h1>
-      <p className="muted" style={{ marginTop: -6, marginBottom: 16 }}>
-        Paid Ashtakoota Guna Milan reports — ₹49 each.
-      </p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ marginBottom: 2 }}>Kundali Downloads</h1>
+          <p className="muted" style={{ marginTop: 0, marginBottom: 16 }}>
+            Paid Ashtakoota Guna Milan reports — ₹49 each.
+          </p>
+        </div>
+        <DateFilter preset={preset} custom={custom} onPreset={setPreset} onCustom={setCustom} />
+      </div>
       <div className="card">
         {loading ? (
           <p className="muted">Loading…</p>
