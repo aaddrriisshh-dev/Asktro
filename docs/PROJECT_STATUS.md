@@ -65,10 +65,8 @@ manually (has ₹1,813 credit buffer).
 Branch: `claude/asktro-session-handoff-o1ggo8` (all work committed + pushed).
 
 ### ▶ WHEN THE FOUNDER RETURNS (do these, in order)
-1. **Facebook Client Token** — founder brings it. Paste it in place of
-   `PASTE_FACEBOOK_CLIENT_TOKEN_HERE` in BOTH
-   `apps/customer/android/app/src/main/res/values/strings.xml` and
-   `apps/customer/ios/Runner/Info.plist`. Commit + push.
+1. **Facebook Client Token** — ✅ DONE (pasted 2026-09-21 into strings.xml +
+   Info.plist; committed). Facebook SDK is fully configured — ready for the build.
 2. **Confirm deploys landed** while away: portal (Vercel), the 5 functions
    (deleteAccount, processAccountDeletion, reportContent, onChatMessageCreated,
    onAiChatMessage). Ask founder / check.

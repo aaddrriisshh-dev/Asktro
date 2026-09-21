@@ -5,6 +5,6 @@
          Meta App Dashboard → Settings → Advanced → Client Token.
          REPLACE the placeholder below before building 3.0.1. -->
     <string name="facebook_app_id">1332308082114721</string>
-    <string name="facebook_client_token">PASTE_FACEBOOK_CLIENT_TOKEN_HERE</string>
+    <string name="facebook_client_token">6ce2503f7d17e79c6872ba4855b4b16b</string>
     <string name="fb_login_protocol_scheme">fb1332308082114721</string>
 </resources>
