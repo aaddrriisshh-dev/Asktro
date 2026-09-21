@@ -104,13 +104,18 @@ Branch: `claude/asktro-session-handoff-o1ggo8` (all work committed + pushed).
 - Account-deletion "reason for leaving" prompt.
 - Reporting an astrologer now REQUIRES a reason note.
 - **Out-of-balance chat prompt fix** (root cause of the abuse report): when a
-  user runs out of balance mid-chat, the prompt now shows **"View offers" +
-  "Recharge now"** buttons (was a dead-end message → user got frustrated →
-  reported the astrologer). New bilingual message, sent once. New portal
-  **"In-chat Offers"** page (planType 'inchat') feeds the "View offers" list
-  ("Pay ₹50 → +₹100 extra → ₹150"); if none active it opens normal recharge.
-  Backend = replyEngine; app = chat CTA + /recharge?offers=inchat (rides 3.0.1);
-  portal = In-chat Offers manager (deploys via Vercel).
+  user runs out of balance mid-chat, the prompt now shows an **inline in-chat
+  offer card** ("Pay ₹50, get ₹150 · +₹100 extra") tap = recharge pre-selected
+  to it, plus a "Recharge a different amount" link (was a dead-end message →
+  user got frustrated → reported the astrologer). New bilingual message, sent
+  once. **After a recharge started from the chat, a "✅ ₹X added to your wallet"
+  line appears inline** — X is the TOTAL credited (walletCredit + bonus +
+  coupon), not the amount paid — then the session resumes. Portal **"In-chat
+  Offers"** page (planType 'inchat') now enforces **exactly ONE offer** (Add
+  blocked while one exists; delete to replace).
+  Backend = replyEngine; app = chat inline offer card + wallet-total confirm
+  (recharge screen pops the credited total back; rides 3.0.1);
+  portal = In-chat Offers manager, single-offer rule (deploys via Vercel).
 
 ### Portal — full audit of every left-menu page (2026-09-20)
 Result: **everything is wired to real Firestore/callables — no stubs.** Fixed this
