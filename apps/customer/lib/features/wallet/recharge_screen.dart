@@ -221,6 +221,11 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
 
   void _showSuccess(RechargePlan plan) {
     final couponBonus = _coupon?.discountPaise ?? 0;
+    // Total that actually landed in the wallet = cash credited + plan bonus +
+    // any coupon bonus. We hand this back when leaving the recharge screen so a
+    // chat that opened us (out-of-balance prompt) can show a "₹X added to your
+    // wallet" line inline. Other callers simply ignore the returned value.
+    final creditedPaise = plan.totalCredit + couponBonus;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -229,7 +234,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
         couponBonus: couponBonus,
         onDone: () {
           Navigator.pop(context); // close dialog
-          Navigator.of(context).maybePop(); // leave recharge screen
+          Navigator.of(context).maybePop(creditedPaise); // leave recharge, hand total back
         },
       ),
     );

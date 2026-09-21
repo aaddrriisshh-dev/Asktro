@@ -23,8 +23,15 @@ export default function InchatOffersPage() {
   const offers = rows
     .filter((p) => ((p.planType as string) ?? '') === 'inchat')
     .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || (a.amount ?? 0) - (b.amount ?? 0));
+  // Exactly one in-chat offer is allowed at a time (see add()).
+  const hasOffer = offers.length > 0;
 
   async function add() {
+    // Only ONE in-chat offer is allowed at a time, so the chat prompt is never
+    // ambiguous about which deal it shows. To add a new one, delete the old one.
+    if (offers.length > 0) {
+      return alert('You already have an in-chat offer. Only one is allowed — delete the existing offer to create a new one.');
+    }
     const amount = rupeesToPaise(Number(f.amount));
     if (amount <= 0) return alert('Enter a valid recharge amount (what the user pays).');
     const bonus = rupeesToPaise(Number(f.bonus) || 0);
@@ -96,13 +103,19 @@ export default function InchatOffersPage() {
             <input className="input" placeholder="0" style={{ width: 80 }}
               value={f.order} onChange={(e) => setF({ ...f, order: e.target.value })} />
           </label>
-          <button className="btn" onClick={add} disabled={saving} style={{ marginBottom: 2 }}>
+          <button className="btn" onClick={add} disabled={saving || hasOffer} style={{ marginBottom: 2 }}>
             {saving ? 'Adding…' : 'Add offer'}
           </button>
         </div>
+        {hasOffer && (
+          <p style={{ margin: '12px 0 0', fontSize: 12.5, lineHeight: 1.5, color: 'var(--gold-deep)', fontWeight: 600 }}>
+            You already have an in-chat offer. Only <b>one</b> is allowed — delete the existing offer below to create a new one.
+          </p>
+        )}
         <p className="muted" style={{ margin: '12px 0 0', fontSize: 12, lineHeight: 1.5 }}>
           <b>Pay</b> = what the user is charged. <b>Total in wallet</b> = Pay + Bonus. The app shows the
           user &ldquo;+₹{'{bonus}'} extra&rdquo; on the tile so it&apos;s clear they get more than they pay.
+          Only <b>one</b> in-chat offer can be active at a time.
         </p>
       </div>
       </MobileSection>

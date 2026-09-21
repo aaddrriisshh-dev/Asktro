@@ -89,6 +89,19 @@ final _requestedSkillProvider =
   return snap.data()?['requestedSkill'] as String?;
 });
 
+/// The single active in-chat offer (portal-managed, planType 'inchat'), shown
+/// inline under the "out of balance" prompt so the user sees the deal right in
+/// the chat. Only ONE is allowed (enforced in the portal); if several ever
+/// exist we take the lowest displayOrder. Null when none is active — the prompt
+/// then just offers a plain "Recharge now" button.
+final _inchatOfferProvider = StreamProvider.autoDispose<RechargePlan?>((ref) {
+  return ref.watch(catalogRepositoryProvider).watchPlans().map((list) {
+    final offers = list.where((p) => p.isInchat && p.active).toList()
+      ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    return offers.isEmpty ? null : offers.first;
+  });
+});
+
 class ChatConsultationScreen extends ConsumerStatefulWidget {
   const ChatConsultationScreen({
     super.key,
@@ -118,6 +131,12 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   bool _graceInitialized = false;
   bool _leftForTerminal = false;
   bool _pausedShown = false;
+
+  // Ephemeral "₹X added to your wallet" confirmation lines shown inline in this
+  // chat right after a recharge that was started from here. Local-only (never
+  // written to Firestore) so they vanish when the screen is left — the wallet
+  // balance and the resumed session are the durable record.
+  final List<Map<String, dynamic>> _localSystemLines = [];
 
   // Staged images (WhatsApp-style): picked photo(s) preview in the composer and
   // upload in the background; they only enter the chat when the user taps send.
@@ -765,12 +784,29 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     _pausedShown = false;
   }
 
-  Future<void> _goRecharge() async {
+  /// Open the recharge screen from within the chat. When [planId] is given (the
+  /// inline in-chat offer was tapped) the screen opens pre-selected to that plan
+  /// so the user pays in one tap; otherwise it opens the normal recharge grid.
+  /// On a successful recharge the screen hands back the TOTAL credited (paise),
+  /// which we show as a "₹X added to your wallet" line right here in the chat.
+  Future<void> _goRecharge({String? planId}) async {
     // ... hidden in free v1 — recharge is a no-op when money surfaces are off
     if (!kMonetizationEnabled) return;
-    await context.push('/recharge');
+    final route = (planId != null && planId.isNotEmpty) ? '/recharge?plan=$planId' : '/recharge';
+    final result = await context.push(route);
+    if (!mounted) return;
+    // Recharge succeeded → confirm the credited total inline and continue.
+    if (result is int && result > 0) {
+      setState(() {
+        _localSystemLines.insert(0, {
+          'type': 'system',
+          'id': 'local_recharge_${DateTime.now().microsecondsSinceEpoch}',
+          'text': '✅ ${Money.formatPaise(result)} added to your wallet',
+        });
+      });
+    }
     // The recharge function auto-resumes a paused session; also nudge resume.
-    if (mounted) await ref.read(consultationControllerProvider(_id).notifier).resume();
+    await ref.read(consultationControllerProvider(_id).notifier).resume();
   }
 
   Future<void> _end() async {
@@ -950,22 +986,31 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     });
 
     final uid = ref.watch(currentUidProvider);
-    final messages = ref.watch(_messagesProvider(_id)).valueOrNull ?? const [];
+    final streamMessages = ref.watch(_messagesProvider(_id)).valueOrNull ?? const [];
+    // Merge the (newest-first) stream with any local recharge-confirmation lines,
+    // which are always the newest thing on screen (index 0 in a reverse list).
+    final messages = _localSystemLines.isEmpty
+        ? streamMessages
+        : <Map<String, dynamic>>[..._localSystemLines, ...streamMessages];
+    // The single active in-chat offer, shown inline under the out-of-balance prompt.
+    final inchatOffer = ref.watch(_inchatOfferProvider).valueOrNull;
     final typingState = ref.watch(_peerTypingProvider((id: _id, peerId: widget.astrologer.id))).valueOrNull;
     // Show the dots only if the flag is live AND no astrologer message has landed
     // since she started typing. If her latest message is newer than the typing
     // flag, the flag is stale — hide the dots (kills a lingering indicator),
     // while still showing them before the NEXT bubble (its flag is refreshed).
     var peerTyping = typingState?.typing ?? false;
-    if (peerTyping && typingState?.atMs != null && messages.isNotEmpty) {
-      final newest = messages.first;
+    if (peerTyping && typingState?.atMs != null && streamMessages.isNotEmpty) {
+      final newest = streamMessages.first;
       if (newest['senderId'] == widget.astrologer.id) {
         final ms = (newest['timestamp'] as Timestamp?)?.millisecondsSinceEpoch;
         if (ms != null && ms >= typingState!.atMs!) peerTyping = false;
       }
     }
-    if (messages.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _markSeen(messages));
+    // Only real Firestore messages get a seen-write (local confirmation lines
+    // have no doc to update).
+    if (streamMessages.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _markSeen(streamMessages));
     }
 
     return Scaffold(
@@ -1002,7 +1047,7 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                 verified: widget.astrologer.verified && !widget.astrologer.isAI,
                 remainingSec: s.displayRemainingSec,
                 warnLevel: s.warnLevel,
-                onRecharge: _goRecharge,
+                onRecharge: () => _goRecharge(),
                 onBack: () => Navigator.of(context).maybePop(),
                 onEnd: _end,
                 // A paid user (real wallet balance) sees no countdown — only the
@@ -1061,12 +1106,20 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
                                 remedyTitle: isRemedy ? (m['title'] ?? 'Remedy') as String : null,
                                 remedyNote: isRemedy ? (m['note'] ?? '') as String : null,
                               );
-                              // "Out of balance" prompt carries cta:'recharge' → show
-                              // Recharge / View offers buttons right under the bubble.
+                              // "Out of balance" prompt carries cta:'recharge' →
+                              // show the inline in-chat offer (if any) + a plain
+                              // Recharge button right under the bubble.
                               if (m['cta'] == 'recharge' && !mine && !widget.readOnly) {
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [bubble, const _RechargeCtaRow()],
+                                  children: [
+                                    bubble,
+                                    _RechargeCtaRow(
+                                      offer: inchatOffer,
+                                      onOffer: (p) => _goRecharge(planId: p.id),
+                                      onRecharge: () => _goRecharge(),
+                                    ),
+                                  ],
                                 );
                               }
                               return bubble;
@@ -1718,31 +1771,117 @@ class _StagedImage {
 }
 
 /// Recharge call-to-action shown under the AI's "out of balance" prompt so the
-/// user can act immediately: "View offers" opens the portal-managed in-chat
-/// offers; "Recharge now" opens the normal recharge screen.
+/// user can act immediately, right inside the chat. When a portal-managed
+/// in-chat offer is active it shows as a prominent card (tap = pay for that
+/// offer, pre-selected); a plain "Recharge a different amount" link opens the
+/// normal grid. With no active offer, a single "Recharge now" button is shown.
 class _RechargeCtaRow extends StatelessWidget {
-  const _RechargeCtaRow();
+  const _RechargeCtaRow({
+    required this.offer,
+    required this.onOffer,
+    required this.onRecharge,
+  });
+
+  /// The single active in-chat offer, or null when none is configured.
+  final RechargePlan? offer;
+
+  /// Tapped the in-chat offer → recharge pre-selected to it.
+  final void Function(RechargePlan) onOffer;
+
+  /// Tapped a plain recharge action → normal recharge grid.
+  final VoidCallback onRecharge;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final o = offer;
     return Padding(
-      padding: const EdgeInsets.only(left: AppSpacing.sm, top: 6, bottom: AppSpacing.sm),
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 8,
+      padding: const EdgeInsets.only(
+          left: AppSpacing.sm, top: 8, bottom: AppSpacing.sm, right: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FilledButton.icon(
-            onPressed: () => context.push('/recharge?offers=inchat'),
-            icon: const Icon(Icons.local_offer_outlined, size: 18),
-            label: const Text('View offers'),
-          ),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/recharge'),
-            icon: Icon(Icons.account_balance_wallet_outlined, size: 18, color: scheme.primary),
-            label: const Text('Recharge now'),
-          ),
+          if (o != null) ...[
+            _InchatOfferCard(offer: o, onTap: () => onOffer(o)),
+            const SizedBox(height: 6),
+            TextButton.icon(
+              onPressed: onRecharge,
+              icon: Icon(Icons.account_balance_wallet_outlined, size: 18, color: scheme.primary),
+              label: const Text('Recharge a different amount'),
+            ),
+          ] else
+            FilledButton.icon(
+              onPressed: onRecharge,
+              icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
+              label: const Text('Recharge now'),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+/// The inline "recharge ₹X, get ₹Y" offer card shown in the chat. Built purely
+/// from the plan's numbers (Pay = amount, Total = amount + bonus) so it always
+/// matches what the server will credit.
+class _InchatOfferCard extends StatelessWidget {
+  const _InchatOfferCard({required this.offer, required this.onTap});
+
+  final RechargePlan offer;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pay = Money.formatPaise(offer.amount);
+    final total = Money.formatPaise(offer.totalCredit);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFF7E6), Color(0xFFFDEFF7)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE7C05A), width: 1.4),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Text('🎁 ', style: TextStyle(fontSize: 14)),
+                  Text('SPECIAL OFFER',
+                      style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                          color: Color(0xFFB07A12))),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text('Pay $pay, get $total',
+                  style: AppTypography.body.copyWith(
+                      fontWeight: FontWeight.w800, fontSize: 17, color: AppColors.textDark)),
+              if (offer.bonus > 0) ...[
+                const SizedBox(height: 2),
+                Text('+${Money.formatPaise(offer.bonus)} extra in your wallet',
+                    style: const TextStyle(
+                        color: Color(0xFF2E9E5B), fontWeight: FontWeight.w700, fontSize: 12.5)),
+              ],
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(onPressed: onTap, child: Text('Recharge $pay')),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
