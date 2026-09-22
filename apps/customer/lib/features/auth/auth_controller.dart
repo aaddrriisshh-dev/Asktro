@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -51,6 +52,49 @@ class AuthController {
       codeAutoRetrievalTimeout: (_) {},
       timeout: const Duration(seconds: 60),
     );
+  }
+
+  /// Send the login OTP over WhatsApp (cheap primary path). Returns true if the
+  /// backend accepted the send; false on ANY problem — the caller then falls back
+  /// to [startPhoneVerification] (Firebase SMS), so a number with no WhatsApp is
+  /// never blocked. Never throws.
+  Future<bool> sendWhatsappOtp(String e164Phone) async {
+    try {
+      final res = await _ref
+          .read(functionsProvider)
+          .httpsCallable('sendWhatsappOtp')
+          .call<dynamic>({'phone': e164Phone});
+      final data = res.data;
+      return data is Map && data['ok'] == true;
+    } catch (_) {
+      return false; // fall back to Firebase SMS
+    }
+  }
+
+  /// Verify a WhatsApp OTP: the backend checks the code and returns a Firebase
+  /// custom token (reusing the existing uid for this phone), which we sign in with.
+  Future<Result<void>> verifyWhatsappOtp({
+    required String e164Phone,
+    required String code,
+  }) async {
+    try {
+      final res = await _ref
+          .read(functionsProvider)
+          .httpsCallable('verifyWhatsappOtp')
+          .call<dynamic>({'phone': e164Phone, 'code': code});
+      final data = res.data;
+      final token = (data is Map ? data['token'] : null) as String?;
+      if (token == null || token.isEmpty) {
+        return const ResultFailure(Failure(message: 'Verification failed. Please try again.'));
+      }
+      final userCred = await _auth.signInWithCustomToken(token);
+      await _ensureProfile(userCred, phone: e164Phone);
+      return const Success(null);
+    } on FirebaseFunctionsException catch (e) {
+      return ResultFailure(Failure(message: e.message ?? 'Verification failed', code: e.code));
+    } catch (e) {
+      return ResultFailure(Failure.unknown(e));
+    }
   }
 
   Future<Result<void>> confirmOtp({

@@ -55,6 +55,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
     });
     final e164 = '+91${_phone.text.trim()}';
+    // Try WhatsApp OTP first (cheap). If it can't be sent — number has no
+    // WhatsApp, send failed, or any error — fall back to the existing Firebase
+    // SMS flow so no one is ever blocked from logging in.
+    final waOk = await ref.read(authControllerProvider).sendWhatsappOtp(e164);
+    if (!mounted) return;
+    if (waOk) {
+      setState(() => _loading = false);
+      context.push('/otp', extra: OtpArgs(phone: e164, channel: OtpChannel.whatsapp));
+      return;
+    }
+    await _startFirebaseOtp(e164);
+  }
+
+  /// The original Firebase phone-auth (SMS) flow — now the fallback when WhatsApp
+  /// isn't available. Unchanged behaviour, just extracted.
+  Future<void> _startFirebaseOtp(String e164) async {
     try {
       await ref.read(authControllerProvider).startPhoneVerification(
         e164Phone: e164,
@@ -62,7 +78,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           if (!mounted) return;
           setState(() => _loading = false);
           context.push('/otp',
-              extra: OtpArgs(phone: e164, verificationId: verificationId, resendToken: resendToken),);
+              extra: OtpArgs(
+                  phone: e164,
+                  verificationId: verificationId,
+                  resendToken: resendToken,
+                  channel: OtpChannel.firebase),);
         },
         onAutoVerified: (_) {
           if (mounted) context.go('/home');

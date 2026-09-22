@@ -10,11 +10,21 @@ import 'auth_controller.dart';
 import '../profile_setup/onboarding_style.dart';
 import '../profile_setup/onboarding_widgets.dart';
 
+/// Which channel delivered the code the user is entering.
+enum OtpChannel { whatsapp, firebase }
+
 class OtpArgs {
-  const OtpArgs({required this.phone, required this.verificationId, this.resendToken});
+  const OtpArgs({
+    required this.phone,
+    this.verificationId,
+    this.resendToken,
+    this.channel = OtpChannel.firebase,
+  });
   final String phone;
-  final String verificationId;
+  /// Firebase phone-auth verification id. Null for the WhatsApp channel.
+  final String? verificationId;
   final int? resendToken;
+  final OtpChannel channel;
 }
 
 class OtpScreen extends ConsumerStatefulWidget {
@@ -30,7 +40,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
 
   final _code = TextEditingController();
   final _focus = FocusNode();
-  late String _verificationId = widget.args.verificationId;
+  late OtpChannel _channel = widget.args.channel;
+  late String? _verificationId = widget.args.verificationId;
   late int? _resendToken = widget.args.resendToken;
   bool _loading = false;
   String? _error;
@@ -87,11 +98,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
       _loading = true;
       _error = null;
     });
-    final r = await ref.read(authControllerProvider).confirmOtp(
-          verificationId: _verificationId,
-          smsCode: _code.text.trim(),
-          phone: widget.args.phone,
-        );
+    final Result<void> r;
+    if (_channel == OtpChannel.whatsapp) {
+      r = await ref.read(authControllerProvider).verifyWhatsappOtp(
+            e164Phone: widget.args.phone,
+            code: _code.text.trim(),
+          );
+    } else {
+      r = await ref.read(authControllerProvider).confirmOtp(
+            verificationId: _verificationId ?? '',
+            smsCode: _code.text.trim(),
+            phone: widget.args.phone,
+          );
+    }
     if (!mounted) return;
     r.when(
       // Straight to /home — the router gate takes over from here (new users are
@@ -115,6 +134,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
       _error = null;
       _code.clear();
     });
+    // WhatsApp channel → re-send over WhatsApp. On failure, keep the user moving
+    // by pointing them at the "SMS instead" option (never a dead end).
+    if (_channel == OtpChannel.whatsapp) {
+      final ok = await ref.read(authControllerProvider).sendWhatsappOtp(widget.args.phone);
+      if (!mounted) return;
+      if (ok) {
+        _startCountdown();
+        _focus.requestFocus();
+      } else {
+        setState(() => _error = 'Could not resend on WhatsApp. Tap "Get the code on SMS instead".');
+      }
+      return;
+    }
     try {
       await ref.read(authControllerProvider).startPhoneVerification(
         e164Phone: widget.args.phone,
@@ -136,6 +168,49 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
     } catch (_) {
       // A raw SDK/transport throw from verifyPhoneNumber must not crash resend.
       if (mounted) setState(() => _error = 'Could not resend the code. Please try again.');
+    }
+  }
+
+  /// Fallback from WhatsApp → Firebase SMS (for numbers with no WhatsApp, or if
+  /// the WhatsApp code never arrives). Switches the screen to the SMS channel.
+  Future<void> _switchToSms() async {
+    if (_loading) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+      _code.clear();
+    });
+    try {
+      await ref.read(authControllerProvider).startPhoneVerification(
+        e164Phone: widget.args.phone,
+        codeSent: (id, token) {
+          if (!mounted) return;
+          setState(() {
+            _channel = OtpChannel.firebase;
+            _verificationId = id;
+            _resendToken = token;
+            _loading = false;
+          });
+          _startCountdown();
+          _focus.requestFocus();
+        },
+        onAutoVerified: (_) {
+          if (mounted) context.go('/home');
+        },
+        onError: (f) {
+          if (!mounted) return;
+          setState(() {
+            _loading = false;
+            _error = f.message;
+          });
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Could not switch to SMS. Please try again.';
+      });
     }
   }
 
@@ -207,7 +282,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                     TextSpan(
                       style: Ob.subtitle,
                       children: [
-                        const TextSpan(text: 'Enter the 6-digit code sent to\n'),
+                        TextSpan(text: _channel == OtpChannel.whatsapp
+                            ? 'Enter the 6-digit code sent on WhatsApp to\n'
+                            : 'Enter the 6-digit code sent to\n'),
                         TextSpan(
                           text: _prettyPhone,
                           style: Ob.subtitle.copyWith(color: Ob.navy, fontWeight: FontWeight.w600),
@@ -251,6 +328,18 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                                     color: Ob.purple, fontWeight: FontWeight.w600,),),
                           ),
                   ),
+                  // WhatsApp channel → always offer SMS as a fallback so a user
+                  // whose WhatsApp code never arrives is never stuck.
+                  if (_channel == OtpChannel.whatsapp) ...[
+                    const SizedBox(height: 4),
+                    Center(
+                      child: TextButton(
+                        onPressed: _loading ? null : _switchToSms,
+                        child: Text('Get the code on SMS instead',
+                            style: Ob.note.copyWith(color: Ob.purple, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 18),
                   const Center(child: SecureFooter()),
                 ],
