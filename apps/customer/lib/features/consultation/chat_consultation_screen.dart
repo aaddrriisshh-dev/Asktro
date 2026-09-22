@@ -740,8 +740,13 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
   Future<void> _showPaused() async {
     if (!mounted) return; // screen already gone — nothing to show, never crash
     _pausedShown = true;
+    // The single active in-chat offer (if any) is shown INSIDE this pause prompt,
+    // so the moment the balance runs out the user sees the deal right here — not a
+    // bare "Recharge" button. Read once at show-time (portal-managed, live).
+    final offer = ref.read(_inchatOfferProvider).valueOrNull;
     // A CENTERED dialog (not a bottom sheet) so the buttons never fall into the
-    // phone's bottom gesture-bar / safe area and become un-tappable.
+    // phone's bottom gesture-bar / safe area and become un-tappable. Scrollable so
+    // the taller offer-card layout never overflows on a short screen.
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -749,34 +754,55 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
         insetPadding: const EdgeInsets.all(AppSpacing.xl),
         backgroundColor: AppColors.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.dialog)),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.pause_circle_filled_rounded, size: 56, color: AppColors.primary),
-              const SizedBox(height: AppSpacing.md),
-              Text('Consultation Paused', style: AppTypography.subtitle, textAlign: TextAlign.center),
-              const SizedBox(height: AppSpacing.xs),
-              Text("You've run out of balance. Recharge to continue exactly where you left off.",
-                  style: AppTypography.caption, textAlign: TextAlign.center,),
-              const SizedBox(height: AppSpacing.xl),
-              PrimaryButton(
-                label: 'Recharge',
-                onPressed: () {
-                  Navigator.pop(dialogCtx); // close via the dialog's own context
-                  _goRecharge();
-                },
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              SecondaryButton(
-                label: 'End Consultation',
-                onPressed: () {
-                  Navigator.pop(dialogCtx);
-                  _end();
-                },
-              ),
-            ],
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.pause_circle_filled_rounded, size: 56, color: AppColors.primary),
+                const SizedBox(height: AppSpacing.md),
+                Text('Consultation Paused', style: AppTypography.subtitle, textAlign: TextAlign.center),
+                const SizedBox(height: AppSpacing.xs),
+                Text("You've run out of balance. Recharge to continue exactly where you left off.",
+                    style: AppTypography.caption, textAlign: TextAlign.center,),
+                const SizedBox(height: AppSpacing.lg),
+                if (offer != null) ...[
+                  // The gold "Pay ₹X, get ₹Y · +₹Z extra" card — tap pays for that
+                  // offer, pre-selected.
+                  _InchatOfferCard(
+                    offer: offer,
+                    onTap: () {
+                      Navigator.pop(dialogCtx);
+                      _goRecharge(planId: offer.id);
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(dialogCtx);
+                      _goRecharge();
+                    },
+                    child: const Text('Recharge a different amount'),
+                  ),
+                ] else
+                  PrimaryButton(
+                    label: 'Recharge',
+                    onPressed: () {
+                      Navigator.pop(dialogCtx); // close via the dialog's own context
+                      _goRecharge();
+                    },
+                  ),
+                const SizedBox(height: AppSpacing.sm),
+                SecondaryButton(
+                  label: 'End Consultation',
+                  onPressed: () {
+                    Navigator.pop(dialogCtx);
+                    _end();
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -795,7 +821,9 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
     final route = (planId != null && planId.isNotEmpty) ? '/recharge?plan=$planId' : '/recharge';
     final result = await context.push(route);
     if (!mounted) return;
-    // Recharge succeeded → confirm the credited total inline and continue.
+    // Recharge succeeded → confirm the credited total inline and resume. The
+    // creditRecharge function already auto-resumes a paused session; this is a
+    // belt-and-suspenders nudge.
     if (result is int && result > 0) {
       setState(() {
         _localSystemLines.insert(0, {
@@ -804,9 +832,18 @@ class _ChatConsultationScreenState extends ConsumerState<ChatConsultationScreen>
           'text': '✅ ${Money.formatPaise(result)} added to your wallet',
         });
       });
+      await ref.read(consultationControllerProvider(_id).notifier).resume();
+      return;
     }
-    // The recharge function auto-resumes a paused session; also nudge resume.
-    await ref.read(consultationControllerProvider(_id).notifier).resume();
+    // NO recharge happened (the user backed out of the recharge screen). We must
+    // NOT resume here — resuming on a bare back-out let the user slip past the
+    // paused prompt and squeeze one more reply out of any leftover paise. If the
+    // session is still paused, re-show the paused prompt so the only way back into
+    // the chat is an actual recharge.
+    final status = ref.read(consultationControllerProvider(_id)).valueOrNull?.status;
+    if (status == ConsultationStatus.paused && !_pausedShown) {
+      await _showPaused();
+    }
   }
 
   Future<void> _end() async {
