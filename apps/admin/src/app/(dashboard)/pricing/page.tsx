@@ -11,6 +11,7 @@ import { canEdit } from '@/lib/roles';
 interface Config {
   consultationPricePerMinutePaise: number;
   minWalletToStartPaise: number;
+  minWalletToStartAiPaise: number;
   warnLevel1Sec: number;
   warnLevel2Sec: number;
   reconnectTimeoutSec: number;
@@ -28,6 +29,7 @@ const WELCOME_CREDIT_MAX_PAISE = 50000; // ₹500
 const DEFAULTS: Config = {
   consultationPricePerMinutePaise: 900,
   minWalletToStartPaise: 1800,
+  minWalletToStartAiPaise: 0,
   warnLevel1Sec: 60,
   warnLevel2Sec: 20,
   reconnectTimeoutSec: 45,
@@ -115,10 +117,14 @@ export default function PricingPage() {
           hint="Fallback rate. Each astrologer's own ₹/min is set on their profile."
           value={String(perMinRupees)}
           onChange={(v) => setCfg((c) => ({ ...c, consultationPricePerMinutePaise: rupeesToPaise(Number(v)) }))} />
-        <Field label="Minimum wallet to start (₹)"
-          hint="Minimum balance a user needs to begin a paid consult."
+        <Field label="Min balance to start — Human astrologers (₹)"
+          hint="Minimum balance a user needs to begin a paid HUMAN consult (e.g. ₹18 ≈ 2 min buffer)."
           value={String(cfg.minWalletToStartPaise / 100)}
           onChange={(v) => setCfg((c) => ({ ...c, minWalletToStartPaise: rupeesToPaise(Number(v)) }))} />
+        <Field label="Min balance to start — AI astrologers (₹)"
+          hint="Usually ₹0 — the free AI minute needs no minimum, so users can always open an AI chat (empty = they see the recharge prompt). Set above 0 only to require a balance before an AI chat can begin."
+          value={String(cfg.minWalletToStartAiPaise / 100)}
+          onChange={(v) => setCfg((c) => ({ ...c, minWalletToStartAiPaise: rupeesToPaise(Number(v)) }))} />
         <Field label="Free welcome credit for new users (₹)"
           hint={
             creditRupees > 0

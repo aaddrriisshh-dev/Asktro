@@ -26,7 +26,13 @@ export interface GlobalConfig {
    *  against a corrupted/absurd astrologer rate — the resolved rate is clamped
    *  to this before a session is priced. */
   maxConsultationPricePerMinutePaise?: number;
+  /** Minimum wallet balance to START a paid HUMAN consultation (paise). */
   minWalletToStartPaise: number;
+  /** Minimum spendable balance to START an AI consultation (paise). Default 0:
+   *  AI has no minimum (the free opening comes from chatBonusBalance), so a user
+   *  can always open an AI chat and, if empty, sees the recharge prompt. Set > 0
+   *  only to require a balance before an AI chat can begin. Portal-editable. */
+  minWalletToStartAiPaise?: number;
   warnLevel1Sec: number;
   warnLevel2Sec: number;
   reconnectTimeoutSec: number;

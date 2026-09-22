@@ -171,13 +171,20 @@ export const createConsultation = onCall(async (req) => {
     const spendable = (customer.walletBalance ?? 0) +
         (customer.bonusBalance ?? 0) +
         (chatCreditEligible ? (customer.chatBonusBalance ?? 0) : 0);
-    // AI is free, so it never requires a minimum balance to start. Only a PAID
-    // (human) consultation is gated on the wallet minimum.
-    if (!isAI && !canStartConsultation(spendable, config.minWalletToStartPaise)) {
+    // Minimum balance to START is split by astrologer kind (both portal-editable
+    // on the Pricing page). Human consultations always require the human minimum.
+    // AI has its own minimum, defaulting to 0 — at 0 an AI chat is NEVER gated
+    // (the user can always open it and, if empty, sees the recharge prompt),
+    // preserving the original behaviour; set the AI minimum above 0 to require a
+    // balance before an AI chat can begin.
+    const aiMin = config.minWalletToStartAiPaise ?? 0;
+    const minToStart = isAI ? aiMin : config.minWalletToStartPaise;
+    const gated = isAI ? aiMin > 0 : true;
+    if (gated && !canStartConsultation(spendable, minToStart)) {
       throw new HttpsError(
         'failed-precondition',
         'INSUFFICIENT_BALANCE',
-        { minWalletToStartPaise: config.minWalletToStartPaise, spendable },
+        { minWalletToStartPaise: minToStart, spendable },
       );
     }
 
