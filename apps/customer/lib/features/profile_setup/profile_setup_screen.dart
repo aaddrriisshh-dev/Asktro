@@ -311,7 +311,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               children: const [
                 TextSpan(text: "You've unlocked your "),
                 TextSpan(
-                    text: 'first 3 minutes free',
+                    text: 'first minute free',
                     style: TextStyle(color: Ob.goldDeep, fontWeight: FontWeight.w600),),
                 TextSpan(text: ' with our New Astrologers  ✦'),
               ],
@@ -386,7 +386,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       ),
       child: Row(
         children: [
-          _feature(Icons.chat_bubble_outline_rounded, '3 Free Minutes', 'With new astrologers.'),
+          _feature(Icons.chat_bubble_outline_rounded, '1 Free Minute', 'With new astrologers.'),
           _feature(Icons.shield_outlined, '100% Private', 'Safe & confidential.'),
           _feature(Icons.workspace_premium_outlined, 'Verified Experts', 'Trusted astrologers.'),
           _feature(Icons.access_time_rounded, 'Quick & Easy', 'Guidance anytime.'),
