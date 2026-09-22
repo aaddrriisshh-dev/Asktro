@@ -78,18 +78,27 @@ Branch: `claude/asktro-session-handoff-o1ggo8` (all work committed + pushed).
    it in Home Pop-up; decide on the **₹27 welcome credit**.
 
 ### Deploy state (the batch — 3 surfaces)
-1. **Portal (Vercel)** — founder was mid-redeploy. Latest commits add more portal
-   work, so a final `git pull` + `cd apps/admin && vercel --prod` is needed to
-   ship everything below. Portal-only, no app build.
-2. **Cloud Functions (Mac)** — ✅ DEPLOYED 2026-09-20 (all 5 "Successful update":
-   `deleteAccount`, `processAccountDeletion`, `reportContent`,
-   `onChatMessageCreated`, `onAiChatMessage`). Live now. **Safety-checked:
-   backward-compatible, the LIVE 3.0.0 app keeps working** (reason is optional;
-   report API unchanged; the rest are background triggers). Deploy one at a time.
-3. **App 3.0.1 build (Flutter)** — everything app-side rides this. Needs the
-   Facebook **Client Token** pasted into `android/app/src/main/res/values/strings.xml`
-   + `ios/Runner/Info.plist` (placeholder `PASTE_FACEBOOK_CLIENT_TOKEN_HERE`) and
-   `flutter pub get` (resolves `facebook_app_events`; bump version if it fails).
+1. **Portal (Vercel)** — ✅ REDEPLOYED 2026-09-22 (asktro-admin.vercel.app). Now
+   live: split **Min balance to start — Human (₹18) / AI (₹0)** on Pricing, and
+   the **one in-chat offer only** rule.
+2. **Cloud Functions (Mac)** — 5 DEPLOYED 2026-09-20 (`deleteAccount`,
+   `processAccountDeletion`, `reportContent`, `onChatMessageCreated`,
+   `onAiChatMessage`). **NEW pending redeploy (batch at 3.0.1 launch):**
+   - `createConsultation` — AI/human min-balance split (`minWalletToStartAiPaise`,
+     default 0 = no change in behaviour; only bites if AI min set > 0).
+   - `onAiChatMessage` — today's-date (IST) injected into the reading prompt so
+     AI timing is grounded to now (fixes "by end of 2025" spoken in 2026).
+   Both backward-compatible; deploy one at a time.
+3. **App 3.0.1 build (Flutter)** — everything app-side rides this. Facebook
+   **Client Token** ✅ pasted (`6ce2503f…`) in Android strings.xml + iOS Info.plist.
+   Version bumped to **3.0.1+10**. Run `flutter pub get` (resolves
+   `facebook_app_events 0.19.7` — confirmed clean) then build.
+
+### Pending config to flip ON 3.0.1 launch day (portal, no rebuild)
+- **Free welcome credit ₹27 → ₹9** (Pricing page) = 1 free minute, to match the
+  app's new "1 free minute" copy. Held at ₹27 until 3.0.1 so text ≠ timer gap.
+- AI astrologer **names de-bracketed** → "… AI" (no brackets). ✅ DONE LIVE
+  2026-09-22 (data-only, `scripts/rename_ai_astrologers.mjs`).
 
 ### 3.0.1 app build — DONE ON BRANCH (rides v10; apart from FB token paste)
 - Balance-gate exploit fix (app side of the wall) + grace removed.
