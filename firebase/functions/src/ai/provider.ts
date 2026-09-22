@@ -24,11 +24,17 @@ import { fetchWithTimeout } from '../common/httpTimeout';
 
 export type LlmTier = 'router' | 'filler' | 'reading';
 
-/** Default model per tier — overridable via config/global.ai.models. */
+/** Default model per tier — overridable via config/global.aiModels.
+ *  reading defaults to FLASH (not Pro). Pro's $12/M output + low rate limits were
+ *  BOTH the cost spike AND the "AI kept sending the same safety line" breakage
+ *  (Pro rate-limited → real answer failed → canned fallback fired every turn).
+ *  Flash is the safe floor so a cleared/missing config override can never
+ *  silently bill Pro or re-trigger that. To run Pro deliberately, set
+ *  config/global.aiModels.reading = 'gemini-pro-latest'. */
 export const DEFAULT_MODELS: Record<LlmTier, string> = {
   router: 'gemini-flash-lite-latest',
   filler: 'gemini-flash-latest',
-  reading: 'gemini-pro-latest',
+  reading: 'gemini-flash-latest',
 };
 
 /**
@@ -48,6 +54,25 @@ const TIER_DEFAULTS: Record<LlmTier, { temperature: number; maxOutputTokens: num
 };
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+// Rough USD-per-1M-token rates by coarse model family (paid tier, 2026) for an
+// at-a-glance ₹ estimate in the LOGS ONLY — Google's invoice is authoritative.
+// Cached input bills at ~10% of input (the 90% caching discount).
+const USD_PER_M: Record<'pro' | 'flash' | 'lite', { in: number; out: number; cached: number }> = {
+  pro: { in: 2.0, out: 12.0, cached: 0.20 },
+  flash: { in: 0.75, out: 3.75, cached: 0.075 },
+  lite: { in: 0.30, out: 2.50, cached: 0.03 },
+};
+const USD_TO_INR = 88;
+
+/** Best-effort ₹ estimate for one call — for observability logs only. */
+function estimateInr(model: string, inTok: number, outTok: number, cachedTok: number): number {
+  const fam = /lite/i.test(model) ? 'lite' : /pro/i.test(model) ? 'pro' : 'flash';
+  const r = USD_PER_M[fam];
+  const billedIn = Math.max(0, inTok - cachedTok); // cached tokens bill at the cheaper rate
+  const usd = (billedIn * r.in + cachedTok * r.cached + outTok * r.out) / 1_000_000;
+  return Number((usd * USD_TO_INR).toFixed(4));
+}
 
 /** One conversational turn fed to the model. `model` = the assistant/astrologer. */
 export interface LlmTurn {
@@ -189,6 +214,23 @@ export async function llmGenerate(
       });
       return null;
     }
+    // Observability only: per-call token usage + a rough ₹ estimate, so AI cost
+    // per reply/model/user is visible in Cloud Logging (query "llm_usage").
+    // `cachedTok` shows how much of the prompt Gemini served from cache. Wrapped
+    // so logging can never affect the reply.
+    try {
+      const u = json?.usageMetadata;
+      if (u) {
+        const inTok = u.promptTokenCount ?? 0;
+        const thoughtTok = u.thoughtsTokenCount ?? 0;
+        const outTok = (u.candidatesTokenCount ?? 0) + thoughtTok;
+        const cachedTok = u.cachedContentTokenCount ?? 0;
+        logger.info('llm_usage', {
+          tier: opts.tier, model, inTok, outTok, thoughtTok, cachedTok,
+          estInr: estimateInr(model, inTok, outTok, cachedTok),
+        });
+      }
+    } catch { /* logging must never break a reply */ }
     return text;
   } catch (e) {
     logger.error('llmGenerate failed', {
@@ -207,6 +249,13 @@ interface GeminiResponse {
     finishReason?: string;
   }>;
   promptFeedback?: unknown;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    cachedContentTokenCount?: number;
+    thoughtsTokenCount?: number;
+    totalTokenCount?: number;
+  };
 }
 
 /** Join all text parts of the first candidate; empty string if none. */

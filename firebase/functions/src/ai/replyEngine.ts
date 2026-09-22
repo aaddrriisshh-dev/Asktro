@@ -27,7 +27,7 @@ import { classifyIntentHeuristic } from './router';
 import {
   buildReadingSystem, PersonaFlavor, Tradition, Verbosity, LanguageLean, RemedyStyle,
 } from './persona';
-import { llmGenerate, LlmTurn, LlmInlineImage } from './provider';
+import { llmGenerate, resolveModel, LlmTurn, LlmInlineImage } from './provider';
 import { guardReply } from './guard';
 import { conjugateGender } from './gender';
 import { enforceRateLimit } from '../common/rateLimit';
@@ -676,22 +676,33 @@ async function generateGrounded(
   configModels?: Partial<Record<'router' | 'filler' | 'reading', string>>,
   images?: LlmInlineImage[],
 ) {
+  // Reliability: the reading model is tried first; on a hard failure (rate-limit /
+  // timeout / error → raw == null) we retry with a short BACKOFF (a 429 usually
+  // clears in a second), then fall back to a BACKUP model so a real grounded
+  // answer still lands instead of the canned "…dhyaan se dekhta hoon" line. This
+  // is what prevents the repeated-filler breakage seen when Pro rate-limited.
+  const primaryModel = resolveModel('reading', configModels);
+  const backupModel = resolveModel('filler', configModels); // high-quota Flash backup
+  const call = (model: string) => llmGenerate(
+    // Vision reads keep the provider safety layer ON (disableSafety:false) so an
+    // explicit photo is blocked → null → the engine stays silent, rather than
+    // being described. Text-only calls stay BLOCK_NONE (persona owns boundaries).
+    { tier: 'reading', system, history, userText, json: true,
+      images, disableSafety: images?.length ? false : undefined, model },
+    apiKey,
+    configModels,
+  );
   for (let attempt = 0; attempt <= 1; attempt++) {
-    const turns = attempt === 0 ? history : history; // history is stable across the single repair
-    const gen = () => llmGenerate(
-      // Vision reads keep the provider safety layer ON (disableSafety:false) so an
-      // explicit photo is blocked → null → the engine stays silent, rather than
-      // being described. Text-only calls stay BLOCK_NONE (persona owns boundaries).
-      { tier: 'reading', system, history: turns, userText, json: true,
-        images, disableSafety: images?.length ? false : undefined },
-      apiKey,
-      configModels,
-    );
-    // Auto-retry ONCE if the call itself failed or timed out (raw == null) — a
-    // transient Gemini hiccup then usually recovers on its own and the customer
-    // just sees the reply arrive a moment later, no error and nothing to do.
-    let raw = await gen();
-    if (raw == null) raw = await gen();
+    let raw = await call(primaryModel);
+    // Transient hiccup → wait a beat and retry the SAME model (a rate-limit
+    // usually recovers), so the customer just sees the reply a moment later.
+    if (raw == null) { await sleep(600); raw = await call(primaryModel); }
+    // Still failing → try a DIFFERENT (higher-quota) model once, so one model
+    // being rate-limited never means the user gets the canned filler every turn.
+    if (raw == null && backupModel && backupModel !== primaryModel) {
+      await sleep(1000);
+      raw = await call(backupModel);
+    }
     const decision = guardReply(raw, briefing, attempt);
     if (decision.verdict === 'send' || decision.verdict === 'fallback') return decision.envelope!;
     // repair: fold the correction into the next user turn
