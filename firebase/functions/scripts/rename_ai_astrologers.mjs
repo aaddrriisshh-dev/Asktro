@@ -1,5 +1,7 @@
 /**
- * Bulk-rename AI astrologers (isAI == true) to their new display names.
+ * De-bracket AI astrologer names: turn a trailing "(AI)" into a plain " AI"
+ * (no brackets), e.g. "Acharya Vidyanath Shastri (AI)" -> "Acharya Vidyanath
+ * Shastri AI". Runs over every isAI == true astrologer.
  *
  *   node scripts/rename_ai_astrologers.mjs         # dry run — prints old -> new
  *   node scripts/rename_ai_astrologers.mjs --yes   # apply the changes
@@ -9,41 +11,11 @@
  *
  * Names are read LIVE by the app and portal (astrologers/{id}.name), so this
  * takes effect instantly — no app rebuild, no function redeploy. Safe to re-run
- * (a doc whose name already matches its target is skipped).
+ * (a name with no "(AI)" brackets is left untouched).
  */
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { readFileSync } from 'node:fs';
-
-// id  ->  new display name
-const RENAMES = {
-  'persona_aditya-trivedi': 'Acharya Ai Aditya Trivedi',
-  'persona_omprakash-lk': 'Om Prakash Ai',
-  'persona_ramkishore': 'Acharya Ai Ram Kishore',
-  'persona_venkatesh-kp': 'Acharya Ai Venkatesh Rao',
-  'persona_vidyanath': 'Pandit Ai Vidyanath Shastri',
-  'persona_shakuntala-lk': 'Guru Maa Ai Shakuntala',
-  'persona_sunita-devi': 'Guru Maa Ai Sunita Devi',
-  'persona_krishnamurthy-s': 'Guru Ai S. Krishnamurthy',
-  'persona_anjali-nair': 'Jyotishi Ai Anjali Nair',
-  'persona_devika-sen': 'Jyotishi Ai Devika Sen',
-  'persona_ganesh-kp': 'Jyotishi Ai Ganesh Subramanian',
-  'persona_kavya-reddy': 'Jyotishi Ai Kavya Reddy',
-  'persona_lakshmi-iyer': 'Jyotishi Ai Lakshmi Iyer',
-  'persona_meera-joshi': 'Jyotishi Ai Meera Joshi',
-  'persona_nithya-kp': 'Jyotishi Ai Nithya Balan',
-  'persona_priya-kp': 'Jyotishi Ai Riya Menon',
-  'persona_reena-lk': 'Jyotishi Ai Reena Kapoor',
-  'persona_naresh-numero': 'Numerologist Ai Naresh Advani',
-  'persona_sudha-numero': 'Numerologist Ai Sudha Menon',
-  'persona_balbir-lalkitab': 'Pandit Ai Balbir Singh',
-  'persona_darshan-lk': 'Pandit Ai Darshan Lal',
-  'persona_gopal-mishra': 'Pandit Ai Gopal Mishra',
-  'persona_harish-chandra': 'Pandit Ai Harish Chandra',
-  'persona_raghavendra': 'Pandit Ai Raghavendra Rao',
-  'persona_aryan-tarot': 'Tarot Reader Ai Aryan Kapoor',
-  'persona_tanya-tarot': 'Tarot Ai Tanya Sharma',
-};
 
 const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || 'serviceAccountKey.json';
 let svc;
@@ -57,34 +29,27 @@ initializeApp({ credential: cert(svc) });
 const db = getFirestore();
 const YES = process.argv.includes('--yes');
 
-const run = async () => {
-  const ids = Object.keys(RENAMES);
-  console.log(`\n${YES ? 'Applying' : 'Dry run for'} ${ids.length} rename(s):\n`);
+// "Anything (AI) anything" -> the brackets are removed, "AI" kept as a plain
+// word; surrounding whitespace is normalised so we never leave a double space.
+const debracket = (name) =>
+  name.replace(/\(\s*AI\s*\)/gi, 'AI').replace(/\s+/g, ' ').trim();
 
-  let updated = 0, skipped = 0, missing = 0;
-  for (const id of ids) {
-    const target = RENAMES[id].trim();
-    const ref = db.collection('astrologers').doc(id);
-    const snap = await ref.get();
-    if (!snap.exists) {
-      console.log(`MISSING (no such doc): ${id}`);
-      missing++;
-      continue;
-    }
-    const current = String(snap.data().name ?? '').trim();
-    if (current === target) {
-      console.log(`skip (already set): ${target}`);
-      skipped++;
-      continue;
-    }
-    console.log(`${current}  ->  ${target}`);
-    if (YES) {
-      await ref.update({ name: target, updatedAt: FieldValue.serverTimestamp() });
-    }
+const run = async () => {
+  const snap = await db.collection('astrologers').where('isAI', '==', true).get();
+  if (snap.empty) { console.log('No AI astrologers (isAI == true) found.'); return; }
+
+  console.log(`\n${YES ? 'Applying' : 'Dry run for'} — checked ${snap.size} AI astrologer(s):\n`);
+  let updated = 0, skipped = 0;
+  for (const doc of snap.docs) {
+    const current = String(doc.data().name ?? '').trim();
+    const next = debracket(current);
+    if (next === current) { skipped++; continue; }
+    console.log(`${current}  ->  ${next}`);
+    if (YES) await doc.ref.update({ name: next, updatedAt: FieldValue.serverTimestamp() });
     updated++;
   }
 
-  console.log(`\n${YES ? 'Updated' : 'Would update'} ${updated}; skipped ${skipped}; missing ${missing}.`);
+  console.log(`\n${YES ? 'Updated' : 'Would update'} ${updated}; skipped ${skipped} (already no brackets).`);
   if (!YES && updated > 0) console.log('Re-run with --yes to apply.');
 };
 
