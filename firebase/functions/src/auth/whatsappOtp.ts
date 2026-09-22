@@ -23,32 +23,22 @@
  */
 import { onCall } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
-import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
+import { randomInt } from 'node:crypto';
 import { db, auth, FieldValue, Timestamp } from '../common/admin';
 import { enforceRateLimit } from '../common/rateLimit';
 import { badRequest, failedPrecondition } from '../common/errors';
 import { WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID } from '../common/secrets';
 import { fetchWithTimeout } from '../common/httpTimeout';
+import { normalizePhone, computeCodeHash, decideVerify } from './whatsappOtpLogic';
 
 const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_ATTEMPTS = 5;
 const GRAPH_VERSION = 'v21.0';
 const TEMPLATE_NAME = 'asktro_otp';
 
-/** Validate + split an E.164 number. Returns null if not a plausible E.164. */
-function normalizePhone(raw: unknown): { e164: string; digits: string } | null {
-  const m = String(raw ?? '').trim().match(/^\+(\d{8,15})$/);
-  return m ? { e164: `+${m[1]}`, digits: m[1] } : null;
-}
-
 /** HMAC-hash the code so a DB reader can't recover it (pepper = WhatsApp token). */
 function hashCode(code: string, e164: string): string {
-  return createHmac('sha256', WHATSAPP_TOKEN.value()).update(`${code}:${e164}`).digest('hex');
-}
-
-function hashesMatch(a: string, b: string): boolean {
-  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
-  try { return timingSafeEqual(Buffer.from(a), Buffer.from(b)); } catch { return false; }
+  return computeCodeHash(code, e164, WHATSAPP_TOKEN.value());
 }
 
 /** Best-effort client IP for the anti-spray per-IP limit. */
@@ -143,17 +133,24 @@ export const verifyWhatsappOtp = onCall(
     const ref = db.collection('otpCodes').doc(p.digits);
     const result = await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
-      if (!snap.exists) return 'expired' as const;
-      const d = snap.data()!;
-      if ((d.expiresAt as Timestamp).toMillis() < Date.now()) { tx.delete(ref); return 'expired' as const; }
-      const attempts = ((d.attempts as number) ?? 0) + 1;
-      if (attempts > MAX_ATTEMPTS) { tx.delete(ref); return 'locked' as const; }
-      if (!hashesMatch(d.codeHash as string, hashCode(code, p.e164))) {
-        tx.update(ref, { attempts });
-        return 'mismatch' as const;
+      const d = snap.exists ? snap.data()! : undefined;
+      const decision = decideVerify({
+        exists: snap.exists,
+        expiresAtMs: d ? (d.expiresAt as Timestamp).toMillis() : 0,
+        attempts: d ? ((d.attempts as number) ?? 0) : 0,
+        storedHash: d ? (d.codeHash as string) : '',
+        providedHash: hashCode(code, p.e164),
+        nowMs: Date.now(),
+        maxAttempts: MAX_ATTEMPTS,
+      });
+      // Apply the side effect for the decided state.
+      if (decision.state === 'mismatch') {
+        tx.update(ref, { attempts: decision.newAttempts });
+      } else if (snap.exists) {
+        // ok / locked / expired-but-present → consume the code.
+        tx.delete(ref);
       }
-      tx.delete(ref);
-      return 'ok' as const;
+      return decision.state;
     });
 
     if (result === 'expired') failedPrecondition('This code has expired. Please request a new one.');
