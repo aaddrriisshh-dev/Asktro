@@ -29,6 +29,12 @@ export interface RateRule {
 
 // Per-action caps. 'block' = enforced. A normal user never approaches these.
 export const RATE_RULES: Record<string, RateRule> = {
+  // WhatsApp OTP login. Keyed by phone number (pre-auth). A real user needs 1–2
+  // sends; this caps burn/abuse per number. Verify is looser to allow honest
+  // mistyped-code retries before the 5-attempt lock on the code itself.
+  sendWhatsappOtp: { limit: 5, windowSec: 600, mode: 'block' }, // 5 / 10 min per number
+  sendWhatsappOtpIp: { limit: 20, windowSec: 3600, mode: 'block' }, // 20 / hour per IP (anti-spray)
+  verifyWhatsappOtp: { limit: 10, windowSec: 600, mode: 'block' }, // 10 / 10 min per number
   createConsultation: { limit: 10, windowSec: 300, mode: 'block' }, // 10 / 5 min
   // Bounds premium LLM generations per minute so a spamming/scripted user can't
   // drive AI cost above the ₹9/min revenue. Generous — a real chatter (with the

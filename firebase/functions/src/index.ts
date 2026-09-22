@@ -50,6 +50,7 @@ export { createStoreOrder, verifyStoreOrder, reconcileFailedStoreConfirms } from
 export { onCustomerSignup } from './auth/onUserCreate';
 export { setUserRole, deleteAccount, processAccountDeletion, deleteAstrologerAccount } from './auth/adminAndDeletion';
 export { recordConsent } from './auth/consent';
+export { sendWhatsappOtp, verifyWhatsappOtp } from './auth/whatsappOtp';
 
 // ---- Analytics rollup (daily dashboard counters) ----
 export { rollupWalletTxn, rollupConsultation, rollupUserSignup, aggregateDailyStats } from './stats/dailyStats';
