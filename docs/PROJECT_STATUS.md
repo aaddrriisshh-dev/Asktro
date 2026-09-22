@@ -4,7 +4,59 @@
 > founder returns after days/weeks/months, this doc tells you exactly where we
 > are. Keep it updated as things change — treat it as the running log of truth.
 >
-> _Last updated: 2026-09-17._
+> _Last updated: 2026-09-22._
+
+---
+
+## 0a. LATEST — 2026-09-22 (3.0.1 SUBMITTED TO PRODUCTION)
+
+**3.0.1 (versionCode 11) submitted to Google Play for review** (full rollout,
+100%, all countries). Managed publishing OFF → auto-publishes on approval.
+
+Shipped in this build / session:
+- **Paused-consultation bypass FIXED** (`chat_consultation_screen.dart`): tapping
+  Recharge then backing out without paying no longer fires `resume()` — it re-shows
+  the paused prompt, so the only way back into the chat is a real recharge. (Server
+  guards already blocked free replies at true ₹0; this closes the UX hole the
+  founder found: Recharge→Back→squeeze one more reply on leftover paise.)
+- **In-chat offer now shows INSIDE the "Consultation Paused" pop-up** (gold card,
+  tap = pay pre-selected). Before, the paused pop-up had only a bare Recharge
+  button. NOTE: in practice the AI-message offer flow (per `inchat-flow.html`
+  artifact) rarely fires because the session pauses first → pop-up shows instead;
+  founder chose to KEEP BOTH (offer shows either way). Did NOT switch to
+  "AI-message only / suppress pop-up" (that's a bigger change if ever wanted).
+
+Portal changes made LIVE this session (no rebuild):
+- **Welcome credit ₹27 → ₹9** (Pricing page `welcomeCreditPaise`). This also makes
+  free minutes = ₹9 ÷ ₹9/min = **1 free minute** (there is NO separate free-minutes
+  field — it's credit ÷ rate), AND the "No thanks" reward banner auto-shows ₹9
+  (it reads the user's real `chatBonusBalance`, not a hardcoded number).
+- **Low-balance warning 60s → 30s** (`warnLevel1Sec`) — 60s fired instantly on a
+  1-min free session. NOTE: this applies to ALL sessions (paid too now get 30s
+  heads-up before pause).
+
+Tested on v11 before promoting: login/OTP ✅, fresh signup ✅, run-to-₹0 → pop-up
+shows ✅ (offer card "guessed" yes).
+
+**PENDING for tomorrow (founder's list):**
+- **Triple Dhamaka home pop-up still shows ₹29.50, not ₹25.** It's portal-editable
+  (Home Pop-up Studio) but the founder couldn't get it to save/reflect. Root cause
+  is a UX trap, not a code bug: after Save the editor RESETS to defaults (looks
+  unchanged); the row's **👁 View** shows the real saved value; and for a LIVE row
+  you must re-toggle **Go Live** to push to `homeSections/popup` + the app config
+  caches ~60s. Bulletproof fix: Edit → "Set the total manually" ON → 25, GST
+  rate → 0, delete any Extra line, Save, re-Go-Live. (The real charge/credit come
+  from the PLAN in Welcome Offers, not the pop-up — pop-up numbers are display
+  only. Founder also wants Get to stay ₹77.) Founder said "handle the banner
+  tomorrow."
+
+**Still open (unchanged from before): WhatsApp OTP go-live** — code is built &
+falls back to Firebase SMS until creds/template are live. Waiting on Meta side:
+WABA template permission fix → approved template + 3 creds (Phone Number ID, WABA
+ID, permanent token) → set 2 secrets + deploy `sendWhatsappOtp`/`verifyWhatsappOtp`
+(+ Cloud Run invoker grant). No app rebuild needed.
+
+Branch this session: `claude/asktro-session-handoff-o1ggo8`.
 
 ---
 
