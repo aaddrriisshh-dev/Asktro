@@ -165,8 +165,13 @@ Referral status badge now colours by real status.
 - Two-way support (customer ↔ admin): reply/close/reopen + `customerReplySupportTicket`
   deployed; portal **alert bell** + support console live (Vercel); app notification
   badge + tap-to-open in v9.
-- AI astrologers **labelled "(AI)"** in their names (26 updated; tag at the END,
-  never the front). Editable anytime in the portal. No rebuild needed (names read live).
+- AI astrologers labelled **"AI" (no brackets)** at the END of their names
+  (e.g. "Acharya Vidyanath Shastri AI"; 26 de-bracketed 2026-09-22 via
+  scripts/rename_ai_astrologers.mjs). On the cards the long name truncates so the
+  trailing "AI" is off-edge (clean rail); inside the chat the full name shows so
+  "AI" is visible (header + "…has joined" line), plus the amber automated-message
+  disclosure line. NO AiBadge chip is used anywhere (component exists, unused).
+  Editable anytime in the portal. No rebuild needed (names read live).
 - Legal (Privacy/Terms/Disclaimer/Account-deletion): **unchanged from v2**,
   website already current.
 - Billing verified: per-second, server-authoritative; on-screen/phone-call
