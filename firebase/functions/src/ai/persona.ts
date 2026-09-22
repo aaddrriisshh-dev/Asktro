@@ -399,6 +399,18 @@ function supportBlock(s: SupportContacts | undefined): string {
  * the identity/client/support/briefing blocks are the small dynamic wrapper.
  */
 export function buildReadingSystem(ctx: PersonaContext): string {
+  // Today's date (IST), stated in words. The transit data is already current,
+  // but the model has no inherent sense of "now" and will otherwise anchor
+  // timelines to its training-era year (e.g. saying "by end of 2025" in 2026).
+  // Lives in the dynamic per-turn block so the cacheable static prefix is
+  // unaffected. Every timing prediction must be relative to this date.
+  const todayHuman = new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata', day: 'numeric', month: 'long', year: 'numeric',
+  }).format(new Date());
+  const dateLine =
+    `TODAY'S DATE: ${todayHuman} (IST). Every timing you give — dashas, gochar/transits, ` +
+    `"in the next few months", "by the end of this year" — MUST be relative to this exact date. ` +
+    `Never mention a year that has already passed as if it were still upcoming.`;
   const lang = ctx.language ? `\nLanguage to mirror: ${ctx.language}.` : '';
   const greet = ctx.isSessionOpening
     ? '\n(This is the FIRST message of the session — a single warm greeting is appropriate.)'
@@ -415,8 +427,9 @@ export function buildReadingSystem(ctx: PersonaContext): string {
     supportBlock(ctx.support),
     OUTPUT_CONTRACT,
     // Label the facts block for the school so the header never contradicts the
-    // persona (a numerologist reads numbers, a tarot reader cards, etc.).
-    `# ${briefingHeader(flavor?.tradition)} (this turn)\n${ctx.briefing}`,
+    // persona (a numerologist reads numbers, a tarot reader cards, etc.). The
+    // current date leads this dynamic block so timing is always grounded to now.
+    `# ${briefingHeader(flavor?.tradition)} (this turn)\n${dateLine}\n\n${ctx.briefing}`,
   ].filter((b) => b && b.trim());
   return blocks.join('\n\n');
 }
