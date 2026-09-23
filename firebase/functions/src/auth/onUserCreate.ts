@@ -150,7 +150,7 @@ export const onCustomerSignup = onDocumentCreated('users/{uid}', async (event) =
       balanceBefore: priorBonus,
       balanceAfter: priorBonus + welcomeBonus,
       refId: 'signup_bonus',
-      note: `Welcome bonus — ${config.freeChatMinutes} free chat minutes`,
+      note: `Welcome bonus — ₹${welcomeBonus / 100} free chat credit`,
       createdAt: FieldValue.serverTimestamp(),
     });
   }
