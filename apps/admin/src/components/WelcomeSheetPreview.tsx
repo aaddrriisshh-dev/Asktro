@@ -14,6 +14,8 @@ export interface WelcomeSheetPreviewProps {
   word1: string;
   word2: string;
   body: string;
+  /** Pay-button text. Blank shows the charged amount (matches the app). */
+  ctaLabel?: string;
   offerGetPaise: number;
   rechargeBasePaise: number;
   gstRatePct: number;
@@ -57,7 +59,10 @@ export function WelcomeSheetPreview(p: WelcomeSheetPreviewProps) {
   const subColor = dark ? '#E7DEF8' : '#6B6390';
   const offerColor = dark ? '#F0EAFB' : '#1C1633';
   const charSrc = p.image?.trim() ? p.image : PANDIT_SRC;
-  const payLabel = totalPaise > 0 ? rupees(totalPaise) : 'Claim now';
+  // Match the app: a non-empty label wins; otherwise show the charged amount.
+  const payLabel = (p.ctaLabel && p.ctaLabel.trim())
+    ? p.ctaLabel.trim()
+    : (totalPaise > 0 ? rupees(totalPaise) : 'Claim now');
   const rewardPaise = p.rewardCreditPaise ?? p.offerGetPaise;
 
   const [s1, s2, s3, s4] = theme.stops;

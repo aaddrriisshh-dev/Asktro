@@ -61,7 +61,7 @@ const DEFAULTS: PopupDoc = {
   theme: 'welcome_reward',
   title: '',
   body: '',
-  ctaLabel: 'Grab this offer',
+  ctaLabel: '', // blank = the pay button shows the charged amount (e.g. "₹25")
   deeplink: '',
   code: '',
   image: '',
@@ -165,11 +165,10 @@ function toDocData(f: PopupDoc) {
     theme: 'welcome_reward',
     title: '',
     body: f.body.trim(),
-    // Leave the CTA label EMPTY so the app's welcome sheet falls back to showing
-    // the actual charged amount on the pay button (e.g. "₹25") instead of a
-    // generic "Grab this offer" — the price is what converts, and it matches the
-    // portal preview. (The app: ctaLabel non-empty ? ctaLabel : the amount.)
-    ctaLabel: '',
+    // Pay-button label. BLANK on purpose = the app shows the charged amount
+    // (e.g. "₹25") on the button; any text here overrides that. (App logic:
+    // ctaLabel non-empty ? ctaLabel : the amount.)
+    ctaLabel: f.ctaLabel.trim(),
     deeplink: f.deeplink.trim(),
     code: f.code.trim(),
     image: f.image,
@@ -386,6 +385,7 @@ export default function HomePopupPage() {
                 word1={form.titleWord1}
                 word2={form.titleWord2}
                 body={form.body}
+                ctaLabel={form.ctaLabel}
                 offerGetPaise={form.offerGetPaise}
                 rechargeBasePaise={form.rechargeBasePaise}
                 gstRatePct={form.gstRatePct}
@@ -474,6 +474,15 @@ export default function HomePopupPage() {
                       onChange={(e) => set('rechargeBasePaise', inputToPaise(e.target.value))} />
                   </Field>
                 </div>
+                <Field label="Pay button text">
+                  <input className="input" value={form.ctaLabel}
+                    placeholder="Leave blank to show the price (e.g. ₹25)"
+                    onChange={(e) => set('ctaLabel', e.target.value)} />
+                  <span className="muted" style={{ fontSize: 11.5, marginTop: 4, display: 'block' }}>
+                    Blank = the button shows the amount charged (₹{paiseToInput(totals.totalPaise)}). Type here to
+                    override, e.g. “Grab this offer”.
+                  </span>
+                </Field>
                 <Field label="Recharge plan the button opens">
                   <select className="input"
                     value={welcomePlanOpts.some((o) => o.id === form.rechargePlanId) ? form.rechargePlanId : 'custom'}
@@ -768,6 +777,7 @@ function PreviewWelcome({ p, view, onView }: { p: Row; view: 'offer' | 'reward';
         word1={(p.titleWord1 as string) || 'Triple'}
         word2={(p.titleWord2 as string) || 'Dhamaka'}
         body={(p.body as string) || 'Grab this one-time offer'}
+        ctaLabel={(p.ctaLabel as string) ?? ''}
         offerGetPaise={(p.offerGetPaise as number) ?? 7700}
         rechargeBasePaise={(p.rechargeBasePaise as number) ?? 2500}
         gstRatePct={typeof p.gstRatePct === 'number' ? p.gstRatePct : 18}
