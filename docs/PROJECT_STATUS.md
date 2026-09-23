@@ -50,11 +50,38 @@ shows ✅ (offer card "guessed" yes).
   only. Founder also wants Get to stay ₹77.) Founder said "handle the banner
   tomorrow."
 
+**Moderation / anti-abuse — SHIPPED LIVE 2026-09-23 (backend only, no rebuild):**
+Deployed `onCustomerSignup` + `setUserStatus` to prod (asia-south1). Now:
+- **Suspend = real ban** — `setUserStatus('blocked')` disables the Firebase login
+  + revokes tokens (mirrors astrologer path); the disabled account keeps the
+  phone/email bound to the same uid, so a suspended user can't sign in OR
+  re-register. Reactivate re-enables. (Previously suspend/delete only set an
+  `accountStatus` flag the app never read — a real hole. The customer app STILL
+  doesn't read `accountStatus`; instant in-app logout is optional future polish,
+  but Firebase already force-logs-out a disabled user on next token refresh ~1h.)
+- **Welcome credit once per identity** — `onCustomerSignup` records each grant in
+  a persistent `welcomeGrants` collection keyed by phone (digits) / email. Delete
+  + re-register with the same number = fresh account, **₹0 second welcome credit**.
+  Ledger is never removed on delete (delete_customer.mjs leaves it). Reserved in a
+  transaction (no double-credit on retry). Falls back to the per-account flag if
+  no phone/email.
+- Deleted Vineet (+918800188189) via delete_customer.mjs as a live test of the
+  delete→re-register→no-credit path.
+
+**⚠️ Placeholder secrets:** during that deploy, Firebase prompted for the unset
+WhatsApp secrets, so **`WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID` were set to
+`placeholder`**. They're unused (whatsappOtp functions not deployed). **Replace
+with the REAL Meta values before deploying `sendWhatsappOtp`/`verifyWhatsappOtp`.**
+
 **Still open (unchanged from before): WhatsApp OTP go-live** — code is built &
 falls back to Firebase SMS until creds/template are live. Waiting on Meta side:
 WABA template permission fix → approved template + 3 creds (Phone Number ID, WABA
-ID, permanent token) → set 2 secrets + deploy `sendWhatsappOtp`/`verifyWhatsappOtp`
-(+ Cloud Run invoker grant). No app rebuild needed.
+ID, permanent token) → set 2 secrets (replace the placeholders above) + deploy
+`sendWhatsappOtp`/`verifyWhatsappOtp` (+ Cloud Run invoker grant). No app rebuild.
+
+**Optional future polish:** in-app instant logout of a blocked/deleted user (app
+reads `accountStatus` / handles disabled-auth) — needs an app rebuild; and a
+signup blocklist for hard bans across methods. Not urgent.
 
 Branch this session: `claude/asktro-session-handoff-o1ggo8`.
 
