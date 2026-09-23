@@ -232,6 +232,24 @@ export const setUserStatus = onCall(async (req) => {
   const snap = await ref.get();
   if (!snap.exists) notFound('User not found.');
 
+  // Suspending must end the customer's access NOW and keep them out — mirror the
+  // astrologer path: disable the Firebase login and revoke live tokens. Firebase
+  // then signs the app out on its next token refresh (~1h), and — because the
+  // disabled account keeps their phone/email bound to the same uid — any attempt
+  // to sign in or "re-register" with the same number just hits the disabled
+  // account and is refused. That makes Suspend a real, permanent ban.
+  // Reactivating clears the lockout. A 'deleted' soft-flag does NOT disable the
+  // login (delete is meant to be re-registerable — the delete_customer script
+  // removes the auth account outright and frees the number).
+  if (status === 'blocked') {
+    try {
+      await auth.updateUser(userId!, { disabled: true });
+      await auth.revokeRefreshTokens(userId!);
+    } catch { /* auth user may already be gone */ }
+  } else if (status === 'active') {
+    try { await auth.updateUser(userId!, { disabled: false }); } catch { /* no auth user */ }
+  }
+
   await ref.set(
     { accountStatus: status, updatedAt: FieldValue.serverTimestamp() },
     { merge: true },
