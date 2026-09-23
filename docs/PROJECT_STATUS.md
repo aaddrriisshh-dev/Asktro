@@ -95,6 +95,30 @@ WABA template permission fix → approved template + 3 creds (Phone Number ID, W
 ID, permanent token) → set 2 secrets (replace the placeholders above) + deploy
 `sendWhatsappOtp`/`verifyWhatsappOtp` (+ Cloud Run invoker grant). No app rebuild.
 
+**AI reliability / cost — verified + hardened 2026-09-23 (all live, backend only):**
+- **Root cause of past "AI went black" CONFIRMED from AI Studio Rate Limit page:**
+  when readings ran on **Gemini 3.1 Pro**, its Tier-1 **RPD cap is only 250/day**,
+  and 90-day peak hit **251/250 (maxed, red)** → requests rejected → blank/filler.
+- **Now on `gemini-flash-latest` (= Gemini 3.6 Flash).** Tier-1 limits: **1,000 RPM
+  / 2M TPM / 10,000 RPD**. 90-day peak usage: 8 RPM, 33.65K TPM, **589 RPD** (~6% of
+  the daily cap). ~40× the headroom Pro had. Rate-limit blackout now very unlikely
+  at campaign scale.
+- **Cross-model backup wired** (`onAiChatMessage`/`generateGrounded`): reading fails
+  twice → falls back to **`gemini-2.5-flash-lite`** (separate quota pool, 4K RPM /
+  4M TPM / very high RPD; cheaper $0.30/$2.50). Previously the "backup" resolved to
+  the SAME model as reading so it never engaged — fixed. Overridable via
+  `config/global.aiModels.backup`. Lite is backup-only (lighter quality) — Flash
+  stays main for reading quality.
+- **Gemini billing:** account is **Tier 1**. Gemini API runs on **Prepay – AI Studio
+  credits** (~₹1,375 left), and founder set **auto-reload ₹1,000** — the ₹2×2 charges
+  seen are the card-mandate verification (India e-mandate; may take up to ~24h to
+  show "Auto-reload: On"). If it never activates (RBI recurring limits), fall back to
+  a budget alert + manual "Buy credits". There's also a Postpay – Google Cloud path
+  (₹579 balance) for other Firebase usage.
+- Remaining AI cost levers still DEFERRED (unchanged): **explicit prompt caching**
+  (implicit only today), **thinking-budget cap**, model A/B. Output cap + history
+  trim + kill switch (`aiEnabled`) + daily cap already in place.
+
 **Optional future polish:** in-app instant logout of a blocked/deleted user (app
 reads `accountStatus` / handles disabled-auth) — needs an app rebuild; and a
 signup blocklist for hard bans across methods. Not urgent.
