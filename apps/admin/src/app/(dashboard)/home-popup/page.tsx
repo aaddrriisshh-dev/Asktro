@@ -165,7 +165,11 @@ function toDocData(f: PopupDoc) {
     theme: 'welcome_reward',
     title: '',
     body: f.body.trim(),
-    ctaLabel: f.ctaLabel.trim() || 'Grab this offer',
+    // Leave the CTA label EMPTY so the app's welcome sheet falls back to showing
+    // the actual charged amount on the pay button (e.g. "₹25") instead of a
+    // generic "Grab this offer" — the price is what converts, and it matches the
+    // portal preview. (The app: ctaLabel non-empty ? ctaLabel : the amount.)
+    ctaLabel: '',
     deeplink: f.deeplink.trim(),
     code: f.code.trim(),
     image: f.image,

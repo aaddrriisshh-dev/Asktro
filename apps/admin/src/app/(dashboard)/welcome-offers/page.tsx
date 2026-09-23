@@ -144,9 +144,15 @@ export default function WelcomeOffersPage() {
                         </button>
                       </td>
                       <td data-label="Active">
-                        <button className="btn sm secondary" onClick={() => toggle(p.id, 'active', p.active)}>
-                          {p.active ? 'On' : 'Off'}
-                        </button>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          <label className="switch" title={p.active ? 'Active — shows in the pop-up picker' : 'Inactive — hidden from the pop-up picker'}>
+                            <input type="checkbox" checked={p.active === true} onChange={() => toggle(p.id, 'active', p.active)} />
+                            <span className="track" />
+                          </label>
+                          <span className="muted" style={{ fontSize: 12, fontWeight: 700, color: p.active ? 'var(--primary)' : 'var(--muted)' }}>
+                            {p.active ? 'On' : 'Off'}
+                          </span>
+                        </span>
                       </td>
                       <td data-label="Plan ID">
                         <button className="btn sm secondary" title="Copy plan ID" onClick={() => copyId(p.id)}
