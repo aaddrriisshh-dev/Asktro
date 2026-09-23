@@ -38,8 +38,24 @@ Portal changes made LIVE this session (no rebuild):
 Tested on v11 before promoting: login/OTP ✅, fresh signup ✅, run-to-₹0 → pop-up
 shows ✅ (offer card "guessed" yes).
 
-**PENDING for tomorrow (founder's list):**
-- **Triple Dhamaka home pop-up still shows ₹29.50, not ₹25.** It's portal-editable
+**RESOLVED 2026-09-23 — Triple Dhamaka welcome pop-up now correct end-to-end:**
+- App shows **Get ₹75**, pay button shows **₹25**, and paying credits **₹75**.
+- Root causes were all portal-data/flow, not code: (a) the ₹25→₹75 Welcome Offer
+  plan was toggled **Off** → invisible in the Home Pop-up plan picker (fallback
+  plan credited only ₹50); turning it **On** + selecting it fixed the credit.
+  (b) Editing/deleting a pop-up never updates the live app copy — only **Go Live**
+  (or Save on an already-live row) pushes `homeSections/popup`; that's why the
+  phone kept showing the old ₹29.50/₹77. (c) The pay button showed "Grab this
+  offer" because the portal forced a non-empty `ctaLabel`; deploying an empty
+  `ctaLabel` makes the app fall back to the charged amount (the shipped app
+  already does `ctaLabel non-empty ? ctaLabel : amount`).
+- Portal deployed (Vercel) with: Welcome Offers **Active = a real on/off toggle**
+  (was a confusing button), and the welcome pop-up writing an empty `ctaLabel`.
+- Also pushed but **NOT deployed** (founder declined for now): a **"Pay button
+  text"** field in the Home Pop-up studio (blank = show price, else custom text) —
+  commit is on the branch, deploy anytime if custom button text is ever wanted.
+
+**(Old, now resolved) Triple Dhamaka home pop-up showed ₹29.50, not ₹25:** It's portal-editable
   (Home Pop-up Studio) but the founder couldn't get it to save/reflect. Root cause
   is a UX trap, not a code bug: after Save the editor RESETS to defaults (looks
   unchanged); the row's **👁 View** shows the real saved value; and for a LIVE row
