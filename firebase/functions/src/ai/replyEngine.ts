@@ -682,7 +682,15 @@ async function generateGrounded(
   // answer still lands instead of the canned "…dhyaan se dekhta hoon" line. This
   // is what prevents the repeated-filler breakage seen when Pro rate-limited.
   const primaryModel = resolveModel('reading', configModels);
-  const backupModel = resolveModel('filler', configModels); // high-quota Flash backup
+  // Emergency backup on a SEPARATE quota pool + different model family, so a rare
+  // outage or rate-limit on the reading model still lands a real reply instead of
+  // the canned filler. Pinned to 2.5-flash-lite (4K RPM / very high RPD at our
+  // tier) — deliberately NOT the `-lite-latest` alias, whose newest build is
+  // capped at ~150 RPD. Overridable via config/global.aiModels.backup if ever
+  // needed. (Previously this reused the 'filler' model, which resolves to the SAME
+  // model as reading → the fallback never engaged.)
+  const backupModel =
+    (configModels as Record<string, string> | undefined)?.backup || 'gemini-2.5-flash-lite';
   const call = (model: string) => llmGenerate(
     // Vision reads keep the provider safety layer ON (disableSafety:false) so an
     // explicit photo is blocked → null → the engine stays silent, rather than
