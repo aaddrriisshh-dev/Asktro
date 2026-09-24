@@ -16,6 +16,7 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
 import { db, FieldValue } from '../common/admin';
+import { affordableSeconds } from '../common/money';
 import { getGlobalConfig } from '../common/config';
 import { GEMINI_API_KEY } from '../common/secrets';
 import { PROKERALA_CLIENT_ID, PROKERALA_CLIENT_SECRET, prokeralaGet } from '../prokerala/prokerala';
@@ -38,14 +39,14 @@ const CHART_BASE = 'chartBase';     // users/{uid}/ai/chartBase — fixed natal 
 const CHART_GOCHAR = 'chartGochar'; // users/{uid}/ai/chartGochar — daily transits (day-keyed)
 
 // Pacing knobs (portal-tunable later). Kept human, never obviously padded.
-const DEBOUNCE_MS = 3500; // wait for the user's burst to settle before replying
+const DEBOUNCE_MS = 4500; // wait for the user's burst to settle before replying (grouped harder so back-to-back messages get ONE reply)
 const JOIN_DELAY_MS = 4000; // "joining…" → "<name> joined" (a real, unhurried arrival)
 const GREETING_GAP_MS = 2500; // typing dots before the opening greeting
 const TYPE_PER_CHAR_MS = 72; // human typing speed (slowed so replies feel like a real jyotishi, not instant)
-const TYPE_FLOOR_MS = 3000;  // even a one-liner shows the typing dots for a real beat
-const TYPE_CEIL_MS = 11000;  // long readings feel deliberate, but never so long it seems frozen
+const TYPE_FLOOR_MS = 4000;  // even a one-liner shows the typing dots for a real beat
+const TYPE_CEIL_MS = 12000;  // long readings feel deliberate, but never so long it seems frozen
 const MAX_BUBBLES = 2; // she may send at most two short, paced bubbles per reply
-const INTER_BUBBLE_MS = 1400; // gap between bubbles so the dots visibly re-appear and it never feels rushed
+const INTER_BUBBLE_MS = 2500; // gap between bubbles so the dots visibly re-appear and it never feels rushed
 const RECALL_PAUSE_MS = 2600; // the "reading our last chat" pause after the beat, before she recalls
 
 // Vision read of a client photo. Gemini accepts inline images up to ~20MB; we cap
@@ -1115,12 +1116,25 @@ async function activateIfWaiting(consultationId: string): Promise<void> {
     await db.runTransaction(async (tx) => {
       const d = (await tx.get(ref)).data();
       if (!d || d.status !== 'waiting') return; // already active/paused/terminal
+      // Seed remainingSec from the customer's spendable balance so the free-minute
+      // countdown shows the correct time (e.g. 1:00) the instant the session goes
+      // active — instead of sitting at 0:00 until the first ~10s heartbeat.
+      // DISPLAY-ONLY: this never touches billing math (the tick recomputes it from
+      // the real balance); it just gives the UI a correct starting number.
+      let remainingSec = 0;
+      try {
+        const u = (await tx.get(db.collection('users').doc(d.customerId as string))).data() ?? {};
+        const spendable = (u.walletBalance ?? 0) + (u.bonusBalance ?? 0)
+          + (d.chatCreditEligible === true ? (u.chatBonusBalance ?? 0) : 0);
+        remainingSec = affordableSeconds(spendable, (d.pricePerMinute as number) ?? 0);
+      } catch { /* best-effort seed; the first heartbeat corrects it */ }
       tx.update(ref, {
         status: 'active',
         startTime: FieldValue.serverTimestamp(),
         lastTickAt: FieldValue.serverTimestamp(),
         customerLastTickAt: FieldValue.serverTimestamp(),
         paymentStatus: 'pending',
+        remainingSec,
         updatedAt: FieldValue.serverTimestamp(),
       });
     });
