@@ -184,7 +184,7 @@ export default function BroadcastPage() {
           <label className="af" style={{ marginTop: 12 }}><span>Description</span>
             <textarea className="input" rows={3} placeholder="Consult a top astrologer now…" value={f.body} onChange={(e) => set('body', e.target.value)} /></label>
           <div className="af" style={{ marginTop: 12 }}><span>On tap — go to</span>
-            <DeepLinkSelect value={f.deeplink} onChange={(v) => set('deeplink', v)} /></div>
+            <DeepLinkSelect key={`tap-${broadcastId}`} value={f.deeplink} onChange={(v) => set('deeplink', v)} /></div>
 
           {/* Pop-up button (CTA) — always available, so it works on the Small
               center-card style too, not just Half/Full. Shows on the pop-up that
@@ -193,7 +193,7 @@ export default function BroadcastPage() {
           <label className="af"><span>Button label</span>
             <input className="input" placeholder="View offer" value={ctaText} onChange={(e) => setCtaText(e.target.value)} /></label>
           <div className="af" style={{ marginTop: 12 }}><span>Button — go to</span>
-            <DeepLinkSelect value={ctaDeeplink} onChange={setCtaDeeplink} /></div>
+            <DeepLinkSelect key={`cta-${broadcastId}`} value={ctaDeeplink} onChange={setCtaDeeplink} /></div>
           <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>Shown on the pop-up (which opens when you set a theme or image). Empty label → “View offer”; empty link → same as “On tap”.</p>
 
           <p className="af-label">Theme (pick one — no design needed)</p>
