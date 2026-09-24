@@ -119,6 +119,21 @@ ID, permanent token) → set 2 secrets (replace the placeholders above) + deploy
   (implicit only today), **thinking-budget cap**, model A/B. Output cap + history
   trim + kill switch (`aiEnabled`) + daily cap already in place.
 
+**AI pacing / monetization — LIVE 2026-09-24 (backend only, no rebuild):** deployed
+`onAiChatMessage` + `onAiConsultationCreated`. Trigger: partners reported replies too
+fast — a user got a FULL 3-month forecast (6–7 bubbles) inside the 1 free minute →
+weak paywall on live ad traffic.
+- **Hold the big forecast** (persona.ts, THE CONVERSATION section): on broad
+  predictive asks the AI gives ONE real insight + honest anticipation and reveals
+  the month-by-month prediction gradually across turns (warm/generous, not salesy).
+  Applies to the WHOLE chat (free + paid) — hooks the free minute, keeps paid
+  sessions longer. Reinforces the existing "reveal gradually" rule.
+- **Slower human timing** (replyEngine.ts): TYPE_PER_CHAR_MS 55→72, TYPE_FLOOR_MS
+  1800→3000, TYPE_CEIL_MS 9000→11000. Replies now land ~7–13s after the user sends
+  (typing dots visible the whole time) instead of near-instant; capped at 11s so it
+  never seems frozen. (DEBOUNCE 3.5s, MAX_BUBBLES 2, INTER_BUBBLE 1.4s unchanged.)
+- Founder approved both after seeing the before/after artifact (`hold-forecast.html`).
+
 **Optional future polish:** in-app instant logout of a blocked/deleted user (app
 reads `accountStatus` / handles disabled-auth) — needs an app rebuild; and a
 signup blocklist for hard bans across methods. Not urgent.
