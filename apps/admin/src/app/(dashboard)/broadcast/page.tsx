@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { callFn, useCollection } from '@/lib/hooks';
+import { callFn, useCollection, Row } from '@/lib/hooks';
 import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
 import { LandingControls, DisplayMode } from '@/components/LandingControls';
@@ -93,6 +93,73 @@ export default function BroadcastPage() {
     finally { setBusy(false); }
   }
 
+  /** Load a past broadcast back into the compose form so it can be tweaked and
+   *  re-pushed. A fresh broadcastId is minted so the send is treated as a NEW
+   *  message (never suppressed as a duplicate of the original). */
+  function editBroadcast(b: Row) {
+    setSegment((b.segment as Segment) ?? 'all_users');
+    setF({
+      title: (b.title as string) ?? '',
+      body: (b.body as string) ?? '',
+      deeplink: (b.deeplink as string) ?? '',
+      image: (b.image as string) ?? '',
+    });
+    setImageStyle((b.imageStyle as 'banner' | 'portrait') ?? 'banner');
+    setBg((b.bgColor as string) ?? '#2e2b5f');
+    setFg((b.textColor as string) ?? '#ffffff');
+    setDisplayMode((b.displayMode as DisplayMode) ?? 'half');
+    setPortraitImage((b.portraitImage as string) ?? '');
+    setCtaText((b.ctaText as string) ?? '');
+    setCtaDeeplink((b.ctaDeeplink as string) ?? '');
+    setLTitle((b.landingTitle as string) ?? '');
+    setLBody((b.landingBody as string) ?? '');
+    setLBg((b.landingBgColor as string) ?? '#2e2b5f');
+    setLFg((b.landingTextColor as string) ?? '#ffffff');
+    setTheme((b.theme as string) ?? '');
+    setBroadcastId(crypto.randomUUID());
+    setResult(null);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /** Re-push a past broadcast exactly as it was (built straight from the saved
+   *  row, so it works without touching the compose form). A fresh broadcastId
+   *  makes it a genuine new send. */
+  async function resendBroadcast(b: Row) {
+    const seg = (b.segment as Segment) ?? 'all_users';
+    const label = AUDIENCE.find((a) => a.key === seg)?.label ?? 'All Users';
+    const title = ((b.title as string) ?? '').trim();
+    const body = ((b.body as string) ?? '').trim();
+    if (!title || !body) return alert('This broadcast is missing a title or message.');
+    if (!confirm(`Resend "${title}" to ${label}?`)) return;
+    setBusy(true); setResult(null);
+    try {
+      const dm = (b.displayMode as string) || 'half';
+      const img = ((b.image as string) ?? '').trim();
+      const res = await callFn<{ delivered?: number; alreadySent?: boolean }>('sendBroadcast', {
+        broadcastId: crypto.randomUUID(),
+        title, body, segment: seg, type: 'announcement',
+        deeplink: ((b.deeplink as string) ?? '').trim() || undefined,
+        image: img || undefined,
+        imageStyle: img ? ((b.imageStyle as string) || 'banner') : undefined,
+        bgColor: (b.bgColor as string) || '#2e2b5f',
+        textColor: (b.textColor as string) || '#ffffff',
+        displayMode: dm,
+        portraitImage: dm !== 'small' ? (((b.portraitImage as string) ?? '').trim() || undefined) : undefined,
+        ctaText: ((b.ctaText as string) ?? '').trim() || undefined,
+        ctaDeeplink: ((b.ctaDeeplink as string) ?? '').trim() || undefined,
+        landingTitle: dm !== 'small' ? (((b.landingTitle as string) ?? '').trim() || undefined) : undefined,
+        landingBody: dm !== 'small' ? (((b.landingBody as string) ?? '').trim() || undefined) : undefined,
+        landingBgColor: dm !== 'small' ? ((b.landingBgColor as string) || '#2e2b5f') : undefined,
+        landingTextColor: dm !== 'small' ? ((b.landingTextColor as string) || '#ffffff') : undefined,
+        theme: (b.theme as string) || undefined,
+      });
+      setResult(res.alreadySent
+        ? '✓ Already sent (this exact message was just submitted).'
+        : `✓ Resent to ${res.delivered ?? 0} ${label}.`);
+    } catch (e) { alert('Failed: ' + (e as Error).message); }
+    finally { setBusy(false); }
+  }
+
   return (
     <div>
       <h1 style={{ marginBottom: 2 }}>Push Notifications</h1>
@@ -168,7 +235,7 @@ export default function BroadcastPage() {
         {sentLoading ? <p className="muted">Loading…</p> : sent.length === 0 ? <p className="muted">No broadcasts sent yet.</p> : (
           <div style={{ overflowX: 'auto' }}>
             <table className="cardify">
-              <thead><tr><th>Title</th><th>Audience</th><th>Reached</th><th>Style</th><th>Sent by</th><th>When</th></tr></thead>
+              <thead><tr><th>Title</th><th>Audience</th><th>Reached</th><th>Style</th><th>Sent by</th><th>When</th><th></th></tr></thead>
               <tbody>
                 {[...sent]
                   .sort((a, b) => ((b.createdAt as { seconds?: number })?.seconds ?? 0) - ((a.createdAt as { seconds?: number })?.seconds ?? 0))
@@ -180,6 +247,12 @@ export default function BroadcastPage() {
                       <td data-label="Style" className="muted" style={{ fontSize: 13 }}>{(b.theme as string) || 'plain'} · {(b.displayMode as string) || 'small'}</td>
                       <td data-label="Sent by" className="muted" style={{ fontSize: 13 }}>{(b.sentByName as string) || '—'}</td>
                       <td data-label="When" className="muted" style={{ fontSize: 13 }}>{fmtWhen(b.createdAt)}</td>
+                      <td data-label="" style={{ whiteSpace: 'nowrap' }}>
+                        <button className="btn sm secondary" title="Load into the composer to tweak & re-push"
+                          onClick={() => editBroadcast(b)} style={{ marginRight: 6 }}>✎ Edit</button>
+                        <button className="btn sm" title="Send this notification again as-is"
+                          disabled={busy} onClick={() => resendBroadcast(b)}>↻ Resend</button>
+                      </td>
                     </tr>
                   ))}
               </tbody>
