@@ -8,8 +8,13 @@
  * until it succeeds. This closes the "captured payment silently lost" hole.
  */
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { onCall } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import { db, FieldValue } from '../common/admin';
+import { assertRole, badRequest, notFound } from '../common/errors';
+import { assertTokenNotRevoked } from '../common/session';
+import { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } from '../common/secrets';
+import { fetchOrderPayments, OrderPayment } from './razorpay';
 import { creditRecharge, autoResumePausedSession } from './creditRecharge';
 
 const DEAD_LETTER = 'failedWebhookCredits';
@@ -136,3 +141,89 @@ export const reconcileFailedCredits = onSchedule('every 5 minutes', async () => 
     }
   }
 });
+
+/**
+ * reconcileRechargeOrder — admin-only, on-demand "what actually happened to this
+ * order?" for the Recharge Orders portal page.
+ *
+ * A `rechargeOrders` doc with no `creditedPaymentId` shows as "Pending", but our
+ * own data can't say WHY: abandoned checkout, a declined card, or a genuinely
+ * paid order whose crediting never fired. Only Razorpay knows. This asks Razorpay
+ * for every payment attempt on the order and returns a plain verdict. If it finds
+ * a CAPTURED payment that was never credited, it recovers it through the same
+ * idempotent creditRecharge path the webhook uses — so a customer who really paid
+ * gets their wallet funded and their paused chat resumed, on the spot.
+ *
+ * Read-only for abandoned/declined orders; money moves ONLY to recover a payment
+ * Razorpay itself reports as captured. creditRecharge is idempotent (keyed by
+ * paymentId + per-order), so re-checking an order can never double-credit.
+ */
+type Verdict = 'credited' | 'recovered' | 'paid_uncredited' | 'declined' | 'abandoned';
+
+export const reconcileRechargeOrder = onCall(
+  { secrets: [RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET] },
+  async (req) => {
+    assertRole(req, 'admin');
+    await assertTokenNotRevoked(req);
+
+    const { orderId } = (req.data ?? {}) as { orderId?: string };
+    if (!orderId) badRequest('orderId is required.');
+
+    const orderSnap = await db.collection('rechargeOrders').doc(orderId!).get();
+    if (!orderSnap.exists) notFound('Recharge order not found.');
+    const order = orderSnap.data()!;
+    const alreadyCredited = !!order.creditedPaymentId;
+
+    // Ask Razorpay what actually happened on this order.
+    const payments = await fetchOrderPayments(RAZORPAY_KEY_ID.value(), RAZORPAY_KEY_SECRET.value(), orderId!);
+    const captured = payments.find((p) => p.status === 'captured');
+    const lastFailed = [...payments].reverse().find((p) => p.status === 'failed');
+
+    let verdict: Verdict;
+    let recovered: { walletCreditPaise: number; bonusPaise: number } | null = null;
+
+    if (alreadyCredited) {
+      verdict = 'credited';
+    } else if (captured) {
+      // Real money we never credited. Recover it through the idempotent path.
+      const result = await creditRecharge({
+        userId: order.userId as string,
+        paymentId: captured.id,
+        orderId: orderId!,
+        planId: order.planId as string,
+        couponId: (order.couponId as string | null) ?? null,
+        source: 'callable',
+      });
+      if (result.credited) {
+        await autoResumePausedSession(order.userId as string).catch(() => null);
+        verdict = 'recovered';
+        recovered = { walletCreditPaise: result.walletCreditPaise, bonusPaise: result.bonusPaise };
+      } else {
+        // Idempotency says it's already handled — treat as credited.
+        verdict = result.alreadyProcessed ? 'credited' : 'paid_uncredited';
+      }
+    } else if (lastFailed) {
+      verdict = 'declined';
+    } else {
+      verdict = 'abandoned';
+    }
+
+    const summarize = (p: OrderPayment) => ({
+      id: p.id,
+      status: p.status,
+      method: p.method,
+      amountPaise: p.amount,
+      reason: p.errorDescription || p.errorReason || null,
+      at: p.createdAt,
+    });
+
+    return {
+      orderId,
+      verdict,
+      attempts: payments.length,
+      recovered,
+      lastError: lastFailed ? (lastFailed.errorDescription || lastFailed.errorReason || 'Payment failed') : null,
+      payments: payments.map(summarize),
+    };
+  },
+);

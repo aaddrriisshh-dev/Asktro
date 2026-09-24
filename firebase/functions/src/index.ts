@@ -27,7 +27,7 @@ export { sweepStaleSessions } from './billing/sweepSessions';
 
 // ---- Wallet / recharge / payments ----
 export { createRechargeOrder, verifyRecharge, razorpayWebhook } from './wallet/recharge';
-export { reconcileFailedCredits } from './wallet/reconcile';
+export { reconcileFailedCredits, reconcileRechargeOrder } from './wallet/reconcile';
 
 // ---- Coupons / referrals / ratings ----
 export { validateCoupon } from './coupons/validateCoupon';
