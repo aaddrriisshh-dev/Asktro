@@ -251,6 +251,16 @@ service cloud.firestore {
       allow write: if false; // functions only
     }
 
+    // Recharge orders (the checkout funnel): one doc per payment attempt, created
+    // server-side at Razorpay order time. The admin portal reads them to see paid
+    // vs abandoned/failed recharges; clients never read or write them directly.
+    // Without this the collection fell through to the default-deny and the
+    // Recharge Orders page came up blank even with real orders.
+    match /rechargeOrders/{orderId} {
+      allow read: if isAdmin();
+      allow write: if false; // functions only (admin SDK bypasses rules)
+    }
+
     // ================= admin-managed catalogs (public read) =================
     match /rechargePlans/{planId} {
       allow read: if isSignedIn();
