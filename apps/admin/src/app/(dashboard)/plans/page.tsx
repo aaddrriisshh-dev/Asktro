@@ -92,8 +92,8 @@ export default function PlansPage() {
 
       {loading ? <p className="muted">Loading…</p> : (
         <MobileSection title="Existing plans" defaultOpen={true}>
-        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
-          <div className="card sess-col" style={{ borderTop: '3px solid var(--primary)' }}>
+        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start', minWidth: 0 }}>
+          <div className="card sess-col" style={{ borderTop: '3px solid var(--primary)', minWidth: 0 }}>
             <div className="sess-col-head">
               <h3 className="celeste" style={{ margin: 0 }}>Regular plans</h3>
               <span className="udet-total">{regular.length}</span>
@@ -101,7 +101,7 @@ export default function PlansPage() {
             <p className="muted" style={{ margin: '4px 0 10px', fontSize: 12 }}>Shown on the app&apos;s recharge screen.</p>
             <div style={{ overflowX: 'auto' }}>{table(regular)}</div>
           </div>
-          <div className="card sess-col" style={{ borderTop: '3px solid var(--gold)' }}>
+          <div className="card sess-col" style={{ borderTop: '3px solid var(--gold)', minWidth: 0 }}>
             <div className="sess-col-head">
               <h3 className="celeste" style={{ margin: 0 }}>🎁 Offer plans</h3>
               <span className="udet-total">{offers.length}</span>

@@ -5,7 +5,8 @@ import { orderBy, limit } from 'firebase/firestore';
 import { useCollection, useNamesByIds, callFn } from '@/lib/hooks';
 import { formatPaise, formatDate } from '@/lib/format';
 import { Metric } from '@/components/Metric';
-import { DateFilter } from '@/components/DateFilter';
+import { DrawerFilter } from '@/components/DrawerFilter';
+import { RefreshBadge } from '@/components/RefreshBadge';
 import { Preset, resolveRange } from '@/lib/dateRange';
 
 /**
@@ -87,7 +88,11 @@ export default function RechargeOrdersPage() {
             hit <strong>Check</strong> on a pending row to ask Razorpay what actually happened. Latest 500.
           </p>
         </div>
-        <DateFilter
+        <RefreshBadge />
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <DrawerFilter
           preset={preset}
           custom={custom}
           onPreset={(p) => { setPreset(p); setPage(0); }}
@@ -95,7 +100,7 @@ export default function RechargeOrdersPage() {
         />
       </div>
 
-      <div className="metricgrid" style={{ margin: '14px 0 18px' }}>
+      <div className="metricgrid" style={{ margin: '4px 0 18px' }}>
         <Metric color="c-purple" label="🧾 Orders" value={inRange.length.toLocaleString('en-IN')} big />
         <Metric color="c-green" label="✅ Credited" value={credited.length.toLocaleString('en-IN')} big />
         <Metric color="c-gold" label="📈 Conversion" value={`${rate}%`} big />
