@@ -25,7 +25,10 @@ import { buildReadingSystem } from '../lib/ai/persona.js';
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const OR_KEY = process.env.OPENROUTER_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
-const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek/deepseek-chat-v3-0324:free';
+// The OpenRouter ":free" DeepSeek variant was retired; use the standard slug.
+// Cost is negligible (~₹1 for this whole 3-question test), but OpenRouter needs a
+// small prepaid credit balance (top up ~$5 once at https://openrouter.ai/credits).
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek/deepseek-chat-v3-0324';
 
 if (!GEMINI_KEY) { console.error('Missing GEMINI_API_KEY'); process.exit(1); }
 if (!OR_KEY) { console.error('Missing OPENROUTER_API_KEY (get a free one at https://openrouter.ai/keys)'); process.exit(1); }
