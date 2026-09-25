@@ -95,7 +95,24 @@ const S = [
     q: 'मेरी शादी में देरी क्यों हो रही है?', expect: { selfGender: 'male', devanagari: true, grounding: true } },
   { id: 'sceptic → calm, not defensive', persona: PV_M, client: { name: 'Sam', age: 30, gender: 'male' }, brief: KUNDLI,
     q: 'Main in sab pe vishwas nahi karta, jyotish sab bakwaas hai.', expect: { selfGender: 'male' } },
+  // ---- Regional Indian languages (native script) → must mirror the script ----
+  { id: 'TAMIL input → mirror Tamil', persona: PV_F, client: { name: 'Kavya', age: 28, gender: 'female' }, brief: KUNDLI,
+    q: 'என் திருமணம் எப்போது நடக்கும்? எனக்கு கவலையாக இருக்கிறது.', expect: { script: 'tamil' } },
+  { id: 'TELUGU input → mirror Telugu', persona: PV_M, client: { name: 'Ravi', age: 30, gender: 'male' }, brief: KUNDLI,
+    q: 'నా ఉద్యోగం ఎప్పుడు వస్తుంది? చాలా బాధగా ఉంది.', expect: { script: 'telugu' } },
+  { id: 'BENGALI input → mirror Bengali', persona: PV_F, client: { name: 'Riya', age: 26, gender: 'female' }, brief: KUNDLI,
+    q: 'আমার বিয়ে কবে হবে? আমি খুব চিন্তিত।', expect: { script: 'bengali' } },
+  { id: 'KANNADA input → mirror Kannada', persona: PV_M, client: { name: 'Kiran', age: 33, gender: 'male' }, brief: KUNDLI,
+    q: 'ನನ್ನ ವ್ಯಾಪಾರ ಹೇಗಿರುತ್ತದೆ?', expect: { script: 'kannada' } },
+  { id: 'MARATHI input → mirror Marathi', persona: PV_F, client: { name: 'Snehal', age: 29, gender: 'female' }, brief: KUNDLI,
+    q: 'माझं लग्न कधी होईल? मला खूप काळजी वाटते.', expect: { script: 'devanagari' } },
 ];
+
+const SCRIPTS = {
+  devanagari: /[ऀ-ॿ]/, tamil: /[஀-௿]/, telugu: /[ఀ-౿]/,
+  kannada: /[ಀ-೿]/, malayalam: /[ഀ-ൿ]/, bengali: /[ঀ-৿]/,
+  gujarati: /[઀-૿]/, gurmukhi: /[਀-੿]/,
+};
 
 // ---- DeepSeek reinforcement (kept from the tuned setup) --------------------
 function deepseekPrompt(persona, system) {
@@ -179,6 +196,8 @@ function runChecks(text, env, e, persona, brief) {
   if (e.mentionSupport && !/support|@|whatsapp/i.test(t)) fails.push('support: did not point to support');
   // devanagari mirror
   if (e.devanagari && !DEVA.test(text || '')) fails.push('script: did not mirror Devanagari');
+  // regional-language script mirror
+  if (e.script && SCRIPTS[e.script] && !SCRIPTS[e.script].test(text || '')) fails.push(`script: did not reply in ${e.script}`);
   // married awareness
   if (e.marriedAware && !/(pehle se shaadi|already married|aap.*married|shaadi.*ho chuki|married.*hain)/i.test(t)) fails.push('context: did not acknowledge client is MARRIED (soft)');
   return fails;
