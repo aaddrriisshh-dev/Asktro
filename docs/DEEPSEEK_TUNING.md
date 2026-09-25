@@ -24,12 +24,15 @@ problem was the *call*. Non-negotiables:
   this, some providers silently ignore JSON mode and return **empty content**
   (`""`). This was the cause of the "22% failure" scare — they weren't bad
   answers, they were blank responses.
-- **Fall back to `message.reasoning`** if `message.content` is empty. Some
-  providers stash the real answer in the reasoning field.
-- **Retry once WITHOUT `response_format: json_object`** if the first call comes
-  back empty OR degenerate (valid JSON but no usable message, e.g. `{"":[""]}`).
-  json-mode is the prime suspect for both; the prompt already demands JSON, so a
-  plain retry recovers cleanly.
+- **Fall back to `message.reasoning` ONLY if it contains the JSON envelope**
+  (`"messages"`). Never surface it blindly — when a provider truncates, it leaks
+  raw chain-of-thought into that field, which must never reach the user.
+- **Retry once, KEEPING `response_format: json_object` ON**, if the first call
+  comes back empty OR degenerate (valid JSON but no usable message, e.g.
+  `{"":[""]}`). A fresh call usually lands on a different provider. **Do NOT retry
+  with json-mode OFF** — plain retries let some providers (e.g. Cohere) dump
+  chain-of-thought and hit the token limit (`finish=length via=reasoning`),
+  producing garbage. json-mode is what keeps the reply clean.
 - **`max_tokens: 2000`** (not 1500 — one reply was truncated mid-JSON at 1500).
 - **`temperature: 0.6`** (lower than Flash's 0.9 — DeepSeek is steadier at 0.6).
 - Send `HTTP-Referer` + `X-Title` headers (OpenRouter attribution; harmless, good
