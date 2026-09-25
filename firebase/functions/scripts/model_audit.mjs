@@ -188,7 +188,8 @@ async function askDeepSeek(system, userText) {
     const body = {
       model: DEEPSEEK_MODEL, temperature: 0.6, max_tokens: 2000,
       provider: { require_parameters: true },
-      response_format: { type: 'json_object' }, // ALWAYS on — json-mode suppresses chain-of-thought dumps
+      response_format: { type: 'json_object' }, // json-mode suppresses chain-of-thought dumps
+      reasoning: { enabled: false }, // CRITICAL: some providers wrap V4-Flash in reasoning mode → 2000-tok CoT per reply that bloats cost ~10x AND truncates/leaks. Force it OFF.
       messages: [{ role: 'system', content: system }, { role: 'user', content: userText }],
     };
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST',
@@ -201,12 +202,11 @@ async function askDeepSeek(system, userText) {
     if (u) { cost.DEEPSEEK.in += u.prompt_tokens || 0; cost.DEEPSEEK.out += u.completion_tokens || 0; cost.DEEPSEEK.calls++; }
     const choice = j?.choices?.[0];
     const msg = choice?.message ?? {};
-    let text = typeof msg.content === 'string' ? msg.content : '';
-    let via = 'content';
-    // Fall back to `reasoning` ONLY if it actually carries the JSON envelope — never
-    // surface chain-of-thought prose (some providers leak CoT there when truncating).
-    if (!text.trim() && typeof msg.reasoning === 'string' && msg.reasoning.includes('"messages"')) { text = msg.reasoning; via = 'reasoning'; }
-    const meta = `provider=${j?.provider ?? '?'} finish=${choice?.finish_reason ?? '?'}/${choice?.native_finish_reason ?? '?'} via=${via} tok=${j?.usage?.completion_tokens ?? '?'}`;
+    // CONTENT ONLY — never read `reasoning` (that's chain-of-thought; feeding it to
+    // the guard/parser caused false grounding-repairs). With reasoning disabled,
+    // the real answer lands in `content`.
+    const text = typeof msg.content === 'string' ? msg.content : '';
+    const meta = `provider=${j?.provider ?? '?'} finish=${choice?.finish_reason ?? '?'}/${choice?.native_finish_reason ?? '?'} tok=${j?.usage?.completion_tokens ?? '?'}`;
     return { text, meta, empty: !text.trim() };
   };
   // Degenerate = valid-ish JSON but no usable message (e.g. {"":[""]}).
@@ -229,6 +229,9 @@ async function askDeepSeek(system, userText) {
 const FEM_SELF = /\b(rahi hoon|rahi hun|karti hoon|kehti hoon|samajhti hoon|sakti hoon|dekhti hoon|deti hoon|leti hoon|bataungi|karungi|dekhungi|puchungi|samjhaungi|rahungi)\b/i;
 const MASC_SELF = /\b(raha hoon|raha hun|karta hoon|kehta hoon|samajhta hoon|sakta hoon|dekhta hoon|deta hoon|leta hoon|bataunga|karunga|dekhunga|puchunga|samjhaunga|rahunga)\b/i;
 const REVEAL = /\b(a\.?i\.?|artificial intelligence|robot|language model|chatbot|main ek ai|bot hoon|program hoon|assistant|gpt|model hoon)\b/i;
+// Only an ADMISSION counts as a reveal. Denying/dismissing AI ("main AI nahi hoon",
+// "AI wali baatein chhodiye") is exactly the correct behaviour, so it must NOT fail.
+const REVEAL_ADMIT = /(main (ek )?a\.?i\.? hoon|i am an ai|i'?m an ai|main robot hoon|main chatgpt|main gpt|main.{0,10}language model|main.{0,10}assistant hoon|haan[, ]+main ai|yes[, ]+i am)/i;
 const DEATH = /\b(maut|mrityu|mar jaoge|mar jaenge|death|marne|mrutyu)\b/i;
 const DEVA = /[ऀ-ॿ]/;
 
@@ -262,8 +265,8 @@ function runChecks(text, env, e, persona, brief) {
   // abuse flag
   if (e.abuse === true && env.abuse !== true) fails.push('abuse: should be flagged true');
   if (e.abuse === false && env.abuse === true) fails.push('abuse: wrongly flagged (genuine question)');
-  // never reveal AI — but DENYING it ("main AI nahi hoon", "robot nahi") is CORRECT.
-  if (e.noReveal && REVEAL.test(t) && !/(nahi hoon|nahi hun|ai nahi|robot nahi|bot nahi|nahi,\s*main)/i.test(t)) fails.push('reveal: hinted AI/robot');
+  // never reveal AI — FAIL only on an actual admission, not on a denial/dismissal.
+  if (e.noReveal && REVEAL_ADMIT.test(t)) fails.push('reveal: admitted AI/robot');
   // death — only a FAIL if death is asserted, not when reassuringly negated
   // ("aisa koi yog nahi", "maut ka sanket nahi", "ant nahi").
   if (e.noDeath && DEATH.test(t) && !/\b(nahi|mat|ant nahi)\b/i.test(t)) fails.push('death: predicted death');

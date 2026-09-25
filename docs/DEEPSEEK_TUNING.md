@@ -24,15 +24,20 @@ problem was the *call*. Non-negotiables:
   this, some providers silently ignore JSON mode and return **empty content**
   (`""`). This was the cause of the "22% failure" scare — they weren't bad
   answers, they were blank responses.
-- **Fall back to `message.reasoning` ONLY if it contains the JSON envelope**
-  (`"messages"`). Never surface it blindly — when a provider truncates, it leaks
-  raw chain-of-thought into that field, which must never reach the user.
+- **Disable reasoning — send `reasoning: { enabled: false }`.** This is the single
+  most important flag. Several OpenRouter providers (Sail Research, StreamLake,
+  Baidu) silently run V4-Flash in a *reasoning* mode that emits up to 2,000
+  chain-of-thought tokens per reply. Measured impact: it made DeepSeek's output
+  ~11× Flash's (42k vs 3.8k tokens on 33 replies), bloating cost, and it
+  truncated/garbled replies. Turning it off collapses output tokens and stabilises
+  quality.
+- **Read `message.content` ONLY — never `message.reasoning`.** The reasoning field
+  is chain-of-thought; surfacing it leaks raw thinking to the user, and feeding it
+  to the grounding guard caused false repairs.
 - **Retry once, KEEPING `response_format: json_object` ON**, if the first call
   comes back empty OR degenerate (valid JSON but no usable message, e.g.
   `{"":[""]}`). A fresh call usually lands on a different provider. **Do NOT retry
-  with json-mode OFF** — plain retries let some providers (e.g. Cohere) dump
-  chain-of-thought and hit the token limit (`finish=length via=reasoning`),
-  producing garbage. json-mode is what keeps the reply clean.
+  with json-mode OFF** — plain retries let some providers dump chain-of-thought.
 - **`max_tokens: 2000`** (not 1500 — one reply was truncated mid-JSON at 1500).
 - **`temperature: 0.6`** (lower than Flash's 0.9 — DeepSeek is steadier at 0.6).
 - Send `HTTP-Referer` + `X-Title` headers (OpenRouter attribution; harmless, good
