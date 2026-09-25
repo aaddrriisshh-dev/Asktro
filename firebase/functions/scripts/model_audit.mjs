@@ -200,6 +200,8 @@ async function evalOne(name, raw, sc) {
   tally[name].total++; if (ok) tally[name].pass++;
   console.log(`\n${name === 'FLASH' ? '🔵' : '🟣'} ${name}: ${ok ? 'PASS ✅' : 'FAIL ❌ — ' + checkFails.join(' | ')}`);
   console.log(`   ${msgs || (raw || '').slice(0, 140) || '(empty)'}`);
+  // On a failure, dump the RAW model output so we can see WHY (format vs grounding).
+  if (!ok) console.log(`   ⤷ RAW: ${JSON.stringify((raw || '').slice(0, 400))}`);
 }
 
 for (const sc of S) {
