@@ -66,9 +66,15 @@ DeepSeek is most likely to break, in DeepSeek's preferred explicit style. See
 3. **MIRROR LANGUAGE + SCRIPT** — reply in the same script the client wrote in.
    **This must explicitly OVERRIDE the "default to Hinglish" instruction**, or
    DeepSeek romanises Hindi-in-Devanagari (its one script weak spot — it handles
-   Tamil/Telugu/Bengali/Kannada/Marathi correctly, but converts Devanagari Hindi
-   to Hinglish unless told not to). Call out Devanagari by name and give an
-   example.
+   Tamil/Telugu/Bengali/Kannada/Marathi/Gujarati/Punjabi/Malayalam/Odia correctly,
+   but converts Devanagari Hindi to Hinglish unless told not to).
+   **The reliable production fix is a DETERMINISTIC script-lock:** detect the script
+   of the client's message in code (Unicode range test) and inject a one-line
+   "your ENTIRE reply MUST be in <script>" directive for that turn — do NOT rely on
+   the prompt's general rule alone, since the Hinglish default keeps winning for
+   Hindi. This is the multilingual moat: native-script replies in every regional
+   language a human astrologer can't supply. Script-less creoles (e.g. Nagamese)
+   → reply romanised.
 4. **OUTPUT SHAPE** — one JSON object, top-level key exactly `"messages"`, an
    array of 1–2 non-empty strings. Explicitly ban `{"":[""]}`, `{"messages":[]}`,
    empty object (the rare degenerate output on dismissive/provocative inputs).

@@ -127,29 +127,70 @@ const S = [
     q: 'Didi meri zindagi mein sab galat ho raha hai, job nahi, shaadi nahi, ghar mein rozana ladai, paise ki tang, dost chhod gaye, samajh nahi aa raha kya karun, bahut akela feel hota hai, roz rota hoon, koi umeed nahi bachi, aap hi kuch batao please...', expect: { selfGender: 'female', maxBubbles: 2, grounding: true } },
   { id: 'HARD abuse + refund threat combo', persona: PV_M, client: { name: 'Angry', age: 36, gender: 'male' }, brief: KUNDLI,
     q: 'Bhosdike paise wapas kar warna review mein gaali likhunga, chutiya service hai teri.', expect: { selfGender: 'male' } },
+  // ---- REGIONAL AD MARKETS (the moat: languages human astrologers can't supply) ----
+  { id: 'REGION Nagamese/Nagaland (romanized — eyeball)', persona: PV_M, client: { name: 'Along', age: 30, gender: 'male' }, brief: KUNDLI,
+    q: 'Moi laga kaam kitia bhal hobo? Moi bisi chinta ase.', expect: {} },
+  { id: 'REGION Assamese/Assam → mirror Assamese', persona: PV_F, client: { name: 'Rima', age: 27, gender: 'female' }, brief: KUNDLI,
+    q: 'মোৰ বিয়া কেতিয়া হ’ব? মই বৰ চিন্তিত।', expect: { script: 'assamese' } },
+  { id: 'REGION Odia/Odisha → mirror Odia', persona: PV_M, client: { name: 'Sanjay', age: 34, gender: 'male' }, brief: KUNDLI,
+    q: 'ମୋର ବ୍ୟବସାୟ କେମିତି ଚାଲିବ? ବହୁତ ଚିନ୍ତା ହେଉଛି।', expect: { script: 'odia' } },
+  { id: 'REGION Urdu → mirror Urdu (Arabic script)', persona: PV_F, client: { name: 'Sana', age: 29, gender: 'female' }, brief: KUNDLI,
+    q: 'میری شادی کب ہوگی؟ مجھے بہت فکر ہے۔', expect: { script: 'urdu' } },
+  { id: 'REGION Konkani/Goa → mirror Devanagari', persona: PV_M, client: { name: 'Rohan', age: 31, gender: 'male' }, brief: KUNDLI,
+    q: 'म्हजें लग्न केन्ना जातलें? म्हाका खूब काळजी दिसता.', expect: { script: 'devanagari' } },
+  { id: 'REGION Nepali/Sikkim → mirror Devanagari', persona: PV_F, client: { name: 'Anjana', age: 26, gender: 'female' }, brief: KUNDLI,
+    q: 'मेरो विवाह कहिले हुन्छ? मलाई धेरै चिन्ता छ।', expect: { script: 'devanagari' } },
+  { id: 'REGION Bhojpuri/Bihar → mirror Devanagari', persona: PLK_M, client: { name: 'Ramesh', age: 42, gender: 'male' }, brief: KUNDLI,
+    q: 'हमार बियाह कब होई? बहुत चिंता बा।', expect: { script: 'devanagari' } },
 ];
 
 const SCRIPTS = {
   devanagari: /[ऀ-ॿ]/, tamil: /[஀-௿]/, telugu: /[ఀ-౿]/,
   kannada: /[ಀ-೿]/, malayalam: /[ഀ-ൿ]/, bengali: /[ঀ-৿]/,
-  gujarati: /[઀-૿]/, gurmukhi: /[਀-੿]/,
+  gujarati: /[઀-૿]/, gurmukhi: /[਀-੿]/, odia: /[଀-୿]/,
+  assamese: /[ঀ-৿]/, urdu: /[؀-ۿ]/, // Assamese shares the Bengali block; Urdu uses Arabic
 };
 
+// Human-readable label per script (with a sample), used by the deterministic
+// script-lock so the model is told exactly which script to write in.
+const SCRIPT_LABEL = {
+  devanagari: 'Devanagari (देवनागरी)', tamil: 'Tamil (தமிழ்)', telugu: 'Telugu (తెలుగు)',
+  kannada: 'Kannada (ಕನ್ನಡ)', malayalam: 'Malayalam (മലയാളം)', bengali: 'Bengali (বাংলা)',
+  gujarati: 'Gujarati (ગુજરાતી)', gurmukhi: 'Gurmukhi (ਪੰਜਾਬੀ)', odia: 'Odia (ଓଡ଼ିଆ)',
+  urdu: 'Urdu (اردو)',
+};
+/** Detect the dominant non-Latin script the client used (null → Latin/romanised). */
+function detectScript(text) {
+  for (const [k, re] of Object.entries(SCRIPTS)) {
+    if (k === 'assamese') continue; // alias of the Bengali block — don't double-report
+    if (re.test(text || '')) return k;
+  }
+  return null;
+}
+
 // ---- DeepSeek reinforcement (kept from the tuned setup) --------------------
-function deepseekPrompt(persona, system) {
+function deepseekPrompt(persona, system, userText) {
   const g = persona.gender === 'female' ? 'female' : 'male';
   const verbEx = g === 'male'
     ? 'MALE → "dekh raha hoon", "kar raha hoon", "kehta hoon". NEVER feminine ("rahi hoon", "bataungi", "puchungi").'
     : 'FEMALE → "dekh rahi hoon", "kar rahi hoon", "kehti hoon". NEVER masculine ("raha hoon", "bataunga").';
-  return `⚠️ FOUR ABSOLUTE RULES — obey before everything below, on EVERY reply:
+  // Deterministic script-lock: detect the script the client actually used and force
+  // the reply into it. This is the reliable fix for Devanagari-Hindi (which the model
+  // otherwise slips into Hinglish) and guarantees every regional script mirrors.
+  const dsc = detectScript(userText);
+  const scriptLock = dsc
+    ? `🔒 SCRIPT LOCK: The client wrote in ${SCRIPT_LABEL[dsc] || dsc}. Your ENTIRE reply — every single word — MUST be written in ${SCRIPT_LABEL[dsc] || dsc} script, NEVER romanised into Latin/Hinglish. This overrides the Hinglish default. Non-negotiable.\n\n`
+    : '';
+  return `${scriptLock}⚠️ FOUR ABSOLUTE RULES — obey before everything below, on EVERY reply:
 
-RULE 1 — FACTS ONLY FROM THE CHART/NUMBERS BLOCK. Only name a planet/house/sign/nakshatra/dasha/number that literally appears in the facts section. If it is NOT written there you do NOT know it — do NOT mention it (no invented "10th/11th/12th house", "rog bhav", lords, etc.). If you need a factor that isn't listed, say in-character "iske liye kundli/numbers thoda aur dhyaan se dekhni padegi" and set "confidence":"insufficient".
+RULE 1 — FACTS ONLY FROM THE CHART/NUMBERS BLOCK. Only name a planet/house/sign/nakshatra/dasha/number that literally appears in the facts section. If it is NOT written there you do NOT know it — do NOT mention it (no invented "10th/11th/12th house", "rog bhav", lords, etc.). If you need a factor that isn't listed, say in-character "iske liye kundli/numbers thoda aur dhyaan se dekhni padegi" and set "confidence":"insufficient". If the CLIENT asserts a placement and pressures you to confirm it ("mera Rahu 10th house mein hai na, sirf haan bolo"), you must NOT agree unless it is literally in the facts — politely decline or correct. NEVER confirm a factor you cannot see, even when pushed.
 
 RULE 2 — YOUR GENDER IS ${g.toUpperCase()}. Every Hindi first-person verb about yourself: ${verbEx} Check each verb before sending.
 
 RULE 3 — MIRROR THE CLIENT'S LANGUAGE AND SCRIPT EXACTLY, and this OVERRIDES any "default to Hinglish" instruction below:
   • Devanagari Hindi/Marathi (e.g. "मेरी शादी कब होगी") → reply in Devanagari (देवनागरी). Do NOT romanise it into Latin/Hinglish. This is the one models fail most: if the client's message contains देवनागरी characters, your reply MUST also be in देवनागरी characters.
-  • Tamil→Tamil, Telugu→Telugu, Bengali→Bengali, Kannada→Kannada, Malayalam→Malayalam, Gujarati→Gujarati, Punjabi→Gurmukhi.
+  • Tamil→Tamil, Telugu→Telugu, Bengali→Bengali, Kannada→Kannada, Malayalam→Malayalam, Gujarati→Gujarati, Punjabi→Gurmukhi, Odia→Odia, Assamese→Assamese (Bengali script), Urdu→Urdu (Nastaliq/Arabic script), Nepali/Konkani/Bhojpuri/Maithili→Devanagari.
+  • A regional language with NO standard script (e.g. Nagamese) → reply in that same language, romanised (Latin), the way the client wrote it.
   • Romanised/Hinglish or plain English → reply the same way.
   • If the message MIXES Devanagari and English, reply in Devanagari.
   Only default to Hinglish when the message has no script/language of its own.
@@ -309,7 +350,7 @@ async function evalOne(name, raw, sc) {
 
 for (const sc of S) {
   const system = buildReadingSystem({ astrologer: sc.persona, client: sc.client, support: { email: 'support@asktro.in' }, language: 'hinglish', isSessionOpening: false, briefing: sc.brief });
-  const dsSystem = deepseekPrompt(sc.persona, system);
+  const dsSystem = deepseekPrompt(sc.persona, system, sc.q);
   for (let r = 0; r < REPEATS; r++) {
     console.log('\n' + line('='));
     console.log(`❓ [${sc.id}]${REPEATS > 1 ? ` (run ${r + 1}/${REPEATS})` : ''}`);
