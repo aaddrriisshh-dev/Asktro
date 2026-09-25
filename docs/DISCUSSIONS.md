@@ -98,6 +98,12 @@ Started 2026-09-25.
 ### OPEN ITEMS — for tomorrow's joint review
 - [ ] **Rate limits:** confirm OpenRouter/DeepSeek limits at our volume; make sure
       we won't "hit a wall like Gemini Pro did." Limits scale with credit balance.
+- [ ] **How to judge safely with the LIVE ad campaign running:** prefer SHADOW
+      MODE — DeepSeek generates its reply in the background on real user questions,
+      we log it beside the Gemini reply the user actually got, user sees only
+      Gemini. Zero risk to the campaign; lets us compare both on real traffic, not
+      synthetic tests, before any switch. Also re-examine today's cost numbers
+      carefully against real prompt sizes + caching.
 - [ ] **Fallback routes:** design exactly — DeepSeek → Flash → Flash-Lite; decide
       triggers (empty / degenerate / error / guard=fallback), timeouts, and
       whether OpenRouter's own multi-provider routing is enough or we pin providers.
