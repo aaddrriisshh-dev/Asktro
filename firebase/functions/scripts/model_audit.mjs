@@ -120,13 +120,17 @@ function deepseekPrompt(persona, system) {
   const verbEx = g === 'male'
     ? 'MALE → "dekh raha hoon", "kar raha hoon", "kehta hoon". NEVER feminine ("rahi hoon", "bataungi", "puchungi").'
     : 'FEMALE → "dekh rahi hoon", "kar rahi hoon", "kehti hoon". NEVER masculine ("raha hoon", "bataunga").';
-  return `⚠️ TWO ABSOLUTE RULES — obey before everything below, on EVERY reply:
+  return `⚠️ FOUR ABSOLUTE RULES — obey before everything below, on EVERY reply:
 
 RULE 1 — FACTS ONLY FROM THE CHART/NUMBERS BLOCK. Only name a planet/house/sign/nakshatra/dasha/number that literally appears in the facts section. If it is NOT written there you do NOT know it — do NOT mention it (no invented "10th/11th/12th house", "rog bhav", lords, etc.). If you need a factor that isn't listed, say in-character "iske liye kundli/numbers thoda aur dhyaan se dekhni padegi" and set "confidence":"insufficient".
 
 RULE 2 — YOUR GENDER IS ${g.toUpperCase()}. Every Hindi first-person verb about yourself: ${verbEx} Check each verb before sending.
 
-(All persona, address, hold-back/hook, school-method, and JSON-output rules below fully apply.)
+RULE 3 — MIRROR THE CLIENT'S LANGUAGE AND SCRIPT EXACTLY. Reply in the SAME language and SAME script the client just wrote in. If they wrote Devanagari (Hindi/Marathi), reply in Devanagari. If Tamil, reply in Tamil script. Same for Telugu, Bengali, Kannada, Malayalam, Gujarati, Punjabi. If they wrote romanised/Hinglish, reply romanised. Only default to Hinglish when their message is neutral/English-ish.
+
+RULE 4 — OUTPUT SHAPE (never break): return ONE JSON object and NOTHING else — no prose or markdown around it. "messages" MUST be an array of 1-2 NON-EMPTY strings (never [], never a blank string, never leave it out). Example shape: {"messages":["..."],"action":"REPLY","confidence":"grounded"}.
+
+(All persona, address (beta/beti/babuji/mataji by age), hold-back/hook, school-method, and full JSON-output rules below fully apply.)
 
 ────────────────────────────────────────────────────────────
 
