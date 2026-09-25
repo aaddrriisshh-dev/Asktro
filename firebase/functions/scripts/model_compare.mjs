@@ -78,7 +78,10 @@ async function askGemini(question) {
   const body = {
     system_instruction: { parts: [{ text: system }] },
     contents: [{ role: 'user', parts: [{ text: question }] }],
-    generationConfig: { temperature: 0.9, maxOutputTokens: 400 },
+    // Flash is a "thinking" model — give it headroom and turn thinking OFF so the
+    // full reply comes through (otherwise reasoning eats the token budget and the
+    // visible answer is truncated).
+    generationConfig: { temperature: 0.9, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } },
     safetySettings: ['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH','HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT']
       .map((category) => ({ category, threshold: 'BLOCK_NONE' })),
   };
