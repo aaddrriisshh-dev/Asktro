@@ -61,16 +61,20 @@ const ctx = {
     'Lagna: Vrishchik (Scorpio). Moon: Karka (Cancer), Ashlesha nakshatra.\n' +
     'Current Mahadasha: Shukra (Venus), Antardasha: Mangal (Mars).\n' +
     'Gochar: Shani transiting the 7th house (marriage/partnership).\n' +
-    'METHOD: read the 7th house + its lord for the marriage question; weigh the Shukra–Mangal tension.\n' +
-    'FOCUS: the client asks about repeated conflict with his wife.',
+    'METHOD: read the relevant house + its lord for whatever the client asks; weigh the Shukra–Mangal dasha.\n' +
+    'FOCUS: answer the client’s current question using ONLY the chart facts above.',
 };
 
 const system = buildReadingSystem(ctx);
 
 const QUESTIONS = [
-  'Sir meri biwi se roz jhagda hota hai, hamara rishta chalega ya nahi?',
-  'Meri job kab tak lagegi? Bahut pareshaan hoon.',
-  'Mujhe apne business mein loss ho raha hai, kya karun?',
+  'Sir meri biwi se roz jhagda hota hai, hamara rishta chalega ya nahi?',   // marriage conflict
+  'Mera 2 saal ka rishta abhi toota hai, kya woh wapas aayegi?',            // breakup
+  'Meri love marriage hogi ya ghar waale nahi maanenge?',                   // love marriage
+  'Meri shaadi mein itni problem hai, kahin divorce toh nahi ho jayega?',   // divorce fear
+  'Private job chhoot gayi, nayi naukri kab lagegi? Bahut pareshaan hoon.', // job
+  'Kya mujhe sarkari naukri milegi? UPSC ki taiyari kar raha hoon.',        // government job
+  'Business mein lagataar loss ho raha hai, band kar doon ya continue?',    // business
 ];
 
 async function askGemini(question) {
