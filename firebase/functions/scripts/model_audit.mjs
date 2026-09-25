@@ -172,6 +172,8 @@ async function askGemini(system, userText) {
   const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const j = await res.json();
   if (!res.ok) return `[Gemini ${res.status}] ${JSON.stringify(j).slice(0, 160)}`;
+  const u = j?.usageMetadata;
+  if (u) { cost.FLASH.in += u.promptTokenCount || 0; cost.FLASH.out += (u.candidatesTokenCount || 0) + (u.thoughtsTokenCount || 0); cost.FLASH.calls++; }
   return j?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '';
 }
 // DeepSeek via OpenRouter. Empty-content is the #1 failure mode: some providers
@@ -195,6 +197,8 @@ async function askDeepSeek(system, userText) {
       body: JSON.stringify(body) });
     const j = await res.json();
     if (!res.ok) return { text: `[DeepSeek ${res.status}] ${JSON.stringify(j?.error ?? j).slice(0, 160)}`, meta: '', empty: false };
+    const u = j?.usage;
+    if (u) { cost.DEEPSEEK.in += u.prompt_tokens || 0; cost.DEEPSEEK.out += u.completion_tokens || 0; cost.DEEPSEEK.calls++; }
     const choice = j?.choices?.[0];
     const msg = choice?.message ?? {};
     let text = typeof msg.content === 'string' ? msg.content : '';
@@ -278,6 +282,9 @@ function runChecks(text, env, e, persona, brief) {
 // ---- Run -------------------------------------------------------------------
 const line = (c = '─') => c.repeat(78);
 const tally = { FLASH: { pass: 0, total: 0 }, DEEPSEEK: { pass: 0, total: 0 } };
+// Real token usage captured from each API response (DeepSeek counts retries too —
+// that's real spend). Used for the cost report at the end.
+const cost = { FLASH: { in: 0, out: 0, calls: 0 }, DEEPSEEK: { in: 0, out: 0, calls: 0 } };
 
 async function evalOne(name, raw, sc) {
   const g = guardReply(raw, sc.brief, 0);
@@ -318,4 +325,40 @@ console.log('SUMMARY');
 if (GEMINI_OK) console.log(`🔵 FLASH:    ${tally.FLASH.pass}/${tally.FLASH.total} passed`);
 console.log(`🟣 DEEPSEEK: ${tally.DEEPSEEK.pass}/${tally.DEEPSEEK.total} passed`);
 console.log(line('='));
-console.log('Note: address/gender/married checks are heuristic auto-flags — eyeball the FAILs, some may be false positives.\n');
+console.log('Note: address/gender/married checks are heuristic auto-flags — eyeball the FAILs, some may be false positives.');
+
+// ---- COST report — computed from THIS run's real token usage -----------------
+// Rates: Gemini 3.6 Flash from Adrish's actual Google bill (₹/1M tokens).
+// DeepSeek V4 Flash 0731 from OpenRouter's public price ($/1M tokens).
+const USD_INR = Number(process.env.USD_INR || 88);
+const RATE = { flashInR: 72, flashOutR: 358, dsInUSD: 0.03, dsOutUSD: 0.32 };
+const flashINR = cost.FLASH.in / 1e6 * RATE.flashInR + cost.FLASH.out / 1e6 * RATE.flashOutR;
+const dsUSD = cost.DEEPSEEK.in / 1e6 * RATE.dsInUSD + cost.DEEPSEEK.out / 1e6 * RATE.dsOutUSD;
+const dsINR = dsUSD * USD_INR;
+const fReplies = tally.FLASH.total || 1;
+const dReplies = tally.DEEPSEEK.total || 1;
+const fPer = flashINR / fReplies;
+const dPer = dsINR / dReplies;
+
+console.log('\n' + line('='));
+console.log(`COST — measured from THIS run's real tokens   (USD→INR @ ${USD_INR})`);
+console.log(line('='));
+if (GEMINI_OK) {
+  console.log(`🔵 FLASH     ${fReplies} replies | in ${cost.FLASH.in} + out ${cost.FLASH.out} tok`);
+  console.log(`             run cost ₹${flashINR.toFixed(2)}   →  ₹${fPer.toFixed(4)} per reply`);
+}
+console.log(`🟣 DEEPSEEK  ${dReplies} replies | in ${cost.DEEPSEEK.in} + out ${cost.DEEPSEEK.out} tok`);
+console.log(`             run cost ₹${dsINR.toFixed(2)} ($${dsUSD.toFixed(4)})  →  ₹${dPer.toFixed(4)} per reply`);
+if (GEMINI_OK && dsINR > 0) {
+  console.log(`\n💰 DeepSeek is ${(flashINR / dsINR).toFixed(1)}× cheaper — ${(100 * (1 - dsINR / flashINR)).toFixed(1)}% saving on identical work.`);
+  console.log('\nProjected MONTHLY reading-cost by volume (per-reply × replies):');
+  console.log('   replies/mo    Flash          DeepSeek       you save');
+  for (const v of [10000, 30000, 60000, 100000]) {
+    const f = fPer * v, d = dPer * v;
+    console.log(`   ${String(v).padEnd(12)} ₹${f.toFixed(0).padEnd(13)} ₹${d.toFixed(0).padEnd(13)} ₹${(f - d).toFixed(0)}`);
+  }
+}
+console.log(line('='));
+console.log('Caveat: input includes the full ~4k-token system prompt sent EVERY turn (no');
+console.log('caching in this test). Production prompt-caching lowers input cost for BOTH;');
+console.log('the OUTPUT-rate gap (₹358 vs ~₹28 per 1M) is the durable saving.\n');
