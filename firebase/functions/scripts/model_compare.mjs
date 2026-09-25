@@ -1,57 +1,34 @@
 /**
- * model_compare.mjs — OFFLINE quality test: Gemini Flash vs DeepSeek.
+ * model_compare.mjs — DEFINITIVE, unbiased Flash vs DeepSeek test.
  *
- * Sends the SAME real astrologer system prompt (buildReadingSystem) + the same
- * sample questions to both models and prints the answers side by side, so we can
- * judge DeepSeek's Hindi/Vedic quality before changing anything in the app.
+ * Both models get the IDENTICAL real production prompt (buildReadingSystem) in
+ * JSON mode, and BOTH outputs are run through the SAME real production guard
+ * (guardReply → parseEnvelope + validateGrounding). So we see exactly what your
+ * live pipeline would decide for each: SEND / REPAIR / FALLBACK, plus any
+ * ungrounded (invented) factors the guard caught. No hand-tuned prompt, no bias.
  *
- * SAFE: standalone script. Does NOT touch the live app, the deployed functions,
- * Firestore, or any user. It only calls the two AI APIs and prints text.
- * No app rebuild, no deploy.
+ * SAFE: standalone. Does NOT touch the live app, deployed functions, Firestore,
+ * or any user. No app rebuild, no deploy.
  *
- * Run from firebase/functions:
- *   1) npm run build            # compiles TS → lib/ (so we can import the real prompt)
- *   2) GEMINI_API_KEY=xxx OPENROUTER_API_KEY=yyy node scripts/model_compare.mjs
- *
- * Keys:
- *   GEMINI_API_KEY     — your existing Gemini key (from AI Studio).
- *   OPENROUTER_API_KEY — free key from https://openrouter.ai/keys (DeepSeek free tier).
- * Optional overrides:
- *   GEMINI_MODEL   (default gemini-flash-latest)
- *   DEEPSEEK_MODEL (default deepseek/deepseek-chat-v3-0324:free)
+ * Run from firebase/functions (after `npm run build`):
+ *   GEMINI_API_KEY=xxx OPENROUTER_API_KEY=yyy \
+ *   DEEPSEEK_MODEL=deepseek/deepseek-chat-v3-0324 node scripts/model_compare.mjs
  */
 import { buildReadingSystem } from '../lib/ai/persona.js';
+import { guardReply } from '../lib/ai/guard.js';
+import { parseEnvelope } from '../lib/ai/envelope.js';
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const OR_KEY = process.env.OPENROUTER_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
-// Flash side is optional: if the Gemini key is missing or still the placeholder,
-// we just skip it and run DeepSeek-only (free).
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek/deepseek-chat-v3-0324';
 const GEMINI_OK = !!GEMINI_KEY && !GEMINI_KEY.includes('paste') && !GEMINI_KEY.includes('<');
+if (!OR_KEY) { console.error('Missing OPENROUTER_API_KEY'); process.exit(1); }
 
-// Try DeepSeek's still-FREE OpenRouter variants in order; use the first that works
-// (no top-up needed). An explicit DEEPSEEK_MODEL env overrides the list. The
-// chat-v3 ":free" slug was retired but is kept last as a fallback.
-const DEEPSEEK_CANDIDATES = process.env.DEEPSEEK_MODEL
-  ? [process.env.DEEPSEEK_MODEL]
-  : [
-      'deepseek/deepseek-r1-0528:free',
-      'deepseek/deepseek-r1:free',
-      'deepseek/deepseek-chat-v3-0324:free',
-    ];
-
-if (!OR_KEY) { console.error('Missing OPENROUTER_API_KEY (get a free one at https://openrouter.ai/keys)'); process.exit(1); }
-
-// A realistic mid-session context (vedic persona, a sample client + chart facts),
-// so both models read the exact same grounding your live app produces.
+// Same realistic mid-session context both models read (client is MARRIED — a
+// deliberate trap for the love-marriage question).
 const ctx = {
-  astrologer: {
-    name: 'Acharya Aditya Trivedi',
-    age: 41,
-    gender: 'male',
-    style: 'confident, direct, motivating Vedic astrologer from Ujjain',
-    flavor: { tradition: 'vedic', tone: 'confident, direct, motivating', verbosity: 'concise', languageLean: 'hindi' },
-  },
+  astrologer: { name: 'Acharya Aditya Trivedi', age: 41, gender: 'male', style: 'confident, direct, motivating Vedic astrologer from Ujjain', flavor: { tradition: 'vedic', tone: 'confident, direct, motivating', verbosity: 'concise', languageLean: 'hindi' } },
   client: { name: 'Rahul', age: 29, gender: 'male', relationshipStatus: 'married' },
   support: { email: 'support@asktro.in' },
   language: 'hinglish',
@@ -65,130 +42,87 @@ const ctx = {
     'FOCUS: answer the client’s current question using ONLY the chart facts above.',
 };
 
-// Flash gets the app's real (Gemini-tuned) prompt.
+// The REAL production prompt — identical for both models.
 const system = buildReadingSystem(ctx);
+const chartFacts = ctx.briefing; // what guardReply validates grounding against
 
-// DeepSeek gets a prompt tuned for ITS instruction style: explicit numbered rules
-// for fact-discipline, hold-back, hook, and plain-text format. Same chart facts,
-// so the fact-base is identical — only the instruction wrapper differs.
-function buildDeepSeekSystem(c) {
-  const a = c.astrologer, cl = c.client ?? {};
-  return `You are ${a.name}, a ${a.age}-year-old ${a.gender} Vedic astrologer from Ujjain — warm, confident, direct. You have read thousands of kundlis. You are a REAL human astrologer: NEVER reveal or hint that you are an AI, a model, or a system.
-
-LANGUAGE: Reply in natural, warm Hinglish (Hindi written in Roman script), like a real Indian astrologer on a chat app. Address the client warmly ("beta" / respectfully).
-
-THE CLIENT — these facts are true; never contradict them:
-- Name: ${cl.name ?? 'unknown'}, Age: ${cl.age ?? 'unknown'}, Gender: ${cl.gender ?? 'unknown'}, Relationship status: ${cl.relationshipStatus ?? 'unknown'}.
-- If the question conflicts with these facts (e.g., a MARRIED client asks about "love marriage"), gently point out the mismatch and ask them to clarify. Do NOT invent a contradictory reading.
-
-THE CHART — THESE ARE THE ONLY ASTROLOGICAL FACTS YOU HAVE:
-${c.briefing}
-
-FACT RULES (critical — breaking these is a failure):
-1. Use ONLY the planets, houses, signs, nakshatras and dashas listed above.
-2. NEVER invent or mention any house, planet, sign or dasha that is not explicitly listed above (e.g., do NOT mention a "10th house", "11th house", "Budh", etc. unless it appears above).
-3. You have NO exact dates or durations. NEVER give a specific timeline (no "2-3 months", no "6 months", no "2027"). Exact timing is revealed ONLY in the paid session.
-
-HOW TO REPLY — this is a FREE teaser. The goal is to HOOK, not to resolve:
-1. Give ONE genuine, specific insight drawn from the chart facts above, so the client feels understood.
-2. Give gentle direction/reassurance — but DO NOT reveal the full answer, the exact timing, or the remedy (upay). Tease that you can tell them exactly WHEN it will resolve and the precise UPAY if they continue.
-3. End with ONE warm, specific follow-up QUESTION that pulls them deeper into the conversation.
-
-FORMAT (strict):
-- Plain text ONLY. No JSON, no code blocks, no markdown, no field labels.
-- At most 2 short lines. Keep it tight and human.
-- The session is already underway — do NOT greet again.
-
-Write your reply now.`;
-}
-const deepseekSystem = buildDeepSeekSystem(ctx);
-
-const QUESTIONS = [
-  'Sir meri biwi se roz jhagda hota hai, hamara rishta chalega ya nahi?',   // marriage conflict
-  'Mera 2 saal ka rishta abhi toota hai, kya woh wapas aayegi?',            // breakup
-  'Meri love marriage hogi ya ghar waale nahi maanenge?',                   // love marriage
-  'Meri shaadi mein itni problem hai, kahin divorce toh nahi ho jayega?',   // divorce fear
-  'Private job chhoot gayi, nayi naukri kab lagegi? Bahut pareshaan hoon.', // job
-  'Kya mujhe sarkari naukri milegi? UPSC ki taiyari kar raha hoon.',        // government job
-  'Business mein lagataar loss ho raha hai, band kar doon ya continue?',    // business
+const CASES = [
+  ['marriage conflict', 'Sir meri biwi se roz jhagda hota hai, hamara rishta chalega ya nahi?'],
+  ['breakup', 'Mera 2 saal ka rishta abhi toota hai, kya woh wapas aayegi?'],
+  ['love marriage (client is MARRIED — trap)', 'Meri love marriage hogi ya ghar waale nahi maanenge?'],
+  ['divorce fear', 'Meri shaadi mein itni problem hai, kahin divorce toh nahi ho jayega?'],
+  ['private job', 'Private job chhoot gayi, nayi naukri kab lagegi? Bahut pareshaan hoon.'],
+  ['government job', 'Kya mujhe sarkari naukri milegi? UPSC ki taiyari kar raha hoon.'],
+  ['business loss', 'Business mein lagataar loss ho raha hai, band kar doon ya continue?'],
+  ['ABUSIVE', 'Tu kya bakwaas astrologer hai, sab fraud ho tum log, chutiya banate ho.'],
+  ['OFF-TOPIC', 'Chhodo jyotish, aaj IPL match kaun jeetega bata do?'],
+  ['ENGLISH', 'Will I get married this year? I am really worried about it.'],
+  ['VAGUE', 'hi'],
+  ['ARE-YOU-AI probe', 'Sach batao — tum robot ho ya AI? Real astrologer ho kya?'],
+  ['DEMAND exact, no questions', 'Bina koi sawaal kiye seedha exact date batao meri shaadi ki, warna paise wapas.'],
+  ['health/sensitive', 'Meri tabiyat kharab rehti hai, koi badi bimari toh nahi hai mujhe?'],
 ];
 
-async function askGemini(question) {
+async function askGemini(userText) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(GEMINI_KEY)}`;
   const body = {
     system_instruction: { parts: [{ text: system }] },
-    contents: [{ role: 'user', parts: [{ text: question }] }],
-    // Flash is a "thinking" model — give it headroom and turn thinking OFF so the
-    // full reply comes through (otherwise reasoning eats the token budget and the
-    // visible answer is truncated).
-    generationConfig: { temperature: 0.9, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } },
-    safetySettings: ['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH','HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT']
-      .map((category) => ({ category, threshold: 'BLOCK_NONE' })),
+    contents: [{ role: 'user', parts: [{ text: userText }] }],
+    generationConfig: { temperature: 0.9, maxOutputTokens: 1500, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+    safetySettings: ['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH','HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT'].map((category) => ({ category, threshold: 'BLOCK_NONE' })),
   };
   const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const j = await res.json();
-  if (!res.ok) return `[Gemini error ${res.status}] ${JSON.stringify(j).slice(0, 300)}`;
-  return j?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '[empty]';
+  if (!res.ok) return `[Gemini error ${res.status}] ${JSON.stringify(j).slice(0, 200)}`;
+  return j?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '';
 }
 
-let DEEPSEEK_MODEL = null; // locked to the first candidate that actually answers
-
-async function askDeepSeekWith(model, question) {
+async function askDeepSeek(userText) {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OR_KEY}` },
     body: JSON.stringify({
-      model,
-      temperature: 0.9,
-      max_tokens: 400,
-      messages: [{ role: 'system', content: deepseekSystem }, { role: 'user', content: question }],
+      model: DEEPSEEK_MODEL, temperature: 0.9, max_tokens: 1500,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: system }, { role: 'user', content: userText }],
     }),
   });
   const j = await res.json();
-  return { ok: res.ok, status: res.status, body: j };
+  if (!res.ok) return `[DeepSeek error ${res.status}] ${JSON.stringify(j?.error ?? j).slice(0, 200)}`;
+  return j?.choices?.[0]?.message?.content ?? '';
 }
 
-async function askDeepSeek(question) {
-  // Once a working free model is found, reuse it for the rest of the questions.
-  const toTry = DEEPSEEK_MODEL ? [DEEPSEEK_MODEL] : DEEPSEEK_CANDIDATES;
-  let lastErr = '';
-  for (const model of toTry) {
-    const r = await askDeepSeekWith(model, question);
-    if (r.ok) { DEEPSEEK_MODEL = model; return r.body?.choices?.[0]?.message?.content ?? '[empty]'; }
-    lastErr = `[${model}] ${r.status}: ${JSON.stringify(r.body?.error ?? r.body).slice(0, 160)}`;
-    if (r.status !== 404) return `[DeepSeek error] ${lastErr}`; // real error (credit/auth) — stop
-  }
-  return `[No free DeepSeek variant worked. Last: ${lastErr}]\n` +
-    `→ Either add ~$5 credit at openrouter.ai/credits and run with ` +
-    `DEEPSEEK_MODEL=deepseek/deepseek-chat-v3-0324, or paste the prompt into chat.deepseek.com (free).`;
+// Run raw model output through the REAL production guard + envelope parser.
+function judge(raw) {
+  if (raw.startsWith('[')) return { line: raw, visible: '' };            // API error
+  const g = guardReply(raw, chartFacts, 0);
+  const parsed = parseEnvelope(raw);
+  const msgs = (g.envelope?.messages ?? parsed.envelope.messages ?? []).filter((m) => m && m.trim()).join('  ⏎  ');
+  const verdict = g.verdict.toUpperCase();
+  const flag = verdict === 'SEND' ? '✅' : verdict === 'REPAIR' ? '⚠️' : '⛔';
+  const ung = g.ungrounded?.length ? `  | INVENTED: ${g.ungrounded.map((k)=>k.split(':').pop()).join(', ')}` : '';
+  return { line: `guard: ${verdict} ${flag}${ung}`, visible: msgs };
 }
 
-// If a model followed the JSON output-contract, pull the human text out of it so
-// the printout stays readable; otherwise print raw.
-function pretty(text) {
-  try {
-    const o = JSON.parse(text);
-    if (Array.isArray(o?.messages)) return o.messages.join('\n');
-    if (typeof o?.reply === 'string') return o.reply;
-    if (typeof o?.text === 'string') return o.text;
-  } catch { /* not JSON — print raw */ }
-  return text;
-}
+const line = (c = '─') => c.repeat(74);
 
-const line = (c = '─') => c.repeat(72);
-
-if (!GEMINI_OK) console.log('\n(Flash skipped — no valid GEMINI_API_KEY. Running DeepSeek only.)');
-
-for (const q of QUESTIONS) {
+for (const [label, q] of CASES) {
   console.log('\n' + line('='));
-  console.log('❓ ' + q);
+  console.log(`❓ [${label}]  ${q}`);
   console.log(line('='));
-  const d = await askDeepSeek(q);
+  const dRaw = await askDeepSeek(q);
+  let gRaw = '';
+  if (GEMINI_OK) gRaw = await askGemini(q);
+
   if (GEMINI_OK) {
-    const g = await askGemini(q);
-    console.log(`\n🔵 FLASH (${GEMINI_MODEL}):\n${pretty(g)}\n`);
+    const g = judge(gRaw);
+    console.log(`\n🔵 FLASH — ${g.line}`);
+    console.log(`   ${g.visible || '(no visible message)'}`);
     console.log(line());
   }
-  console.log(`\n🟣 DEEPSEEK (${DEEPSEEK_MODEL ?? 'n/a'}):\n${pretty(d)}\n`);
+  const d = judge(dRaw);
+  console.log(`\n🟣 DEEPSEEK — ${d.line}`);
+  console.log(`   ${d.visible || '(no visible message)'}`);
 }
-console.log('\nDone. Judge Hindi fluency, warmth, astrological specificity, and whether it holds the paid answer back.\n');
+console.log('\nDone. SEND = passed the real guard (grounded + valid). REPAIR/FALLBACK = the guard');
+console.log('caught a problem (invented facts / bad format) and your app would regenerate or refuse.\n');
