@@ -4,7 +4,79 @@
 > founder returns after days/weeks/months, this doc tells you exactly where we
 > are. Keep it updated as things change — treat it as the running log of truth.
 >
-> _Last updated: 2026-09-22._
+> _Last updated: 2026-09-25._
+
+---
+
+## 0. NEXT APP BUILD — 3.0.2 BACKLOG (queued 2026-09-25)
+
+3.0.1 is LIVE (versionCode 11). The items below need an **app rebuild** and are
+staged on branch `claude/asktro-session-handoff-o1ggo8` unless noted. Ship them
+together in the 3.0.2 AAB.
+
+### App rebuild items (3.0.2)
+1. **OTP resend crash — FIXED, staged.** `otp_screen.dart` `_resend` called
+   `setState` from Firebase's async `codeSent`/`onError` callbacks without a
+   `mounted` guard → "Null check operator used on a null value"
+   (Crashlytics: 15 crashes / 4 users on 3.0.1, all Xiaomi/Moto/Vivo/Realme —
+   aggressive OEM process-kills mid-OTP). Guards added to match `_switchToSms`.
+2. **FULL async-safety sweep (NOT yet done).** The OTP crash is one instance of a
+   whole CLASS: `setState` / `context.*` / `ref.*` used after an `await` or inside
+   an async callback without an `if (!mounted) return;` guard. Scope measured
+   2026-09-25: **~36 files** have the ingredients (28 customer app + 8 astrologer
+   app). Do a **callsite-by-callsite** sweep (file-level is NOT enough — OTP file
+   already used `mounted` elsewhere but still had one unguarded callback) and fix
+   every missing guard in ONE pass. Deliver a file-by-file summary.
+3. **Permanent guardrail:** enable the `use_build_context_synchronously` lint
+   (+ analysis rule) so `flutter analyze` FAILS the build on any unguarded
+   context/setState across an async gap. Note: the Flutter SDK is NOT installed in
+   the cloud session, so the analyzer must run on the founder's Mac — this lint is
+   what stops this bug class reaching production again.
+4. **Onboarding over-gating (cuts the guest rate).** Setup is a 7-step mandatory
+   wizard after OTP, but the app only truly needs 3 (name, DOB, place). Make
+   gender / birth-time / relationship / languages optional or skippable, and add a
+   **place-step escape hatch** ("can't find it → enter manually") + handle
+   Devanagari input (`_norm` strips it to empty). Root cause of the "Guest"
+   profiles = verified-OTP users abandoning this form.
+5. **Notification channel fix (sound on lock screen).** Marketing pushes ride
+   FCM's fallback "Miscellaneous" channel (no dedicated channel created; no
+   `default_notification_channel_id` in the manifest) → often silent when
+   backgrounded/locked. Create a high-importance "Offers & Updates" channel, set
+   it as the default FCM channel, send marketing with that `channelId`. **Also
+   verify the `incoming_consult` call-ring channel actually exists on-device**
+   (higher stakes — missed call rings).
+6. **Notification analytics (Opened + CTA-clicked).** App reports open + CTA tap →
+   backend tallies on the broadcast doc → portal shows Opened / CTA columns per
+   broadcast in "Recent broadcasts". (Backend + portal can be built ahead of time;
+   numbers only flow from the rebuilt app onward.)
+
+### Can ship anytime — NO rebuild (portal/backend only; parked pending founder go)
+- Show the ₹9 chat welcome credit (`chatBonusBalance`) on the guest profile
+  (portal reads `bonusBalance` today, so the welcome credit is invisible).
+- Move the ₹9 welcome grant from OTP-time to **profile-completion** (so an
+  abandoned guest who reinstalls still gets their free minute; today the grant is
+  burned at OTP and `welcomeGrants` blocks a second one).
+- "Sent today" counter on the Push Notifications page (volume self-pacing).
+- Show "All devices" instead of "0" for topic (all-users/astrologers) broadcasts
+  in the REACHED column (topic sends aren't per-user counted → stored null → 0).
+- Reset seeded persona `totalReviews` to 0 so real customer ratings actually move
+  the aggregate (today real ratings are diluted into thousands of seeded reviews).
+
+### Notes / open founder decisions
+- Persona ratings (4.4–4.9) + reviews/sessions/followers are **seeded** in
+  `seed_persona_roster.mjs` (rating = `4.4 + (idx%6)*0.1`), NOT user-given. Real
+  ratings live on each consultation doc + the astrologer's rolling avg; view real
+  ones in Astrologer → View → "⭐ Reviews". Decide if/when to phase seeded numbers.
+- Billing-start-at-first-message and the live-balance reply gate remain DEFERRED
+  (testing Phase A monetization first).
+
+### Shipped 2026-09-24/25 (portal + functions, already LIVE)
+- Recharge Orders page: per-order **Check** (reconcileRechargeOrder — asks
+  Razorpay the true status, auto-recovers a captured-but-uncredited payment),
+  pagination (10/25/50/100), preset chip row + auto-refresh badge.
+- Recharge Plans: fixed Offer-table viewport overflow (min-width:0).
+- Confirmed: recharge pipeline healthy (zero paid-but-not-credited); pending
+  orders are abandons + bank declines, not bugs.
 
 ---
 
