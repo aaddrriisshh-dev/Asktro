@@ -25,12 +25,21 @@ import { buildReadingSystem } from '../lib/ai/persona.js';
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const OR_KEY = process.env.OPENROUTER_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
-// The OpenRouter ":free" DeepSeek variant was retired; use the standard slug.
-// Cost is negligible (~₹1 for this whole 3-question test), but OpenRouter needs a
-// small prepaid credit balance (top up ~$5 once at https://openrouter.ai/credits).
-const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek/deepseek-chat-v3-0324';
+// Flash side is optional: if the Gemini key is missing or still the placeholder,
+// we just skip it and run DeepSeek-only (free).
+const GEMINI_OK = !!GEMINI_KEY && !GEMINI_KEY.includes('paste') && !GEMINI_KEY.includes('<');
 
-if (!GEMINI_KEY) { console.error('Missing GEMINI_API_KEY'); process.exit(1); }
+// Try DeepSeek's still-FREE OpenRouter variants in order; use the first that works
+// (no top-up needed). An explicit DEEPSEEK_MODEL env overrides the list. The
+// chat-v3 ":free" slug was retired but is kept last as a fallback.
+const DEEPSEEK_CANDIDATES = process.env.DEEPSEEK_MODEL
+  ? [process.env.DEEPSEEK_MODEL]
+  : [
+      'deepseek/deepseek-r1-0528:free',
+      'deepseek/deepseek-r1:free',
+      'deepseek/deepseek-chat-v3-0324:free',
+    ];
+
 if (!OR_KEY) { console.error('Missing OPENROUTER_API_KEY (get a free one at https://openrouter.ai/keys)'); process.exit(1); }
 
 // A realistic mid-session context (vedic persona, a sample client + chart facts),
@@ -79,20 +88,36 @@ async function askGemini(question) {
   return j?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '[empty]';
 }
 
-async function askDeepSeek(question) {
+let DEEPSEEK_MODEL = null; // locked to the first candidate that actually answers
+
+async function askDeepSeekWith(model, question) {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OR_KEY}` },
     body: JSON.stringify({
-      model: DEEPSEEK_MODEL,
+      model,
       temperature: 0.9,
       max_tokens: 400,
       messages: [{ role: 'system', content: system }, { role: 'user', content: question }],
     }),
   });
   const j = await res.json();
-  if (!res.ok) return `[DeepSeek error ${res.status}] ${JSON.stringify(j).slice(0, 300)}`;
-  return j?.choices?.[0]?.message?.content ?? '[empty]';
+  return { ok: res.ok, status: res.status, body: j };
+}
+
+async function askDeepSeek(question) {
+  // Once a working free model is found, reuse it for the rest of the questions.
+  const toTry = DEEPSEEK_MODEL ? [DEEPSEEK_MODEL] : DEEPSEEK_CANDIDATES;
+  let lastErr = '';
+  for (const model of toTry) {
+    const r = await askDeepSeekWith(model, question);
+    if (r.ok) { DEEPSEEK_MODEL = model; return r.body?.choices?.[0]?.message?.content ?? '[empty]'; }
+    lastErr = `[${model}] ${r.status}: ${JSON.stringify(r.body?.error ?? r.body).slice(0, 160)}`;
+    if (r.status !== 404) return `[DeepSeek error] ${lastErr}`; // real error (credit/auth) — stop
+  }
+  return `[No free DeepSeek variant worked. Last: ${lastErr}]\n` +
+    `→ Either add ~$5 credit at openrouter.ai/credits and run with ` +
+    `DEEPSEEK_MODEL=deepseek/deepseek-chat-v3-0324, or paste the prompt into chat.deepseek.com (free).`;
 }
 
 // If a model followed the JSON output-contract, pull the human text out of it so
@@ -109,13 +134,18 @@ function pretty(text) {
 
 const line = (c = '─') => c.repeat(72);
 
+if (!GEMINI_OK) console.log('\n(Flash skipped — no valid GEMINI_API_KEY. Running DeepSeek only.)');
+
 for (const q of QUESTIONS) {
   console.log('\n' + line('='));
   console.log('❓ ' + q);
   console.log(line('='));
-  const [g, d] = await Promise.all([askGemini(q), askDeepSeek(q)]);
-  console.log(`\n🔵 FLASH (${GEMINI_MODEL}):\n${pretty(g)}\n`);
-  console.log(line());
-  console.log(`\n🟣 DEEPSEEK (${DEEPSEEK_MODEL}):\n${pretty(d)}\n`);
+  const d = await askDeepSeek(q);
+  if (GEMINI_OK) {
+    const g = await askGemini(q);
+    console.log(`\n🔵 FLASH (${GEMINI_MODEL}):\n${pretty(g)}\n`);
+    console.log(line());
+  }
+  console.log(`\n🟣 DEEPSEEK (${DEEPSEEK_MODEL ?? 'n/a'}):\n${pretty(d)}\n`);
 }
 console.log('\nDone. Judge Hindi fluency, warmth, astrological specificity, and whether it holds the paid answer back.\n');
