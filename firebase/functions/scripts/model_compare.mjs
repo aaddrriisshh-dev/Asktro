@@ -42,9 +42,31 @@ const ctx = {
     'FOCUS: answer the client’s current question using ONLY the chart facts above.',
 };
 
-// The REAL production prompt — identical for both models.
+// The REAL production prompt — Flash gets this exactly.
 const system = buildReadingSystem(ctx);
 const chartFacts = ctx.briefing; // what guardReply validates grounding against
+
+// DeepSeek gets the SAME full prompt, PLUS a hard reinforcement layer up top that
+// hammers the ONLY two rules it broke (fact-discipline + gender). Nothing is
+// removed — this just moves those two rules to the front, in DeepSeek's preferred
+// explicit style, with negative examples. This is what a real DeepSeek-tuned
+// production prompt would carry.
+const g = ctx.astrologer.gender === 'female' ? 'female' : 'male';
+const verbEx = g === 'male'
+  ? 'MALE → "dekh raha hoon", "kar raha hoon", "kehta hoon", "samajhta hoon". NEVER feminine ("dekh rahi hoon", "bataungi", "puchungi").'
+  : 'FEMALE → "dekh rahi hoon", "kar rahi hoon", "kehti hoon". NEVER masculine.';
+const DEEPSEEK_REINFORCE = `⚠️ TWO ABSOLUTE RULES — obey these before anything below, on EVERY reply:
+
+RULE 1 — FACTS ONLY FROM THE CHART. The section "# ${'Kundli facts (this turn)'}" lists the ONLY planets, houses, signs, nakshatras and dashas you know. If a house/planet/lord is NOT written there, you do NOT know it and MUST NOT mention it. Concrete bans for THIS chart: do NOT say "10th house", "11th house", "12th house / 12th lord", "6th house / rog bhav", or any lord/house not listed. If your answer needs a factor that isn't in the facts, do NOT invent it — say in-character "iske liye kundli thoda aur dhyaan se dekhni padegi" and set "confidence":"insufficient".
+
+RULE 2 — YOUR GENDER IS ${g.toUpperCase()}. Conjugate EVERY Hindi first-person verb accordingly: ${verbEx} One wrong-gender verb ruins the persona — check each verb before sending.
+
+(All the persona, address (beta/beti/babuji/mataji by age), hold-back/hook, and output-JSON rules below still fully apply.)
+
+────────────────────────────────────────────────────────────
+
+`;
+const deepseekSystem = DEEPSEEK_REINFORCE + system;
 
 const CASES = [
   ['marriage conflict', 'Sir meri biwi se roz jhagda hota hai, hamara rishta chalega ya nahi?'],
@@ -82,9 +104,9 @@ async function askDeepSeek(userText) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OR_KEY}` },
     body: JSON.stringify({
-      model: DEEPSEEK_MODEL, temperature: 0.9, max_tokens: 1500,
+      model: DEEPSEEK_MODEL, temperature: 0.6, max_tokens: 1500,
       response_format: { type: 'json_object' },
-      messages: [{ role: 'system', content: system }, { role: 'user', content: userText }],
+      messages: [{ role: 'system', content: deepseekSystem }, { role: 'user', content: userText }],
     }),
   });
   const j = await res.json();
