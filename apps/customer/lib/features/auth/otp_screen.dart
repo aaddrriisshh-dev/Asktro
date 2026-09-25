@@ -152,6 +152,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
         e164Phone: widget.args.phone,
         resendToken: _resendToken,
         codeSent: (id, token) {
+          // Firebase calls back asynchronously; if the user left the OTP screen
+          // (or it was disposed) meanwhile, setState on a dead State throws
+          // "Null check operator used on a null value". Guard every callback.
+          if (!mounted) return;
           setState(() {
             _verificationId = id;
             _resendToken = token;
@@ -163,7 +167,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
         onAutoVerified: (_) {
           if (mounted) context.go('/home');
         },
-        onError: (f) => setState(() => _error = f.message),
+        onError: (f) {
+          if (!mounted) return;
+          setState(() => _error = f.message);
+        },
       );
     } catch (_) {
       // A raw SDK/transport throw from verifyPhoneNumber must not crash resend.
