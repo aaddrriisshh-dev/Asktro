@@ -148,14 +148,38 @@ async function askGemini(system, userText) {
   if (!res.ok) return `[Gemini ${res.status}] ${JSON.stringify(j).slice(0, 160)}`;
   return j?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '';
 }
+// DeepSeek via OpenRouter. Empty-content is the #1 failure mode: some providers
+// OpenRouter routes to silently ignore JSON mode and return nothing. We defend on
+// three fronts: (1) provider.require_parameters so OR only picks providers that
+// actually honor response_format+temperature; (2) if content is still empty, some
+// providers stash the real answer in `reasoning` — fall back to it; (3) if it's
+// STILL empty, retry once WITHOUT json-mode (the prime suspect). We also surface
+// finish_reason + which provider served it, so a failure is diagnosable at a glance.
 async function askDeepSeek(system, userText) {
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OR_KEY}` },
-    body: JSON.stringify({ model: DEEPSEEK_MODEL, temperature: 0.6, max_tokens: 1500, response_format: { type: 'json_object' },
-      messages: [{ role: 'system', content: system }, { role: 'user', content: userText }] }) });
-  const j = await res.json();
-  if (!res.ok) return `[DeepSeek ${res.status}] ${JSON.stringify(j?.error ?? j).slice(0, 160)}`;
-  return j?.choices?.[0]?.message?.content ?? '';
+  const attempt = async (useJsonMode) => {
+    const body = {
+      model: DEEPSEEK_MODEL, temperature: 0.6, max_tokens: 2000,
+      provider: { require_parameters: true },
+      messages: [{ role: 'system', content: system }, { role: 'user', content: userText }],
+    };
+    if (useJsonMode) body.response_format = { type: 'json_object' };
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OR_KEY}`,
+        'HTTP-Referer': 'https://asktro.in', 'X-Title': 'Asktro model audit' },
+      body: JSON.stringify(body) });
+    const j = await res.json();
+    if (!res.ok) return { text: `[DeepSeek ${res.status}] ${JSON.stringify(j?.error ?? j).slice(0, 160)}`, meta: '', empty: false };
+    const choice = j?.choices?.[0];
+    const msg = choice?.message ?? {};
+    let text = typeof msg.content === 'string' ? msg.content : '';
+    let via = 'content';
+    if (!text.trim() && typeof msg.reasoning === 'string' && msg.reasoning.trim()) { text = msg.reasoning; via = 'reasoning'; }
+    const meta = `provider=${j?.provider ?? '?'} finish=${choice?.finish_reason ?? '?'}/${choice?.native_finish_reason ?? '?'} via=${via} tok=${j?.usage?.completion_tokens ?? '?'}${useJsonMode ? '' : ' [no-json]'}`;
+    return { text, meta, empty: !text.trim() };
+  };
+  let r = await attempt(true);
+  if (r.empty) { const r2 = await attempt(false); r2.meta = `[json-empty→retry] ${r2.meta}`; r = r2; }
+  return r; // { text, meta }
 }
 
 // ---- Automated checks ------------------------------------------------------
@@ -236,9 +260,10 @@ for (const sc of S) {
     console.log(`   ${sc.persona.name} (${sc.persona.gender}, ${sc.persona.age}) → client ${sc.client.name} (${sc.client.gender}, ${sc.client.age})`);
     console.log(`   "${sc.q}"`);
     console.log(line('='));
-    const dRaw = await askDeepSeek(dsSystem, sc.q);
+    const d = await askDeepSeek(dsSystem, sc.q);
     if (GEMINI_OK) { const gRaw = await askGemini(system, sc.q); await evalOne('FLASH', gRaw, sc); }
-    await evalOne('DEEPSEEK', dRaw, sc);
+    if (d.meta) console.log(`   ⤷ DS meta: ${d.meta}`);
+    await evalOne('DEEPSEEK', d.text, sc);
   }
 }
 
