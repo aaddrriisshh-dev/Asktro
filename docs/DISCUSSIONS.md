@@ -7,6 +7,57 @@ back-and-forth thinking; once a decision is FINAL it also gets recorded in
 
 ---
 
+## 2026-09-26 OUTAGE — both paid APIs ran dry the same day (post-mortem)
+
+**What happened:** The AI stopped answering customers. Root causes, both billing:
+1. **Gemini (AI Studio, PREPAY)** credits hit ₹0 (auto-reload OFF) → topped up ₹1,000.
+2. **ProKerala (Emerald, 350k credits)** fully exhausted (350,000/350,000 used) →
+   new users' birth charts couldn't build → the reply engine **silently bails**
+   (`getOrBuildChart` returns null → `return`, no bubble). Fixed by upgrading the
+   ProKerala plan.
+
+**Why it was confusing:** the AI's opening greeting ("Namaste ji…") is a **fixed
+template, not an LLM call** (`openingGreeting()` in replyEngine.ts), so the greeting
+kept appearing even while every real reading failed — it *looked* like the AI was
+up when it wasn't. Also, real readings are heavily paced (debounce + typing delays,
+~15–30s), which can look like "no reply" if you don't wait.
+
+**Damage control shipped:** portal "Specific users" push targeting (search +
+Today/Yesterday grouping) so affected paid users can be messaged/apologised to.
+
+**MUST-DO (reliability):**
+- [ ] **Auto-reload + low-balance alerts on BOTH Gemini and ProKerala.** Two silent
+      dry-outs in one day = no early warning. This is the #1 fix.
+- [ ] Consider a graceful "AI resting, try later" message instead of silence when a
+      dependency fails (the `aiEnabled:false` kill-switch already does this — wire a
+      dependency-failure path to it, or a softer auto-degrade).
+
+## ProKerala replacement (cost + reliability) — TO PLAN
+
+**Problem:** ProKerala is ₹2,499–5,500+/mo, it's a cost and (as of today) an outage
+risk. Next tier ~1,000,000 credits ≈ ₹5,500/mo — expensive.
+
+**Key insight:** birth charts are **deterministic astronomy** — planetary positions,
+kundli, houses, nakshatras, dashas, gochar are fixed math from an *ephemeris*, not
+something that needs a paid API. We can compute them **inside our own Cloud
+Functions** with the open-source **Swiss Ephemeris** (Node bindings) → ~₹0/chart,
+no external dependency that can run dry.
+
+**Two paths:**
+1. **Self-compute (the real win):** Swiss Ephemeris in functions → ~₹0/call, never
+   goes down. Real project: must **accuracy-validate against ProKerala** before
+   switching (wrong chart = wrong reading), check the license (Swiss Ephemeris is
+   AGPL or paid commercial), and keep ProKerala as fallback during rollout.
+2. **Quick interim saving (low risk, do first):** the daily **gochar** (transits)
+   is the same planetary longitudes for everyone on a given day — compute it **once
+   per day and share it** instead of buying per-user. Cuts a big chunk of the
+   recurring credit burn now, without replacing the base-chart path.
+
+**Mirrors the DeepSeek move:** replace an expensive external paid dependency with a
+self-owned / far cheaper one, validated before switching, with a fallback.
+
+---
+
 ## DeepSeek as primary AI (cost + multilingual moat) — IN PROGRESS
 
 **Status:** Evaluation strongly positive. **Decision PENDING** — to be finalised
