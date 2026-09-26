@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { callFn, useCollection, Row } from '@/lib/hooks';
+import { isRealCustomer } from '@/lib/customer';
 import { ImageUpload } from '@/components/ImageUpload';
 import { PromoPreview } from '@/components/PromoPreview';
 import { LandingControls, DisplayMode } from '@/components/LandingControls';
@@ -11,12 +12,13 @@ import { Collapsible } from '@/components/Collapsible';
 import { MobileSection } from '@/components/MobileSection';
 import { PromoTheme } from '@/lib/promoThemes';
 
-type Segment = 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers';
+type Segment = 'all_users' | 'paid_users' | 'unpaid_users' | 'astrologers' | 'list';
 const AUDIENCE: { key: Segment; label: string }[] = [
   { key: 'all_users', label: 'All Users' },
   { key: 'paid_users', label: 'Paid Users' },
   { key: 'unpaid_users', label: 'Unpaid Users' },
   { key: 'astrologers', label: 'Astrologers' },
+  { key: 'list', label: 'Specific users' },
 ];
 const PRESETS = ['#2e2b5f', '#6b4bc0', '#b8862a', '#1f7a5a', '#c0473f', '#12121a'];
 
@@ -28,8 +30,25 @@ function fmtWhen(ts: unknown): string {
     { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
+// ---- Specific-users picker helpers ----------------------------------------
+// Bucket users by India (IST) day so "Today"/"Yesterday" match the founder's
+// calendar — used to find the people active in the outage window.
+const IST = 5.5 * 60 * 60 * 1000;
+const DAY = 86_400_000;
+const toMs = (t: unknown): number => {
+  const o = t as { toMillis?: () => number; seconds?: number; _seconds?: number } | null;
+  return o?.toMillis?.() ?? (o?.seconds ?? o?._seconds ?? 0) * 1000;
+};
+function istDayStart(ms: number): number {
+  const d = new Date(ms + IST);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - IST;
+}
+type Pick = { id: string; name: string; phone: string; email: string; paid: boolean; activity: number };
+
 export default function BroadcastPage() {
   const { rows: sent, loading: sentLoading } = useCollection('broadcasts');
+  const { rows: users } = useCollection('users');
+  const { rows: presenceRows } = useCollection('presence');
   const [segment, setSegment] = useState<Segment>('all_users');
   const [f, setF] = useState({ title: '', body: '', deeplink: '', image: '' });
   const [imageStyle, setImageStyle] = useState<'banner' | 'portrait'>('banner');
@@ -46,11 +65,43 @@ export default function BroadcastPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [theme, setTheme] = useState('');
+  // Specific-users picker state
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [uq, setUq] = useState('');
+  const [paidOnly, setPaidOnly] = useState(false);
   // One idempotency key per compose; reused if a send is retried (timeout /
   // double-click) so the server never fans the broadcast out twice, then rotated
   // after a successful send for the next message.
   const [broadcastId, setBroadcastId] = useState(() => crypto.randomUUID());
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
+
+  // --- Specific-users picker: build, filter, and group the customer list ---
+  const presence = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of presenceRows) m.set(p.id, toMs(p.lastSeen));
+    return m;
+  }, [presenceRows]);
+  const people = useMemo<Pick[]>(() => users.filter(isRealCustomer).map((u) => ({
+    id: u.id, name: (u.name as string) || '', phone: (u.phone as string) || '', email: (u.email as string) || '',
+    paid: ((u.totalRecharge as number) ?? 0) > 0,
+    // "activity" = last app presence, falling back to signup — so recently-active
+    // users (the outage window) sort to the top and land in Today/Yesterday.
+    activity: Math.max(presence.get(u.id) ?? 0, toMs(u.createdAt)),
+  })).sort((a, b) => b.activity - a.activity), [users, presence]);
+  const filtered = useMemo(() => {
+    const q = uq.trim().toLowerCase();
+    return people.filter((p) => (!paidOnly || p.paid)
+      && (!q || p.name.toLowerCase().includes(q) || p.phone.includes(q) || p.email.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)));
+  }, [people, uq, paidOnly]);
+  const groups = useMemo(() => {
+    const t0 = istDayStart(Date.now()); const y0 = t0 - DAY;
+    const g: { Today: Pick[]; Yesterday: Pick[]; Older: Pick[] } = { Today: [], Yesterday: [], Older: [] };
+    for (const p of filtered) (p.activity >= t0 ? g.Today : p.activity >= y0 ? g.Yesterday : g.Older).push(p);
+    return g;
+  }, [filtered]);
+  const toggle = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const addMany = (list: Pick[]) => setSelected((s) => { const n = new Set(s); for (const p of list) n.add(p.id); return n; });
+  const clearSel = () => setSelected(new Set());
 
   function applyTheme(t: PromoTheme | null) {
     if (!t) { setTheme(''); return; }
@@ -60,13 +111,17 @@ export default function BroadcastPage() {
 
   async function send() {
     if (!f.title.trim() || !f.body.trim()) return alert('Title and message are required.');
-    const label = AUDIENCE.find((a) => a.key === segment)?.label;
+    if (segment === 'list' && selected.size === 0) return alert('Add at least one user below, or pick a different audience.');
+    const label = segment === 'list'
+      ? `${selected.size} selected user${selected.size === 1 ? '' : 's'}`
+      : AUDIENCE.find((a) => a.key === segment)?.label;
     if (!confirm(`Push this notification to ${label}?`)) return;
     setBusy(true); setResult(null);
     try {
       const res = await callFn<{ delivered?: number; alreadySent?: boolean }>('sendBroadcast', {
         broadcastId,
         title: f.title.trim(), body: f.body.trim(), segment, type: 'announcement',
+        ...(segment === 'list' ? { uids: [...selected] } : {}),
         deeplink: f.deeplink.trim() || undefined,
         image: f.image.trim() || undefined,
         imageStyle: f.image.trim() ? imageStyle : undefined,
@@ -83,9 +138,12 @@ export default function BroadcastPage() {
       });
       setResult(res.alreadySent
         ? '✓ Already sent (this message was submitted before).'
-        : `✓ Pushed to ${res.delivered ?? 0} ${label}.`);
+        : segment === 'list'
+          ? `✓ Pushed to ${res.delivered ?? selected.size} selected users.`
+          : `✓ Pushed to ${res.delivered ?? 0} ${label}.`);
       setBroadcastId(crypto.randomUUID()); // fresh key for the next message
       setF({ title: '', body: '', deeplink: '', image: '' });
+      setSelected(new Set());
       setTheme('');
       setPortraitImage(''); setCtaText(''); setCtaDeeplink(''); setDisplayMode('half');
       setLTitle(''); setLBody(''); setLBg('#2e2b5f'); setLFg('#ffffff');
@@ -178,6 +236,61 @@ export default function BroadcastPage() {
           <div className="pickrow">
             {AUDIENCE.map((a) => <button key={a.key} type="button" className={`pickchip${segment === a.key ? ' on' : ''}`} onClick={() => setSegment(a.key)}>{a.label}</button>)}
           </div>
+
+          {segment === 'list' && (
+            <div style={{ marginTop: 12, border: '1px solid var(--line)', borderRadius: 10, padding: 12 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input className="input" style={{ flex: 1, minWidth: 180 }} placeholder="Search name, phone, email…" value={uq} onChange={(e) => setUq(e.target.value)} />
+                <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, whiteSpace: 'nowrap' }}>
+                  <input type="checkbox" checked={paidOnly} onChange={(e) => setPaidOnly(e.target.checked)} /> Paid only
+                </label>
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+                <b style={{ fontSize: 13 }}>{selected.size} selected</b>
+                {filtered.length > 0 && <button type="button" className="btn sm secondary" onClick={() => addMany(filtered)}>Add all shown ({filtered.length})</button>}
+                {selected.size > 0 && <button type="button" className="btn sm secondary" onClick={clearSel}>Clear</button>}
+              </div>
+              {selected.size > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10, maxHeight: 110, overflowY: 'auto' }}>
+                  {[...selected].map((id) => {
+                    const p = people.find((x) => x.id === id);
+                    return (
+                      <span key={id} className="badge" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                        {p?.name || p?.phone || id.slice(0, 8)}
+                        <button type="button" onClick={() => toggle(id)} aria-label="Remove" style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 700, padding: 0, lineHeight: 1 }}>×</button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              <div style={{ marginTop: 12, maxHeight: 320, overflowY: 'auto' }}>
+                {(['Today', 'Yesterday', 'Older'] as const).map((k) => groups[k].length > 0 && (
+                  <div key={k} style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+                      <b style={{ fontSize: 13 }}>{k} · {groups[k].length}</b>
+                      <button type="button" className="btn sm secondary" onClick={() => addMany(groups[k])}>Add all</button>
+                    </div>
+                    {groups[k].slice(0, 200).map((p) => {
+                      const on = selected.has(p.id);
+                      return (
+                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {p.name || 'Unnamed'} {p.paid && <span className="badge green" style={{ fontSize: 10 }}>paid</span>}
+                            </div>
+                            <div className="muted" style={{ fontSize: 12 }}>{p.phone || p.email || p.id.slice(0, 10)}</div>
+                          </div>
+                          <button type="button" className={`btn sm${on ? ' secondary' : ''}`} style={{ whiteSpace: 'nowrap' }} onClick={() => toggle(p.id)}>{on ? '✓ Added' : 'Add'}</button>
+                        </div>
+                      );
+                    })}
+                    {groups[k].length > 200 && <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>Showing first 200 — search to narrow.</p>}
+                  </div>
+                ))}
+                {filtered.length === 0 && <p className="muted" style={{ fontSize: 13 }}>No users match.</p>}
+              </div>
+            </div>
+          )}
 
           <label className="af" style={{ marginTop: 16 }}><span>Title</span>
             <input className="input" placeholder="✨ Your stars align today" value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
