@@ -226,6 +226,11 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
     // chat that opened us (out-of-balance prompt) can show a "₹X added to your
     // wallet" line inline. Other callers simply ignore the returned value.
     final creditedPaise = plan.totalCredit + couponBonus;
+    // Guard "Done": it can be tapped twice, or the screen may already be gone by
+    // the time it fires (the top-up itself already succeeded before this dialog).
+    // Without this, the second pop / a stale context threw the
+    // "Null check operator used on a null value" crash in _showSuccess.<fn>.<fn>.
+    var closed = false;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -233,7 +238,9 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
         plan: plan,
         couponBonus: couponBonus,
         onDone: () {
-          Navigator.pop(context); // close dialog
+          if (closed || !mounted) return; // double-tap, or screen already left
+          closed = true;
+          Navigator.of(context).pop(); // close the celebration dialog
           Navigator.of(context).maybePop(creditedPaise); // leave recharge, hand total back
         },
       ),
